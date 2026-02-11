@@ -1,0 +1,31 @@
+{
+    "en": "Inglés",
+    "es": "Español",
+    "notifications.recent": "Notificaciones recientes",
+    "welcome": "Bienvenido a ACME",
+    "home.action": "¿Qué quieres hacer?",
+
+    "route.user.account": "Perfil de usuario",
+    "route.notification.simulator": "Simular actuación",
+    "route.notification.actuation": "Notificar actuación",
+    "route.notification.user.table": "Mis actuaciones",
+    "route.user.customer.table": "Mis clientes",
+    "route.user.document": "Mis documentos",
+
+    "route.admin.users": "Usuarios",
+    "route.admin.customers": "Clientes",
+    "route.admin.businesses": "Empresas",
+    "route.admin.notifications": "Notificaciones",
+    "route.admin.plannings": "Planning",
+    "route.admin.tickets": "Soporte",
+    "route.admin.prls": "Contratos PRL",
+    "route.admin.documents": "Documentos",
+    "route.admin.mail": "Correos",
+    "route.admin.agency": "Agencias",
+    "route.admin.config": "Configuración",
+
+    "dashboard.tickets.open": "Tickets abiertos",
+    "dashboard.tickets.onProgress": "Tickets en progreso",
+    "dashboard.notifications.pending": "Notificaciones pendientes",
+    "dashboard.plannings.pending": "Planning pendientes"
+}
