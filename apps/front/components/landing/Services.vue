@@ -8,7 +8,10 @@ import {
   Phone,
   Calendar,
   ShoppingCart,
-  Headphones
+  Headphones,
+  Shield,
+  BotMessageSquare,
+  Layers
 } from "lucide-vue-next";
 
 enum ServiceTier {
@@ -25,43 +28,43 @@ interface ServiceProps {
 
 const serviceList: ServiceProps[] = [
   {
-    title: "Agenda y Ventas",
-    description: "Automatiza la programación de citas y procesos de venta con bots que califican leads y cierran ventas.",
+    title: "Seguridad y RBAC",
+    description: "Gestión de roles y permisos granulares ya configurada para que tu app sea segura desde el primer despliegue.",
     tier: 0,
-    icon: "calendar",
+    icon: "shield",
   },
   {
-    title: "Atención al Cliente",
-    description: "Agentes IA especializados que resuelven consultas, procesan reclamos y escalan casos complejos.",
+    title: "Pagos con Stripe",
+    description: "Sistema de facturación recurrente y portal de cliente listo para monetizar tu plataforma rápidamente.",
     tier: 0,
-    icon: "headphones",
+    icon: "shoppingCart",
   },
   {
-    title: "Llamadas Automatizadas",
-    description: "Sistema de llamadas con IA que agenda citas, confirma reservas y brinda atención telefónica automatizada.",
+    title: "IA Adaptada a tu App",
+    description: "Aprovecha LangChain para crear asistentes que consultan tus datos y automatizan flujos complejos.",
     tier: 1,
-    icon: "phone",
+    icon: "bot",
   },
   {
-    title: "Chatbot Web",
+    title: "Blog y Marketing",
     description:
-      "Asistentes virtuales para tu sitio web que atienden visitantes, generan ventas y brindan atención al cliente 24/7.",
+      "Herramientas de SEO, blog de alto rendimiento y sistema de newsletter integrados para hacer crecer tu audiencia.",
     tier: 0,
     icon: "globe",
   },
   {
-    title: "Instagram",
+    title: "API de Alto Nivel",
     description:
-      "Automatiza respuestas en Instagram, gestiona consultas de productos y agenda citas directamente desde DMs.",
+      "Backend en NestJS con arquitectura de microservicios opcional, listo para integrarse con cualquier frontend.",
     tier: 0,
-    icon: "instagram",
+    icon: "layers",
   },
   {
-    title: "WhatsApp",
+    title: "Google Auth & Social",
     description:
-      "Bots inteligentes para WhatsApp que procesan pedidos, agendan citas y brindan soporte al cliente.",
+      "Inicio de sesión social preconfigurado para ofrecer la mejor experiencia de usuario desde el registro.",
     tier: 0,
-    icon: "messageCircle",
+    icon: "instagram",
   },
 ];
 
@@ -73,6 +76,9 @@ const iconMap: Record<string, any> = {
   calendar: Calendar,
   shoppingCart: ShoppingCart,
   headphones: Headphones,
+  shield: Shield,
+  bot: BotMessageSquare,
+  layers: Layers,
 };
 </script>
 
@@ -81,16 +87,15 @@ const iconMap: Record<string, any> = {
     <div class="max-w-7xl mx-auto">
       <div class="text-center mb-8" data-aos="fade-up">
         <h2 class="text-2xl text-primary font-bold mb-8 tracking-wider">
-          Servicios
+          Pilares del Proyecto
         </h2>
 
         <h2 class="text-3xl md:text-4xl font-bold mb-4">
-          Conversaciones inteligentes que venden por ti.
+          Infraestructura lista para tus integraciones.
         </h2>
         <p class="max-w-2xl mx-auto text-xl text-muted-foreground">
-          Desde tu web hasta WhatsApp e Instagram, nuestros agentes IA atienden,
-          venden y resuelven 24/7 para que tu negocio no se detenga nunca.
-
+          Foundation no es solo una plantilla, es una arquitectura completa
+          diseñada para soportar todas las integraciones que tu negocio necesite.
         </p>
       </div>
 

@@ -71,10 +71,11 @@ const handleSubmit = () => {
         <div class="flex flex-col gap-8" data-aos="fade-right">
           <div>
             <h2 class="text-3xl md:text-4xl font-bold mb-4">
-              ¿Busca algo más? Hablamos de tu caso
+              ¿Listo para dar el siguiente paso?
             </h2>
             <p class="text-muted-foreground max-w-lg">
-              ¿Tienes preguntas sobre nuestros asistentes virtuales? Estamos aquí para ayudarte. Contacta con nuestro equipo para soporte, alianzas o soluciones personalizadas.
+              ¿Tienes preguntas sobre la arquitectura de Foundation o necesitas una solución personalizada? Nuestro
+              equipo está listo para ayudarte con soporte técnico, alianzas o consultoría.
             </p>
           </div>
 
@@ -84,7 +85,7 @@ const handleSubmit = () => {
                 <Mail />
                 <div class="font-bold">Escríbenos</div>
               </div>
-              <div>soporte@atenfy.com</div>
+              <div>hola@foundation-app.com</div>
             </div>
 
             <!-- <div>
@@ -118,42 +119,24 @@ const handleSubmit = () => {
 
         <!-- form -->
         <Card class="bg-muted/60 dark:bg-card" data-aos="fade-left">
-          <CardHeader class="text-primary text-2xl"/>
+          <CardHeader class="text-primary text-2xl" />
           <CardContent>
-            <form
-              class="grid gap-4"
-              @submit.prevent="handleSubmit"
-            >
+            <form class="grid gap-4" @submit.prevent="handleSubmit">
               <div class="flex flex-col md:flex-row gap-8">
                 <div class="flex flex-col w-full gap-1.5">
                   <Label for="first-name">Nombre</Label>
-                  <Input
-                    id="first-name"
-                    v-model="contactForm.firstName"
-                    type="text"
-                    placeholder="Juan"
-                  />
+                  <Input id="first-name" v-model="contactForm.firstName" type="text" placeholder="Juan" />
                 </div>
 
                 <div class="flex flex-col w-full gap-1.5">
                   <Label for="last-name">Apellidos</Label>
-                  <Input
-                    id="last-name"
-                    v-model="contactForm.lastName"
-                    type="text"
-                    placeholder="García"
-                  />
+                  <Input id="last-name" v-model="contactForm.lastName" type="text" placeholder="García" />
                 </div>
               </div>
 
               <div class="flex flex-col gap-1.5">
                 <Label for="email">Correo Electrónico</Label>
-                <Input
-                  id="email"
-                  v-model="contactForm.email"
-                  type="email"
-                  placeholder="juan@empresa.com"
-                />
+                <Input id="email" v-model="contactForm.email" type="email" placeholder="juan@empresa.com" />
               </div>
 
               <div class="flex flex-col gap-1.5">
@@ -183,18 +166,11 @@ const handleSubmit = () => {
 
               <div class="flex flex-col gap-1.5">
                 <Label for="message">Mensaje</Label>
-                <Textarea
-                  id="message"
-                  v-model="contactForm.message"
-                  placeholder="Cuéntanos sobre tu proyecto..."
-                  rows="5"
-                />
+                <Textarea id="message" v-model="contactForm.message" placeholder="Cuéntanos sobre tu proyecto..."
+                  rows="5" />
               </div>
 
-              <Alert
-                v-if="invalidInputForm"
-                variant="destructive"
-              >
+              <Alert v-if="invalidInputForm" variant="destructive">
                 <AlertCircle class="w-4 h-4" />
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>
@@ -206,7 +182,7 @@ const handleSubmit = () => {
             </form>
           </CardContent>
 
-          <CardFooter/>
+          <CardFooter />
         </Card>
       </section>
     </div>

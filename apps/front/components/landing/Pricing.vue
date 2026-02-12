@@ -12,9 +12,9 @@ import {
 
 import { Check } from "lucide-vue-next";
 
-import StripeService from "@/services/strie.service";
+import StripeService from "~/services/stripe.service";
 
-const stripe = new StripeService()
+let stripe: StripeService;
 
 interface PlanProps {
   title: string;
@@ -37,49 +37,52 @@ const currencySymbols: { [key: string]: string } = {
 };
 
 const loadPlans = async () => {
-  // Static Spanish pricing plans
+  if (!stripe) {
+    stripe = new StripeService();
+  }
+  // Static Spanish pricing plans for Foundation
   plans.value = [
     {
-      title: "Básico",
+      title: "Desarrollador",
       popular: false,
-      price: 39.99,
-      description: "Ideal para empezar a automatizar tu atención al cliente.",
-      buttonText: "Empieza tu prueba gratis",
+      price: 0,
+      description: "Perfecto para probar la estructura y empezar tu proyecto local.",
+      buttonText: "Descargar Base Gratis",
       benefitList: [
-        "1 canal integrado (WhatsApp, Instagram o Web)",
-        "Hasta 500 mensajes/mes",
-        "Panel de gestión intuitivo",
-        "IA entrenada con FAQs básicas"
+        "Monorepo NuxtJS + NestJS",
+        "Auth JWT & Google (Local)",
+        "Base de datos Postgres & Redis",
+        "Documentación completa"
       ],
       currencySymbol: '€'
     },
     {
-      title: "Profesional",
+      title: "Startup",
       popular: true,
-      price: 79.99,
-      description: "Para negocios que quieren ir un paso más allá.",
-      buttonText: "Empieza tu prueba gratis",
+      price: 49.99,
+      description: "Todo lo que necesitas para lanzar tu MVP al mercado.",
+      buttonText: "Empieza tu proyecto",
       benefitList: [
-        "Hasta 3 canales integrados (WhatsApp, Instagram, Web, otros)",
-        "Hasta 2.000 mensajes/mes",
-        "60 minutos de llamadas automatizadas/mes",
-        "IA avanzada y personalizable",
-        "Acceso a estadísticas y gestión de citas"
+        "Todo lo del plan Desarrollador",
+        "Integración Stripe lista",
+        "Módulo de Blog & Newsletter",
+        "IA con LangChain preconfigurada",
+        "Soporte vía Discord"
       ],
       currencySymbol: '€'
     },
     {
       title: "Empresarial",
       popular: false,
-      price: 109,
-      description: "Máximo rendimiento y automatización total.",
-      buttonText: "Empieza tu prueba gratis",
+      price: 199,
+      description: "Para grandes organizaciones que requieren máxima personalización.",
+      buttonText: "Contactar Ventas",
       benefitList: [
-        "Hasta 3 canales integrados + llamadas",
-        "Mensajes ilimitados",
-        "Llamadas automatizadas ilimitadas",
-        "Soporte técnico avanzado incluido",
-        "IA totalmente entrenable con tu contenido"
+        "Todo lo del plan Startup",
+        "Arquitectura escalable avanzada",
+        "Roles & Permisos complejos",
+        "Soporte prioritario 24/7",
+        "Consultoría de integración"
       ],
       currencySymbol: '€'
     }
@@ -96,15 +99,16 @@ onMounted(() => {
     <div class="max-w-7xl mx-auto">
       <div class="text-center mb-12" data-aos="fade-up">
         <h2 class="text-2xl text-primary font-bold mb-8 tracking-wider">
-          Precios
+          Planes
         </h2>
 
         <h2 class="text-3xl md:text-4xl font-bold mb-4">
-          Planes que se adaptan a tu negocio
+          La base que escala contigo
         </h2>
 
         <p class="max-w-2xl mx-auto text-xl text-muted-foreground">
-          Elige el plan perfecto para tu negocio. Prueba gratuita sin compromiso durante 5 días.
+          Elige el punto de partida ideal para tu negocio. Desde una base gratuita
+          hasta soluciones empresariales personalizadas.
         </p>
       </div>
 
@@ -112,8 +116,7 @@ onMounted(() => {
         <div v-if="plans.length === 0" class="col-span-full text-center py-8">
           <p class="text-muted-foreground">Loading plans...</p>
         </div>
-        <Card
-v-for="{
+        <Card v-for="{
           title,
           popular,
           price,
@@ -164,16 +167,17 @@ v-for="{
             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-12">
               <div class="flex-1">
                 <div class="flex items-center gap-3 mb-3">
-                  <div class="h-2 w-8 bg-primary rounded-full"/>
+                  <div class="h-2 w-8 bg-primary rounded-full" />
                   <span class="text-sm font-semibold text-primary uppercase tracking-wide">Enterprise</span>
                 </div>
                 <CardTitle class="text-3xl font-bold mb-3 text-foreground">
                   Personalizado
                 </CardTitle>
                 <CardDescription class="text-lg text-muted-foreground mb-6">
-                  Soluciones para grandes empresas y administraciones públicas. Integración con múltiples canales y sistemas, IA totalmente adaptada a tus procesos.
+                  Soluciones para grandes empresas y administraciones públicas. Integración con múltiples canales y
+                  sistemas, IA totalmente adaptada a tus procesos.
                 </CardDescription>
-                
+
               </div>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="flex items-start gap-3">
@@ -185,7 +189,7 @@ v-for="{
                     <div class="text-xs text-muted-foreground">Canales y sistemas</div>
                   </div>
                 </div>
-                
+
                 <div class="flex items-start gap-3">
                   <div class="mt-1 bg-primary/10 rounded-full p-1.5">
                     <Check class="text-primary h-4 w-4" />
@@ -195,7 +199,7 @@ v-for="{
                     <div class="text-xs text-muted-foreground">Adaptada a tus procesos</div>
                   </div>
                 </div>
-                
+
                 <div class="flex items-start gap-3">
                   <div class="mt-1 bg-primary/10 rounded-full p-1.5">
                     <Check class="text-primary h-4 w-4" />
@@ -205,7 +209,7 @@ v-for="{
                     <div class="text-xs text-muted-foreground">Asistencia prioritaria 24/7</div>
                   </div>
                 </div>
-                
+
                 <div class="flex items-start gap-3">
                   <div class="mt-1 bg-primary/10 rounded-full p-1.5">
                     <Check class="text-primary h-4 w-4" />
@@ -216,7 +220,7 @@ v-for="{
                   </div>
                 </div>
               </div>
-              
+
               <div class="flex flex-col items-center gap-4">
                 <div class="text-center">
                   <div class="text-3xl font-bold text-foreground">Hablamos</div>

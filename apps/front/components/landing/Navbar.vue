@@ -47,16 +47,16 @@ const routeList: RouteProps[] = [
     label: "Beneficios",
   },
   {
+    href: "#features",
+    label: "Características",
+  },
+  {
     href: "#services",
-    label: "Servicios",
+    label: "Pilares",
   },
   {
     href: "#plans",
     label: "Planes",
-  },
-  {
-    href: "#contact",
-    label: "Contacto",
   },
   {
     href: "#faq",
@@ -66,18 +66,18 @@ const routeList: RouteProps[] = [
 
 const featureList: FeatureProps[] = [
   {
-    title: "Asistentes Virtuales IA",
-    description: "Chatbots inteligentes que aprenden de tu negocio y responden como tú.",
+    title: "Monorepo Premium",
+    description: "Arquitectura NuxtJS + NestJS perfectamente sincronizada para tu negocio.",
   },
   {
-    title: "Múltiples Canales",
+    title: "Integraciones Listas",
     description:
-      "WhatsApp, Instagram, web y llamadas integrados en una sola plataforma.",
+      "Stripe, Auth (Google), Blog y Newsletter integrados desde el primer día.",
   },
   {
-    title: "Automatización Total",
+    title: "IA Adaptada con LangChain",
     description:
-      "Reservas, consultas y soporte automatizado 24/7 sin intervención humana.",
+      "Agentes de IA capaces de interactuar con los datos de tu propia aplicación.",
   },
 ];
 
@@ -85,8 +85,7 @@ const isOpen = ref<boolean>(false);
 </script>
 
 <template>
-  <header
-:class="{
+  <header :class="{
     'shadow-light': colorMode === 'light',
     'shadow-dark': colorMode === 'dark',
     'container top-5 mx-auto place-items-center lg:max-w-screen-xl gap-8 mx-auto sticky border z-40 px-2 py-1 sm:p-3 rounded-sm sm:rounded-2xl flex justify-between items-center shadow-md backdrop-blur-xl': true,
@@ -110,8 +109,7 @@ const isOpen = ref<boolean>(false);
             </SheetHeader>
 
             <div class="flex flex-col gap-2">
-              <Button
-v-for="{ href, label } in routeList" :key="label" as-child variant="ghost"
+              <Button v-for="{ href, label } in routeList" :key="label" as-child variant="ghost"
                 class="justify-start text-base">
                 <a :href="href" @click="isOpen = false">
                   {{ label }}
@@ -122,7 +120,7 @@ v-for="{ href, label } in routeList" :key="label" as-child variant="ghost"
 
           <SheetFooter class="flex-col sm:flex-col justify-start items-start">
             <Separator class="mb-2" />
-            
+
             <Button variant="outline" as-child class="w-full mb-2">
               <NuxtLink to="/login" @click="isOpen = false">
                 Login
@@ -163,8 +161,7 @@ v-for="{ title, description } in featureList" :key="title"
 
         <NavigationMenuItem class="flex justify-end gap-2">
           <NavigationMenuLink as-child>
-            <Button
-v-for="{ href, label } in routeList" :key="label" as-child variant="ghost"
+            <Button v-for="{ href, label } in routeList" :key="label" as-child variant="ghost"
               class="justify-start text-base">
               <a :href="href">
                 {{ label }}

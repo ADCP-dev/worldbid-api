@@ -2,6 +2,8 @@
 import { BotMessageSquare } from "lucide-vue-next";
 import Separator from "@/components/ui/separator/Separator.vue";
 import Logo from "./components/Logo.vue";
+
+const config = useRuntimeConfig();
 </script>
 
 <template>
@@ -34,43 +36,43 @@ import Logo from "./components/Logo.vue";
         </div>
 
         <div class="flex flex-col gap-2" data-aos="fade-up" data-aos-delay="200">
-          <h3 class="font-bold text-lg">Plataformas</h3>
+          <h3 class="font-bold text-lg">Tecnologías</h3>
           <div>
             <a href="#" class="opacity-60 hover:opacity-100">
-              WhatsApp
+              NuxtJS & NestJS
             </a>
           </div>
 
           <div>
             <a href="#" class="opacity-60 hover:opacity-100">
-              Instagram
+              Postgres & Redis
             </a>
           </div>
 
           <div>
             <a href="#" class="opacity-60 hover:opacity-100">
-              Web
+              LangChain & AI
             </a>
           </div>
         </div>
 
         <div class="flex flex-col gap-2" data-aos="fade-up" data-aos-delay="300">
-          <h3 class="font-bold text-lg">Ayuda</h3>
+          <h3 class="font-bold text-lg">Recursos</h3>
           <div>
-            <a href="#" class="opacity-60 hover:opacity-100">
-              Contáctanos
+            <a href="#features" class="opacity-60 hover:opacity-100">
+              Características
             </a>
           </div>
 
           <div>
-            <a href="#" class="opacity-60 hover:opacity-100">
-              FAQ
+            <a href="#faq" class="opacity-60 hover:opacity-100">
+              Preguntas Frecuentes
             </a>
           </div>
 
           <div>
-            <a href="#" class="opacity-60 hover:opacity-100">
-              Comentarios
+            <a href="https://discord.gg/foundation" class="opacity-60 hover:opacity-100">
+              Comunidad
             </a>
           </div>
         </div>
@@ -101,18 +103,14 @@ import Logo from "./components/Logo.vue";
       <section className="">
         <div class="flex flex-col md:flex-row justify-between items-center gap-4">
           <h3 class="text-center md:text-left">
-            &copy; {{ new Date().getFullYear() }} Atenfy
-            <!-- <a target="_blank" href="https://github.com/"
-              className="text-primary transition-all border-primary hover:border-b-2">
-              Adrián Colom Palacios
-            </a> -->
+            &copy; {{ new Date().getFullYear() }} {{ config.public.appName }}
           </h3>
           <div class="flex flex-col md:flex-row items-center gap-4 text-sm text-muted-foreground">
-            <span class="font-semibold text-primary">Prueba gratuita sin compromiso</span>
+            <span class="font-semibold text-primary">La base definitiva para tu negocio</span>
             <span>•</span>
-            <span>Período de prueba de 5 días</span>
+            <span>Monorepo Premium</span>
             <span>•</span>
-            <span>Protegido por GDPR</span>
+            <span>Seguro y Escalable</span>
           </div>
         </div>
       </section>

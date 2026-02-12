@@ -18,23 +18,24 @@ const mode = useColorMode();
 
         <div class="max-w-screen-lg mx-auto text-center text-5xl md:text-6xl font-bold">
           <h1>
-            <span class="text-transparent bg-gradient-to-r to-secondary/90 from-primary bg-clip-text">Atención al
-              cliente 24/7
+            <span class="text-transparent bg-gradient-to-r to-secondary/90 from-primary bg-clip-text">La Base Perfecta
             </span>
-            con IA que responde por ti
+            para tu Próxima Gran App
           </h1>
         </div>
 
         <p class="max-w-screen-md mx-auto text-xl text-muted-foreground">
-          Atenfy lleva la atención al cliente a otro nivel. Asistentes virtuales que aprenden de tu negocio, se
-          adaptan y ofrecen soporte excepcional en cualquier canal.
+          Foundation es un monorepo premium con NuxtJS, NestJS, Shadcn, Redis, Postgres y LangChain.
+          Incluye Auth (Google), Stripe, Blog, Newsletter y más. La estructura definitiva para escalar tu negocio.
         </p>
 
         <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <Button class="w-full sm:w-auto font-bold group/arrow px-8 py-5 text-md">
-            <Zap class="size-6 mr-2" />
-            Empieza gratis ahora
-            <ArrowRight class="size-6 ml-2 group-hover/arrow:translate-x-1 transition-transform" />
+          <Button class="w-full sm:w-auto font-bold group/arrow px-8 py-5 text-md" as-child>
+            <NuxtLink to="/login">
+              <Zap class="size-6 mr-2" />
+              Empieza Gratis
+              <ArrowRight class="size-6 ml-2 group-hover/arrow:translate-x-1 transition-transform" />
+            </NuxtLink>
           </Button>
 
           <Button as-child variant="outline" class="w-full sm:w-auto font-bold px-8 py-5 text-md">

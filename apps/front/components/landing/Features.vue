@@ -20,40 +20,40 @@ interface FeaturesProps {
 
 const featureList: FeaturesProps[] = [
   {
-    icon: "code",
-    title: "Constructor Visual",
+    icon: "shield",
+    title: "Auth & Seguridad",
     description:
-      "Interfaz de arrastrar y soltar para crear flujos conversacionales complejos sin conocimientos de programación.",
+      "JWT, Google OAuth y sistema de roles (RBAC) con permisos granulares integrados en el core.",
   },
   {
     icon: "zap",
-    title: "Integración WhatsApp",
+    title: "Stripe & Facturación",
     description:
-      "Conecta perfectamente tus chatbots con WhatsApp Business API para comunicación instantánea con clientes.",
+      "Integración completa con Stripe para gestionar suscripciones, cobros y portal del cliente.",
   },
   {
     icon: "layers",
-    title: "Entrenamiento IA",
+    title: "IA con LangChain",
     description:
-      "Entrena tus agentes con datos personalizados, FAQs y bases de conocimiento para respuestas precisas y contextuales.",
+      "Arquitectura preparada para agentes de IA que pueden interactuar con la base de datos de tu app.",
   },
   {
     icon: "database",
-    title: "Gestión de Leads",
+    title: "Redis & Postgres",
     description:
-      "Captura, califica y gestiona prospectos automáticamente a través de flujos conversacionales inteligentes.",
+      "Pila tecnológica robusta con PostgreSQL para datos persistentes y Redis para colas y caché.",
   },
   {
     icon: "workflow",
-    title: "Soporte Multicanal",
+    title: "CMS & Newsletter",
     description:
-      "Despliega tus agentes en chat web, WhatsApp, Instagram y otras plataformas de mensajería.",
+      "Sistema de blog profesional y gestión de newsletters listo para usar y atraer usuarios.",
   },
   {
     icon: "barChart3",
-    title: "Analíticas Conversacionales",
+    title: "Dashboard Premium",
     description:
-      "Rastrea tasas de engagement, métricas de conversión y satisfacción del cliente con analíticas detalladas.",
+      "Interfaz de administración completa construida con Shadcn UI para el control total de tu plataforma.",
   },
 ];
 
@@ -72,61 +72,51 @@ const iconMap: Record<
   zap: Zap,
   layers: Layers,
   globe: Globe,
+  database: Database,
+  shield: Shield,
   workflow: Workflow,
   barChart3: BarChart3,
 };
 </script>
 
 <template>
-  <section
-    id="features"
-    class="container mx-auto py-24 sm:py-32"
-    data-aos="fade-up"
-  >
+  <section id="features" class="container mx-auto py-24 sm:py-32" data-aos="fade-up">
     <div class="max-w-7xl mx-auto">
       <div class="text-center mb-8" data-aos="fade-up">
         <h2 class="text-lg text-primary mb-2 tracking-wider">
-          Características de la Plataforma
+          Características Técnicas
         </h2>
 
         <h2 class="text-3xl md:text-4xl font-bold mb-4">
-          Todo lo que Necesitas para Crear Agentes IA
+          Potencia tu Negocio con el Stack Definitivo
         </h2>
 
         <p class="max-w-2xl mx-auto text-xl text-muted-foreground">
-          Plataforma completa para construir, entrenar y desplegar chatbots inteligentes 
-          y automatización de WhatsApp. Desde bots simples de Q&A hasta agentes complejos de atención al cliente.
+          Una base sólida construida con las tecnologías más modernas para que
+          puedas centrarte en las integraciones y funcionalidades que importan.
         </p>
       </div>
 
       <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div
-        v-for="{ icon, title, description }, index in featureList"
-        :key="title"
-        :data-aos="'fade-up'"
-        :data-aos-delay="index * 100">
-        <Card class="h-full bg-background border-0 shadow-none">
-          <CardHeader class="flex justify-center items-center flex-col">
-            <div
-              class="bg-primary/20 p-2 rounded-full ring-8 ring-primary/10 mb-4"
-            >
-              <component
-                :is="iconMap[icon]"
-                class="size-6 text-primary"
-              />
-              
-            </div>
-            <CardTitle>
-              {{ title }}
-            </CardTitle>
-          </CardHeader>
+        <div v-for="{ icon, title, description }, index in featureList" :key="title" :data-aos="'fade-up'"
+          :data-aos-delay="index * 100">
+          <Card class="h-full bg-background border-0 shadow-none">
+            <CardHeader class="flex justify-center items-center flex-col">
+              <div class="bg-primary/20 p-2 rounded-full ring-8 ring-primary/10 mb-4">
+                <component :is="iconMap[icon]" class="size-6 text-primary" />
 
-          <CardContent class="text-muted-foreground text-center">
-            {{ description }}
-          </CardContent>
-        </Card>
+              </div>
+              <CardTitle>
+                {{ title }}
+              </CardTitle>
+            </CardHeader>
+
+            <CardContent class="text-muted-foreground text-center">
+              {{ description }}
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </div>
     </div>
   </section>
 </template>

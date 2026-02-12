@@ -7,9 +7,7 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 
-import LinkedInIcon from "@/components/icons/LinkedInIcon.vue";
-import GithubIcon from "@/components/icons/GithubIcon.vue";
-import XIcon from "@/components/icons/XIcon.vue";
+import { Linkedin, Github, Twitter } from 'lucide-vue-next';
 
 interface TeamProps {
   imageUrl: string;
@@ -169,22 +167,19 @@ const teamList: TeamProps[] = [
 const socialIcon = (socialName: string) => {
   switch (socialName) {
     case "LinkedIn":
-      return LinkedInIcon;
+      return Linkedin;
 
     case "Github":
-      return GithubIcon;
+      return Github;
 
     case "X":
-      return XIcon;
+      return Twitter;
   }
 };
 </script>
 
 <template>
-  <section
-    id="team"
-    class="container mx-auto py-24 sm:py-32"
-  >
+  <section id="team" class="container mx-auto py-24 sm:py-32">
     <div class="max-w-7xl mx-auto">
       <div class="text-center mb-12">
         <h2 class="text-lg text-primary mb-2 tracking-wider">Equipo</h2>
@@ -194,59 +189,40 @@ const socialIcon = (socialName: string) => {
         </h2>
       </div>
 
-      <div
-        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
-      >
-      <Card
-        v-for="{
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+        <Card v-for="{
           imageUrl,
           firstName,
           lastName,
           positions,
           socialNetworks,
-        } in teamList"
-        :key="imageUrl"
-        class="bg-muted/60 dark:bg-card flex flex-col h-full overflow-hidden group/hoverimg"
-      >
-        <CardHeader class="p-0 gap-0">
-          <div class="h-full overflow-hidden">
-            <img
-              :src="imageUrl"
-              alt=""
-              class="w-full aspect-square object-cover saturate-0 transition-all duration-200 ease-linear size-full group-hover/hoverimg:saturate-100 group-hover/hoverimg:scale-[1.01]"
-            >
-          </div>
-          <CardTitle class="py-6 pb-4 px-6"
-            >{{ firstName }}
-            <span class="text-primary">{{ lastName }}</span>
-          </CardTitle>
-        </CardHeader>
+        } in teamList" :key="imageUrl"
+          class="bg-muted/60 dark:bg-card flex flex-col h-full overflow-hidden group/hoverimg">
+          <CardHeader class="p-0 gap-0">
+            <div class="h-full overflow-hidden">
+              <img :src="imageUrl" alt=""
+                class="w-full aspect-square object-cover saturate-0 transition-all duration-200 ease-linear size-full group-hover/hoverimg:saturate-100 group-hover/hoverimg:scale-[1.01]">
+            </div>
+            <CardTitle class="py-6 pb-4 px-6">{{ firstName }}
+              <span class="text-primary">{{ lastName }}</span>
+            </CardTitle>
+          </CardHeader>
 
-        <CardContent
-          v-for="(position, index) in positions"
-          :key="index"
-          :class="{
+          <CardContent v-for="(position, index) in positions" :key="index" :class="{
             'pb-0 text-muted-foreground ': true,
             'pb-4': index === positions.length - 1,
-          }"
-        >
-          {{ position }}<span v-if="index < positions.length - 1">,</span>
-        </CardContent>
+          }">
+            {{ position }}<span v-if="index < positions.length - 1">,</span>
+          </CardContent>
 
-        <CardFooter class="space-x-4 mt-auto">
-          <a
-            v-for="{ name, url } in socialNetworks"
-            :key="name"
-            :href="url"
-            target="_blank"
-            class="hover:opacity-80 transition-all"
-            :aria-label="`Visit our ${name} page`"
-          >
-            <component :is="socialIcon(name)" />
-          </a>
-        </CardFooter>
-      </Card>
-    </div>
+          <CardFooter class="space-x-4 mt-auto">
+            <a v-for="{ name, url } in socialNetworks" :key="name" :href="url" target="_blank"
+              class="hover:opacity-80 transition-all" :aria-label="`Visit our ${name} page`">
+              <component :is="socialIcon(name)" />
+            </a>
+          </CardFooter>
+        </Card>
+      </div>
     </div>
   </section>
 </template>

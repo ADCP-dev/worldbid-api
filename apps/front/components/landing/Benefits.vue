@@ -25,39 +25,39 @@ interface BenefitsProps {
 const benefitList: BenefitsProps[] = [
   {
     icon: "hourGlass",
-    title: "Ahorra tiempo y dinero",
+    title: "Acelera tu Desarrollo",
     description:
-      "Más clientes atendidos, menos esfuerzo para tu equipo, menos esperas.",
+      "No pierdas meses configurando lo básico. Tienes Auth, DB y UI listos desde el primer día.",
   },
   {
     icon: "clockPlus",
-    title: "Atención 24/7 en todos tus canales",
+    title: "Arquitectura Monorepo",
     description:
-      "WhatsApp, Instagram, web y llamadas — sin esfuerzo.",
+      "Backend (NestJS) y Frontend (Nuxt) en un solo lugar con tipos compartidos y máxima eficiencia.",
   },
   {
     icon: "chartLine",
-    title: "Escalabilidad.",
+    title: "IA con LangChain",
     description:
-      "Con asistentes inteligentes atiendes más, mejor y sin complicaciones.",
+      "Integra modelos de lenguaje con tus propios datos fácilmente gracias a la estructura preconfigurada.",
   },
   {
     icon: "panel",
-    title: "Todo desde un solo portal",
+    title: "Portal de Administración",
     description:
-      "Monitoriza tu negocio y datos fácilmente.",
+      "Gestiona usuarios, roles y permisos desde un dashboard premium ya integrado.",
   },
   {
     icon: "calendar",
-    title: "Reservas automatizadas",
+    title: "Pagos con Stripe",
     description:
-      "Tus clientes agendan y gestionan citas al instante.",
+      "Sistema de suscripciones y pagos listo para configurar tus claves y empezar a facturar.",
   },
   {
     icon: "api",
-    title: "Personalización sin límites",
+    title: "SEO y CMS Integrado",
     description:
-      "Adapta la IA a tu negocio: modifica entrenamientos, añade funciones y crea tus propios flujos.",
+      "Blog y Newsletter diseñados para posicionar tu marca y retener a tus usuarios desde el inicio.",
   },
 ];
 
@@ -65,11 +65,9 @@ const iconMap: Record<
   string,
   | typeof Plug
 > = {
-  zap: Zap,
-  database: Database,
   hourGlass: Hourglass,
-  chartLine: ChartLine,
   clockPlus: ClockFading,
+  chartLine: ChartLine,
   panel: PanelsTopLeft,
   calendar: CalendarClock,
   api: Plug,
@@ -84,11 +82,11 @@ const iconMap: Record<
           <h2 class="text-2xl text-primary font-bold mb-8 tracking-wider">Beneficios</h2>
 
           <h2 class="text-3xl md:text-4xl max-w-5xl mx-auto font-bold">
-            Tus clientes quieren respuestas rápidas, y tu negocio también.
+            Construye apps complejas sin preocuparte por la infraestructura.
           </h2>
           <p class="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Activa tu IA hoy y empieza a ahorrar tiempo y dinero con asistentes que
-            trabajan 24/7 para ti.
+            Foundation te ofrece todos los pilares necesarios para que te concentres
+            en lo que hace única a tu idea de negocio.
           </p>
         </div>
 
@@ -102,7 +100,7 @@ const iconMap: Record<
 
                 <span
                   class="text-5xl text-muted-foreground/15 font-medium transition-all delay-75 group-hover/number:text-muted-foreground/30">0{{
-                  index + 1 }}</span>
+                    index + 1 }}</span>
               </div>
 
               <CardTitle class="text-xl font-bold">{{ title }}</CardTitle>

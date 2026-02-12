@@ -1,11 +1,7 @@
 <script setup lang="ts">
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import hljs from 'highlight.js/lib/core';
-import json from 'highlight.js/lib/languages/json';
-import '@catppuccin/highlightjs/css/catppuccin-mocha.css';
 
-hljs.registerLanguage('json', json);
 
 interface HowItWorksProps {
   step: number;
@@ -17,23 +13,23 @@ interface HowItWorksProps {
 const HowItWorksList: HowItWorksProps[] = [
   {
     step: 1,
-    title: "Configura y Entrena tu Agente",
+    title: "Clona la Estructura Base",
     description:
-      "Cuéntale a tu IA sobre tu negocio, productos y servicios. Define su tono y personalidad para que hable como tú.",
+      "Descarga el monorepo con NuxtJS y NestJS ya vinculados. Todo el boilerplate de autenticación y base de datos está listo.",
     image: "/landing/howitworks/1.jpg",
   },
   {
     step: 2,
-    title: "Conecta los Canales",
+    title: "Configura tus Integraciones",
     description:
-      "Integra tu agente en web, WhatsApp, Instagram y sistema de llamadas. Configuración simple con un solo clic.",
+      "Añade tus credenciales de Google, Stripe y OpenAI. La arquitectura está diseñada para que solo tengas que conectar tus servicios.",
     image: "/landing/howitworks/2.jpg",
   },
   {
     step: 3,
-    title: "Prueba y Lanza",
+    title: "Despliega y Escala",
     description:
-      "Testea tu asistente antes de publicarlo: revisa cómo responde, ajusta lo que necesites y, cuando estés listo, lánzalo en minutos.",
+      "Lanza tu plataforma al mercado en tiempo récord. Tienes blog, newsletter e IA listos para empezar a operar y crecer.",
     image: "/landing/howitworks/3.jpg",
   },
 ];
@@ -44,11 +40,11 @@ const HowItWorksList: HowItWorksProps[] = [
     <div class="max-w-7xl mx-auto">
       <div class="text-center mb-12" data-aos="fade-up">
         <h2 class="text-2xl text-primary font-bold mb-8 tracking-wider">
-          Cómo Funciona
+          Cómo Iniciar
         </h2>
 
         <h2 class="text-3xl md:text-4xl font-bold">
-          Construye tu Agente IA en 3 Pasos
+          Lanza tu Aplicación en 3 Pasos
         </h2>
       </div>
 
