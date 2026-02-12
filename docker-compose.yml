@@ -1,0 +1,83 @@
+services:
+  # Database
+  postgres:
+    image: postgres:17.4-alpine
+    container_name: foundation_postgres
+    restart: always
+    ports:
+      - "${DATABASE_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${DATABASE_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-postgres}
+      POSTGRES_DB: ${DATABASE_NAME:-api}
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: foundation_redis
+    restart: always
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+
+  # Mailpit
+  mailpit:
+    image: axllent/mailpit
+    container_name: foundation_mailpit
+    restart: unless-stopped
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATABASE: /data/mailpit.db
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+      MP_SMTP_AUTH: "user:password"
+
+  # Backend (NestJS)
+  backend:
+    build:
+      context: ./apps/back
+      dockerfile: Dockerfile
+    container_name: foundation_backend
+    restart: always
+    ports:
+      - "${APP_PORT:-3001}:${APP_PORT:-3001}"
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USERNAME: ${DATABASE_USERNAME:-postgres}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-postgres}
+      DATABASE_NAME: ${DATABASE_NAME:-api}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+    env_file:
+      - ./apps/back/.env
+
+  # Frontend (Nuxt)
+  frontend:
+    build:
+      context: ./apps/front
+      dockerfile: Dockerfile
+    container_name: foundation_frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    environment:
+      NUXT_PUBLIC_API_BASE: http://backend:3001/api # Adjust internal internal networking
+    env_file:
+      - ./apps/front/.env
+
+volumes:
+  postgres_data:
+  redis_data:
