@@ -1,31 +1,58 @@
-import { Module, Global } from '@nestjs/common';
+import { Module, Global, DynamicModule } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { EmailProcessor } from './email.processor';
 import { EmailService } from './email.service';
 import { QueuedMailerService } from './queued-mailer.service';
 import { ConfigService } from '@nestjs/config';
-import { MailerService } from '../mailer/mailer.service';
+import { MailerModule } from '../mailer/mailer.module';
 
 @Global()
-@Module({
-  imports: [
-    BullModule.forRootAsync({
-      useFactory: (configService: ConfigService) => ({
-        connection: {
-          host: configService.get('worker.host'),
-          port: configService.get('worker.port'),
-          db: configService.get('worker.db'),
-          username: configService.get('worker.username'),
-          password: configService.get('worker.password'),
-        },
-      }),
-      inject: [ConfigService],
-    }),
-    BullModule.registerQueue({
-      name: 'email',
-    }),
-  ],
-  providers: [EmailProcessor, EmailService, MailerService, QueuedMailerService],
-  exports: [EmailService, QueuedMailerService, BullModule],
-})
-export class EmailQueueModule {}
+@Module({})
+export class EmailQueueModule {
+  static register(): DynamicModule {
+    const workerHost = process.env.WORKER_HOST;
+    // Strictly check if Redis connection string is provided and valid
+    const isRedisEnabled =
+      typeof workerHost === 'string' &&
+      workerHost.length > 0 &&
+      workerHost !== 'undefined' &&
+      workerHost !== 'null';
+
+    console.log(
+      `[EmailQueueModule] Redis enabled: ${isRedisEnabled}${isRedisEnabled ? ` (${workerHost})` : ''}`,
+    );
+
+    const imports: any[] = [MailerModule];
+    const providers: any[] = [EmailService, QueuedMailerService];
+    const exports: any[] = [EmailService, QueuedMailerService];
+
+    if (isRedisEnabled) {
+      imports.push(
+        BullModule.forRootAsync({
+          useFactory: (configService: ConfigService) => ({
+            connection: {
+              host: configService.get('worker.host'),
+              port: configService.get('worker.port'),
+              db: configService.get('worker.db'),
+              username: configService.get('worker.username'),
+              password: configService.get('worker.password'),
+            },
+          }),
+          inject: [ConfigService],
+        }),
+        BullModule.registerQueue({
+          name: 'email',
+        }),
+      );
+      providers.push(EmailProcessor);
+      exports.push(BullModule);
+    }
+
+    return {
+      module: EmailQueueModule,
+      imports,
+      providers,
+      exports,
+    };
+  }
+}

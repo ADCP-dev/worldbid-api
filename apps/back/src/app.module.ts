@@ -95,7 +95,7 @@ const infrastructureDatabaseModule = TypeOrmModule.forRootAsync({
     ApiKeysModule,
     StripeModule,
     HomeModule,
-    EmailQueueModule,
+    EmailQueueModule.register(),
   ],
 })
 export class AppModule {}

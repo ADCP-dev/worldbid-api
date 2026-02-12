@@ -15,7 +15,7 @@ const infrastructurePersistenceModule = RelationalUserPersistenceModule;
   imports: [
     // import modules, etc.
     infrastructurePersistenceModule,
-    FilesModule,
+    FilesModule.register(),
   ],
   controllers: [UsersController],
   providers: [UsersService],

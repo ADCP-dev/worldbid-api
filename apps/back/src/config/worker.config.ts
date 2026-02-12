@@ -12,7 +12,14 @@ class EnvironmentVariablesValidator {
 export default registerAs<WorkerConfig>('worker', () => {
   validateConfig(process.env, EnvironmentVariablesValidator);
 
-  const url = process.env.WORKER_HOST || 'redis://localhost:6379/0';
+  const url = process.env.WORKER_HOST;
+
+  if (!url) {
+    return {
+      enabled: false,
+    };
+  }
+
   let host = 'localhost';
   let port = 6379;
   let db = 0;
@@ -34,5 +41,6 @@ export default registerAs<WorkerConfig>('worker', () => {
     db,
     username,
     password,
+    enabled: true,
   };
 });
