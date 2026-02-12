@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { SidebarProps } from '@/components/ui/sidebar/index'
-import { navMenu, navMenuBottom } from '~/constants/menus'
+import { useNavMenu } from '~/composables/useNavMenu'
 
 import NavUser from '~/components/layout/NavUser.vue'
 import {
@@ -22,6 +22,10 @@ const props = withDefaults(defineProps<SidebarProps>(), {
   collapsible: 'icon',
 })
 
+const { navMenu, navMenuBottom } = useNavMenu()
+
+const authStore = useAuthStore()
+
 function resolveNavItemComponent(item: NavLink | NavGroup | NavSectionTitle): any {
   if ('children' in item)
     return resolveComponent('LayoutSidebarNavGroup')
@@ -29,14 +33,14 @@ function resolveNavItemComponent(item: NavLink | NavGroup | NavSectionTitle): an
   return resolveComponent('LayoutSidebarNavLink')
 }
 
-const user:  {
+const user: {
   name: string
   email: string
   avatar: string
 } = {
-  name: 'shadcn',
-  email: 'm@example.com',
-  avatar: '/avatars/shadcn.jpg',
+  name: authStore.user?.firstName + ' ' + authStore.user?.lastName,
+  email: authStore.user?.email,
+  avatar: authStore.user?.photo?.path,
 }
 </script>
 
@@ -60,7 +64,8 @@ const user:  {
         <component :is="resolveNavItemComponent(item)" v-for="(item, index) in nav.items" :key="index" :item="item" />
       </SidebarGroup>
       <SidebarGroup class="mt-auto">
-        <component :is="resolveNavItemComponent(item)" v-for="(item, index) in navMenuBottom" :key="index" :item="item" size="sm" />
+        <component :is="resolveNavItemComponent(item)" v-for="(item, index) in navMenuBottom" :key="index" :item="item"
+          size="sm" />
       </SidebarGroup>
     </SidebarContent>
     <SidebarFooter>

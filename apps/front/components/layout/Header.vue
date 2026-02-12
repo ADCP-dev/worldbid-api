@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import BreadcrumbCustom from '~/components/base/BreadcrumbCustom.vue'
+import { useHomeRoute } from '~/composables/useHomeRoute'
 
 const route = useRoute()
+const { route: homeRoute } = useHomeRoute()
 
 function setLinks() {
-  if (route.fullPath === '/') {
-    return [{ title: 'Home', href: '/' }]
+  if (route.fullPath === homeRoute.value) {
+    return [{ title: 'Home', href: homeRoute.value }]
   }
 
   const segments = route.fullPath.split('/').filter(item => item !== '')
@@ -23,7 +25,7 @@ function setLinks() {
     }
   })
 
-  return [{ title: 'Home', href: '/' }, ...breadcrumbs]
+  return [{ title: 'Home', href: homeRoute.value }, ...breadcrumbs]
 }
 
 const links = ref<{

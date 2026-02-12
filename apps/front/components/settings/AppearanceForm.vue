@@ -1,19 +1,13 @@
 <script setup lang="ts">
-import { cn } from '@/lib/utils'
 import { toTypedSchema } from '@vee-validate/zod'
 import { useForm } from 'vee-validate'
 import { h } from 'vue'
 import * as z from 'zod'
-import { buttonVariants } from '~/components/ui/button'
 import { toast } from 'vue-sonner'
 
 const appearanceFormSchema = toTypedSchema(z.object({
   theme: z.enum(['light', 'dark'], {
     required_error: 'Please select a theme.',
-  }),
-  font: z.enum(['inter', 'manrope', 'system'], {
-    invalid_type_error: 'Select a font',
-    required_error: 'Please select a font.',
   }),
 }))
 
@@ -21,22 +15,20 @@ const { handleSubmit } = useForm({
   validationSchema: appearanceFormSchema,
   initialValues: {
     theme: 'light',
-    font: 'inter',
   },
 })
 
 const color = useColorMode()
 
 const onSubmit = handleSubmit((values) => {
-  toast('You submitted the following values:', {
-    description: h('pre', { class: 'mt-2 w-[340px] rounded-md bg-slate-950 p-4' }, h('code', { class: 'text-white' }, JSON.stringify(values, null, 2))),
-  })
+  toast('Theme updated: ' + values.theme)
   if (values.theme === 'dark') {
     color.preference = 'dark'
   }
   else {
     color.preference = 'light'
   }
+
 })
 </script>
 
@@ -50,38 +42,7 @@ const onSubmit = handleSubmit((values) => {
     </p>
   </div>
   <Separator />
-  <form class="space-y-8" @submit="onSubmit">
-    <FormField v-slot="{ field }" name="font">
-      <FormItem>
-        <FormLabel>Font</FormLabel>
-        <div class="relative w-[200px]">
-          <FormControl>
-            <select
-              :class="cn(
-                buttonVariants({ variant: 'outline' }),
-                'w-[200px] appearance-none font-normal',
-              )"
-              v-bind="field"
-            >
-              <option value="inter">
-                Inter
-              </option>
-              <option value="manrope">
-                Manrope
-              </option>
-              <option value="system">
-                System
-              </option>
-            </select>
-          </FormControl>
-          <Icon name="i-radix-icons-chevron-down" class="pointer-events-none absolute right-3 top-2.5 h-4 w-4 opacity-50" />
-        </div>
-        <FormDescription>
-          Set the font you want to use in the dashboard.
-        </FormDescription>
-        <FormMessage />
-      </FormItem>
-    </FormField>
+  <form class="space-y-8" @submit="onSubmit">   
 
     <FormField v-slot="{ componentField }" type="radio" name="theme">
       <FormItem class="space-y-1">

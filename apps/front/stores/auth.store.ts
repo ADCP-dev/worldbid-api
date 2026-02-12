@@ -1,0 +1,294 @@
+import { defineStore } from "pinia";
+import { fetchWrapper } from "@/helpers/fetch-wrapper";
+
+// Helper function to get base URL
+const getBaseUrl = () => {
+  const runtimeConfig = useRuntimeConfig();
+  return `${runtimeConfig.public.apiUrl}${runtimeConfig.public.apiPrefix}/auth`;
+};
+
+export const useAuthStore = defineStore("auth", {
+  state: () => ({
+    token: null,
+    refreshToken: null,
+    tokenExpires: null,
+    user: null,
+    refreshTokenTimeout: null,
+  }),
+  getters: {
+    isAuthenticated: (state) => !!state.token,
+    isTokenExpired: (state) => {
+      if (!state.tokenExpires) return true;
+      return Date.now() >= state.tokenExpires;
+    },
+    userPermissions: (state) => state.user?.role?.permissions || [],
+    isAdmin: (state) => {
+      const role = state.user?.role?.name || [];
+      return role === "admin";
+    },
+    isCustomer: (state) => {
+      const role = state.user?.role?.name || [];
+      return role === "customer";
+    },
+    fullName: (state) => {
+      if (!state.user) return "";
+      return `${state.user.firstName} ${state.user.lastName}`.trim();
+    },
+  },
+  actions: {
+    async login(email, password) {
+      try {
+        const baseUrl = getBaseUrl();
+        const response = await fetchWrapper.post(`${baseUrl}/email/login`, {
+          email,
+          password,
+        });
+
+        this.setAuthData(response);
+        this.startRefreshTokenTimer();
+
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: error.message || "Login failed" };
+      }
+    },
+
+    async register(userData) {
+      try {
+        const baseUrl = getBaseUrl();
+        const response = await fetchWrapper.post(
+          `${baseUrl}/email/register`,
+          userData,
+        );
+        return { success: true, data: response };
+      } catch (error) {
+        return {
+          success: false,
+          error: error.message || "Registration failed",
+        };
+      }
+    },
+
+    async confirmEmail(hash) {
+      try {
+        const baseUrl = getBaseUrl();
+        const response = await fetchWrapper.post(`${baseUrl}/email/confirm`, {
+          hash,
+        });
+        return { success: true, data: response };
+      } catch (error) {
+        return {
+          success: false,
+          error: error.message || "Email confirmation failed",
+        };
+      }
+    },
+
+    async resendConfirmation(email) {
+      try {
+        const baseUrl = getBaseUrl();
+        const response = await fetchWrapper.post(
+          `${baseUrl}/email/confirm/new`,
+          { email },
+        );
+        return { success: true, data: response };
+      } catch (error) {
+        return {
+          success: false,
+          error: error.message || "Failed to resend confirmation",
+        };
+      }
+    },
+
+    async forgotPassword(email) {
+      try {
+        const baseUrl = getBaseUrl();
+        const response = await fetchWrapper.post(`${baseUrl}/forgot/password`, {
+          email,
+        });
+        return { success: true, data: response };
+      } catch (error) {
+        return {
+          success: false,
+          error: error.message || "Failed to send reset email",
+        };
+      }
+    },
+
+    async resetPassword(hash, password) {
+      try {
+        const baseUrl = getBaseUrl();
+        const response = await fetchWrapper.post(`${baseUrl}/reset/password`, {
+          hash,
+          password,
+        });
+        return { success: true, data: response };
+      } catch (error) {
+        return {
+          success: false,
+          error: error.message || "Password reset failed",
+        };
+      }
+    },
+
+    async getMe() {
+      try {
+        const baseUrl = getBaseUrl();
+        const response = await fetchWrapper.get(`${baseUrl}/me`);
+        this.user = response;
+        return { success: true, data: response };
+      } catch (error) {
+        return {
+          success: false,
+          error: error.message || "Failed to get user data",
+        };
+      }
+    },
+
+    async updateProfile(userData) {
+      try {
+        const baseUrl = getBaseUrl();
+        const response = await fetchWrapper.patch(`${baseUrl}/me`, userData);
+        this.user = response;
+        return { success: true, data: response };
+      } catch (error) {
+        return {
+          success: false,
+          error: error.message || "Failed to update profile",
+        };
+      }
+    },
+
+    async deleteAccount() {
+      try {
+        const baseUrl = getBaseUrl();
+        await fetchWrapper.delete(`${baseUrl}/me`);
+        this.logout();
+        return { success: true };
+      } catch (error) {
+        return {
+          success: false,
+          error: error.message || "Failed to delete account",
+        };
+      }
+    },
+
+    async logout() {
+      try {
+        if (this.refreshToken) {
+          const baseUrl = getBaseUrl();
+          await fetchWrapper.post(`${baseUrl}/logout`, {
+            refreshToken: this.refreshToken,
+          });
+        }
+      } catch (error) {
+        console.error("Logout error:", error);
+      } finally {
+        this.clearAuthData();
+        await navigateTo("/login");
+      }
+    },
+
+    async refreshAccessToken() {
+      try {
+        if (!this.refreshToken) {
+          throw new Error("No refresh token available");
+        }
+
+        const baseUrl = getBaseUrl();
+
+        // Send refresh token in Authorization header as per API docs
+        const response = await fetch(`${baseUrl}/refresh`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${this.refreshToken}`,
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(
+            `Refresh failed: ${response.statusText} - ${errorText}`,
+          );
+        }
+
+        const result = await response.json();
+
+        // Add new tokens
+        this.token = result.token;
+        this.refreshToken = result.refreshToken;
+        this.tokenExpires = result.tokenExpires;
+
+        // Get user data
+        const me = await this.getMe();
+        this.user = me.data;
+
+        // Start refresh token timer
+        this.startRefreshTokenTimer();
+
+        return { success: true, token: result.token };
+      } catch (error) {
+        console.error("Token refresh failed:", error);
+        this.logout();
+        return {
+          success: false,
+          error: error.message || "Token refresh failed",
+        };
+      }
+    },
+
+    setAuthData(authData) {
+      this.token = authData.token;
+      this.refreshToken = authData.refreshToken;
+      this.tokenExpires = authData.tokenExpires;
+      this.user = authData.user;
+    },
+
+    clearAuthData() {
+      this.token = null;
+      this.refreshToken = null;
+      this.tokenExpires = null;
+      this.user = null;
+      this.stopRefreshTokenTimer();
+    },
+
+    startRefreshTokenTimer() {
+      this.stopRefreshTokenTimer();
+
+      if (!this.tokenExpires) return;
+
+      // Refresh token 1 minute before expiry
+      const timeout = this.tokenExpires - Date.now() - 60 * 1000;
+
+      if (timeout > 0) {
+        this.refreshTokenTimeout = setTimeout(() => {
+          this.refreshAccessToken();
+        }, timeout);
+      } else {
+        // Token already expired, refresh immediately
+        this.refreshAccessToken();
+      }
+    },
+
+    stopRefreshTokenTimer() {
+      if (this.refreshTokenTimeout) {
+        clearTimeout(this.refreshTokenTimeout);
+        this.refreshTokenTimeout = null;
+      }
+    },
+
+    hasPermission(permission) {
+      return this.userPermissions.includes(permission);
+    },
+
+    hasAnyPermission(permissions) {
+      return permissions.some((permission) => this.hasPermission(permission));
+    },
+
+    hasAllPermissions(permissions) {
+      return permissions.every((permission) => this.hasPermission(permission));
+    },
+  },
+  persist: true,
+});

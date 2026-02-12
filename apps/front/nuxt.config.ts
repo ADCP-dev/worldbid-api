@@ -9,11 +9,20 @@ export default defineNuxtConfig({
   app: {
     // Global error handling
     head: {
-      titleTemplate: "%s - ACME",
+      titleTemplate: "%s - " + process.env.APP_NAME,
       meta: [
         { charset: "utf-8" },
         { name: "viewport", content: "width=device-width, initial-scale=1" },
       ],
+    },
+  },
+
+  runtimeConfig: {
+    public: {
+      appName: process.env.APP_NAME || "Foundation",
+      mainAppRoute: process.env.MAIN_APP_ROUTE || "/app",
+      apiUrl: process.env.API_URL || "http://localhost:3001",
+      apiPrefix: process.env.API_PREFIX || "/api/v1",
     },
   },
 

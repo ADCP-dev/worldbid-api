@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAuthStore } from '~/stores/auth'
+import { useAuthStore } from '~/stores/auth.store'
 import { Loader2 } from 'lucide-vue-next'
 import PasswordInput from '~/components/PasswordInput.vue'
 import { toast } from 'vue-sonner';
@@ -11,31 +11,31 @@ const isLoading = ref(false)
 const email = ref('')
 const password = ref('')
 
-function onSubmit(event: Event) {
+async function onSubmit(event: Event) {
   event.preventDefault()
-  
+
   if (!email.value || !password.value) {
     toast.error('Error', {
       description: 'Por favor introduce el email y la contraseña',
     })
     return
   }
-  
+
   isLoading.value = true
-  
+
   try {
-    const success = authStore.login(email.value, password.value)
-    
-    if (success) {
+    const result = await authStore.login(email.value, password.value)
+
+    if (result.success) {
       toast.success('Bienvenido', {
         description: 'Has iniciado sesión correctamente',
       })
-      
+
       // Redirect to home or dashboard
       router.push('/')
     } else {
       toast.error('Error', {
-        description: authStore.error || 'Credenciales inválidas',
+        description: result.error || 'Credenciales inválidas',
       })
     }
   } catch (error: any) {
@@ -75,26 +75,15 @@ function onSubmit(event: Event) {
       <Label for="email">
         Email
       </Label>
-      <Input
-        id="email"
-        v-model="email"
-        type="email"
-        placeholder="name@example.com"
-        :disabled="isLoading"
-        auto-capitalize="none"
-        auto-complete="email"
-        auto-correct="off"
-      />
+      <Input id="email" v-model="email" type="email" placeholder="name@example.com" :disabled="isLoading"
+        auto-capitalize="none" auto-complete="email" auto-correct="off" />
     </div>
     <div class="grid gap-2">
       <div class="flex items-center">
         <Label for="password">
           Contraseña
         </Label>
-        <NuxtLink
-          to="/forgot-password"
-          class="ml-auto inline-block text-sm underline"
-        >
+        <NuxtLink to="/forgot-password" class="ml-auto inline-block text-sm underline">
           ¿Olvidaste tu contraseña?
         </NuxtLink>
       </div>
@@ -113,6 +102,4 @@ function onSubmit(event: Event) {
   </div>
 </template>
 
-<style scoped>
-
-</style>
+<style scoped></style>

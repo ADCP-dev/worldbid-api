@@ -13,12 +13,9 @@ defineProps<{
     :class="{ 'flex-row-reverse': reverse }"
   >
     <div class="relative hidden h-full flex-1 flex-col bg-muted p-10 text-white lg:flex dark:border-r">
-      <img :src="loginImage" class="absolute inset-0 bg-zinc-900">
+      <img :src="loginImage" class="absolute inset-0 bg-zinc-900 h-full w-full object-cover">
       <div class="relative z-20 flex items-center text-lg font-medium">
-        <div class="h-6 w-6 flex items-center justify-center rounded-md bg-white text-primary-foreground mr-2">
-          <img :src="logo" class="size-6" alt="ACME">
-        </div>
-        ACME
+        <LandingComponentsLogo />
       </div>
       <!-- <div class="relative z-20 mt-auto">
         <blockquote class="space-y-2">

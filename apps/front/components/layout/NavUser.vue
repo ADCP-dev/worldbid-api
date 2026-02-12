@@ -21,17 +21,14 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import {
-  BadgeCheck,
   Bell,
   ChevronsUpDown,
-  Cog,
-  CreditCard,
   LogOut,
-  Paintbrush,
+  Settings,
   Sparkles,
   User,
 } from 'lucide-vue-next'
-import { useAuthStore } from '~/stores/auth'
+import { useAuth } from '@/composables/useAuth'
 
 defineProps<{
   user: {
@@ -42,12 +39,8 @@ defineProps<{
 }>()
 
 const { isMobile, setOpenMobile } = useSidebar()
+const { logout } = useAuth()
 
-const logout = () => {
-  useAuthStore().logout()
-}
-
-const showModalTheme = ref(false)
 
 </script>
 
@@ -103,28 +96,15 @@ const showModalTheme = ref(false)
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
             <DropdownMenuItem as-child>
-              <NuxtLink to="/settings/account" @click="setOpenMobile(false)">
+              <NuxtLink to="/settings/profile" @click="setOpenMobile(false)">
                 <User />
                 Account
-              </NuxtLink>
-            </DropdownMenuItem>
-            <DropdownMenuItem as-child>
-              <NuxtLink to="/settings/profile" @click="setOpenMobile(false)">
-                <Cog />
-                Settings
               </NuxtLink>
             </DropdownMenuItem>
             <DropdownMenuItem as-child>
               <NuxtLink to="/settings/notifications" @click="setOpenMobile(false)">
                 <Bell />
                 Notifications
-              </NuxtLink>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem @click="showModalTheme = true" as-child>
-              <NuxtLink to="/settings/appearance" @click="setOpenMobile(false)">
-                <Paintbrush />
-                Theme
               </NuxtLink>
             </DropdownMenuItem>
           </DropdownMenuGroup>

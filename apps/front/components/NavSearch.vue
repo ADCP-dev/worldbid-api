@@ -1,44 +1,52 @@
 <script setup lang="ts">
-import type { NavGroup, NavLink, NavMenu } from '~/types/nav'
-import { navMenu } from '@/constants/menus'
+import type { NavLink, NavMenu } from '~/types/nav'
+import { useNavMenu } from '~/composables/useNavMenu'
+import { useHomeRoute } from '~/composables/useHomeRoute'
+import { useAuthStore } from '~/stores/auth.store'
 
 const { metaSymbol } = useShortcuts()
 
 const openCommand = ref(false)
-const router = useRouter()
+const { route: homeRoute } = useHomeRoute()
 
 defineShortcuts({
   Meta_K: () => openCommand.value = true,
 })
 
-// Define shortcuts based on menu configuration
+const { navMenu } = useNavMenu()
+const authStore = useAuthStore()
+
+// Dynamic group title based on role
+const groupTitle = computed<string>(() => {
+  if (authStore.isAdmin) return 'Admin'
+  if (authStore.isCustomer) return 'Customer'
+  return 'General'
+})
+
+// Items for the active role group
+const roleItems = computed<NavLink[]>(() => {
+  return (
+    navMenu.value.find((nav: NavMenu) => nav.heading === groupTitle.value)?.items || []
+  )
+})
+
+// Define shortcuts based on current role menu
 const defineMenuShortcuts = () => {
   const shortcuts: Record<string, () => void> = {
-    // Main shortcuts
-    'G-H': () => navigateTo('/')
+    'G-H': () => navigateTo(homeRoute.value),
   }
-  
-  // Add admin shortcuts from menu configuration
-  const adminItems = navMenu
-    .find((nav: NavMenu) => nav.heading === 'Admin')
-    ?.items || []
-    
-  adminItems.forEach((item: NavLink) => {
+  roleItems.value.forEach((item: NavLink) => {
     if (item.shortcut && item.link) {
       shortcuts[item.shortcut] = () => navigateTo(item.link)
     }
   })
-  
   return shortcuts
 }
 
-defineShortcuts(defineMenuShortcuts())
-
-const adminItems = computed<NavLink[]>(() => {
-  return navMenu
-    .find((nav: NavMenu) => nav.heading === 'Admin')
-    ?.items || []
-})
+// Keep shortcuts in sync with role changes
+watch([groupTitle, roleItems], () => {
+  defineShortcuts(defineMenuShortcuts())
+}, { immediate: true })
 
 
 
@@ -65,14 +73,9 @@ function handleSelectLink(link: string) {
     <CommandList>
       <CommandEmpty>No se encontraron resultados</CommandEmpty>
       <CommandSeparator />
-      <CommandGroup heading="Admin">
-        <CommandItem
-          v-for="nav in adminItems"
-          :key="nav.title"
-          :value="nav.title"
-          class="gap-2"
-          @select="handleSelectLink(nav.link)"
-        >
+      <CommandGroup :heading="groupTitle">
+        <CommandItem v-for="nav in roleItems" :key="nav.title" :value="nav.title" class="gap-2"
+          @select="handleSelectLink(nav.link)">
           <AppIcon :name="nav.icon || 'Circle'" />
           {{ nav.title }}
           <CommandShortcut v-if="nav.shortcut">
@@ -85,6 +88,4 @@ function handleSelectLink(link: string) {
   </CommandDialog>
 </template>
 
-<style scoped>
-
-</style>
+<style scoped></style>

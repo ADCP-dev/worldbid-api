@@ -1,34 +1,15 @@
-import { useAuthStore } from '~/stores/auth'
-
-export default defineNuxtRouteMiddleware(async (to) => {
-  // Skip middleware if the user is on a public route
-  const publicRoutes = ['/login', '/register', '/forgot-password', '/reset-password']
-  if (publicRoutes.includes(to.path)) {
-    return
+export default defineNuxtRouteMiddleware(() => {
+  const authStore = useAuthStore();
+  
+  // If user is not authenticated, redirect to login
+  if (!authStore.isAuthenticated) {
+    return navigateTo('/login');
   }
-
-  const authStore = useAuthStore()
-
-  // If the store has been initialized and user is authenticated, allow access
-  if (authStore.isAuthenticated) {
-    return
+  
+  // If token is expired, try to refresh it
+  if (authStore.isTokenExpired) {
+    // Let the fetch wrapper handle the token refresh automatically
+    // If refresh fails, user will be redirected to login
+    return;
   }
-
-  // If we have a token but not authenticated yet, try to fetch user profile
-  if (authStore.token && !authStore.isAuthenticated) {
-    try {
-      await authStore.fetchUserProfile()
-      
-      // If authentication succeeded, allow access
-      if (authStore.isAuthenticated) {
-        return
-      }
-    } catch (error) {
-      // If fetching profile fails, redirect to login
-      return navigateTo('/login')
-    }
-  }
-
-  // If no token or failed to authenticate, redirect to login
-  return navigateTo('/login')
-})
+});

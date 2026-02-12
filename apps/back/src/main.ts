@@ -16,13 +16,23 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    cors: true,
     rawBody: true,
   });
   app.set('query parser', 'extended');
 
   useContainer(app.select(AppModule), { fallbackOnErrors: true });
   const configService = app.get(ConfigService<AllConfigType>);
+
+  app.enableCors({
+    origin: [
+      configService.getOrThrow('app.frontendDomain', { infer: true }),
+      'http://localhost:3000',
+      'http://localhost:3001',
+    ],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    allowedHeaders: 'Content-Type, Accept, Authorization',
+    credentials: true,
+  });
 
   app.enableShutdownHooks();
   app.setGlobalPrefix(

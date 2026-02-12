@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import logo from '@/assets/imgs/logo/logo_mini.png'
+import Logo from '~/components/landing/components/Logo.vue';
 definePageMeta({
   layout: 'blank',
 })
@@ -9,10 +9,7 @@ definePageMeta({
   <div class="flex flex-col items-center justify-center gap-6 bg-muted p-6 min-h-svh md:p-10">
     <div class="max-w-sm w-full flex flex-col gap-6">
       <NuxtLink to="#" class="flex items-center self-center gap-2 font-medium">
-        <div class="h-6 w-6 flex items-center justify-center rounded-md bg-white text-primary-foreground">
-          <img :src="logo" class="size-6" alt="ACME">
-        </div>
-        ACME
+        <Logo />
       </NuxtLink>
       <Card>
         <CardHeader class="text-center">

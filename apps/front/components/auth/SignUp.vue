@@ -2,7 +2,7 @@
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-vue-next";
 import PasswordInput from "~/components/PasswordInput.vue";
-import { useAuthStore } from '~/stores/auth';
+import { useAuthStore } from '~/stores/auth.store';
 import { toast } from 'vue-sonner';
 
 const router = useRouter();
@@ -16,7 +16,7 @@ const isLoading = ref(false);
 
 async function onSubmit(event: Event) {
   event.preventDefault();
-  
+
   // Form validation
   if (!name.value || !email.value || !password.value || !confirmPassword.value) {
     toast.error('Error', {
@@ -24,29 +24,35 @@ async function onSubmit(event: Event) {
     });
     return;
   }
-  
+
   if (password.value !== confirmPassword.value) {
     toast.error('Error', {
       description: 'Las contraseñas no coinciden',
     });
     return;
   }
-  
+
   isLoading.value = true;
-  
+
   try {
-    const success = await authStore.register(name.value, email.value, password.value);
-    
-    if (success) {
+    const [firstName, ...lastNameParts] = name.value.trim().split(' ');
+    const result = await authStore.register({
+      firstName,
+      lastName: lastNameParts.join(' ') || '',
+      email: email.value,
+      password: password.value,
+    });
+
+    if (result.success) {
       toast.success('Cuenta creada', {
         description: 'Tu cuenta ha sido creada correctamente',
       });
-      
+
       // Redirect to home or dashboard
       router.push('/');
     } else {
       toast.error('Error', {
-        description: authStore.error || 'Error al crear la cuenta',
+        description: result.error || 'Error al crear la cuenta',
       });
     }
   } catch (error: any) {
@@ -65,35 +71,21 @@ async function onSubmit(event: Event) {
       <div class="grid gap-4">
         <div class="grid gap-2">
           <Label for="name"> Nombre </Label>
-          <Input
-            id="name"
-            placeholder="Introduce tu nombre"
-            type="text"
-            auto-capitalize="none"
-            auto-complete="name"
-            auto-correct="off"
-            :disabled="isLoading"
-          />
+          <Input id="name" v-model="name" placeholder="Introduce tu nombre" type="text" auto-capitalize="none"
+            auto-complete="name" auto-correct="off" :disabled="isLoading" />
         </div>
         <div class="grid gap-2">
           <Label for="email"> Email </Label>
-          <Input
-            id="email"
-            placeholder="Introduce tu correo electrónico"
-            type="email"
-            auto-capitalize="none"
-            auto-complete="email"
-            auto-correct="off"
-            :disabled="isLoading"
-          />
+          <Input id="email" v-model="email" placeholder="Introduce tu correo electrónico" type="email"
+            auto-capitalize="none" auto-complete="email" auto-correct="off" :disabled="isLoading" />
         </div>
         <div class="grid gap-2">
           <Label for="password"> Contraseña </Label>
-          <PasswordInput id="password" placeholder="Introduce tu contraseña" />
+          <PasswordInput id="password" v-model="password" placeholder="Introduce tu contraseña" />
         </div>
         <div class="grid gap-2">
           <Label for="confirm-password"> Confirmar Contraseña </Label>
-          <PasswordInput id="confirm-password" placeholder="Confirma tu contraseña" />
+          <PasswordInput id="confirm-password" v-model="confirmPassword" placeholder="Confirma tu contraseña" />
         </div>
         <Button :disabled="isLoading">
           <Loader2 v-if="isLoading" class="mr-2 h-4 w-4 animate-spin" />
