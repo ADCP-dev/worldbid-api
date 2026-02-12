@@ -62,7 +62,16 @@ const infrastructurePersistenceModule = RelationalFilePersistenceModule;
     }),
   ],
   controllers: [FilesLocalController],
-  providers: [ConfigModule, ConfigService, FilesLocalService, FilesService],
-  exports: [FilesLocalService],
+  providers: [
+    ConfigModule,
+    ConfigService,
+    FilesLocalService,
+    FilesService,
+    {
+      provide: 'FILE_UPLOADER_SERVICE',
+      useExisting: FilesLocalService,
+    },
+  ],
+  exports: [FilesLocalService, 'FILE_UPLOADER_SERVICE', MulterModule],
 })
 export class FilesLocalModule {}

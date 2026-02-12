@@ -28,6 +28,8 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { ApiKeysModule } from './api-keys/api-keys.module';
 import { StripeModule } from './stripe/stripe.module';
 import stripeConfig from './stripe/config/stripe.config';
+import workerConfig from './config/worker.config';
+import { EmailQueueModule } from './email-queue/email-queue.module';
 
 const infrastructureDatabaseModule = TypeOrmModule.forRootAsync({
   useClass: TypeOrmConfigService,
@@ -53,6 +55,7 @@ const infrastructureDatabaseModule = TypeOrmModule.forRootAsync({
         googleConfig,
         appleConfig,
         stripeConfig,
+        workerConfig,
       ],
       envFilePath: ['.env'],
     }),
@@ -92,6 +95,7 @@ const infrastructureDatabaseModule = TypeOrmModule.forRootAsync({
     ApiKeysModule,
     StripeModule,
     HomeModule,
+    EmailQueueModule,
   ],
 })
 export class AppModule {}

@@ -29,8 +29,8 @@ export class FileDto {
 
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsNumber()
-  entityId?: number;
+  @IsString()
+  entityId?: string;
 
   @ApiProperty()
   @IsString()

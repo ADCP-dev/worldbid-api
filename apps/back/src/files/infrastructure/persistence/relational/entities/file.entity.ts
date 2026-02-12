@@ -20,7 +20,7 @@ export class FileEntity extends EntityRelationalHelper {
   entity?: string;
 
   @Column({ nullable: true })
-  entityId?: number;
+  entityId?: string;
 
   @ManyToOne(() => UserEntity)
   user?: UserEntity | null;

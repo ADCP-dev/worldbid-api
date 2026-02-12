@@ -11,8 +11,6 @@ import {
   UseInterceptors,
   Body,
   Query,
-  ParseBoolPipe,
-  DefaultValuePipe,
   HttpCode,
   HttpStatus,
   BadRequestException,
@@ -33,7 +31,7 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { FilesLocalService } from './files.service';
 import { FileResponseDto } from './dto/file-response.dto';
-import { FileUploadDto } from './dto/file-upload.dto';
+import { FileUploadDto } from '../../../dto/file-upload.dto';
 import { FilesService } from '../../../files.service';
 import { FileFilterDto } from '../../../dto/file-filter.dto';
 import { FileType } from '../../../domain/file';
@@ -105,8 +103,8 @@ export class FilesLocalController {
             'Entity name where the file is associated (e.g., "users")',
         },
         entityId: {
-          type: 'integer',
-          description: 'Entity ID where the file is associated (e.g., "123")',
+          type: 'string',
+          description: 'Entity ID where the file is associated (e.g., UUID)',
         },
       },
       required: ['file'],

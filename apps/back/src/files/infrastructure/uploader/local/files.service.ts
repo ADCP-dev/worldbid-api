@@ -13,7 +13,7 @@ import * as path from 'path';
 import { FileRepository } from '../../persistence/file.repository';
 import { AllConfigType } from '../../../../config/config.type';
 import { FileType } from '../../../domain/file';
-import { FileUploadDto } from './dto/file-upload.dto';
+import { FileUploadDto } from '../../../dto/file-upload.dto';
 
 @Injectable()
 export class FilesLocalService {
@@ -38,12 +38,23 @@ export class FilesLocalService {
       });
     }
 
-    // Extract the filename from the full path
-    const tempFilePath = file.path;
-    // Handle both forward and backslash path separators
-    // For Windows paths, replace backslashes with forward slashes first
-    const normalizedPath = tempFilePath.replace(/\\/g, '/');
-    const filename = normalizedPath.split('/').pop() || tempFilePath;
+    // Determine filename and temp path depending on storage type (disk or memory)
+    let filename: string;
+    const tempFilePath: string | undefined = (file as any).path;
+
+    if (tempFilePath && typeof tempFilePath === 'string') {
+      // Disk storage provides a temporary file path
+      const normalizedPath = tempFilePath.replace(/\\/g, '/');
+      filename = normalizedPath.split('/').pop() || tempFilePath;
+    } else {
+      // Memory storage: generate a safe filename using the original extension
+      const original = file.originalname || 'upload';
+      const ext = original.includes('.')
+        ? original.split('.').pop()?.toLowerCase()
+        : undefined;
+      const rand = Math.random().toString(36).slice(2);
+      filename = ext ? `${Date.now()}-${rand}.${ext}` : `${Date.now()}-${rand}`;
+    }
 
     // Determine the final storage location
     const baseFolder = './files';
@@ -58,12 +69,21 @@ export class FilesLocalService {
     // Define the final file path
     const finalFilePath = path.join(finalFolderPath, filename);
 
-    // Move the file from temp to final location
+    // Move the file from temp to final location (disk) or write from buffer (memory)
     try {
-      fs.renameSync(tempFilePath, finalFilePath);
-      this.logger.log(`File moved from ${tempFilePath} to ${finalFilePath}`);
+      if (tempFilePath && typeof tempFilePath === 'string') {
+        fs.renameSync(tempFilePath, finalFilePath);
+        this.logger.log(`File moved from ${tempFilePath} to ${finalFilePath}`);
+      } else if ((file as any).buffer) {
+        fs.writeFileSync(finalFilePath, (file as any).buffer);
+        this.logger.log(`File written to ${finalFilePath} from memory buffer`);
+      } else {
+        throw new InternalServerErrorException(
+          'Failed to save file: no temp path or buffer provided',
+        );
+      }
     } catch (error) {
-      this.logger.error(`Failed to move file: ${error.message}`);
+      this.logger.error(`Failed to move/write file: ${error.message}`);
       throw new InternalServerErrorException('Failed to save file');
     }
 
@@ -105,12 +125,20 @@ export class FilesLocalService {
     const fileIsPublic =
       isPublic !== undefined ? isPublic == true : existingFile.isPublic == true;
 
-    // Extract the filename from the temp path
-    const tempFilePath = file.path;
-    // Handle both forward and backslash path separators
-    // For Windows paths, replace backslashes with forward slashes first
-    const normalizedPath = tempFilePath.replace(/\\/g, '/');
-    const filename = normalizedPath.split('/').pop() || tempFilePath;
+    // Extract the filename from the temp path or generate if using memory storage
+    let filename: string;
+    const tempFilePath: string | undefined = (file as any).path;
+    if (tempFilePath && typeof tempFilePath === 'string') {
+      const normalizedPath = tempFilePath.replace(/\\/g, '/');
+      filename = normalizedPath.split('/').pop() || tempFilePath;
+    } else {
+      const original = file.originalname || 'upload';
+      const ext = original.includes('.')
+        ? original.split('.').pop()?.toLowerCase()
+        : undefined;
+      const rand = Math.random().toString(36).slice(2);
+      filename = ext ? `${Date.now()}-${rand}.${ext}` : `${Date.now()}-${rand}`;
+    }
 
     // Determine the final storage location
     const baseFolder = './files';
@@ -121,7 +149,7 @@ export class FilesLocalService {
     if (destination) {
       // Sanitize destination to prevent directory traversal
       const sanitizedDestination = destination
-        .replace(/\.\./g, '')
+        .replace(/\.\.*/g, '')
         .replace(/^\/+/, '');
       finalFolderPath = `${finalFolderPath}/${sanitizedDestination}`;
     }
@@ -132,12 +160,21 @@ export class FilesLocalService {
     // Define the final file path
     const finalFilePath = path.join(finalFolderPath, filename);
 
-    // Move the file from temp to final location
+    // Move the file from temp to final location or write buffer
     try {
-      fs.renameSync(tempFilePath, finalFilePath);
-      this.logger.log(`File moved from ${tempFilePath} to ${finalFilePath}`);
+      if (tempFilePath && typeof tempFilePath === 'string') {
+        fs.renameSync(tempFilePath, finalFilePath);
+        this.logger.log(`File moved from ${tempFilePath} to ${finalFilePath}`);
+      } else if ((file as any).buffer) {
+        fs.writeFileSync(finalFilePath, (file as any).buffer);
+        this.logger.log(`File written to ${finalFilePath} from memory buffer`);
+      } else {
+        throw new InternalServerErrorException(
+          'Failed to save file: no temp path or buffer provided',
+        );
+      }
     } catch (error) {
-      this.logger.error(`Failed to move file: ${error.message}`);
+      this.logger.error(`Failed to move/write file: ${error.message}`);
       throw new InternalServerErrorException('Failed to save file');
     }
 

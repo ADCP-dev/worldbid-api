@@ -8,6 +8,7 @@ import { AllConfigType } from '../config/config.type';
 @Injectable()
 export class MailerService {
   private readonly transporter: nodemailer.Transporter;
+
   constructor(private readonly configService: ConfigService<AllConfigType>) {
     this.transporter = nodemailer.createTransport({
       host: configService.get('mail.host', { infer: true }),

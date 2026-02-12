@@ -7,6 +7,7 @@ import { FileConfig } from '../files/config/file-config.type';
 import { GoogleConfig } from '../auth-google/config/google-config.type';
 import { MailConfig } from '../mail/config/mail-config.type';
 import { StripeConfig } from '../stripe/config/stripe-config.type';
+import { WorkerConfig } from './worker-config.type';
 
 export type AllConfigType = {
   app: AppConfig;
@@ -18,4 +19,5 @@ export type AllConfigType = {
   google: GoogleConfig;
   mail: MailConfig;
   stripe: StripeConfig;
+  worker: WorkerConfig;
 };

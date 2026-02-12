@@ -12,6 +12,7 @@ import multerS3 from 'multer-s3';
 import { FilesS3Service } from './files.service';
 import { RelationalFilePersistenceModule } from '../../persistence/relational/relational-persistence.module';
 import { AllConfigType } from '../../../../config/config.type';
+import { FilesService } from '../../../files.service';
 
 const infrastructurePersistenceModule = RelationalFilePersistenceModule;
 
@@ -24,6 +25,7 @@ const infrastructurePersistenceModule = RelationalFilePersistenceModule;
       useFactory: (configService: ConfigService<AllConfigType>) => {
         const s3 = new S3Client({
           region: configService.get('file.awsS3Region', { infer: true }),
+          endpoint: configService.get('file.awsS3Endpoint', { infer: true }),
           credentials: {
             accessKeyId: configService.getOrThrow('file.accessKeyId', {
               infer: true,
@@ -74,7 +76,14 @@ const infrastructurePersistenceModule = RelationalFilePersistenceModule;
     }),
   ],
   controllers: [FilesS3Controller],
-  providers: [FilesS3Service],
-  exports: [FilesS3Service],
+  providers: [
+    FilesS3Service,
+    FilesService,
+    {
+      provide: 'FILE_UPLOADER_SERVICE',
+      useExisting: FilesS3Service,
+    },
+  ],
+  exports: [FilesS3Service, 'FILE_UPLOADER_SERVICE', MulterModule],
 })
 export class FilesS3Module {}

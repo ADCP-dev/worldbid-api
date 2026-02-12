@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsOptional, IsString, IsNumber } from 'class-validator';
+import { IsBoolean, IsOptional, IsString } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class FileUploadDto {
@@ -30,10 +30,10 @@ export class FileUploadDto {
 
   @ApiProperty({
     type: String,
-    description: 'Entity ID',
+    description: 'Entity ID (string or UUID)',
     required: false,
   })
-  @IsNumber()
+  @IsString()
   @IsOptional()
-  entityId?: number;
+  entityId?: string;
 }

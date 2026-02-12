@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, IsNumber, ValidateIf } from 'class-validator';
+import { IsOptional, IsString, ValidateIf, IsNumber } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class FileFilterDto {
@@ -15,13 +15,12 @@ export class FileFilterDto {
   @ApiProperty({
     required: false,
     description: 'Entity ID to filter by (requires entity parameter)',
-    example: 123,
+    example: 'c7f7992f-7d1b-4d93-8f1b-9c2b8b9a6b13',
   })
   @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
+  @IsString()
   @ValidateIf((o) => o.entity !== undefined)
-  entityId?: number;
+  entityId?: string;
 
   @IsOptional()
   @Type(() => Number)

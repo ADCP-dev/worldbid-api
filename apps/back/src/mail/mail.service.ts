@@ -4,18 +4,23 @@ import { I18nContext } from 'nestjs-i18n';
 import { MailData } from './interfaces/mail-data.interface';
 
 import { MaybeType } from '../utils/types/maybe.type';
-import { MailerService } from '../mailer/mailer.service';
 import path from 'path';
 import { AllConfigType } from '../config/config.type';
+import { QueuedMailerService } from '../email-queue/queued-mailer.service';
+import { MailerService } from '../mailer/mailer.service';
 
 @Injectable()
 export class MailService {
   constructor(
+    private readonly queuedMailerService: QueuedMailerService,
     private readonly mailerService: MailerService,
     private readonly configService: ConfigService<AllConfigType>,
   ) {}
 
-  async userSignUp(mailData: MailData<{ hash: string }>): Promise<void> {
+  async userSignUp(
+    mailData: MailData<{ hash: string }>,
+    async: boolean = true,
+  ): Promise<void> {
     const i18n = I18nContext.current();
     let emailConfirmTitle: MaybeType<string>;
     let text1: MaybeType<string>;
@@ -38,10 +43,10 @@ export class MailService {
     );
     url.searchParams.set('hash', mailData.data.hash);
 
-    await this.mailerService.sendMail({
+    const mailOptions = {
       to: mailData.to,
-      subject: emailConfirmTitle,
-      text: `${url.toString()} ${emailConfirmTitle}`,
+      subject: emailConfirmTitle || 'Confirm your email',
+      text: `${url.toString()} ${emailConfirmTitle || 'Confirm your email'}`,
       templatePath: path.join(
         this.configService.getOrThrow('app.workingDirectory', {
           infer: true,
@@ -61,11 +66,18 @@ export class MailService {
         text2,
         text3,
       },
-    });
+    };
+
+    if (async) {
+      await this.queuedMailerService.sendMail(mailOptions);
+    } else {
+      await this.mailerService.sendMail(mailOptions);
+    }
   }
 
   async forgotPassword(
     mailData: MailData<{ hash: string; tokenExpires: number }>,
+    async: boolean = true,
   ): Promise<void> {
     const i18n = I18nContext.current();
     let resetPasswordTitle: MaybeType<string>;
@@ -92,10 +104,10 @@ export class MailService {
     url.searchParams.set('hash', mailData.data.hash);
     url.searchParams.set('expires', mailData.data.tokenExpires.toString());
 
-    await this.mailerService.sendMail({
+    const mailOptions = {
       to: mailData.to,
-      subject: resetPasswordTitle,
-      text: `${url.toString()} ${resetPasswordTitle}`,
+      subject: resetPasswordTitle || 'Reset your password',
+      text: `${url.toString()} ${resetPasswordTitle || 'Reset your password'}`,
       templatePath: path.join(
         this.configService.getOrThrow('app.workingDirectory', {
           infer: true,
@@ -118,10 +130,19 @@ export class MailService {
         text3,
         text4,
       },
-    });
+    };
+
+    if (async) {
+      await this.queuedMailerService.sendMail(mailOptions);
+    } else {
+      await this.mailerService.sendMail(mailOptions);
+    }
   }
 
-  async confirmNewEmail(mailData: MailData<{ hash: string }>): Promise<void> {
+  async confirmNewEmail(
+    mailData: MailData<{ hash: string }>,
+    async: boolean = true,
+  ): Promise<void> {
     const i18n = I18nContext.current();
     let emailConfirmTitle: MaybeType<string>;
     let text1: MaybeType<string>;
@@ -144,10 +165,10 @@ export class MailService {
     );
     url.searchParams.set('hash', mailData.data.hash);
 
-    await this.mailerService.sendMail({
+    const mailOptions = {
       to: mailData.to,
-      subject: emailConfirmTitle,
-      text: `${url.toString()} ${emailConfirmTitle}`,
+      subject: emailConfirmTitle || 'Confirm your email',
+      text: `${url.toString()} ${emailConfirmTitle || 'Confirm your email'}`,
       templatePath: path.join(
         this.configService.getOrThrow('app.workingDirectory', {
           infer: true,
@@ -167,6 +188,12 @@ export class MailService {
         text2,
         text3,
       },
-    });
+    };
+
+    if (async) {
+      await this.queuedMailerService.sendMail(mailOptions);
+    } else {
+      await this.mailerService.sendMail(mailOptions);
+    }
   }
 }

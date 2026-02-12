@@ -4,8 +4,6 @@ import { Transform } from 'class-transformer';
 import fileConfig from '../config/file.config';
 import { FileConfig, FileDriver } from '../config/file-config.type';
 
-import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { AppConfig } from '../../config/app-config.type';
 import appConfig from '../../config/app.config';
 
@@ -22,30 +20,26 @@ export class FileType {
     example: 'https://example.com/path/to/file.jpg',
   })
   @Transform(
-    ({ value }) => {
-      if ((fileConfig() as FileConfig).driver === FileDriver.LOCAL) {
-        return (appConfig() as AppConfig).backendDomain + value;
-      } else if (
-        [FileDriver.S3_PRESIGNED, FileDriver.S3].includes(
-          (fileConfig() as FileConfig).driver,
-        )
-      ) {
-        const s3 = new S3Client({
-          region: (fileConfig() as FileConfig).awsS3Region ?? '',
-          credentials: {
-            accessKeyId: (fileConfig() as FileConfig).accessKeyId ?? '',
-            secretAccessKey: (fileConfig() as FileConfig).secretAccessKey ?? '',
-          },
-        });
+    ({ value, obj }) => {
+      // Use the API endpoint to serve files (both Local and S3)
+      // improved security and consistency
+      if (value) {
+        const appConfigData = appConfig() as AppConfig;
+        const apiPrefix = appConfigData.apiPrefix;
+        const version = 'v1'; // Hardcoded as matching the controller version
+        const backendDomain = appConfigData.backendDomain.endsWith('/')
+          ? appConfigData.backendDomain.slice(0, -1)
+          : appConfigData.backendDomain;
 
-        const command = new GetObjectCommand({
-          Bucket: (fileConfig() as FileConfig).awsDefaultS3Bucket ?? '',
-          Key: value,
-        });
+        let path = value;
+        if (path.startsWith('/')) {
+          path = path.slice(1);
+        }
 
-        return getSignedUrl(s3, command, { expiresIn: 3600 });
+        return `${backendDomain}/${apiPrefix}/${version}/files/${
+          obj.isPublic ? 'public' : 'private'
+        }/${path}`;
       }
-
       return value;
     },
     {
@@ -74,13 +68,13 @@ export class FileType {
   entity?: string;
 
   @ApiProperty({
-    type: Number,
-    example: 123,
+    type: String,
+    example: 'c7f7992f-7d1b-4d93-8f1b-9c2b8b9a6b13',
     description: 'ID of the entity that owns this file',
     required: false,
   })
   @Allow()
-  entityId?: number;
+  entityId?: string;
 
   @ApiProperty({
     type: Number,
