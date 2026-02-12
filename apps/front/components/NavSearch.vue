@@ -14,28 +14,35 @@ defineShortcuts({
 })
 
 const { navMenu } = useNavMenu()
-const authStore = useAuthStore()
 
-// Dynamic group title based on role
-const groupTitle = computed<string>(() => {
-  if (authStore.isAdmin) return 'Admin'
-  if (authStore.isCustomer) return 'Customer'
-  return 'General'
+// Flatten all menu items recursively to include sub-items in search
+function flattenNavItems(items: any[]): any[] {
+  const result: any[] = []
+  items.forEach((item) => {
+    if (item.link) {
+      result.push(item)
+    }
+    if (item.children) {
+      result.push(...flattenNavItems(item.children))
+    }
+  })
+  return result
+}
+
+const allItems = computed(() => {
+  const flattened: any[] = []
+  navMenu.value.forEach((group) => {
+    flattened.push(...flattenNavItems(group.items))
+  })
+  return flattened
 })
 
-// Items for the active role group
-const roleItems = computed<NavLink[]>(() => {
-  return (
-    navMenu.value.find((nav: NavMenu) => nav.heading === groupTitle.value)?.items || []
-  )
-})
-
-// Define shortcuts based on current role menu
+// Define shortcuts based on all available menu items
 const defineMenuShortcuts = () => {
   const shortcuts: Record<string, () => void> = {
     'G-H': () => navigateTo(homeRoute.value),
   }
-  roleItems.value.forEach((item: NavLink) => {
+  allItems.value.forEach((item: any) => {
     if (item.shortcut && item.link) {
       shortcuts[item.shortcut] = () => navigateTo(item.link)
     }
@@ -43,8 +50,8 @@ const defineMenuShortcuts = () => {
   return shortcuts
 }
 
-// Keep shortcuts in sync with role changes
-watch([groupTitle, roleItems], () => {
+// Keep shortcuts in sync
+watch(allItems, () => {
   defineShortcuts(defineMenuShortcuts())
 }, { immediate: true })
 
@@ -73,8 +80,8 @@ function handleSelectLink(link: string) {
     <CommandList>
       <CommandEmpty>No se encontraron resultados</CommandEmpty>
       <CommandSeparator />
-      <CommandGroup :heading="groupTitle">
-        <CommandItem v-for="nav in roleItems" :key="nav.title" :value="nav.title" class="gap-2"
+      <CommandGroup>
+        <CommandItem v-for="nav in allItems" :key="nav.link" :value="nav.title" class="gap-2"
           @select="handleSelectLink(nav.link)">
           <AppIcon :name="nav.icon || 'Circle'" />
           {{ nav.title }}

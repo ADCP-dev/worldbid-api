@@ -111,7 +111,7 @@ export class StripeService {
     try {
       return await this.stripe!.billingPortal.sessions.create({
         customer: customerId,
-        return_url: `${this.domain}/settings/profile`,
+        return_url: `${this.domain}/app/settings/profile`,
       });
     } catch (error) {
       this.logger.error(

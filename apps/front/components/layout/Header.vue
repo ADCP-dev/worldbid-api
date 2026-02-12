@@ -11,18 +11,27 @@ function setLinks() {
   }
 
   const segments = route.fullPath.split('/').filter(item => item !== '')
+  const breadcrumbs: { title: string; href: string }[] = []
 
-  const breadcrumbs = segments.map((item, index) => {
-    const str = item.replace(/-/g, ' ')
+  let currentPath = ''
+  segments.forEach((segment, index) => {
+    currentPath += `/${segment}`
+
+    // Skip the 'app' segment if it's the first one
+    if (index === 0 && segment === 'app') {
+      return
+    }
+
+    const str = segment.replace(/-/g, ' ')
     const title = str
       .split(' ')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ')
 
-    return {
+    breadcrumbs.push({
       title,
-      href: `/${segments.slice(0, index + 1).join('/')}`,
-    }
+      href: currentPath,
+    })
   })
 
   return [{ title: 'Home', href: homeRoute.value }, ...breadcrumbs]
@@ -41,7 +50,7 @@ watch(() => route.fullPath, (val) => {
 </script>
 
 <template>
-  <header class="sticky top-0 z-10 h-53px flex items-center gap-4 border-b bg-background px-4 md:px-6">
+  <header class="sticky top-0 z-10 h-60px flex items-center gap-4 border-b py-1 bg-background px-4 md:px-6">
     <div class="w-full flex items-center gap-4">
       <SidebarTrigger />
       <Separator orientation="vertical" class="h-4" />
@@ -53,6 +62,4 @@ watch(() => route.fullPath, (val) => {
   </header>
 </template>
 
-<style scoped>
-
-</style>
+<style scoped></style>

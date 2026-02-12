@@ -48,8 +48,8 @@ async function onSubmit(event: Event) {
         description: 'Tu cuenta ha sido creada correctamente',
       });
 
-      // Redirect to home or dashboard
-      router.push('/');
+      const { navigateHome } = useHomeRoute();
+      navigateHome();
     } else {
       toast.error('Error', {
         description: result.error || 'Error al crear la cuenta',

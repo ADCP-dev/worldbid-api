@@ -104,10 +104,10 @@ export function AdminAuth() {
  * User Only Authentication (JWT with role check)
  * Requires JWT + User role
  */
-export function UserAuth() {
+export function CustomerAuth() {
   return applyDecorators(
     UseGuards(JwtAuthGuard),
     ApiBearerAuth(),
-    Roles(RoleEnum.user),
+    Roles(RoleEnum.customer),
   );
 }

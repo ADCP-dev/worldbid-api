@@ -31,8 +31,8 @@ async function onSubmit(event: Event) {
         description: 'Has iniciado sesión correctamente',
       })
 
-      // Redirect to home or dashboard
-      router.push('/')
+      const { navigateHome } = useHomeRoute()
+      navigateHome()
     } else {
       toast.error('Error', {
         description: result.error || 'Credenciales inválidas',

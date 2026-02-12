@@ -1,23 +1,23 @@
-import { useAuthStore } from '~/stores/auth.store';
+import { useAuthStore } from "~/stores/auth.store";
 
 export default defineNuxtRouteMiddleware(async (to) => {
-  // Only check admin routes
-  if (!to.path.startsWith('/admin')) {
+  // Only check app routes
+  if (!to.path.startsWith("/app")) {
     return;
   }
 
   const authStore = useAuthStore();
-  
+
   // Check if user is authenticated
   if (!authStore.isAuthenticated) {
-    return navigateTo('/login?redirect=' + encodeURIComponent(to.fullPath));
+    return navigateTo("/login?redirect=" + encodeURIComponent(to.fullPath));
   }
 
-  // Check if user has admin or staff permissions
+  // Check if user has admin role
   if (!authStore.isAdmin) {
     throw createError({
       statusCode: 403,
-      statusMessage: 'Access Denied: Admin privileges required'
+      statusMessage: "Access Denied: Admin privileges required",
     });
   }
 
@@ -26,10 +26,10 @@ export default defineNuxtRouteMiddleware(async (to) => {
     try {
       const result = await authStore.refreshAccessToken();
       if (!result.success) {
-        return navigateTo('/login?redirect=' + encodeURIComponent(to.fullPath));
+        return navigateTo("/login?redirect=" + encodeURIComponent(to.fullPath));
       }
     } catch (error) {
-      return navigateTo('/login?redirect=' + encodeURIComponent(to.fullPath));
+      return navigateTo("/login?redirect=" + encodeURIComponent(to.fullPath));
     }
   }
 });

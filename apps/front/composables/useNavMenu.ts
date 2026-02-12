@@ -10,7 +10,7 @@ export function useNavMenu() {
       {
         title: "Settings",
         icon: "Settings",
-        link: "/settings/profile",
+        link: "/app/settings/profile",
       },
     ],
   };
@@ -18,19 +18,19 @@ export function useNavMenu() {
   const navMenu = computed<NavMenu[]>(() => {
     const menu: NavMenu[] = [baseGeneral];
 
-    if (authStore.isAdmin) {
-      menu.push({
-        heading: "Admin",
-        items: [
-          {
-            title: "Dashboard",
-            icon: "House",
-            link: "/admin/dashboard",
-            new: true,
-          },
-        ],
-      });
-    }
+    // if (authStore.isAdmin) {
+    //   menu.push({
+    //     heading: "Admin",
+    //     items: [
+    //       {
+    //         title: "Dashboard",
+    //         icon: "House",
+    //         link: "/admin/dashboard",
+    //         new: true,
+    //       },
+    //     ],
+    //   });
+    // }
 
     // Optionally show components menu in dev/staging/local env
     if (["development", "staging", "local"].includes(config.public.env)) {
@@ -45,247 +45,247 @@ export function useNavMenu() {
               {
                 title: "Accordion",
                 icon: "circle",
-                link: "/components/accordion",
+                link: "/app/components/accordion",
               },
               {
                 title: "Alert",
                 icon: "circle",
-                link: "/components/alert",
+                link: "/app/components/alert",
               },
               {
                 title: "Alert Dialog",
                 icon: "circle",
-                link: "/components/alert-dialog",
+                link: "/app/components/alert-dialog",
               },
               {
                 title: "Aspect Ratio",
                 icon: "circle",
-                link: "/components/aspect-ratio",
+                link: "/app/components/aspect-ratio",
               },
               {
                 title: "Avatar",
                 icon: "circle",
-                link: "/components/avatar",
+                link: "/app/components/avatar",
               },
               {
                 title: "Badge",
                 icon: "circle",
-                link: "/components/badge",
+                link: "/app/components/badge",
               },
               {
                 title: "Breadcrumb",
                 icon: "circle",
-                link: "/components/breadcrumb",
+                link: "/app/components/breadcrumb",
               },
               {
                 title: "Button",
                 icon: "circle",
-                link: "/components/button",
+                link: "/app/components/button",
               },
               {
                 title: "Calendar",
                 icon: "circle",
-                link: "/components/calendar",
+                link: "/app/components/calendar",
               },
               {
                 title: "Card",
                 icon: "circle",
-                link: "/components/card",
+                link: "/app/components/card",
               },
               {
                 title: "Carousel",
                 icon: "circle",
-                link: "/components/carousel",
+                link: "/app/components/carousel",
               },
               {
                 title: "Checkbox",
                 icon: "circle",
-                link: "/components/checkbox",
+                link: "/app/components/checkbox",
               },
               {
                 title: "Collapsible",
                 icon: "circle",
-                link: "/components/collapsible",
+                link: "/app/components/collapsible",
               },
               {
                 title: "Combobox",
                 icon: "circle",
-                link: "/components/combobox",
+                link: "/app/components/combobox",
               },
               {
                 title: "Command",
                 icon: "circle",
-                link: "/components/command",
+                link: "/app/components/command",
               },
               {
                 title: "Context Menu",
                 icon: "circle",
-                link: "/components/context-menu",
+                link: "/app/components/context-menu",
               },
               {
                 title: "Dialog",
                 icon: "circle",
-                link: "/components/dialog",
+                link: "/app/components/dialog",
               },
               {
                 title: "Drawer",
                 icon: "circle",
-                link: "/components/drawer",
+                link: "/app/components/drawer",
               },
               {
                 title: "Dropdown Menu",
                 icon: "circle",
-                link: "/components/dropdown-menu",
+                link: "/app/components/dropdown-menu",
               },
               {
                 title: "Form",
                 icon: "circle",
-                link: "/components/form",
+                link: "/app/components/form",
               },
               {
                 title: "Hover Card",
                 icon: "circle",
-                link: "/components/hover-card",
+                link: "/app/components/hover-card",
               },
               {
                 title: "Input",
                 icon: "circle",
-                link: "/components/input",
+                link: "/app/components/input",
               },
               {
                 title: "Label",
                 icon: "circle",
-                link: "/components/label",
+                link: "/app/components/label",
               },
               {
                 title: "Menubar",
                 icon: "circle",
-                link: "/components/menubar",
+                link: "/app/components/menubar",
               },
               {
                 title: "Navigation Menu",
                 icon: "circle",
-                link: "/components/navigation-menu",
+                link: "/app/components/navigation-menu",
               },
               {
                 title: "Number Field",
                 icon: "circle",
-                link: "/components/number-field",
+                link: "/app/components/number-field",
               },
               {
                 title: "Pagination",
                 icon: "circle",
-                link: "/components/pagination",
+                link: "/app/components/pagination",
               },
               {
                 title: "PIN Input",
                 icon: "circle",
-                link: "/components/pin-input",
+                link: "/app/components/pin-input",
               },
               {
                 title: "Popover",
                 icon: "circle",
-                link: "/components/popover",
+                link: "/app/components/popover",
               },
               {
                 title: "Progress",
                 icon: "circle",
-                link: "/components/progress",
+                link: "/app/components/progress",
               },
               {
                 title: "Radio Group",
                 icon: "circle",
-                link: "/components/radio-group",
+                link: "/app/components/radio-group",
               },
               {
                 title: "Range Calendar",
                 icon: "circle",
-                link: "/components/range-calendar",
+                link: "/app/components/range-calendar",
               },
               {
                 title: "Resizable",
                 icon: "circle",
-                link: "/components/resizable",
+                link: "/app/components/resizable",
               },
               {
                 title: "Scroll Area",
                 icon: "circle",
-                link: "/components/scroll-area",
+                link: "/app/components/scroll-area",
               },
               {
                 title: "Select",
                 icon: "circle",
-                link: "/components/select",
+                link: "/app/components/select",
               },
               {
                 title: "Separator",
                 icon: "circle",
-                link: "/components/separator",
+                link: "/app/components/separator",
               },
               {
                 title: "Sheet",
                 icon: "circle",
-                link: "/components/sheet",
+                link: "/app/components/sheet",
               },
               {
                 title: "Skeleton",
                 icon: "circle",
-                link: "/components/skeleton",
+                link: "/app/components/skeleton",
               },
               {
                 title: "Slider",
                 icon: "circle",
-                link: "/components/slider",
+                link: "/app/components/slider",
               },
               {
                 title: "Sonner",
                 icon: "circle",
-                link: "/components/sonner",
+                link: "/app/components/sonner",
               },
               {
                 title: "Stepper",
                 icon: "circle",
-                link: "/components/stepper",
+                link: "/app/components/stepper",
               },
               {
                 title: "Switch",
                 icon: "circle",
-                link: "/components/switch",
+                link: "/app/components/switch",
               },
               {
                 title: "Table",
                 icon: "circle",
-                link: "/components/table",
+                link: "/app/components/table",
               },
               {
                 title: "Tabs",
                 icon: "circle",
-                link: "/components/tabs",
+                link: "/app/components/tabs",
               },
               {
                 title: "Tags Input",
                 icon: "circle",
-                link: "/components/tags-input",
+                link: "/app/components/tags-input",
               },
               {
                 title: "Textarea",
                 icon: "circle",
-                link: "/components/textarea",
+                link: "/app/components/textarea",
               },
               {
                 title: "Toggle",
                 icon: "circle",
-                link: "/components/toggle",
+                link: "/app/components/toggle",
               },
               {
                 title: "Toggle Group",
                 icon: "circle",
-                link: "/components/toggle-group",
+                link: "/app/components/toggle-group",
               },
               {
                 title: "Tooltip",
                 icon: "circle",
-                link: "/components/tooltip",
+                link: "/app/components/tooltip",
               },
             ],
           },

@@ -23,6 +23,7 @@ export default defineNuxtConfig({
       mainAppRoute: process.env.MAIN_APP_ROUTE || "/app",
       apiUrl: process.env.API_URL || "http://localhost:3001",
       apiPrefix: process.env.API_PREFIX || "/api/v1",
+      env: process.env.ENV || "development",
     },
   },
 

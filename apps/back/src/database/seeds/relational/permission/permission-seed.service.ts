@@ -69,14 +69,14 @@ export class PermissionSeedService {
     }
 
     // Find the user role
-    const userRole = roles.find((role) => role.id === RoleEnum.user);
-    if (userRole) {
+    const customerRole = roles.find((role) => role.id === RoleEnum.customer);
+    if (customerRole) {
       // Regular users get a subset of permissions (only own items and read:any)
-      const userPermissions = permissions.filter(
+      const customerPermissions = permissions.filter(
         (permission) =>
           permission?.name?.includes(':own') || permission?.name === 'read:any', // All 'own' permissions // Plus read:any permission
       );
-      rolePermissionsMap.set(userRole.id, userPermissions);
+      rolePermissionsMap.set(customerRole.id, customerPermissions);
     }
 
     // Assign permissions to each role
