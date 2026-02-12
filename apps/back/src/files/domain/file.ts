@@ -21,17 +21,30 @@ export class FileType {
   })
   @Transform(
     ({ value, obj }) => {
-      // Use the API endpoint to serve files (both Local and S3)
-      // improved security and consistency
       if (value) {
+        if (value.startsWith('http')) {
+          return value;
+        }
+
         const appConfigData = appConfig() as AppConfig;
         const apiPrefix = appConfigData.apiPrefix;
-        const version = 'v1'; // Hardcoded as matching the controller version
+        const version = 'v1'; // Matching controller version
         const backendDomain = appConfigData.backendDomain.endsWith('/')
           ? appConfigData.backendDomain.slice(0, -1)
           : appConfigData.backendDomain;
 
         let path = value;
+        const fullPrefix = `${apiPrefix}/${version}/files/`;
+
+        // If the path already includes the API prefix, just prepend the domain
+        if (path.includes(fullPrefix)) {
+          if (!path.startsWith('/')) {
+            path = `/${path}`;
+          }
+          return `${backendDomain}${path}`;
+        }
+
+        // Otherwise, construct the full API path (assume value is just the relative path/filename)
         if (path.startsWith('/')) {
           path = path.slice(1);
         }
