@@ -8,7 +8,7 @@ definePageMeta({
 </script>
 
 <template>
-  <LayoutAuth reverse>
+  <AuthLayout reverse>
     <div class="grid mx-auto max-w-sm gap-6">
       <div class="grid gap-2 text-center">
         <h1 class="text-2xl font-semibold tracking-tight flex items-center justify-center gap-2">
@@ -29,5 +29,5 @@ definePageMeta({
         Todos los derechos reservados.
       </p>
     </div>
-  </LayoutAuth>
+  </AuthLayout>
 </template>

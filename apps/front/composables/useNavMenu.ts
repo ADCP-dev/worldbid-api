@@ -293,6 +293,14 @@ export function useNavMenu() {
       });
     }
 
+    // Dynamic menu items from modules
+    const dynamicItems = useState<NavMenu[]>("nav:menuItems", () => []);
+
+    // Merge base items with dynamic items
+    dynamicItems.value.forEach((item) => {
+      menu.push(item);
+    });
+
     return menu;
   });
 
