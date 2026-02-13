@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Zap, Code, Image } from "lucide-vue-next";
 import { useColorMode } from "@vueuse/core";
-import Logo from "./components/Logo.vue";
+
 const mode = useColorMode();
 
 </script>
@@ -13,7 +13,7 @@ const mode = useColorMode();
     <div class="grid place-items-center lg:max-w-screen-xl gap-8 mx-auto py-20 md:py-32">
       <div class="text-center space-y-8">
         <div class="flex justify-center">
-          <Logo size-logo="md" size-text="lg" />
+          <AppLogo size-logo="md" size-text="lg" />
         </div>
 
         <div class="max-w-screen-lg mx-auto text-center text-5xl md:text-6xl font-bold">

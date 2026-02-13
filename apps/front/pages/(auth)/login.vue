@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import Logo from "~/components/landing/components/Logo.vue";
+
 
 definePageMeta({
   layout: "blank",
@@ -12,7 +12,7 @@ definePageMeta({
     <div class="grid mx-auto max-w-sm gap-6">
       <div class="grid gap-2 text-center">
         <h1 class="text-2xl font-semibold tracking-tight flex items-center justify-center gap-2">
-          <Logo />
+          <AppLogo />
         </h1>
         <p class="text-balance text-sm text-muted-foreground">
           Inicia sesión para entrar en tu cuenta

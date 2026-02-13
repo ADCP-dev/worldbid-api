@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import loginImage from '@/assets/imgs/login-image.webp'
-import logo from '@/assets/imgs/logo/logo_mini.png'
 
 defineProps<{
   reverse?: boolean
@@ -8,14 +7,12 @@ defineProps<{
 </script>
 
 <template>
-  <div
-    class="relative flex items-center justify-center px-4 h-dvh lg:max-w-none lg:px-0"
-    :class="{ 'flex-row-reverse': reverse }"
-  >
+  <div class="relative flex items-center justify-center px-4 h-dvh lg:max-w-none lg:px-0"
+    :class="{ 'flex-row-reverse': reverse }">
     <div class="relative hidden h-full flex-1 flex-col bg-muted p-10 text-white lg:flex dark:border-r">
       <img :src="loginImage" class="absolute inset-0 bg-zinc-900 h-full w-full object-cover">
       <div class="relative z-20 flex items-center text-lg font-medium">
-        <LandingComponentsLogo />
+        <AppLogo />
       </div>
       <!-- <div class="relative z-20 mt-auto">
         <blockquote class="space-y-2">
@@ -36,6 +33,4 @@ defineProps<{
   </div>
 </template>
 
-<style scoped>
-
-</style>
+<style scoped></style>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import Logo from '~/components/landing/components/Logo.vue';
+
 definePageMeta({
   layout: 'blank',
 })
@@ -9,7 +9,7 @@ definePageMeta({
   <div class="flex flex-col items-center justify-center gap-6 bg-muted p-6 min-h-svh md:p-10">
     <div class="max-w-sm w-full flex flex-col gap-6">
       <NuxtLink to="#" class="flex items-center self-center gap-2 font-medium">
-        <Logo />
+        <AppLogo />
       </NuxtLink>
       <div class="flex flex-col gap-6">
         <Card>
@@ -25,7 +25,8 @@ definePageMeta({
             <AuthSignIn />
           </CardContent>
         </Card>
-        <div class="text-center text-balance text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary">
+        <div
+          class="text-center text-balance text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary">
           By clicking continue, you agree to our <a href="#">Terms of Service</a>
           and <a href="#">Privacy Policy</a>.
         </div>

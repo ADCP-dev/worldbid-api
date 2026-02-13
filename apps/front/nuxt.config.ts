@@ -3,13 +3,14 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineNuxtConfig({
   compatibilityDate: "2024-11-01",
+  extends: ["./modules/landing"],
   devtools: { enabled: true },
   ssr: false,
   // Configure error handling
   app: {
     // Global error handling
     head: {
-      titleTemplate: "%s - " + process.env.APP_NAME,
+      titleTemplate: "%s - " + (process.env.APP_NAME || "Foundation"),
       meta: [
         { charset: "utf-8" },
         { name: "viewport", content: "width=device-width, initial-scale=1" },

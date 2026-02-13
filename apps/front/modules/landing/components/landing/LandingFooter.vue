@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { BotMessageSquare } from "lucide-vue-next";
 import Separator from "@/components/ui/separator/Separator.vue";
-import Logo from "./components/Logo.vue";
 
 const config = useRuntimeConfig();
 </script>
@@ -11,7 +9,7 @@ const config = useRuntimeConfig();
     <div class="max-w-7xl mx-auto p-10 bg-muted/50 dark:bg-card border rounded-2xl">
       <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-x-12 gap-y-8">
         <div class="col-span-full xl:col-span-2" data-aos="fade-right">
-          <Logo />
+          <AppLogo />
         </div>
 
         <div class="flex flex-col gap-2" data-aos="fade-up" data-aos-delay="100">

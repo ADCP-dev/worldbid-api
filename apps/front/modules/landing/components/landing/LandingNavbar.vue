@@ -20,15 +20,13 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
 import { Menu, BotMessageSquare } from "lucide-vue-next";
-import ToggleTheme from "./ToggleTheme.vue";
 import { ref } from "vue";
 
 import { useColorMode } from "@vueuse/core";
-import Logo from "./components/Logo.vue";
-const colorMode = useColorMode();
 import { useHomeRoute } from "~/composables/useHomeRoute";
-const { route: homeRoute } = useHomeRoute();
 
+const { route: homeRoute } = useHomeRoute();
+const colorMode = useColorMode();
 
 
 interface RouteProps {
@@ -90,7 +88,7 @@ const isOpen = ref<boolean>(false);
     'shadow-dark': colorMode === 'dark',
     'container top-5 mx-auto place-items-center lg:max-w-screen-xl gap-8 mx-auto sticky border z-40 px-2 py-1 sm:p-3 rounded-sm sm:rounded-2xl flex justify-between items-center shadow-md backdrop-blur-xl': true,
   }">
-    <Logo :show-text="false" />
+    <AppLogo :show-text="false" />
     <!-- Mobile -->
     <div class="flex items-center lg:hidden">
       <Sheet v-model:open="isOpen">
@@ -103,7 +101,7 @@ const isOpen = ref<boolean>(false);
             <SheetHeader class="mb-4">
               <SheetTitle class="flex items-center">
                 <a href="/" class="flex items-center">
-                  <Logo />
+                  <AppLogo />
                 </a>
               </SheetTitle>
             </SheetHeader>
@@ -127,7 +125,7 @@ const isOpen = ref<boolean>(false);
               </NuxtLink>
             </Button>
 
-            <ToggleTheme />
+            <LandingToggleTheme />
           </SheetFooter>
         </SheetContent>
       </Sheet>
