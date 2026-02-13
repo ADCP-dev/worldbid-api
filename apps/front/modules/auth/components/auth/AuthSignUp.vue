@@ -2,7 +2,7 @@
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-vue-next";
 import PasswordInput from "~/components/PasswordInput.vue";
-import { useAuthStore } from '~/stores/auth.store';
+
 import { toast } from 'vue-sonner';
 
 const router = useRouter();

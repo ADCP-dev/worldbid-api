@@ -3,7 +3,6 @@ import { toTypedSchema } from '@vee-validate/zod'
 import { useForm } from 'vee-validate'
 import * as z from 'zod'
 import { toast } from 'vue-sonner'
-import { useAuthStore } from '@/stores/auth.store'
 
 const authStore = useAuthStore()
 
@@ -67,7 +66,7 @@ onMounted(async () => {
   if (!authStore.user) {
     await authStore.getMe()
   }
-  
+
   if (authStore.user) {
     setValues({
       firstName: authStore.user.firstName || '',
@@ -133,7 +132,7 @@ const onSubmit = handleSubmit(async (values) => {
       lastName: values.lastName,
       email: values.email,
     }
-    
+
     // Only include password if provided
     if (values.password && values.oldPassword) {
       updateData.password = values.password
@@ -145,9 +144,9 @@ const onSubmit = handleSubmit(async (values) => {
     if (photoId) {
       updateData.photo = { id: photoId }
     }
-    
+
     const result = await authStore.updateProfile(updateData)
-    
+
     if (result.success) {
       toast.success('Profile updated successfully')
       await authStore.getMe()
@@ -179,12 +178,9 @@ const onSubmit = handleSubmit(async (values) => {
         <FormLabel>Profile Photo</FormLabel>
         <div class="flex items-center gap-4">
           <div class="h-16 w-16 rounded-full overflow-hidden border bg-muted flex items-center justify-center">
-            <img
-              v-if="photoPreviewUrl || authStore.user?.photo?.path"
-              :src="photoPreviewUrl || authStore.user?.photo?.path"
-              class="h-full w-full object-cover"
-              alt="Profile photo"
-            />
+            <img v-if="photoPreviewUrl || authStore.user?.photo?.path"
+              :src="photoPreviewUrl || authStore.user?.photo?.path" class="h-full w-full object-cover"
+              alt="Profile photo" />
             <span v-else class="text-sm text-muted-foreground">No photo</span>
           </div>
           <div class="flex flex-col gap-2">
@@ -278,11 +274,7 @@ const onSubmit = handleSubmit(async (values) => {
         Update profile
       </Button>
 
-      <Button
-        type="button"
-        variant="outline"
-        @click="resetForm"
-      >
+      <Button type="button" variant="outline" @click="resetForm">
         Reset form
       </Button>
     </div>

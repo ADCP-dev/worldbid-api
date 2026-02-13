@@ -1,5 +1,3 @@
-import { useAuthStore } from "~/stores/auth.store";
-
 export function useHomeRoute() {
   const authStore = useAuthStore();
   const config = useRuntimeConfig();

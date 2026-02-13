@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAuthStore } from '~/stores/auth.store'
+
 import { Loader2 } from 'lucide-vue-next'
 import PasswordInput from '~/components/PasswordInput.vue'
 import { toast } from 'vue-sonner';

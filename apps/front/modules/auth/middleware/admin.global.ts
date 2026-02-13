@@ -1,5 +1,3 @@
-import { useAuthStore } from "~/stores/auth.store";
-
 export default defineNuxtRouteMiddleware(async (to) => {
   // Only check app routes
   if (!to.path.startsWith("/app")) {

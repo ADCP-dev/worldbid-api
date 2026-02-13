@@ -28,7 +28,7 @@ import {
   Sparkles,
   User,
 } from 'lucide-vue-next'
-import { useAuth } from '@/composables/useAuth'
+
 
 defineProps<{
   user: {
@@ -39,7 +39,7 @@ defineProps<{
 }>()
 
 const { isMobile, setOpenMobile } = useSidebar()
-const { logout } = useAuth()
+const { logout } = useAuthStore()
 
 
 </script>

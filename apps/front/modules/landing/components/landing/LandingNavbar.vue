@@ -23,7 +23,7 @@ import { Menu, BotMessageSquare } from "lucide-vue-next";
 import { ref } from "vue";
 
 import { useColorMode } from "@vueuse/core";
-import { useHomeRoute } from "~/composables/useHomeRoute";
+
 
 const { route: homeRoute } = useHomeRoute();
 const colorMode = useColorMode();

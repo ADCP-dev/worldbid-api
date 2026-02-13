@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Loader2 } from 'lucide-vue-next'
-import { useAuthStore } from '~/stores/auth.store'
+
 import { toast } from 'vue-sonner';
 import { useRouter } from 'vue-router'
 

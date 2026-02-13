@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import BreadcrumbCustom from '~/components/base/BreadcrumbCustom.vue'
-import { useHomeRoute } from '~/composables/useHomeRoute'
+
 
 const route = useRoute()
 const { route: homeRoute } = useHomeRoute()

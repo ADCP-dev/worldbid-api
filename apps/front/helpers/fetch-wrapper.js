@@ -1,4 +1,4 @@
-import { useAuthStore } from "@/stores/auth.store";
+import { useAuthStore } from "#imports";
 
 let isRefreshing = false;
 let failedQueue = [];
@@ -11,7 +11,7 @@ const processQueue = (error, token = null) => {
       resolve(token);
     }
   });
-  
+
   failedQueue = [];
 };
 
@@ -33,15 +33,15 @@ function request(method) {
         ...options.headers,
       },
     };
-    
+
     if (body) {
       requestOptions.body = JSON.stringify(body);
     }
-    
+
     if (options.credentials) {
       requestOptions.credentials = options.credentials;
     }
-    
+
     try {
       const response = await fetch(url, requestOptions);
       return await handleResponse(response, url, requestOptions);
@@ -57,16 +57,16 @@ function authHeader(url) {
   const runtimeConfig = useRuntimeConfig();
   const apiUrl = runtimeConfig.public.apiUrl;
   const authStore = useAuthStore();
-  
+
   const isApiUrl = url.startsWith(apiUrl);
-  const isAuthEndpoint = url.includes('/auth/email/login') || 
-                        url.includes('/auth/refresh') || 
-                        url.includes('/auth/email/register');
-  
+  const isAuthEndpoint = url.includes('/auth/email/login') ||
+    url.includes('/auth/refresh') ||
+    url.includes('/auth/email/register');
+
   if (isApiUrl && !isAuthEndpoint && authStore.token) {
     return { Authorization: `Bearer ${authStore.token}` };
   }
-  
+
   return {};
 }
 
@@ -76,11 +76,11 @@ async function handleResponse(response, originalUrl, originalOptions) {
 
   if (!response.ok) {
     const authStore = useAuthStore();
-    
+
     // Handle 401 Unauthorized - try to refresh token
     if (response.status === 401 && authStore.isAuthenticated) {
       const isAuthEndpoint = originalUrl.includes('/auth/');
-      
+
       // Don't try to refresh if this is already an auth endpoint
       if (!isAuthEndpoint) {
         if (isRefreshing) {
@@ -99,15 +99,15 @@ async function handleResponse(response, originalUrl, originalOptions) {
             return fetch(originalUrl, newOptions).then(handleResponse);
           });
         }
-        
+
         isRefreshing = true;
-        
+
         try {
           const refreshResult = await authStore.refreshAccessToken();
-          
+
           if (refreshResult.success) {
             processQueue(null, refreshResult.token);
-            
+
             // Retry original request with new token
             const newOptions = {
               ...originalOptions,
@@ -116,7 +116,7 @@ async function handleResponse(response, originalUrl, originalOptions) {
                 Authorization: `Bearer ${refreshResult.token}`,
               },
             };
-            
+
             const retryResponse = await fetch(originalUrl, newOptions);
             return handleResponse(retryResponse, originalUrl, newOptions);
           } else {
@@ -134,7 +134,7 @@ async function handleResponse(response, originalUrl, originalOptions) {
         authStore.logout();
       }
     }
-    
+
     // Handle other error statuses
     if (response.status === 403 && authStore.isAuthenticated) {
       // Forbidden - user doesn't have permission

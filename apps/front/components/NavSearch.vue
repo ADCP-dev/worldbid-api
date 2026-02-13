@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { NavLink, NavMenu } from '~/types/nav'
 import { useNavMenu } from '~/composables/useNavMenu'
-import { useHomeRoute } from '~/composables/useHomeRoute'
-import { useAuthStore } from '~/stores/auth.store'
+
+
 
 const { metaSymbol } = useShortcuts()
 
