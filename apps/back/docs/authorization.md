@@ -33,10 +33,10 @@ export enum PermissionEnum {
   'manage:users' = 'manage:users',
   'manage:users:own' = 'manage:users:own',
   'manage:roles' = 'manage:roles',
-  
+
   'view:reports' = 'view:reports',
   'view:analytics' = 'view:analytics',
-  
+
   'create:content' = 'create:content',
   'edit:content' = 'edit:content',
   'edit:content:own' = 'edit:content:own',
@@ -45,13 +45,14 @@ export enum PermissionEnum {
   'publish:content' = 'publish:content',
   'publish:content:own' = 'publish:content:own',
   'approve:content' = 'approve:content',
-  
+
   'access:admin' = 'access:admin',
   'access:api' = 'access:api',
 }
 ```
 
 Permission naming convention:
+
 - `action:resource` - Can perform action on any instance of the resource
 - `action:resource:own` - Can only perform action on resources owned by the user
 
@@ -60,6 +61,7 @@ Permission naming convention:
 Roles are mapped to permissions in the database through a many-to-many relationship. This is seeded by the `PermissionSeedService`.
 
 Default mappings:
+
 - **Admin**: Has all permissions
 - **User**: Has `read:any` and all `:own` permissions
 
@@ -101,6 +103,7 @@ The JWT token contains the user's authorization information in a flat, easily ac
 ```
 
 Key features of this structure:
+
 - User ID and session information for identity
 - Role information including ID and name
 - Flattened permissions array for efficient permission checks
@@ -109,6 +112,7 @@ Key features of this structure:
 ## Database Structure
 
 The system uses the following database tables:
+
 - `role` - Stores roles
 - `permission` - Stores permissions
 - `role_permissions` - Junction table for the many-to-many relationship
@@ -129,7 +133,7 @@ import { RoleEnum } from '../roles/roles.enum';
 @Controller('admin')
 export class AdminController {
   @Get()
-  @Roles(RoleEnum.admin)  // Only admin role can access
+  @Roles(RoleEnum.admin) // Only admin role can access
   getAdminPanel() {
     return { message: 'Admin panel' };
   }
@@ -150,13 +154,13 @@ import { PermissionEnum } from '../permissions/permissions.enum';
 @Controller('posts')
 export class PostsController {
   @Get()
-  @RequirePermissions(PermissionEnum['view:content'])  // Anyone with view:content permission
+  @RequirePermissions(PermissionEnum['view:content']) // Anyone with view:content permission
   findAll() {
     return this.postsService.findAll();
   }
-  
+
   @Post()
-  @RequirePermissions(PermissionEnum['create:content'])  // Only users with create:content permission
+  @RequirePermissions(PermissionEnum['create:content']) // Only users with create:content permission
   create(@Body() createPostDto: CreatePostDto, @Request() req) {
     // Associate post with current user
     createPostDto.userId = req.user.id;
@@ -177,14 +181,14 @@ import { PermissionEnum } from '../permissions/permissions.enum';
 @Controller('documents')
 export class DocumentsController {
   @Get(':id')
-  @RequirePermissions(PermissionEnum['view:content:own'])  // Can only access if user owns the document
+  @RequirePermissions(PermissionEnum['view:content:own']) // Can only access if user owns the document
   async findOne(@Param('id') id: string, @Request() req) {
     // Fetch the document
     const document = await this.documentsService.findOne(id);
-    
+
     // IMPORTANT: Attach the entity to the request for ownership checking
     req.entity = document;
-    
+
     return document;
   }
 }
@@ -246,14 +250,10 @@ For complex ownership relationships:
 import { OwnershipChecker } from '../permissions/ownership.checker';
 
 // In your guard or service:
-const isOwner = OwnershipChecker.check(
-  user,
-  entity,
-  (user, entity) => {
-    // Custom ownership logic
-    return entity.teamId === user.teamId || entity.createdBy === user.id;
-  }
-);
+const isOwner = OwnershipChecker.check(user, entity, (user, entity) => {
+  // Custom ownership logic
+  return entity.teamId === user.teamId || entity.createdBy === user.id;
+});
 ```
 
 ## Best Practices
@@ -294,23 +294,27 @@ The system can be extended in several ways:
 
 The authorization layer was refactored to be leaner, more generic and easier to maintain:
 
-### 1  Dynamic ownership checks
-* New `OwnershipService` resolves the entity class from `DataSource` metadata at runtime and fetches **only the owner column** (no full entity load).
-* No more hard-coded `ENTITY_MAP`; the service detects the entity automatically and guesses the owner column from a small common list (`ownerId`, `userId`, `createdBy`).
+### 1 Dynamic ownership checks
+
+- New `OwnershipService` resolves the entity class from `DataSource` metadata at runtime and fetches **only the owner column** (no full entity load).
+- No more hard-coded `ENTITY_MAP`; the service detects the entity automatically and guesses the owner column from a small common list (`ownerId`, `userId`, `createdBy`).
 
 ```ts
 const isOwner = await ownershipService.isOwner(user, 'country', countryId);
 ```
 
-### 2  `PermissionsGuard` improvements
-* Made `canActivate` async and delegates `:own` checks to `OwnershipService`.
-* Automatically extracts `entityName` and `entityId` from the request path (`:id`).
+### 2 `PermissionsGuard` improvements
 
-### 3  Modularisation
-* Added `PermissionsModule` which provides `OwnershipService` and exports it so it can be injected anywhere.
-* Feature modules (e.g. `CountriesModule`) now import `PermissionsModule`.
+- Made `canActivate` async and delegates `:own` checks to `OwnershipService`.
+- Automatically extracts `entityName` and `entityId` from the request path (`:id`).
 
-### 4  Usage example in a controller
+### 3 Modularisation
+
+- Added `PermissionsModule` which provides `OwnershipService` and exports it so it can be injected anywhere.
+- Feature modules (e.g. `CountriesModule`) now import `PermissionsModule`.
+
+### 4 Usage example in a controller
+
 ```ts
 @Get(':id')
 @RequirePermissions(PermissionEnum['view:country:own'])
@@ -319,12 +323,14 @@ async findById(@Param('id') id: string) {
 }
 ```
 
-### 5  Performance
-* Only a single scalar value (owner id) is selected, reducing DB IO.
+### 5 Performance
 
-### 6  Migration notes
-* Remove any custom `OwnershipChecker` mappings – the new service is fully dynamic.
-* Ensure owner columns follow one of the common names or extend the list in `OwnershipService`.
+- Only a single scalar value (owner id) is selected, reducing DB IO.
+
+### 6 Migration notes
+
+- Remove any custom `OwnershipChecker` mappings – the new service is fully dynamic.
+- Ensure owner columns follow one of the common names or extend the list in `OwnershipService`.
 
 ---
 

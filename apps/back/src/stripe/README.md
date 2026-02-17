@@ -37,6 +37,7 @@ FRONTEND_DOMAIN=http://localhost:3000
 ## API Endpoints
 
 ### Create Checkout Session
+
 ```http
 POST /stripe/create-checkout-session
 Content-Type: application/json
@@ -51,6 +52,7 @@ Content-Type: application/json
 ```
 
 ### Create Portal Session
+
 ```http
 POST /stripe/create-portal-session
 Content-Type: application/json
@@ -61,6 +63,7 @@ Content-Type: application/json
 ```
 
 ### Create Customer Portal
+
 ```http
 POST /stripe/create-customer-portal
 Content-Type: application/json
@@ -71,6 +74,7 @@ Content-Type: application/json
 ```
 
 ### Get Subscription Status
+
 ```http
 POST /stripe/subscription-status
 Content-Type: application/json
@@ -92,9 +96,9 @@ export class MyService {
     const session = await this.stripeService.createCheckoutSession(
       'premium_plan',
       email,
-      { userId }
+      { userId },
     );
-    
+
     return session.url;
   }
 }
@@ -115,6 +119,7 @@ private async handleSubscriptionCreated(subscription: Stripe.Subscription): Prom
 ## Testing
 
 Use Stripe's test cards:
+
 - **Success**: `4242 4242 4242 4242`
 - **Requires 3D Secure**: `4000 0025 0000 3155`
 - **Decline**: `4000 0000 0000 0002`

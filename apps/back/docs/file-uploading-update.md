@@ -119,13 +119,13 @@ export class YourService {
   async uploadUserAvatar(userId: string, file: Express.Multer.File) {
     // For a public file
     const { file: publicFile } = await this.filesService.create(file, true);
-    
+
     // For a private file
     const { file: privateFile } = await this.filesService.create(file, false);
-    
+
     // Save the file reference to your entity
     await this.userRepository.update(userId, { avatarId: publicFile.id });
-    
+
     return publicFile;
   }
 }
@@ -137,11 +137,11 @@ export class YourService {
 async updateUserAvatar(userId: string, file: Express.Multer.File) {
   // Get existing user with avatar
   const user = await this.userRepository.findById(userId);
-  
+
   if (user.avatarId) {
     // Update the existing file
     const { file: updatedFile } = await this.filesService.update(
-      user.avatarId, 
+      user.avatarId,
       file
     );
     return updatedFile;
@@ -160,16 +160,16 @@ async updateUserAvatar(userId: string, file: Express.Multer.File) {
 async deleteUserAvatar(userId: string) {
   // Get existing user with avatar
   const user = await this.userRepository.findById(userId);
-  
+
   if (user.avatarId) {
     // Delete the file
     await this.filesService.delete(user.avatarId);
-    
+
     // Update user to remove the reference
     await this.userRepository.update(userId, { avatarId: null });
     return true;
   }
-  
+
   return false;
 }
 ```

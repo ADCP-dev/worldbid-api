@@ -20,20 +20,20 @@ This will return countries where the name exactly matches "Spain".
 
 The system supports various operators to provide flexible filtering capabilities:
 
-| Operator    | Syntax                        | Description                               | Example                                      |
-|-------------|-------------------------------|-------------------------------------------|----------------------------------------------|
-| Exact match | `filter[field]=value`         | Exact value match                         | `filter[name]=Spain`                         |
-| Like        | `filter[field]=like:value`    | Contains value (SQL LIKE %value%)         | `filter[name]=like:Spa`                      |
-| Starts with | `filter[field]=start:value`   | Starts with value (SQL LIKE value%)       | `filter[name]=start:Esp`                     |
-| Ends with   | `filter[field]=end:value`     | Ends with value (SQL LIKE %value)         | `filter[name]=end:ain`                       |
-| Greater than| `filter[field]=gt:value`      | Greater than value                        | `filter[population]=gt:1000000`              |
-| Greater than or equal| `filter[field]=gte:value` | Greater than or equal to value       | `filter[population]=gte:1000000`             |
-| Less than   | `filter[field]=lt:value`      | Less than value                           | `filter[population]=lt:1000000`              |
-| Less than or equal| `filter[field]=lte:value` | Less than or equal to value             | `filter[population]=lte:1000000`             |
-| Between     | `filter[field]=between:min,max` | Between two values (inclusive)        | `filter[population]=between:1000000,5000000` |
-| Is null     | `filter[field]=null`          | Field is null                             | `filter[region]=null`                        |
-| Is not null | `filter[field]=!null`         | Field is not null                         | `filter[region]=!null`                       |
-| In array    | `filter[field]=value1&filter[field]=value2` | Field matches any value in array | `filter[status]=active&filter[status]=pending` |
+| Operator              | Syntax                                      | Description                         | Example                                        |
+| --------------------- | ------------------------------------------- | ----------------------------------- | ---------------------------------------------- |
+| Exact match           | `filter[field]=value`                       | Exact value match                   | `filter[name]=Spain`                           |
+| Like                  | `filter[field]=like:value`                  | Contains value (SQL LIKE %value%)   | `filter[name]=like:Spa`                        |
+| Starts with           | `filter[field]=start:value`                 | Starts with value (SQL LIKE value%) | `filter[name]=start:Esp`                       |
+| Ends with             | `filter[field]=end:value`                   | Ends with value (SQL LIKE %value)   | `filter[name]=end:ain`                         |
+| Greater than          | `filter[field]=gt:value`                    | Greater than value                  | `filter[population]=gt:1000000`                |
+| Greater than or equal | `filter[field]=gte:value`                   | Greater than or equal to value      | `filter[population]=gte:1000000`               |
+| Less than             | `filter[field]=lt:value`                    | Less than value                     | `filter[population]=lt:1000000`                |
+| Less than or equal    | `filter[field]=lte:value`                   | Less than or equal to value         | `filter[population]=lte:1000000`               |
+| Between               | `filter[field]=between:min,max`             | Between two values (inclusive)      | `filter[population]=between:1000000,5000000`   |
+| Is null               | `filter[field]=null`                        | Field is null                       | `filter[region]=null`                          |
+| Is not null           | `filter[field]=!null`                       | Field is not null                   | `filter[region]=!null`                         |
+| In array              | `filter[field]=value1&filter[field]=value2` | Field matches any value in array    | `filter[status]=active&filter[status]=pending` |
 
 ## Combining Filters
 
@@ -50,6 +50,7 @@ This will return countries where the name starts with "Esp" AND the population i
 ### Basic Filtering
 
 Find countries with exact name match:
+
 ```
 GET /api/v1/countries?filter[name]=Spain
 ```
@@ -57,16 +58,19 @@ GET /api/v1/countries?filter[name]=Spain
 ### Partial Text Matching
 
 Find countries that have "land" in their name:
+
 ```
 GET /api/v1/countries?filter[name]=like:land
 ```
 
 Find countries that start with "United":
+
 ```
 GET /api/v1/countries?filter[name]=start:United
 ```
 
 Find countries that end with "ia":
+
 ```
 GET /api/v1/countries?filter[name]=end:ia
 ```
@@ -74,11 +78,13 @@ GET /api/v1/countries?filter[name]=end:ia
 ### Numeric Filtering
 
 Find countries with population greater than 100 million:
+
 ```
 GET /api/v1/countries?filter[population]=gt:100000000
 ```
 
 Find countries with area between 100,000 and 500,000 square kilometers:
+
 ```
 GET /api/v1/countries?filter[area]=between:100000,500000
 ```
@@ -86,11 +92,13 @@ GET /api/v1/countries?filter[area]=between:100000,500000
 ### Null Values
 
 Find countries with no capital city defined:
+
 ```
 GET /api/v1/countries?filter[capital]=null
 ```
 
 Find countries that have a capital city defined:
+
 ```
 GET /api/v1/countries?filter[capital]=!null
 ```
@@ -98,6 +106,7 @@ GET /api/v1/countries?filter[capital]=!null
 ### Complex Filtering
 
 Find European countries with population less than 10 million:
+
 ```
 GET /api/v1/countries?filter[continent]=Europe&filter[population]=lt:10000000
 ```

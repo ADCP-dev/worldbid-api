@@ -1,25 +1,25 @@
 export interface NavLink {
-  title: string
-  link: string
-  icon?: string
-  new?: boolean
-  shortcut?: string
+  title: string;
+  link: string;
+  icon?: string;
+  new?: boolean;
+  shortcut?: string;
 }
 
 export interface NavSectionTitle {
-  heading: string
+  heading: string;
 }
 
 export interface NavGroup {
-  title: string
-  icon?: string
-  new?: boolean
-  children: NavLink[]
+  title: string;
+  icon?: string;
+  new?: boolean;
+  children: NavLink[];
 }
 
 export interface NavMenu {
-  heading: string
-  items: NavMenuItems
+  heading: string;
+  items: NavMenuItems;
 }
 
-export declare type NavMenuItems = (NavLink | NavGroup | NavSectionTitle)[]
+export declare type NavMenuItems = (NavLink | NavGroup | NavSectionTitle)[];

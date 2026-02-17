@@ -13,24 +13,28 @@ This module provides API key authentication alongside the existing JWT authentic
 ## API Endpoints
 
 ### Get Current User's API Key
+
 ```http
 GET /api/v1/api-keys
 Authorization: Bearer <jwt_token>
 ```
 
 ### Generate New API Key
+
 ```http
 POST /api/v1/api-keys/generate
 Authorization: Bearer <jwt_token>
 ```
 
 ### Regenerate API Key
+
 ```http
 POST /api/v1/api-keys/regenerate
 Authorization: Bearer <jwt_token>
 ```
 
 ### Revoke API Key
+
 ```http
 DELETE /api/v1/api-keys
 Authorization: Bearer <jwt_token>
@@ -39,12 +43,14 @@ Authorization: Bearer <jwt_token>
 ## Usage Examples
 
 ### Using JWT Authentication (existing)
+
 ```http
 GET /api/v1/templates
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 ### Using API Key Authentication (new)
+
 ```http
 GET /api/v1/templates
 X-API-Key: ak_abc123def456ghi789jkl012mno345pqr678
@@ -85,6 +91,7 @@ Example: `ak_abc123def456ghi789jkl012mno345pqr678`
 ## Database Schema
 
 The `api_key` table includes:
+
 - `id`: Primary key
 - `key`: Unique API key string (indexed)
 - `userId`: Foreign key to user table
@@ -102,15 +109,14 @@ npm run migration:run
 
 The migration file is located at: `src/database/migrations/1753360000000-CreateApiKey.ts`
 
-
 ## Usage
 
 ✅ How to Use API Key Authentication for Routes
 
 **1. For API Key Only Authentication:**
-Use the 
-```ApiKeyGuard```
- that you've already implemented:
+Use the
+`ApiKeyGuard`
+that you've already implemented:
 
 ```typescript
 import { UseGuards } from '@nestjs/common';
@@ -120,8 +126,8 @@ import { ApiSecurity } from '@nestjs/swagger';
 @Controller('templates')
 export class TemplatesController {
   @Get()
-  @ApiSecurity('api-key')  // Swagger documentation
-  @UseGuards(ApiKeyGuard)  // Only API key authentication
+  @ApiSecurity('api-key') // Swagger documentation
+  @UseGuards(ApiKeyGuard) // Only API key authentication
   async findAllWithPagination() {
     // This endpoint requires X-API-Key header
   }
@@ -129,9 +135,9 @@ export class TemplatesController {
 ```
 
 **2. For Either JWT OR API Key Authentication:**
-Use the 
-```JwtOrApiKeyGuard```
- for flexible authentication:
+Use the
+`JwtOrApiKeyGuard`
+for flexible authentication:
 
 ```typescript
 import { JwtOrApiKeyGuard } from '../auth/guards/jwt-or-api-key.guard';
@@ -139,9 +145,9 @@ import { JwtOrApiKeyGuard } from '../auth/guards/jwt-or-api-key.guard';
 @Controller('templates')
 export class TemplatesController {
   @Get('flexible')
-  @ApiBearerAuth()        // For JWT
+  @ApiBearerAuth() // For JWT
   @ApiSecurity('api-key') // For API key
-  @UseGuards(JwtOrApiKeyGuard)  // Accepts either authentication method
+  @UseGuards(JwtOrApiKeyGuard) // Accepts either authentication method
   async flexibleEndpoint() {
     // Can be accessed with either:
     // Authorization: Bearer <jwt_token>
@@ -149,3 +155,4 @@ export class TemplatesController {
     // X-API-Key: <api_key>
   }
 }
+```
