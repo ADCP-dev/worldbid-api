@@ -25,8 +25,9 @@ export default class StripeService {
     return await response.json();
   }
 
-  async getBalance():
-    Promise<Balance | { message: string; statusCode: number; }> {
+  async getBalance(): Promise<
+    Balance | { message: string; statusCode: number }
+  > {
     const response = await fetch(`${this.apiUrl}/tokens/balance`, {
       method: "GET",
       headers: this.getHeaders(),
@@ -40,7 +41,7 @@ export default class StripeService {
       {
         method: "POST",
         headers: this.getHeaders(),
-      }
+      },
     );
     const json = await response.json();
     return json.url;

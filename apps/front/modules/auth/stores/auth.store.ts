@@ -21,7 +21,6 @@ export const useAuthStore = defineStore("auth", {
       if (!state.tokenExpires) return true;
       return Date.now() >= state.tokenExpires;
     },
-    userPermissions: (state) => state.user?.role?.permissions || [],
     isAdmin: (state) => {
       const role = state.user?.role?.name || [];
       return role === "admin";
@@ -276,18 +275,6 @@ export const useAuthStore = defineStore("auth", {
         clearTimeout(this.refreshTokenTimeout);
         this.refreshTokenTimeout = null;
       }
-    },
-
-    hasPermission(permission) {
-      return this.userPermissions.includes(permission);
-    },
-
-    hasAnyPermission(permissions) {
-      return permissions.some((permission) => this.hasPermission(permission));
-    },
-
-    hasAllPermissions(permissions) {
-      return permissions.every((permission) => this.hasPermission(permission));
     },
   },
   persist: true,

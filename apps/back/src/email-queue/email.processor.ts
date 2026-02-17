@@ -59,9 +59,12 @@ export class EmailProcessor extends WorkerHost {
           job.data.context = {};
         }
 
-        const backendDomain = this.configService.get<string>('app.backendDomain', {
-          infer: true,
-        });
+        const backendDomain = this.configService.get<string>(
+          'app.backendDomain',
+          {
+            infer: true,
+          },
+        );
         if (backendDomain) {
           job.data.context.app_url = backendDomain;
         } else {

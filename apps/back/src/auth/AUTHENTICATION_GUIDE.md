@@ -3,6 +3,7 @@
 A comprehensive guide to the improved authentication system with clean decorators and type safety.
 
 ## 📋 Table of Contents
+
 - [Quick Reference](#-quick-reference)
 - [Authentication Decorators](#-authentication-decorators)
 - [User Decorators](#-user-decorators)
@@ -12,18 +13,20 @@ A comprehensive guide to the improved authentication system with clean decorator
 
 ## 🎯 Quick Reference
 
-| Decorator | Authentication Required | Headers | Use Case |
-|-----------|------------------------|---------|----------|
-| `@JwtAuth()` | JWT Token | `Authorization: Bearer <token>` | User-specific actions |
-| `@ApiKeyAuth()` | API Key | `X-API-Key: <key>` | API integrations |
-| `@FlexibleAuth()` | JWT **OR** API Key | Either header | Flexible access |
-| `@OptionalAuth()` | JWT **OR** API Key **OR** None | Either or none | Public with personalization |
-| `@AdminAuth()` | JWT + Admin Role | `Authorization: Bearer <token>` | Admin-only actions |
+| Decorator         | Authentication Required        | Headers                         | Use Case                    |
+| ----------------- | ------------------------------ | ------------------------------- | --------------------------- |
+| `@JwtAuth()`      | JWT Token                      | `Authorization: Bearer <token>` | User-specific actions       |
+| `@ApiKeyAuth()`   | API Key                        | `X-API-Key: <key>`              | API integrations            |
+| `@FlexibleAuth()` | JWT **OR** API Key             | Either header                   | Flexible access             |
+| `@OptionalAuth()` | JWT **OR** API Key **OR** None | Either or none                  | Public with personalization |
+| `@AdminAuth()`    | JWT + Admin Role               | `Authorization: Bearer <token>` | Admin-only actions          |
 
 ## 🔑 Authentication Decorators
 
 ### `@JwtAuth()`
+
 **JWT Authentication Only**
+
 - Requires valid JWT token in Authorization header
 - Perfect for user-specific actions like creating, updating, deleting
 - Automatically adds Swagger `@ApiBearerAuth()` documentation
@@ -37,7 +40,9 @@ async createTemplate(@RequiredUser() user: AuthenticatedUser) {
 ```
 
 ### `@ApiKeyAuth()`
+
 **API Key Authentication Only**
+
 - Requires valid API key in X-API-Key header
 - Ideal for API integrations, webhooks, third-party access
 - Automatically adds Swagger `@ApiSecurity('api-key')` documentation
@@ -51,7 +56,9 @@ async getTemplateData(@UserId() userId: number) {
 ```
 
 ### `@FlexibleAuth()`
+
 **JWT OR API Key Authentication**
+
 - Accepts either JWT token OR API key
 - Best for general endpoints that need flexibility
 - Adds both JWT and API key Swagger documentation
@@ -66,7 +73,9 @@ async getTemplates(@RequiredUser() user: AuthenticatedUser) {
 ```
 
 ### `@OptionalAuth()`
+
 **Optional Authentication**
+
 - User can be authenticated (JWT/API Key) or anonymous
 - Perfect for public content with personalization
 - User might be `null` - handle accordingly
@@ -82,7 +91,9 @@ async getFeatured(@CurrentUser() user: AuthenticatedUser | null) {
 ```
 
 ### `@AdminAuth()`
+
 **Admin-Only Authentication**
+
 - Requires JWT token with admin role
 - For administrative actions only
 - Can be extended with role-based guards
@@ -98,7 +109,9 @@ async adminCleanup(@RequiredUser() admin: AuthenticatedUser) {
 ## 👤 User Decorators
 
 ### `@RequiredUser()`
+
 **Type-Safe Required User**
+
 - Returns `AuthenticatedUser` type
 - User is guaranteed to exist (throws error if not)
 - Use with authentication-required decorators
@@ -111,7 +124,9 @@ async endpoint(@RequiredUser() user: AuthenticatedUser) {
 ```
 
 ### `@CurrentUser()`
+
 **Optional User**
+
 - Returns `AuthenticatedUser | null`
 - User might be null (for optional authentication)
 - Use with `@OptionalAuth()`
@@ -128,7 +143,9 @@ async endpoint(@CurrentUser() user: AuthenticatedUser | null) {
 ```
 
 ### `@UserId()`
+
 **User ID Only**
+
 - Returns `number | null`
 - Convenience decorator when you only need the user ID
 - Lighter than getting full user object
@@ -147,23 +164,22 @@ async endpoint(@UserId() userId: number) {
 ```typescript
 import { Controller, Get, Post, Body, Param } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
-import { 
-  JwtAuth, 
-  ApiKeyAuth, 
-  FlexibleAuth, 
-  OptionalAuth 
+import {
+  JwtAuth,
+  ApiKeyAuth,
+  FlexibleAuth,
+  OptionalAuth,
 } from '../auth/decorators/auth.decorator';
-import { 
-  RequiredUser, 
-  CurrentUser, 
-  UserId, 
-  AuthenticatedUser 
+import {
+  RequiredUser,
+  CurrentUser,
+  UserId,
+  AuthenticatedUser,
 } from '../auth/decorators/current-user.decorator';
 
 @ApiTags('Templates')
 @Controller({ path: 'templates', version: '1' })
 export class TemplatesController {
-
   // ✅ JWT Only - User Management
   @Post()
   @JwtAuth()
@@ -179,10 +195,7 @@ export class TemplatesController {
   @Get('external/:id')
   @ApiKeyAuth()
   @ApiOperation({ summary: 'Get template for external API (API Key required)' })
-  async getForExternal(
-    @Param('id') id: string,
-    @UserId() userId: number,
-  ) {
+  async getForExternal(@Param('id') id: string, @UserId() userId: number) {
     return this.templatesService.findForExternal(id, userId);
   }
 
@@ -214,6 +227,7 @@ export class TemplatesController {
 ## 🔄 Migration Guide
 
 ### Before (Verbose & Error-Prone)
+
 ```typescript
 @ApiBearerAuth()
 @ApiSecurity('api-key')
@@ -224,6 +238,7 @@ async endpoint(@CurrentUser() user: any) {
 ```
 
 ### After (Clean & Type-Safe)
+
 ```typescript
 @FlexibleAuth()
 async endpoint(@RequiredUser() user: AuthenticatedUser) {
@@ -232,6 +247,7 @@ async endpoint(@RequiredUser() user: AuthenticatedUser) {
 ```
 
 ### Migration Steps
+
 1. **Replace guard combinations** with semantic decorators
 2. **Add type safety** to user parameters
 3. **Update imports** to use new decorators
@@ -240,12 +256,14 @@ async endpoint(@RequiredUser() user: AuthenticatedUser) {
 ## ✅ Best Practices
 
 ### 1. **Choose the Right Decorator**
+
 - `@JwtAuth()` for user-specific actions (CRUD operations)
 - `@ApiKeyAuth()` for external API access
 - `@FlexibleAuth()` for general endpoints
 - `@OptionalAuth()` for public content with personalization
 
 ### 2. **Use Type-Safe User Decorators**
+
 ```typescript
 // ✅ Good - Type safe
 @RequiredUser() user: AuthenticatedUser
@@ -255,6 +273,7 @@ async endpoint(@RequiredUser() user: AuthenticatedUser) {
 ```
 
 ### 3. **Handle Optional Authentication Properly**
+
 ```typescript
 @OptionalAuth()
 async endpoint(@CurrentUser() user: AuthenticatedUser | null) {
@@ -267,31 +286,36 @@ async endpoint(@CurrentUser() user: AuthenticatedUser | null) {
 ```
 
 ### 4. **Consistent Error Handling**
+
 The decorators automatically handle authentication errors:
+
 - Missing/invalid JWT → `401 Unauthorized`
 - Missing/invalid API Key → `401 Unauthorized`
 - User required but not authenticated → `401 Unauthorized`
 
 ### 5. **Swagger Documentation**
+
 All decorators automatically add appropriate Swagger documentation:
+
 - JWT endpoints show "Authorize" button
 - API Key endpoints show API key input
 - Flexible endpoints show both options
 
 ## 🎨 Architecture Benefits
 
-| **Aspect** | **Improvement** |
-|------------|-----------------|
-| **Readability** | Single decorator vs multiple decorators |
-| **Type Safety** | `AuthenticatedUser` vs `any` |
-| **Maintainability** | Change one decorator vs multiple places |
-| **Documentation** | Auto-generated Swagger docs |
-| **Consistency** | Same pattern across entire app |
-| **Developer Experience** | IntelliSense and auto-completion |
+| **Aspect**               | **Improvement**                         |
+| ------------------------ | --------------------------------------- |
+| **Readability**          | Single decorator vs multiple decorators |
+| **Type Safety**          | `AuthenticatedUser` vs `any`            |
+| **Maintainability**      | Change one decorator vs multiple places |
+| **Documentation**        | Auto-generated Swagger docs             |
+| **Consistency**          | Same pattern across entire app          |
+| **Developer Experience** | IntelliSense and auto-completion        |
 
 ## 🚀 Advanced Usage
 
 ### Custom Authentication Decorator
+
 ```typescript
 export function OwnerAuth() {
   return applyDecorators(
@@ -302,6 +326,7 @@ export function OwnerAuth() {
 ```
 
 ### Role-Based Authentication
+
 ```typescript
 export function RoleAuth(roles: string[]) {
   return applyDecorators(

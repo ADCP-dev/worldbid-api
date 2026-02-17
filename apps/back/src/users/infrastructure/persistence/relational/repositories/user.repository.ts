@@ -62,7 +62,6 @@ export class UsersRelationalRepository implements UserRepository {
   async findById(id: User['id']): Promise<NullableType<User>> {
     const entity = await this.usersRepository.findOne({
       where: { id: Number(id) },
-      relations: ['role.permissions'],
     });
 
     return entity ? UserMapper.toDomain(entity) : null;
@@ -81,7 +80,6 @@ export class UsersRelationalRepository implements UserRepository {
 
     const entity = await this.usersRepository.findOne({
       where: { email },
-      relations: ['role.permissions'],
     });
 
     return entity ? UserMapper.toDomain(entity) : null;
@@ -98,7 +96,6 @@ export class UsersRelationalRepository implements UserRepository {
 
     const entity = await this.usersRepository.findOne({
       where: { socialId, provider },
-      relations: ['role.permissions'],
     });
 
     return entity ? UserMapper.toDomain(entity) : null;
