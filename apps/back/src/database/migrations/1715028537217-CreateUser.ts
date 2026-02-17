@@ -46,25 +46,6 @@ export class CreateUser1715028537217 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "file" ADD CONSTRAINT "FK_b2d8e683f020f61115edea206b3" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
-    // Permissions
-    await queryRunner.query(
-      `CREATE TABLE "permission" ("id" integer NOT NULL, "name" character varying NOT NULL, CONSTRAINT "PK_3b8b97af9d9d8807e41e6f48362" PRIMARY KEY ("id"))`,
-    );
-    await queryRunner.query(
-      `CREATE TABLE "role_permissions" ("permissionId" integer NOT NULL, "roleId" integer NOT NULL, CONSTRAINT "PK_d430a02aad006d8a70f3acd7d03" PRIMARY KEY ("permissionId", "roleId"))`,
-    );
-    await queryRunner.query(
-      `CREATE INDEX "IDX_06792d0c62ce6b0203c03643cd" ON "role_permissions" ("permissionId") `,
-    );
-    await queryRunner.query(
-      `CREATE INDEX "IDX_b4599f8b8f548d35850afa2d12" ON "role_permissions" ("roleId") `,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "role_permissions" ADD CONSTRAINT "FK_06792d0c62ce6b0203c03643cdd" FOREIGN KEY ("permissionId") REFERENCES "permission"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "role_permissions" ADD CONSTRAINT "FK_b4599f8b8f548d35850afa2d12c" FOREIGN KEY ("roleId") REFERENCES "role"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
-    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
@@ -97,21 +78,5 @@ export class CreateUser1715028537217 implements MigrationInterface {
     await queryRunner.query(`DROP TABLE "file"`);
     await queryRunner.query(`DROP TABLE "status"`);
     await queryRunner.query(`DROP TABLE "role"`);
-
-    // Permissions
-    await queryRunner.query(
-      `ALTER TABLE "role_permissions" DROP CONSTRAINT "FK_b4599f8b8f548d35850afa2d12c"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "role_permissions" DROP CONSTRAINT "FK_06792d0c62ce6b0203c03643cdd"`,
-    );
-    await queryRunner.query(
-      `DROP INDEX "public"."IDX_b4599f8b8f548d35850afa2d12"`,
-    );
-    await queryRunner.query(
-      `DROP INDEX "public"."IDX_06792d0c62ce6b0203c03643cd"`,
-    );
-    await queryRunner.query(`DROP TABLE "role_permissions"`);
-    await queryRunner.query(`DROP TABLE "permission"`);
   }
 }

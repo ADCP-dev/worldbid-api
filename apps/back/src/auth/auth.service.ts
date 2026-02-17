@@ -556,23 +556,13 @@ export class AuthService {
 
     const tokenExpires = Date.now() + ms(tokenExpiresIn);
 
-    // Create a payload with permissions as a simple array
     const payload: any = {
       id: data.id,
       sessionId: data.sessionId,
     };
 
-    // If we have role with permissions, add both role and flattened permissions
     if (data.role) {
-      // Keep the original role
       payload.role = data.role;
-
-      // Extract permissions into a simple array if they exist
-      if (data.role.permissions && Array.isArray(data.role.permissions)) {
-        payload.role.permissions = data.role.permissions
-          .filter((p) => p && p.name) // Filter out null/undefined permissions
-          .map((p) => p.name); // Extract just the name
-      }
     }
 
     const [token, refreshToken] = await Promise.all([
