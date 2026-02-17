@@ -76,7 +76,7 @@ export const columns: MyColumnDef<User>[] = [
       h(
         "a",
         { href: `mailto:${row.original.email}`, class: "text-primary-500" },
-        row.original.email
+        row.original.email,
       ),
   },
   {
@@ -102,7 +102,7 @@ export const columns: MyColumnDef<User>[] = [
               target: "_blank",
               rel: "noopener noreferrer",
             },
-            `+${row.original.user_data.mobile_prefix} ${row.original.user_data.mobile_number}`
+            `+${row.original.user_data.mobile_prefix} ${row.original.user_data.mobile_number}`,
           )
         : null,
       row.original.user_data?.landline_number
@@ -114,7 +114,7 @@ export const columns: MyColumnDef<User>[] = [
               target: "_blank",
               rel: "noopener noreferrer",
             },
-            `+${row.original.user_data.landline_prefix} ${row.original.user_data.landline_number}`
+            `+${row.original.user_data.landline_prefix} ${row.original.user_data.landline_number}`,
           )
         : null,
     ],
@@ -178,10 +178,10 @@ export const columns: MyColumnDef<User>[] = [
         "div",
         {
           class: `text-center text-white rounded-full px-2 py-1 ${statusClass(
-            row.original.status
+            row.original.status,
           )}`,
         },
-        mapStatus(row.original.status)
+        mapStatus(row.original.status),
       ),
   },
   {
@@ -189,17 +189,15 @@ export const columns: MyColumnDef<User>[] = [
     header: "Contrato firmado",
     filterType: "boolean",
     cell: ({ row }) =>
-      h(
-        "div",
-        { class: "flex justify-center items-center" },
-        [
-          h(row.original.user_data?.contract_signed ? CheckCircle : XCircle, {
-            class: [
-              "h-4",
-              row.original.user_data?.contract_signed ? "text-green-500" : "text-red-500",
-            ],
-          }),
-        ]
-      )
+      h("div", { class: "flex justify-center items-center" }, [
+        h(row.original.user_data?.contract_signed ? CheckCircle : XCircle, {
+          class: [
+            "h-4",
+            row.original.user_data?.contract_signed
+              ? "text-green-500"
+              : "text-red-500",
+          ],
+        }),
+      ]),
   },
 ];

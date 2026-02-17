@@ -8,7 +8,7 @@ interface FilterOption {
 type MyColumnDef<TData, TValue = unknown> = ColumnDef<TData, TValue> & {
   options?: FilterOption[];
   headerName?: string;
-  filterType?: 'number' | 'date' | 'string' | 'select' | 'boolean';
+  filterType?: "number" | "date" | "string" | "select" | "boolean";
 };
 
 export type { MyColumnDef };

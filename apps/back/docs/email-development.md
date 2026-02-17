@@ -106,11 +106,11 @@ async newEmailType(mailData: MailData<{ customData: string }>): Promise<void> {
   const i18n = I18nContext.current();
   // Get translations
   let emailTitle: MaybeType<string>;
-  
+
   if (i18n) {
     emailTitle = await i18n.t('common.emailTitle');
   }
-  
+
   // Send email
   await this.mailerService.sendMail({
     to: mailData.to,

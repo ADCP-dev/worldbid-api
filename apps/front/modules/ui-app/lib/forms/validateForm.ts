@@ -1,6 +1,5 @@
-
-import type { ZodSchema } from 'zod'
-import type { Ref } from 'vue'
+import type { ZodSchema } from "zod";
+import type { Ref } from "vue";
 
 /**
  * Generic form validation utility using Zod.
@@ -12,16 +11,16 @@ import type { Ref } from 'vue'
 export function validateForm<T>(
   schema: ZodSchema<T>,
   form: T,
-  errors: Ref<Record<string, string>>
+  errors: Ref<Record<string, string>>,
 ): boolean {
-  const result = schema.safeParse(form)
+  const result = schema.safeParse(form);
   if (!result.success) {
-    errors.value = {}
+    errors.value = {};
     result.error.errors.forEach((err) => {
-      if (err.path.length) errors.value[err.path[0]] = err.message
-    })
-    return false
+      if (err.path.length) errors.value[err.path[0]] = err.message;
+    });
+    return false;
   }
-  errors.value = {}
-  return true
+  errors.value = {};
+  return true;
 }
