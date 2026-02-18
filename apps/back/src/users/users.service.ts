@@ -23,6 +23,9 @@ import { FindAllUserDto } from './dto/find-all-user.dto';
 import { ConfigService } from '@nestjs/config';
 import { AllConfigType } from '../config/config.type';
 
+const ROLE_IDS = new Set(Object.values(RoleEnum).map(String));
+const STATUS_IDS = new Set(Object.values(StatusEnum).map(String));
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -81,9 +84,7 @@ export class UsersService {
     let role: Role | undefined = undefined;
 
     if (createUserDto.role?.id) {
-      const roleObject = Object.values(RoleEnum)
-        .map(String)
-        .includes(String(createUserDto.role.id));
+      const roleObject = ROLE_IDS.has(String(createUserDto.role.id));
       if (!roleObject) {
         throw new UnprocessableEntityException({
           status: HttpStatus.UNPROCESSABLE_ENTITY,
@@ -101,9 +102,7 @@ export class UsersService {
     let status: Status | undefined = undefined;
 
     if (createUserDto.status?.id) {
-      const statusObject = Object.values(StatusEnum)
-        .map(String)
-        .includes(String(createUserDto.status.id));
+      const statusObject = STATUS_IDS.has(String(createUserDto.status.id));
       if (!statusObject) {
         throw new UnprocessableEntityException({
           status: HttpStatus.UNPROCESSABLE_ENTITY,
@@ -265,9 +264,7 @@ export class UsersService {
     let role: Role | undefined = undefined;
 
     if (updateUserDto.role?.id) {
-      const roleObject = Object.values(RoleEnum)
-        .map(String)
-        .includes(String(updateUserDto.role.id));
+      const roleObject = ROLE_IDS.has(String(updateUserDto.role.id));
       if (!roleObject) {
         throw new UnprocessableEntityException({
           status: HttpStatus.UNPROCESSABLE_ENTITY,
@@ -285,9 +282,7 @@ export class UsersService {
     let status: Status | undefined = undefined;
 
     if (updateUserDto.status?.id) {
-      const statusObject = Object.values(StatusEnum)
-        .map(String)
-        .includes(String(updateUserDto.status.id));
+      const statusObject = STATUS_IDS.has(String(updateUserDto.status.id));
       if (!statusObject) {
         throw new UnprocessableEntityException({
           status: HttpStatus.UNPROCESSABLE_ENTITY,
