@@ -1,5 +1,5 @@
 ---
-to: src/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>.module.ts
+to: src/extensions/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>/extension.module.ts
 ---
 import {
   // do not remove this comment
@@ -18,4 +18,4 @@ import { <%= name %>PersistenceModule } from './infrastructure/persistence.modul
   providers: [<%= h.inflection.transform(name, ['pluralize']) %>Service],
   exports: [<%= h.inflection.transform(name, ['pluralize']) %>Service, <%= name %>PersistenceModule],
 })
-export class <%= h.inflection.transform(name, ['pluralize']) %>Module {}
+export class <%= h.inflection.transform(name, ['pluralize']) %>ExtensionModule {}
