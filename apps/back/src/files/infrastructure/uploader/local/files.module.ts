@@ -1,4 +1,8 @@
-import { Module } from '@nestjs/common';
+import {
+  HttpStatus,
+  Module,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { FilesLocalController } from './files.controller';
 import { MulterModule } from '@nestjs/platform-express';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -21,17 +25,17 @@ const infrastructurePersistenceModule = RelationalFilePersistenceModule;
       useFactory: (configService: ConfigService<AllConfigType>) => {
         return {
           fileFilter: (request, file, callback) => {
-            //   if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/i)) {
-            //     return callback(
-            //       new UnprocessableEntityException({
-            //         status: HttpStatus.UNPROCESSABLE_ENTITY,
-            //         errors: {
-            //           file: `cantUploadFileType`,
-            //         },
-            //       }),
-            //       false,
-            //     );
-            //   }
+            if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/i)) {
+              return callback(
+                new UnprocessableEntityException({
+                  status: HttpStatus.UNPROCESSABLE_ENTITY,
+                  errors: {
+                    file: `cantUploadFileType`,
+                  },
+                }),
+                false,
+              );
+            }
 
             callback(null, true);
           },
