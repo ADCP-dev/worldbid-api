@@ -19,7 +19,7 @@ useHead({
   },
 })
 
-useDefaultSeo()
+useSeo()
 </script>
 
 <template>
