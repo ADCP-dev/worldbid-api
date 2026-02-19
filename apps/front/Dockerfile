@@ -3,18 +3,14 @@ ARG NODE_VERSION=22.15.0
 # Create build stage
 FROM node:${NODE_VERSION}-slim AS build
 
-# Setup for npm
-RUN npm --version
-
 # Set the working directory inside the container
 WORKDIR /app
 
-# Copy package.json and package-lock.json files to the working directory
+# Copy package.json to the working directory
 COPY ./package.json /app/
-COPY ./package-lock.json /app/
 
-## Install dependencies
-RUN npm ci
+# Install dependencies (using npm install since the lockfile is at the monorepo root)
+RUN npm install --legacy-peer-deps
 
 # Copy the rest of the application files to the working directory
 COPY . ./
@@ -30,10 +26,6 @@ WORKDIR /app
 
 # Copy the output from the build stage to the working directory
 COPY --from=build /app/.output ./
-
-# Define environment variables
-ENV HOST=0.0.0.0 NODE_ENV=production
-ENV NODE_ENV=production
 
 # Expose the port the application will run on
 EXPOSE 3000
