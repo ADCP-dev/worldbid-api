@@ -1,83 +1,139 @@
-# Custom Generators (Hygen)
+# CLI Generators (Hygen)
 
-The backend uses **Hygen** for scaffolding code. This allows you to quickly generate boilerplate code for new resources, properties, and seeds.
+The backend uses **Hygen** for scaffolding. All commands run from `apps/back/`.
 
-## Location
+```
+apps/back/.hygen/
+├── generate/
+│   ├── relational-resource/   # Full CRUD resource
+│   └── extension-resource/    # Resource inside an extension
+├── property/
+│   ├── add-to-relational/     # Add field to a regular resource
+│   └── add-to-extension/      # Add field to an extension resource
+└── seeds/
+    └── create-relational/     # New seeder file
+```
 
-The generator templates are located in `apps/back/.hygen`.
-Each folder represents a generator (e.g., `generate`, `property`, `seeds`).
+---
 
-## Available Generators
+## Available Commands
 
-### 1. Generate Resource (`generate:resource`)
+### `pnpm generate:resource`
 
-Command: `npm run generate:resource`
-Template Location: `apps/back/.hygen/generate/relational-resource`
+Scaffolds a full CRUD module:
 
-This generator creates a complete CRUD module structure:
+```
+src/<name>/
+├── <name>.module.ts
+├── <name>.controller.ts
+├── <name>.service.ts
+├── domain/<name>.ts           # Domain object (no DB dependencies)
+├── dto/
+│   ├── create-<name>.dto.ts
+│   ├── update-<name>.dto.ts
+│   └── find-all-<name>.dto.ts
+└── infrastructure/
+    ├── persistence.module.ts
+    ├── <name>.repository.ts
+    └── entities/<name>.entity.ts
+    └── mappers/<name>.mapper.ts
+```
 
-- **Module**: `src/<name>/<name>.module.ts`
-- **Controller**: `src/<name>/<name>.controller.ts`
-- **Service**: `src/<name>/<name>.service.ts`
-- **Entity**: `src/<name>/infrastructure/persistence/relational/entities/<name>.entity.ts`
-- **DTOs**: `src/<name>/dto/*.dto.ts`
+> ⚠️ The generator outputs to `src/<name>/`. After generation, **move the folder** to the correct `src/modules/<group>/` directory and update the import in `app.module.ts`.
 
-**Customization**:
-To modify the generated files, edit the `.ejs.t` files in the template directory.
-For example, to add a default import to every new controller, edit `controller.ejs.t`.
+### `pnpm generate:extension`
 
-### 2. Add Property (`add:property`)
+Same as above but outputs to `src/extensions/<extension-name>/<resource>/`.
 
-Command: `npm run add:property`
-Template Location: `apps/back/.hygen/property/add-to-relational`
+### `pnpm add:property`
 
-This generator adds a new field to an existing entity and updates:
+Adds a new column to an existing resource. Prompts for:
+- **Resource name** (must already exist)
+- **Property name** (camelCase)
+- **Property type** (`string`, `number`, `boolean`, `Date`)
+- **Is nullable?**
 
-- **Entity**: Adds the `@Column()` definition.
-- **DTOs**: Adds the field to `create`, `update`, and response DTOs.
-- **Service/Mapper**: Updates the mapper if necessary.
+Updates entity, domain object, DTOs, and mapper.
 
-**Customization**:
-You can add new types of columns or change the validation decorators applied to new fields by editing the `.ejs.t` files.
+### `pnpm add:extension-property`
 
-### 3. Create Seed (`seed:create`)
+Same as `add:property` but targets an extension resource.
 
-Command: `npm run seed:create`
-Template Location: `apps/back/.hygen/seeds/create-relational`
+### `pnpm seed:create`
 
-Creates a new seed file in `src/database/seeds/relational`.
+Creates an empty seed file in `src/infrastructure/database/seeds/`.
 
-## How to Customize Templates
+### `pnpm migration:generate --name=MyMigration`
 
-Hygen templates use **EJS** (Embedded JavaScript) for rendering.
+See [BACKEND-RESOURCES.md](./BACKEND-RESOURCES.md#4-database-migrations) for full migration docs.
 
-### File Header
+---
 
-Each `.ejs.t` file has a header that defines where the file will be generated:
+## Template Format (EJS)
+
+Each `.ejs.t` file has a YAML front-matter header and an EJS body:
 
 ```ejs
 ---
-to: src/<%= name %>/dto/create-<%= name %>.dto.ts
+to: src/<%= name %>/<%= name %>.service.ts
 ---
-```
+import { Injectable } from '@nestjs/common';
 
-### Variables
-
-You can use variables passed from the prompt (like `name`) in the template:
-
-```typescript
-export class Create<%= h.capitalize(name) %>Dto {
-  // ...
+@Injectable()
+export class <%= h.capitalize(name) %>Service {
+  // …
 }
 ```
 
-### Helpers
+### Common EJS Helpers
 
-Hygen provides helpers like `h.capitalize()`, `h.inflection.pluralize()`, etc., to format names correctly.
+| Helper | Example output |
+|---|---|
+| `h.capitalize(name)` | `product` → `Product` |
+| `h.inflection.pluralize(name)` | `product` → `products` |
+| `h.changeCase.camel(name)` | `my-product` → `myProduct` |
+| `h.changeCase.pascal(name)` | `my-product` → `MyProduct` |
+| `h.changeCase.snake(name)` | `myProduct` → `my_product` |
 
-## Creating a New Generator
+---
 
-1.  Create a new folder in `apps/back/.hygen/my-generator`.
-2.  Create a `new` folder inside it.
-3.  Add `.ejs.t` files for the files you want to generate.
-4.  Run it with `npx hygen my-generator new`.
+## Customizing Templates
+
+Edit the `.ejs.t` files in `.hygen/` directly. They are plain text files — no build step needed.
+
+Example: adding a default `@JwtAuth()` to every generated controller:
+
+```ejs
+---
+to: src/<%= name %>/<%= name %>.controller.ts
+---
+import { JwtAuth } from '@iam/auth/decorators/auth.decorator';
+
+@JwtAuth()
+@Controller('<%= name %>')
+export class <%= h.capitalize(name) %>Controller { … }
+```
+
+---
+
+## Creating a Custom Generator
+
+1. Create a folder: `apps/back/.hygen/my-generator/new/`
+2. Add `.ejs.t` files with `to:` headers
+3. Add a prompt file `index.js` if you need user input
+
+```javascript
+// .hygen/my-generator/new/index.js
+module.exports = {
+  prompt: ({ inquirer }) =>
+    inquirer.prompt([
+      { type: 'input', name: 'name', message: 'Name?' },
+    ]),
+};
+```
+
+4. Run with:
+
+```bash
+npx hygen my-generator new
+```

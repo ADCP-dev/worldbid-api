@@ -1,7 +1,7 @@
-- [] Dejar organizado el proyecto
-  - [] Backend unir en carpetas modulos
-  - [] Frontend unir en carpetas los componentes
-- [] Eliminar el authz basado en permisos y mejor en roles
+- [x] Dejar organizado el proyecto
+  - [x] Backend unir en carpetas modulos
+  - [x] Frontend unir en carpetas los componentes
+- [x] Eliminar el authz basado en permisos y mejor en roles
 - [] Probar de asegurar un enpoint con decorador de roles y si es el mismo usuario del recurso y en el front tambien
 - [] Crear documentación de como usar el proyecto y como esta organizado
 - [] Revisar los api tokens
