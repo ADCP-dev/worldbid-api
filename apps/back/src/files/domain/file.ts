@@ -1,8 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Allow } from 'class-validator';
 import { Transform } from 'class-transformer';
-import fileConfig from '../config/file.config';
-import { FileConfig, FileDriver } from '../config/file-config.type';
 
 import { AppConfig } from '../../config/app-config.type';
 import appConfig from '../../config/app.config';

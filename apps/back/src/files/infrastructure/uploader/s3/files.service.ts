@@ -115,31 +115,10 @@ export class FilesS3Service {
       );
     } catch (error) {
       console.error('Error deleting S3 object:', error);
-      // Fail silently to avoid blocking DB delete? Or throw?
-      // Local service logic just logs and continues.
     }
   }
 
   async getPublicUrl(path: string): Promise<string> {
-    // For public files, we can construct the URL manually if it's standard S3
-    // Or we can rely on how standard S3 URLs are formed.
-    // However, if the bucket is not public, we might need a presigned URL even for "public" intent if we want to bypass ACLs,
-    // but the intention of "public" usually means public read access.
-    // But since `domain/file.ts` uses GetObjectCommand for signed urls, let's assume we might need that for everything
-    // OR we just return the Signed URL for everything to be safe.
-
-    // Actually, usually "public" means we want a permanent URL.
-    // Standard S3 URL: https://<bucket>.s3.<region>.amazonaws.com/<key>
-    // Or for MinIO/compat: <endpoint>/<bucket>/<key>
-
-    const bucket = this.configService.getOrThrow('file.awsDefaultS3Bucket', {
-      infer: true,
-    });
-    // This logic mimics what libraries usually do.
-    // But to be consistent with `domain/file.ts` logic which might assume everything needs a signature if not local...
-    // Let's just generate a Signed URL.
-    // BUT the user asked for "downloadPublic".
-    // If I redirect to a signed URL, it works.
     return this.getPresignedUrl(path);
   }
 

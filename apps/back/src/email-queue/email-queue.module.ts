@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-syntax */
 import { Module, Global, DynamicModule } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { EmailProcessor } from './email.processor';

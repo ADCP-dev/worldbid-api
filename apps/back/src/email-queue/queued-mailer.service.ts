@@ -14,6 +14,7 @@ export class QueuedMailerService {
   ) {}
 
   async sendMail(data: EmailJobData): Promise<void> {
+    // eslint-disable-next-line no-restricted-syntax
     const isRedisEnabled = this.configService.get('worker.enabled');
 
     if (isRedisEnabled && this.emailQueue) {

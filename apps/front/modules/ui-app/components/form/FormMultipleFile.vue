@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import DeleteButton from "../data-table/Buttons/DeleteButton.vue";
+import DeleteButton from "../data-table/buttons/DeleteButton.vue";
 import { File, FileUp } from "lucide-vue-next";
 
 const props = defineProps<{
@@ -88,13 +88,13 @@ function onDragOver(e: DragEvent) {
         :disabled="disabled"
         aria-label="Seleccionar archivos"
         @change="onFileChange"
-      />
+      >
       <div
         class="flex flex-col items-center justify-center pointer-events-none min-h-[80px]"
       >
         <FileUp class="w-8 h-8 text-muted-foreground mb-2" />
         <span class="text-muted-foreground text-base font-medium text-center">
-          Arrastra y suelta archivos aquí<br />o haz clic para seleccionar
+          Arrastra y suelta archivos aquí<br>o haz clic para seleccionar
         </span>
         <span v-if="description" class="text-xs text-muted-foreground mt-1">
           {{ description }}
