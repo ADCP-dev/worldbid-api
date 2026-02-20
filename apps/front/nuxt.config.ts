@@ -3,7 +3,7 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineNuxtConfig({
   compatibilityDate: "2024-11-01",
-  extends: ["./modules/landing", "./modules/auth", "./modules/ui-app"],
+  extends: ["./modules/landing", "./modules/auth", "./modules/ui-app", "./modules/translations"],
   devtools: { enabled: true },
   ssr: false,
   // Configure error handling

@@ -31,6 +31,7 @@ import stripeConfig from '@billing/stripe/config/stripe.config';
 import workerConfig from './config/worker.config';
 import { EmailQueueModule } from '@comms/email-queue/email-queue.module';
 import { ExtensionLoaderModule } from './core/extension-loader';
+import { TranslationsModule } from './modules/translations/translations.module';
 
 const infrastructureDatabaseModule = TypeOrmModule.forRootAsync({
   useClass: TypeOrmConfigService,
@@ -98,6 +99,7 @@ const infrastructureDatabaseModule = TypeOrmModule.forRootAsync({
     HomeModule,
     EmailQueueModule.register(),
     ExtensionLoaderModule.register(),
+    TranslationsModule,
   ],
 })
 export class AppModule {}
