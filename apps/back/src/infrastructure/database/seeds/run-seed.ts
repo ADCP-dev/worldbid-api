@@ -16,6 +16,17 @@ const runSeed = async () => {
   // Extension seeds (auto-discovered)
   await runExtensionSeeds(app);
 
+  // Translations
+  try {
+     const { TranslationSeedService } = await import('../../../modules/translations/infrastructure/seeds/translation-seed.service');
+     const translationService = app.get(TranslationSeedService);
+     if (translationService) {
+        await translationService.run();
+     }
+  } catch (e) {
+      console.warn('Translation seed skipped or failed:', e.message);
+  }
+
   await app.close();
 };
 

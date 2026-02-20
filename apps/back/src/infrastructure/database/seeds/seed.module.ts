@@ -10,9 +10,11 @@ import { UserSeedModule } from '@infra/database/seeds/user/user-seed.module';
 import databaseConfig from '@infra/database/config/database.config';
 import appConfig from '@src/config/app.config';
 import { ExtensionSeedLoaderModule } from '@src/core/seed-loader';
+import { TranslationsModule } from '../../../modules/translations/translations.module';
 
 @Module({
   imports: [
+    TranslationsModule,
     RoleSeedModule,
     StatusSeedModule,
     UserSeedModule,
