@@ -9,6 +9,13 @@
 
 ---
 
+- [] Quitar apartados de config
+- [] Sistema de traducciones decente
+- [] Traducir la app a español
+- [] Traducir la app a ingles
+
+---
+
 Herramientas cli:
 
 - [] Añadir más tipos de campos (DateTime, JSON, Cords, etc All types of postgres and typeorm)
