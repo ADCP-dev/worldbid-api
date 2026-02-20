@@ -9,12 +9,12 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { diskStorage } from 'multer';
 import { randomStringGenerator } from '@nestjs/common/utils/random-string-generator.util';
 import { FilesLocalService } from './files.service';
-import { RelationalFilePersistenceModule } from '../../persistence/relational/relational-persistence.module';
+import { FilePersistenceModule } from '../../persistence.module';
 import { AllConfigType } from '../../../../config/config.type';
 import { FilesService } from '../../../files.service';
 import * as fs from 'fs';
 
-const infrastructurePersistenceModule = RelationalFilePersistenceModule;
+const infrastructurePersistenceModule = FilePersistenceModule;
 
 @Module({
   imports: [

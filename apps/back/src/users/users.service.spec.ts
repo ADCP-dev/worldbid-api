@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
-import { UserRepository } from './infrastructure/persistence/user.repository';
+import { UserRepository } from './infrastructure/user.repository';
 import { FilesService } from '../files/files.service';
 import { ConfigService } from '@nestjs/config';
 import { UnprocessableEntityException } from '@nestjs/common';

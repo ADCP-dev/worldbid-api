@@ -1,6 +1,6 @@
 import { Module, DynamicModule } from '@nestjs/common';
 
-import { RelationalFilePersistenceModule } from './infrastructure/persistence/relational/relational-persistence.module';
+import { FilePersistenceModule } from './infrastructure/persistence.module';
 import { FilesService } from './files.service';
 import fileConfig from './config/file.config';
 import { FileConfig, FileDriver } from './config/file-config.type';
@@ -22,9 +22,9 @@ export class FilesModule {
 
     return {
       module: FilesModule,
-      imports: [RelationalFilePersistenceModule, uploaderModule],
+      imports: [FilePersistenceModule, uploaderModule],
       providers: [FilesService],
-      exports: [FilesService, RelationalFilePersistenceModule, uploaderModule],
+      exports: [FilesService, FilePersistenceModule, uploaderModule],
     };
   }
 }

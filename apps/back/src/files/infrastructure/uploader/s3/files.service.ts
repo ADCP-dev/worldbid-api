@@ -12,7 +12,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { AllConfigType } from '../../../../config/config.type';
-import { FileRepository } from '../../persistence/file.repository';
+import { FileRepository } from '../../file.repository';
 import { FileType } from '../../../domain/file';
 import { FileUploadDto } from '../../../dto/file-upload.dto';
 

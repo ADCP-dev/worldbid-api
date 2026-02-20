@@ -10,7 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { FileRepository } from '../../persistence/file.repository';
+import { FileRepository } from '../../file.repository';
 import { AllConfigType } from '../../../../config/config.type';
 import { FileType } from '../../../domain/file';
 import { FileUploadDto } from '../../../dto/file-upload.dto';

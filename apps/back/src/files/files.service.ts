@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-import { FileRepository } from './infrastructure/persistence/file.repository';
+import { FileRepository } from './infrastructure/file.repository';
 import { FileType } from './domain/file';
 import { NullableType } from '../utils/types/nullable.type';
 import { FileFilterDto } from './dto/file-filter.dto';

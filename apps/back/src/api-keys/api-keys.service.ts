@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { randomStringGenerator } from '@nestjs/common/utils/random-string-generator.util';
-import { ApiKeyRepository } from './infrastructure/persistence/api-key.repository';
+import { ApiKeyRepository } from './infrastructure/api-key.repository';
 import { ApiKey } from './domain/api-key';
 import { NullableType } from '../utils/types/nullable.type';
 import { User } from '../users/domain/user';
