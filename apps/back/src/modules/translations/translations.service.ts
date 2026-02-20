@@ -132,7 +132,7 @@ export class TranslationsService {
 
       if (cwd.endsWith('apps/back')) {
         backPath = path.join(cwd, 'src/i18n');
-        frontPath = path.join(cwd, '../../front/locales');
+        frontPath = path.join(cwd, '../front/locales');
       } else {
         backPath = path.join(cwd, 'apps/back/src/i18n');
         frontPath = path.join(cwd, 'apps/front/locales');
