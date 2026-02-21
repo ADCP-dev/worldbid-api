@@ -25,11 +25,11 @@ import { <%= name %> } from './domain/<%= h.inflection.transform(name, ['undersc
 import {
   InfinityPaginationResponse,
   InfinityPaginationResponseDto,
-} from '../../utils/dto/infinity-pagination-response.dto';
+} from '@infra/utils/dto/infinity-pagination-response.dto';
 import { FindAll<%= h.inflection.transform(name, ['pluralize']) %>Dto } from './dto/find-all-<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>.dto';
 import { FindAll<%= h.inflection.transform(name, ['pluralize']) %>PaginatedDto } from './dto/find-all-<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>-paginated.dto';
 import { Request } from 'express';
-import { JwtAuth } from '../../auth/decorators/auth.decorator';
+import { JwtAuth } from '@iam/auth/decorators/auth.decorator';
 
 
 @ApiTags('<%= h.inflection.transform(name, ['pluralize', 'humanize']) %>')

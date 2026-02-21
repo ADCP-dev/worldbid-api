@@ -31,6 +31,7 @@ import stripeConfig from '@billing/stripe/config/stripe.config';
 import workerConfig from './config/worker.config';
 import { EmailQueueModule } from '@comms/email-queue/email-queue.module';
 import { ExtensionLoaderModule } from './core/extension-loader';
+import { discoverExtensionConfigs } from './core/config-loader';
 
 const infrastructureDatabaseModule = TypeOrmModule.forRootAsync({
   useClass: TypeOrmConfigService,
@@ -57,6 +58,7 @@ const infrastructureDatabaseModule = TypeOrmModule.forRootAsync({
         appleConfig,
         stripeConfig,
         workerConfig,
+        ...discoverExtensionConfigs(),
       ],
       envFilePath: ['.env'],
     }),
