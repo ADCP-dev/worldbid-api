@@ -26,7 +26,11 @@ export class TranslationsService {
   }
 
   async findAllLangs(): Promise<LangEntity[]> {
-    return this.langRepository.find();
+    return this.langRepository.find({
+      order: {
+        id: 'ASC',
+      },
+    });
   }
 
   async findOneLang(id: number): Promise<LangEntity> {
