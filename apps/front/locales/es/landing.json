@@ -1,0 +1,11 @@
+{
+  "hero": {
+    "title": {
+      "prefix": "La Base Perfecta",
+      "suffix": "para tu Próxima Gran App"
+    },
+    "description": "Foundation es un monorepo premium con NuxtJS, NestJS, Shadcn, Redis, Postgres y LangChain. Incluye Auth (Google), Stripe, Blog, Newsletter y más. La estructura definitiva para escalar tu negocio.",
+    "start": "Empieza Gratis",
+    "howItWorks": "Ver Cómo Funciona"
+  }
+}

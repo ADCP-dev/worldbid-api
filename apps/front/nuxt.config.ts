@@ -1,5 +1,19 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import tailwindcss from "@tailwindcss/vite";
+import fs from "fs";
+import path from "path";
+
+function getI18nFiles(langCode: string) {
+  const langDir = path.resolve(process.cwd(), "locales", langCode);
+  if (!fs.existsSync(langDir)) {
+    // Support legacy flat file temporarily if directory doesn't exist
+    return [`${langCode}.json`];
+  }
+  return fs
+    .readdirSync(langDir)
+    .filter((file) => file.endsWith(".json"))
+    .map((file) => `${langCode}/${file}`);
+}
 
 export default defineNuxtConfig({
   compatibilityDate: "2024-11-01",
@@ -59,6 +73,17 @@ export default defineNuxtConfig({
      */
     componentDir: "./components/ui",
   },
+  hooks: {
+    "i18n:registerModule"(register) {
+      register({
+        langDir: path.resolve(process.cwd(), "locales"),
+        locales: [
+          { code: "es", name: "Español", files: getI18nFiles("es") },
+          { code: "en", name: "English", files: getI18nFiles("en") },
+        ],
+      });
+    },
+  },
   i18n: {
     detectBrowserLanguage: {
       useCookie: true,
@@ -67,12 +92,9 @@ export default defineNuxtConfig({
     },
     defaultLocale: "es",
     locales: [
-      { code: "es", name: "Español", file: "es.json" },
-      { code: "en", name: "English", file: "en.json" },
+      { code: "es", name: "Español" },
+      { code: "en", name: "English" },
     ],
     lazy: true,
-    bundle: {
-      optimizeTranslationDirective: false,
-    },
   },
 });

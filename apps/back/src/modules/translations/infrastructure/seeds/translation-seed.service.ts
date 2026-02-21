@@ -16,30 +16,56 @@ export class TranslationSeedService {
   ) {}
 
   async run() {
-    const cwd = process.cwd();
-    let i18nPath = '';
+    const isDist = __dirname.includes('dist');
+    const backI18nPath = isDist
+      ? path.resolve(__dirname, '../../../../../src/i18n')
+      : path.resolve(__dirname, '../../../../i18n');
 
-    // Adjust path based on where the process is running (root vs apps/back)
-    if (cwd.endsWith('apps/back')) {
-      i18nPath = path.join(cwd, 'src/i18n');
-    } else {
-      i18nPath = path.join(cwd, 'apps/back/src/i18n');
-    }
+    const frontLocalesPath = isDist
+      ? path.resolve(__dirname, '../../../../../../../front/locales')
+      : path.resolve(__dirname, '../../../../../../front/locales');
 
+    await this.processDirectory(backI18nPath, 'back');
+    await this.processDirectory(frontLocalesPath, 'front');
+  }
+
+  private async processDirectory(basePath: string, appContext: string) {
     try {
-      const files = await fs.readdir(i18nPath);
-      const jsonFiles = files.filter(f => f.endsWith('.json'));
+      const langDirs = await fs.readdir(basePath);
 
-      for (const file of jsonFiles) {
-        const langCode = path.basename(file, '.json');
-        await this.seedLang(langCode, path.join(i18nPath, file));
+      for (const langCode of langDirs) {
+        const langPath = path.join(basePath, langCode);
+        const stat = await fs.stat(langPath);
+
+        if (stat.isDirectory()) {
+          const files = await fs.readdir(langPath);
+          const jsonFiles = files.filter((f) => f.endsWith('.json'));
+
+          for (const file of jsonFiles) {
+            const sectionName = path.basename(file, '.json');
+            await this.seedLangFile(
+              langCode,
+              sectionName,
+              path.join(langPath, file),
+              appContext,
+            );
+          }
+        }
       }
     } catch (error) {
-      console.warn('Could not find i18n directory or read files:', error.message);
+      console.warn(
+        `Could not find or read directory ${basePath}:`,
+        error.message,
+      );
     }
   }
 
-  private async seedLang(langCode: string, filePath: string) {
+  private async seedLangFile(
+    langCode: string,
+    sectionName: string,
+    filePath: string,
+    appContext: string,
+  ) {
     let lang = await this.langRepository.findOne({ where: { code: langCode } });
     if (!lang) {
       lang = this.langRepository.create({
@@ -54,10 +80,11 @@ export class TranslationSeedService {
     const json = JSON.parse(content);
     const flattened = this.flattenObject(json);
 
-    // Fetch existing keys for this lang (static only)
+    // Fetch existing keys for this lang and app
     const existingTranslations = await this.translationRepository.find({
       where: {
         lang: { id: lang.id },
+        app: appContext,
         entityName: IsNull(),
         entityId: IsNull(),
       },
@@ -65,12 +92,15 @@ export class TranslationSeedService {
     });
 
     const existingSet = new Set(
-      existingTranslations.map(t => `${t.section}.${t.key}`)
+      existingTranslations.map((t) => `${t.section}.${t.key}`),
     );
 
     const toInsert: Partial<TranslationEntity>[] = [];
 
-    for (const [fullKey, value] of Object.entries(flattened)) {
+    for (const [flatKey, value] of Object.entries(flattened)) {
+      // Combines the filename (sectionName) with the nested flat path
+      const fullKey = `${sectionName}.${flatKey}`;
+
       if (!existingSet.has(fullKey)) {
         const lastDotIndex = fullKey.lastIndexOf('.');
         let section = 'common';
@@ -83,6 +113,7 @@ export class TranslationSeedService {
 
         toInsert.push({
           lang,
+          app: appContext,
           section,
           key,
           content: String(value),
@@ -96,9 +127,13 @@ export class TranslationSeedService {
       for (let i = 0; i < toInsert.length; i += chunkSize) {
         await this.translationRepository.save(toInsert.slice(i, i + chunkSize));
       }
-      console.log(`Seeded ${toInsert.length} new translations for ${langCode}`);
+      console.log(
+        `Seeded ${toInsert.length} new translations for ${langCode} (${appContext})`,
+      );
     } else {
-        console.log(`No new translations for ${langCode}`);
+      console.log(
+        `No new translations for ${langCode} (${appContext} - ${sectionName})`,
+      );
     }
   }
 

@@ -18,13 +18,15 @@ const runSeed = async () => {
 
   // Translations
   try {
-     const { TranslationSeedService } = await import('../../../modules/translations/infrastructure/seeds/translation-seed.service');
-     const translationService = app.get(TranslationSeedService);
-     if (translationService) {
-        await translationService.run();
-     }
+    const { TranslationSeedService } = await import(
+      '../../../modules/translations/infrastructure/seeds/translation-seed.service'
+    );
+    const translationService = app.get(TranslationSeedService);
+    if (translationService) {
+      await translationService.run();
+    }
   } catch (e) {
-      console.warn('Translation seed skipped or failed:', e.message);
+    console.warn('Translation seed skipped or failed:', e.message);
   }
 
   await app.close();

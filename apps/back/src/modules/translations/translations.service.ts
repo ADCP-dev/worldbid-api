@@ -37,7 +37,10 @@ export class TranslationsService {
     return lang;
   }
 
-  async updateLang(id: number, updateLangDto: UpdateLangDto): Promise<LangEntity> {
+  async updateLang(
+    id: number,
+    updateLangDto: UpdateLangDto,
+  ): Promise<LangEntity> {
     const lang = await this.findOneLang(id);
     this.langRepository.merge(lang, updateLangDto);
     return this.langRepository.save(lang);
@@ -49,7 +52,9 @@ export class TranslationsService {
   }
 
   // Translation CRUD
-  async createTranslation(createTranslationDto: CreateTranslationDto): Promise<TranslationEntity> {
+  async createTranslation(
+    createTranslationDto: CreateTranslationDto,
+  ): Promise<TranslationEntity> {
     const { langId, ...rest } = createTranslationDto;
     const lang = await this.findOneLang(langId);
 
@@ -79,14 +84,20 @@ export class TranslationsService {
   }
 
   async findOneTranslation(id: number): Promise<TranslationEntity> {
-    const translation = await this.translationRepository.findOne({ where: { id }, relations: ['lang'] });
+    const translation = await this.translationRepository.findOne({
+      where: { id },
+      relations: ['lang'],
+    });
     if (!translation) {
       throw new NotFoundException(`Translation with ID ${id} not found`);
     }
     return translation;
   }
 
-  async updateTranslation(id: number, updateTranslationDto: UpdateTranslationDto): Promise<TranslationEntity> {
+  async updateTranslation(
+    id: number,
+    updateTranslationDto: UpdateTranslationDto,
+  ): Promise<TranslationEntity> {
     const translation = await this.findOneTranslation(id);
     const { langId, ...rest } = updateTranslationDto;
 
@@ -107,6 +118,16 @@ export class TranslationsService {
   // Generation
   async generateJsonFiles(): Promise<{ message: string }> {
     const langs = await this.langRepository.find({ where: { isActive: true } });
+    const cwd = process.cwd();
+    // Support execution from root or apps/back
+    const isBackContext =
+      cwd.endsWith('apps/back') || cwd.endsWith(`apps\\back`);
+    const backRootPath = isBackContext
+      ? path.join(cwd, 'src/i18n')
+      : path.join(cwd, 'apps/back/src/i18n');
+    const frontRootPath = isBackContext
+      ? path.join(cwd, '../front/locales')
+      : path.join(cwd, 'apps/front/locales');
 
     for (const lang of langs) {
       const translations = await this.translationRepository.find({
@@ -117,33 +138,58 @@ export class TranslationsService {
         },
       });
 
-      const result = {};
+      // Group by App -> TopLevelSection -> RestOfKey
+      const groupedData: Record<string, Record<string, any>> = {
+        front: {},
+        back: {},
+      };
 
       for (const t of translations) {
         const fullPath = t.section ? `${t.section}.${t.key}` : t.key;
-        this.setDeepValue(result, fullPath, t.content);
+        const firstDotIndex = fullPath.indexOf('.');
+        let topLevelSection = fullPath;
+        let restOfPath = '';
+
+        if (firstDotIndex !== -1) {
+          topLevelSection = fullPath.substring(0, firstDotIndex);
+          restOfPath = fullPath.substring(firstDotIndex + 1);
+        }
+
+        // Determine destination apps
+        const targetApps: ('front' | 'back' | 'common')[] = [];
+        if (t.app === 'back') targetApps.push('back');
+        else if (t.app === 'front') targetApps.push('front');
+        else targetApps.push('front', 'back'); // 'common' or null defaults to both
+
+        for (const targetApp of targetApps) {
+          if (!groupedData[targetApp][topLevelSection]) {
+            groupedData[targetApp][topLevelSection] = {};
+          }
+          if (restOfPath) {
+            this.setDeepValue(
+              groupedData[targetApp][topLevelSection],
+              restOfPath,
+              t.content,
+            );
+          } else {
+            groupedData[targetApp][topLevelSection] = t.content;
+          }
+        }
       }
 
-      const jsonContent = JSON.stringify(result, null, 2);
+      // Write files
+      for (const [app, sections] of Object.entries(groupedData)) {
+        const rootPath = app === 'front' ? frontRootPath : backRootPath;
+        const langPath = path.join(rootPath, lang.code);
 
-      const cwd = process.cwd();
-      let backPath = '';
-      let frontPath = '';
+        await fs.mkdir(langPath, { recursive: true });
 
-      if (cwd.endsWith('apps/back')) {
-        backPath = path.join(cwd, 'src/i18n');
-        frontPath = path.join(cwd, '../front/locales');
-      } else {
-        backPath = path.join(cwd, 'apps/back/src/i18n');
-        frontPath = path.join(cwd, 'apps/front/locales');
+        for (const [sectionName, data] of Object.entries(sections)) {
+          const jsonContent = JSON.stringify(data, null, 2);
+          const fileName = `${sectionName}.json`;
+          await fs.writeFile(path.join(langPath, fileName), jsonContent);
+        }
       }
-
-      await fs.mkdir(backPath, { recursive: true });
-      await fs.mkdir(frontPath, { recursive: true });
-
-      const fileName = `${lang.code}.json`;
-      await fs.writeFile(path.join(backPath, fileName), jsonContent);
-      await fs.writeFile(path.join(frontPath, fileName), jsonContent);
     }
 
     return { message: 'JSON files generated successfully' };
@@ -166,8 +212,14 @@ export class TranslationsService {
   }
 
   // Dynamic Translations
-  async getTranslationsForEntity(entityName: string, entityId: string, langCode: string): Promise<Record<string, string>> {
-    const lang = await this.langRepository.findOne({ where: { code: langCode } });
+  async getTranslationsForEntity(
+    entityName: string,
+    entityId: string,
+    langCode: string,
+  ): Promise<Record<string, string>> {
+    const lang = await this.langRepository.findOne({
+      where: { code: langCode },
+    });
     if (!lang) return {};
 
     const translations = await this.translationRepository.find({
@@ -180,7 +232,7 @@ export class TranslationsService {
 
     const result = {};
     for (const t of translations) {
-       result[t.key] = t.content;
+      result[t.key] = t.content;
     }
     return result;
   }

@@ -19,6 +19,10 @@ export class TranslationEntity extends EntityRelationalHelper {
   id: number;
 
   @Index()
+  @Column({ nullable: true })
+  app?: string; // e.g. 'front', 'back', 'common'
+
+  @Index()
   @Column()
   section: string;
 
