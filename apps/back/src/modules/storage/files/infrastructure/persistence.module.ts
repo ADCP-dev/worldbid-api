@@ -5,7 +5,9 @@ import { FileRepository } from '@storage/files/infrastructure/file.repository';
 
 @Module({
   imports: [TypeOrmModule.forFeature([FileEntity])],
-  providers: [FileRepository],
+  providers: [
+    FileRepository,
+  ],
   exports: [FileRepository],
 })
 export class FilePersistenceModule {}

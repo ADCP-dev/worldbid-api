@@ -1,121 +1,46 @@
 <script setup lang="ts">
 import { useTranslations } from '../../../composables/useTranslations';
-import { ref, onMounted, computed, h } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import DataTable from '@/modules/ui-app/components/data-table/DataTable.vue';
-import TranslationAccordionCell from '~/modules/translations/components/TranslationAccordionCell.vue';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const { getLangs, getTranslations, createTranslation, updateTranslation, deleteTranslation, generateJson } = useTranslations();
 
 const langs = ref<any[]>([]);
-const activeLangs = computed(() => langs.value.filter(l => l.isActive));
 const translations = ref<any[]>([]);
+const filters = ref({ section: '', langId: '', entityName: '', entityId: '' });
+const newTranslation = ref({ section: '', key: '', content: '', langId: '', entityName: '', entityId: '' });
+const isDialogOpen = ref(false);
 const isGenerating = ref(false);
-
-// We will use Tabs to switch between Apps. Default is 'front'.
-const currentAppTab = ref('front');
-
-// Grouped state structure:
-// groups.value[app][sectionKey] = { section, key, items: { [langId]: TranslationObject } }
-const groupedTranslations = computed(() => {
-  const groups: Record<string, Record<string, any>> = { front: {}, back: {} };
-
-  translations.value.forEach(t => {
-    // If translation has no specific app, it belongs to both tabs by default (or 'common')
-    // We explicitly group them to make UI easy.
-    const appsToGroup = t.app ? [t.app] : ['front', 'back'];
-
-    appsToGroup.forEach(app => {
-      if (!groups[app]) groups[app] = {};
-
-      const groupKey = `${t.section}---${t.key}`;
-      if (!groups[app][groupKey]) {
-        groups[app][groupKey] = {
-          section: t.section,
-          key: t.key,
-          items: {}
-        };
-      }
-
-      groups[app][groupKey].items[t.lang.id] = t;
-    });
-  });
-
-  return groups;
-});
-
-const frontData = computed(() => Object.values(groupedTranslations.value['front'] || {}));
-const backData = computed(() => Object.values(groupedTranslations.value['back'] || {}));
-
-const columns = computed(() => [
-  {
-    accessorKey: "section",
-    headerName: "Sección",
-    header: "Sección",
-    filterType: "string"
-  },
-  {
-    accessorKey: "key",
-    headerName: "Clave",
-    header: "Clave",
-    filterType: "string"
-  },
-  {
-    id: "content",
-    headerName: "Contenido",
-    header: "Contenido",
-    enableSorting: false,
-    cell: ({ row }: any) => {
-      return h(TranslationAccordionCell, {
-        group: row.original,
-        activeLangs: activeLangs.value,
-        appTab: currentAppTab.value,
-        onUpdate: (payload: any) => {
-           handleInlineUpdate(payload.appContext, payload.section, payload.key, payload.langId, payload.content, payload.existingTranslation);
-        }
-      });
-    }
-  }
-]);
 
 const fetchLangs = async () => {
   langs.value = await getLangs();
 };
 
 const fetchTranslations = async () => {
-  translations.value = await getTranslations();
+  translations.value = await getTranslations(filters.value);
 };
 
-// Handle Blur event on inputs to trigger auto-save
-const handleInlineUpdate = async (appContext: string, section: string, key: string, langId: number, content: string, existingTranslation: any) => {
-  // Ignore empty strings if there is no existing translation
-  if (!existingTranslation && !content.trim()) return;
-
-  // If translation exists and content hasn't changed, ignore
-  if (existingTranslation && existingTranslation.content === content) return;
-
+const handleCreate = async () => {
   try {
-    if (existingTranslation) {
-      if (content.trim()) {
-         await updateTranslation(existingTranslation.id, { content });
-      } else {
-         await deleteTranslation(existingTranslation.id);
-      }
-    } else {
-      await createTranslation({
-        langId,
-        app: appContext,
-        section,
-        key,
-        content
-      });
-    }
-    // Refresh quietly
-    await fetchTranslations();
-  } catch (err) {
-    console.error('Failed to inline update translation', err);
-    alert('Failed to save translation');
+    await createTranslation({
+      ...newTranslation.value,
+      langId: parseInt(newTranslation.value.langId as string),
+    });
+    isDialogOpen.value = false;
+    newTranslation.value = { section: '', key: '', content: '', langId: '', entityName: '', entityId: '' };
+    fetchTranslations();
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const handleDelete = async (id: number) => {
+  if (confirm('Are you sure?')) {
+    await deleteTranslation(id);
+    fetchTranslations();
   }
 };
 
@@ -132,10 +57,11 @@ const handleGenerate = async () => {
   }
 };
 
+watch(filters, fetchTranslations, { deep: true });
 
-onMounted(async () => {
-  await fetchLangs();
-  await fetchTranslations();
+onMounted(() => {
+  fetchLangs();
+  fetchTranslations();
 });
 </script>
 
@@ -143,24 +69,88 @@ onMounted(async () => {
   <div class="p-6">
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-bold">Translations</h1>
-      <Button variant="outline" @click="handleGenerate" :disabled="isGenerating">
-        {{ isGenerating ? 'Generating...' : 'Generate JSON' }}
-      </Button>
+      <div class="flex gap-2">
+        <Button variant="outline" @click="handleGenerate" :disabled="isGenerating">
+          {{ isGenerating ? 'Generating...' : 'Generate JSON' }}
+        </Button>
+        <Dialog v-model:open="isDialogOpen">
+          <DialogTrigger as-child>
+            <Button>Add Translation</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Translation</DialogTitle>
+            </DialogHeader>
+            <div class="grid gap-4 py-4">
+              <div class="grid grid-cols-4 items-center gap-4">
+                <label class="text-right">Lang</label>
+                <select v-model="newTranslation.langId" class="col-span-3 border p-2 rounded">
+                   <option v-for="lang in langs" :key="lang.id" :value="lang.id">{{ lang.name }}</option>
+                </select>
+              </div>
+              <div class="grid grid-cols-4 items-center gap-4">
+                <label class="text-right">Section</label>
+                <Input v-model="newTranslation.section" class="col-span-3" placeholder="page.home" />
+              </div>
+              <div class="grid grid-cols-4 items-center gap-4">
+                <label class="text-right">Key</label>
+                <Input v-model="newTranslation.key" class="col-span-3" placeholder="title" />
+              </div>
+              <div class="grid grid-cols-4 items-center gap-4">
+                <label class="text-right">Content</label>
+                <Input v-model="newTranslation.content" class="col-span-3" />
+              </div>
+              <div class="grid grid-cols-4 items-center gap-4">
+                <label class="text-right">Entity Name</label>
+                <Input v-model="newTranslation.entityName" class="col-span-3" placeholder="Optional" />
+              </div>
+              <div class="grid grid-cols-4 items-center gap-4">
+                <label class="text-right">Entity ID</label>
+                <Input v-model="newTranslation.entityId" class="col-span-3" placeholder="Optional" />
+              </div>
+            </div>
+            <Button @click="handleCreate">Save</Button>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
 
-    <Tabs v-model="currentAppTab" class="w-full mt-4">
-      <TabsList class="mb-4">
-        <TabsTrigger value="front">Front App</TabsTrigger>
-        <TabsTrigger value="back">Back App</TabsTrigger>
-      </TabsList>
+    <div class="flex gap-4 mb-4">
+      <Input v-model="filters.section" placeholder="Filter by Section" />
+      <select v-model="filters.langId" class="border p-2 rounded">
+        <option value="">All Langs</option>
+        <option v-for="lang in langs" :key="lang.id" :value="lang.id">{{ lang.name }}</option>
+      </select>
+      <Input v-model="filters.entityName" placeholder="Entity Name" />
+      <Input v-model="filters.entityId" placeholder="Entity ID" />
+    </div>
 
-      <TabsContent value="front">
-        <DataTable :columns="columns as any" :data="frontData" tableName="translations-table-front" />
-      </TabsContent>
-
-      <TabsContent value="back">
-        <DataTable :columns="columns as any" :data="backData" tableName="translations-table-back" />
-      </TabsContent>
-    </Tabs>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Lang</TableHead>
+          <TableHead>Section</TableHead>
+          <TableHead>Key</TableHead>
+          <TableHead>Content</TableHead>
+          <TableHead>Entity</TableHead>
+          <TableHead>Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        <TableRow v-for="t in translations" :key="t.id">
+          <TableCell>{{ t.lang?.code }}</TableCell>
+          <TableCell>{{ t.section }}</TableCell>
+          <TableCell>{{ t.key }}</TableCell>
+          <TableCell>{{ t.content }}</TableCell>
+          <TableCell>
+            <span v-if="t.entityName">{{ t.entityName }}:{{ t.entityId }}</span>
+            <span v-else>-</span>
+          </TableCell>
+          <TableCell>
+             <Button variant="destructive" size="sm" @click="handleDelete(t.id)">Delete</Button>
+          </TableCell>
+        </TableRow>
+      </TableBody>
+    </Table>
   </div>
 </template>

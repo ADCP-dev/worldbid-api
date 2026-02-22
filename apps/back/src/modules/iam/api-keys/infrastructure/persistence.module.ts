@@ -5,7 +5,9 @@ import { ApiKeyEntity } from '@iam/api-keys/infrastructure/entities/api-key.enti
 
 @Module({
   imports: [TypeOrmModule.forFeature([ApiKeyEntity])],
-  providers: [ApiKeyRepository],
+  providers: [
+    ApiKeyRepository,
+  ],
   exports: [ApiKeyRepository],
 })
 export class ApiKeyPersistenceModule {}

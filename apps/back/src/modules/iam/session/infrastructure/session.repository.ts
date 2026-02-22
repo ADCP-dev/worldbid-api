@@ -26,9 +26,7 @@ export class SessionRepository {
     return entity ? SessionMapper.toDomain(entity) : null;
   }
 
-  async create(
-    data: Omit<Session, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>,
-  ): Promise<Session> {
+  async create(data: Omit<Session, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>): Promise<Session> {
     const persistenceModel = SessionMapper.toPersistence(data as Session);
     return this.sessionRepository.save(
       this.sessionRepository.create(persistenceModel),

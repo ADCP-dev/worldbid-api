@@ -5,7 +5,9 @@ import { SessionEntity } from '@iam/session/infrastructure/entities/session.enti
 
 @Module({
   imports: [TypeOrmModule.forFeature([SessionEntity])],
-  providers: [SessionRepository],
+  providers: [
+    SessionRepository,
+  ],
   exports: [SessionRepository],
 })
 export class SessionPersistenceModule {}
