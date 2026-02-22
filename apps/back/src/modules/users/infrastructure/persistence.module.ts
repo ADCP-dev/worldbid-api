@@ -5,9 +5,7 @@ import { UserEntity } from '@users/infrastructure/entities/user.entity';
 
 @Module({
   imports: [TypeOrmModule.forFeature([UserEntity])],
-  providers: [
-    UserRepository,
-  ],
+  providers: [UserRepository],
   exports: [UserRepository],
 })
 export class UserPersistenceModule {}

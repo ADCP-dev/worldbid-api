@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 
 const { getLangs, createLang, updateLang, deleteLang } = useTranslations();
 
@@ -33,7 +33,7 @@ const handleCreate = async () => {
   }
 };
 
-const handleUpdate = async (lang: any, updates: any) => {
+const handleToggle = async (lang: any, updates: any) => {
   try {
     await updateLang(lang.id, updates);
     fetchLangs();
@@ -79,7 +79,7 @@ onMounted(fetchLangs);
             </div>
             <div class="grid grid-cols-4 items-center gap-4">
               <label class="text-right">Active</label>
-              <Checkbox :checked="newLang.isActive" @update:checked="(v) => newLang.isActive = v" />
+              <Switch v-model="newLang.isActive" />
             </div>
           </div>
           <Button @click="handleCreate">Save</Button>
@@ -87,27 +87,29 @@ onMounted(fetchLangs);
       </Dialog>
     </div>
 
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Code</TableHead>
-          <TableHead>Name</TableHead>
-          <TableHead>Active</TableHead>
-          <TableHead>Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        <TableRow v-for="lang in langs" :key="lang.id">
-          <TableCell>{{ lang.code }}</TableCell>
-          <TableCell>{{ lang.name }}</TableCell>
-          <TableCell>
-            <Checkbox :checked="lang.isActive" @update:checked="(v) => handleUpdate(lang, { isActive: v })" />
-          </TableCell>
-          <TableCell>
-            <Button variant="destructive" size="sm" @click="handleDelete(lang.id)">Delete</Button>
-          </TableCell>
-        </TableRow>
-      </TableBody>
-    </Table>
+    <div class="border rounded-md">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Code</TableHead>
+            <TableHead>Name</TableHead>
+            <TableHead>Active</TableHead>
+            <TableHead class="w-[100px]">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow v-for="lang in langs" :key="lang.id">
+            <TableCell class="font-medium">{{ lang.code }}</TableCell>
+            <TableCell>{{ lang.name }}</TableCell>
+            <TableCell>
+              <Switch v-model="lang.isActive" @update:model-value="handleToggle(lang, { isActive: $event })" />
+            </TableCell>
+            <TableCell>
+              <Button variant="destructive" size="sm" @click="handleDelete(lang.id)">Delete</Button>
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+    </div>
   </div>
 </template>

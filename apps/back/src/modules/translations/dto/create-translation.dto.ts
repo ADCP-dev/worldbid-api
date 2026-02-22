@@ -25,6 +25,11 @@ export class CreateTranslationDto {
   @ApiProperty({ required: false })
   @IsString()
   @IsOptional()
+  app?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
   entityName?: string;
 
   @ApiProperty({ required: false })

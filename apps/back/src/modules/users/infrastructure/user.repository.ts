@@ -16,7 +16,9 @@ export class UserRepository {
     private readonly usersRepository: Repository<UserEntity>,
   ) {}
 
-  async create(data: Omit<User, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>): Promise<User> {
+  async create(
+    data: Omit<User, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>,
+  ): Promise<User> {
     const persistenceModel = UserMapper.toPersistence(data as User);
     const newEntity = await this.usersRepository.save(
       this.usersRepository.create(persistenceModel),

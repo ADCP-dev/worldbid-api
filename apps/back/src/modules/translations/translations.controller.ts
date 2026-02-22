@@ -9,11 +9,16 @@ import {
   UseGuards,
   Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiTags,
+  ApiOperation,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
-import { Roles } from '../iam/roles/roles.decorator';
-import { RoleEnum } from '../iam/roles/roles.enum';
-import { RolesGuard } from '../iam/roles/roles.guard';
+import { Roles } from '@iam/roles/roles.decorator';
+import { RoleEnum } from '@iam/roles/roles.enum';
+import { RolesGuard } from '@iam/roles/roles.guard';
 import { TranslationsService } from './translations.service';
 import { CreateLangDto } from './dto/create-lang.dto';
 import { UpdateLangDto } from './dto/update-lang.dto';
@@ -96,8 +101,14 @@ export class TranslationsController {
   @Roles(RoleEnum.admin)
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Patch(':id')
-  updateTranslation(@Param('id') id: string, @Body() updateTranslationDto: UpdateTranslationDto) {
-    return this.translationsService.updateTranslation(+id, updateTranslationDto);
+  updateTranslation(
+    @Param('id') id: string,
+    @Body() updateTranslationDto: UpdateTranslationDto,
+  ) {
+    return this.translationsService.updateTranslation(
+      +id,
+      updateTranslationDto,
+    );
   }
 
   @ApiBearerAuth()
@@ -128,6 +139,10 @@ export class TranslationsController {
     @Param('entityName') entityName: string,
     @Param('entityId') entityId: string,
   ) {
-    return this.translationsService.getTranslationsForEntity(entityName, entityId, lang);
+    return this.translationsService.getTranslationsForEntity(
+      entityName,
+      entityId,
+      lang,
+    );
   }
 }
