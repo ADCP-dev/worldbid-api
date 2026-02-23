@@ -131,35 +131,100 @@ const handleSaveAll = async () => {
     }
 };
 
+const hoveredKey = ref('');
+const hoveredRect = ref({ top: 0, left: 0, width: 0, height: 0 });
+
+const getValidKey = (target: HTMLElement | null): string | null => {
+    if (!target) return null;
+    const text = target.innerText?.trim();
+    if (text && /^[a-zA-Z0-9_.-]+$/.test(text) && text.includes('.')) {
+        return text;
+    }
+    return null;
+}
+
 const interceptClick = (e: MouseEvent) => {
     if (!showKeys.value) return;
-    const target = e.target as HTMLElement;
-
-    // To allow interacting with our own dialog when open:
     if (isEditing.value) return;
 
-    if (target && target.innerText) {
-        const text = target.innerText.trim();
-        if (/^[a-zA-Z0-9_.-]+$/.test(text) && text.includes('.')) {
-            e.preventDefault();
-            e.stopPropagation();
-            openEditor(text);
+    const target = e.target as HTMLElement;
+    const keyText = getValidKey(target);
+
+    if (keyText) {
+        e.preventDefault();
+        e.stopPropagation();
+        openEditor(keyText);
+        hoveredKey.value = ''; // Hide overlay when opening
+    }
+};
+
+const handleMouseOver = (e: MouseEvent) => {
+    if (!showKeys.value || isEditing.value) {
+        hoveredKey.value = '';
+        return;
+    }
+    const target = e.target as HTMLElement;
+    const keyText = getValidKey(target);
+
+    if (keyText) {
+        hoveredKey.value = keyText;
+        const rect = target.getBoundingClientRect();
+        hoveredRect.value = { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
+        target.style.cursor = 'crosshair';
+    }
+};
+
+const handleMouseOut = (e: MouseEvent) => {
+    if (!showKeys.value || isEditing.value) return;
+    const target = e.target as HTMLElement;
+    const keyText = getValidKey(target);
+
+    if (keyText) {
+        target.style.cursor = '';
+        if (hoveredKey.value === keyText) {
+            hoveredKey.value = '';
         }
     }
 };
 
+const handleScroll = () => { hoveredKey.value = ''; };
+
 onMounted(() => {
     document.addEventListener('click', interceptClick, { capture: true });
+    document.addEventListener('mouseover', handleMouseOver, { capture: true });
+    document.addEventListener('mouseout', handleMouseOut, { capture: true });
+    window.addEventListener('scroll', handleScroll, { capture: true, passive: true });
 });
 
 onUnmounted(() => {
     document.removeEventListener('click', interceptClick, { capture: true });
+    document.removeEventListener('mouseover', handleMouseOver, { capture: true });
+    document.removeEventListener('mouseout', handleMouseOut, { capture: true });
+    window.removeEventListener('scroll', handleScroll, { capture: true });
 });
 
 </script>
 
 <template>
   <div>
+    <!-- Interactive Inspector Overlay -->
+    <Teleport to="body">
+        <div
+            v-if="showKeys && hoveredKey && !isEditing"
+            class="fixed pointer-events-none z-[99999] border-2 border-primary bg-primary/10 transition-all duration-75"
+            :style="{
+                top: hoveredRect.top + 'px',
+                left: hoveredRect.left + 'px',
+                width: hoveredRect.width + 'px',
+                height: hoveredRect.height + 'px'
+            }"
+        >
+            <div class="absolute -top-6 left-[-2px] bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-t-sm whitespace-nowrap font-mono shadow-sm">
+                {{ hoveredKey }}
+            </div>
+        </div>
+    </Teleport>
+
     <Dialog v-model:open="isEditing">
       <DialogContent class="max-w-xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>

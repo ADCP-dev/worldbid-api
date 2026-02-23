@@ -9,19 +9,14 @@
     "howItWorks": "Ver Cómo Funciona"
   },
   "features": {
-    "title": {
-      "badge": "Características Técnicas",
-      "main": "Potencia tu Negocio con el Stack Definitivo",
-      "description": "Una base sólida construida con las tecnologías más modernas para que puedas centrarte en las integraciones y funcionalidades que importan."
-    },
     "list": {
+      "zap": {
+        "title": "Facturación con stripe",
+        "description": "Integración completa con Stripe para gestionar suscripciones, cobros y portal del cliente."
+      },
       "shield": {
         "title": "Auth & Seguridad",
         "description": "JWT, Google OAuth y sistema de roles (RBAC) con permisos granulares integrados en el core."
-      },
-      "zap": {
-        "title": "Stripe & Facturación",
-        "description": "Integración completa con Stripe para gestionar suscripciones, cobros y portal del cliente."
       },
       "layers": {
         "title": "IA con LangChain",
@@ -32,13 +27,18 @@
         "description": "Pila tecnológica robusta con PostgreSQL para datos persistentes y Redis para colas y caché."
       },
       "workflow": {
-        "title": "CMS & Newsletter",
-        "description": "Sistema de blog profesional y gestión de newsletters listo para usar y atraer usuarios."
+        "description": "Sistema de blog profesional y gestión de newsletters listo para usar y atraer usuarios.",
+        "title": "CMS y Newsletter"
       },
       "barChart3": {
         "title": "Dashboard Premium",
         "description": "Interfaz de administración completa construida con Shadcn UI para el control total de tu plataforma."
       }
+    },
+    "title": {
+      "badge": "Características Técnicas",
+      "main": "Potencia tu Negocio con el Stack Definitivo",
+      "description": "Una base sólida construida con las tecnologías más modernas para que puedas centrarte en las integraciones y funcionalidades que importan."
     }
   },
   "pricing": {
