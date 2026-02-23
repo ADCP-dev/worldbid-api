@@ -21,6 +21,9 @@ export class LangEntity extends EntityRelationalHelper {
   @Column()
   name: string;
 
+  @Column({ nullable: true })
+  flagCode?: string;
+
   @Column({ default: true })
   isActive: boolean;
 

@@ -1,11 +1,118 @@
 {
   "hero": {
-    "title": {
-      "prefix": "The Perfect Base",
-      "suffix": "for your Next Big App"
-    },
     "description": "Foundation is a premium monorepo with NuxtJS, NestJS, Shadcn, Redis, Postgres and LangChain. Includes Auth (Google), Stripe, Blog, Newsletter and more. The definitive structure to scale your business.",
     "start": "Start for Free",
-    "howItWorks": "See How It Works"
+    "howItWorks": "See How It Works",
+    "title": {
+      "suffix": "for your Next Big App",
+      "prefix": "The Foundation"
+    }
+  },
+  "features": {
+    "title": {
+      "badge": "Technical Features",
+      "main": "Power your Business with the Ultimate Stack",
+      "description": "A solid foundation built with the most modern technologies so you can focus on integrations and features that matter."
+    },
+    "list": {
+      "shield": {
+        "title": "Auth & Security",
+        "description": "JWT, Google OAuth and role-based access control (RBAC) with granular permissions integrated in the core."
+      },
+      "zap": {
+        "title": "Stripe & Billing",
+        "description": "Full integration with Stripe to manage subscriptions, payments and customer portal."
+      },
+      "layers": {
+        "title": "AI with LangChain",
+        "description": "Architecture prepared for AI agents that can interact with your app's database."
+      },
+      "database": {
+        "title": "Redis & Postgres",
+        "description": "Robust tech stack with PostgreSQL for persistent data and Redis for queues and caching."
+      },
+      "workflow": {
+        "title": "CMS & Newsletter",
+        "description": "Professional blog system and newsletter management ready to use and attract users."
+      },
+      "barChart3": {
+        "title": "Premium Dashboard",
+        "description": "Complete admin interface built with Shadcn UI for full control of your platform."
+      }
+    }
+  },
+  "pricing": {
+    "title": {
+      "badge": "Plans",
+      "main": "The foundation that scales with you",
+      "description": "Choose the ideal starting point for your business. From a free base to custom enterprise solutions."
+    },
+    "loading": "Loading plans...",
+    "month": "/month",
+    "plans": {
+      "developer": {
+        "title": "Developer",
+        "description": "Perfect for testing the structure and starring your local project.",
+        "button": "Download Free Base",
+        "benefits": {
+          "0": "NuxtJS + NestJS Monorepo",
+          "1": "Auth JWT & Google (Local)",
+          "2": "Postgres & Redis database",
+          "3": "Complete documentation"
+        }
+      },
+      "startup": {
+        "title": "Startup",
+        "description": "Everything you need to launch your MVP to the market.",
+        "button": "Start your project",
+        "benefits": {
+          "0": "Everything in the Developer plan",
+          "1": "Stripe integration ready",
+          "2": "Blog & Newsletter module",
+          "3": "Preconfigured LangChain AI",
+          "4": "Discord support"
+        }
+      },
+      "enterprise": {
+        "title": "Enterprise",
+        "description": "For large organizations that require maximum customization.",
+        "button": "Contact Sales",
+        "benefits": {
+          "0": "Everything in the Startup plan",
+          "1": "Advanced scalable architecture",
+          "2": "Complex Roles & Permissions",
+          "3": "24/7 priority support",
+          "4": "Integration consulting"
+        }
+      }
+    },
+    "custom": {
+      "badge": "Enterprise",
+      "title": "Custom",
+      "description": "Solutions for large companies and public administrations. Integration with multiple channels and systems, AI fully adapted to your processes.",
+      "features": {
+        "integration": {
+          "title": "Multiple Integration",
+          "description": "Channels and systems"
+        },
+        "ai": {
+          "title": "Custom AI",
+          "description": "Adapted to your processes"
+        },
+        "support": {
+          "title": "Exclusive Support",
+          "description": "24/7 priority assistance"
+        },
+        "config": {
+          "title": "Advanced Configuration",
+          "description": "For large organizations"
+        }
+      },
+      "contact": {
+        "title": "Let's Talk",
+        "description": "Custom pricing",
+        "button": "Contact Sales"
+      }
+    }
   }
 }

@@ -5,48 +5,30 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import DataTable from '@/modules/ui-app/components/data-table/DataTable.vue';
 import TranslationAccordionCell from '~/modules/translations/components/TranslationAccordionCell.vue';
+import AddTranslationDialog from '~/modules/translations/components/AddTranslationDialog.vue';
+import DeleteButton from '@/modules/ui-app/components/data-table/buttons/DeleteButton.vue';
 
-const { getLangs, getTranslations, createTranslation, updateTranslation, deleteTranslation, generateJson } = useTranslations();
+const { getLangs, deleteTranslation, generateJson } = useTranslations();
 
 const langs = ref<any[]>([]);
 const activeLangs = computed(() => langs.value.filter(l => l.isActive));
-const translations = ref<any[]>([]);
-const isGenerating = ref(false);
-
 // We will use Tabs to switch between Apps. Default is 'front'.
 const currentAppTab = ref('front');
 
-// Grouped state structure:
-// groups.value[app][sectionKey] = { section, key, items: { [langId]: TranslationObject } }
-const groupedTranslations = computed(() => {
-  const groups: Record<string, Record<string, any>> = { front: {}, back: {} };
+// Dynamic endpoints based on current tab. We append &app=front/back so the server filters it.
+const endpointFront = computed(() => `translations?app=front`);
+const endpointBack = computed(() => `translations?app=back`);
 
-  translations.value.forEach(t => {
-    // If translation has no specific app, it belongs to both tabs by default (or 'common')
-    // We explicitly group them to make UI easy.
-    const appsToGroup = t.app ? [t.app] : ['front', 'back'];
+// To force reload DataTable when inline updates happen
+const refreshKeyFront = ref(0);
+const refreshKeyBack = ref(0);
+const isGenerating = ref(false);
 
-    appsToGroup.forEach(app => {
-      if (!groups[app]) groups[app] = {};
+const fetchLangs = async () => {
+  langs.value = await getLangs();
+};
 
-      const groupKey = `${t.section}---${t.key}`;
-      if (!groups[app][groupKey]) {
-        groups[app][groupKey] = {
-          section: t.section,
-          key: t.key,
-          items: {}
-        };
-      }
-
-      groups[app][groupKey].items[t.lang.id] = t;
-    });
-  });
-
-  return groups;
-});
-
-const frontData = computed(() => Object.values(groupedTranslations.value['front'] || {}));
-const backData = computed(() => Object.values(groupedTranslations.value['back'] || {}));
+// Inline updating is now handled natively within TranslationAccordionCell.vue
 
 const columns = computed(() => [
   {
@@ -63,61 +45,47 @@ const columns = computed(() => [
   },
   {
     id: "content",
-    headerName: "Contenido",
-    header: "Contenido",
+    headerName: "Traducciones",
+    header: "Traducciones",
     enableSorting: false,
     cell: ({ row }: any) => {
+      const group = row.original;
       return h(TranslationAccordionCell, {
-        group: row.original,
-        activeLangs: activeLangs.value,
-        appTab: currentAppTab.value,
+        group,
+        langs: activeLangs.value,
+        appContext: currentAppTab.value,
         onUpdate: (payload: any) => {
-           handleInlineUpdate(payload.appContext, payload.section, payload.key, payload.langId, payload.content, payload.existingTranslation);
+           // Re-fetch trigger
+           if (currentAppTab.value === 'front') refreshKeyFront.value++;
+           if (currentAppTab.value === 'back') refreshKeyBack.value++;
+        }
+      });
+    }
+  },
+  {
+    id: "actions",
+    headerName: "Acciones",
+    header: "Acciones",
+    enableSorting: false,
+    cell: ({ row }: any) => {
+      const group = row.original;
+      return h(DeleteButton, {
+        onClick: async () => {
+          if (confirm('Are you sure you want to delete this translation key across all languages?')) {
+             try {
+               await Promise.all(group.translations.map((t: any) => deleteTranslation(t.id)));
+               if (currentAppTab.value === 'front') refreshKeyFront.value++;
+               if (currentAppTab.value === 'back') refreshKeyBack.value++;
+             } catch (error) {
+               console.error(error);
+               alert('Failed to delete translations.');
+             }
+          }
         }
       });
     }
   }
 ]);
-
-const fetchLangs = async () => {
-  langs.value = await getLangs();
-};
-
-const fetchTranslations = async () => {
-  translations.value = await getTranslations();
-};
-
-// Handle Blur event on inputs to trigger auto-save
-const handleInlineUpdate = async (appContext: string, section: string, key: string, langId: number, content: string, existingTranslation: any) => {
-  // Ignore empty strings if there is no existing translation
-  if (!existingTranslation && !content.trim()) return;
-
-  // If translation exists and content hasn't changed, ignore
-  if (existingTranslation && existingTranslation.content === content) return;
-
-  try {
-    if (existingTranslation) {
-      if (content.trim()) {
-         await updateTranslation(existingTranslation.id, { content });
-      } else {
-         await deleteTranslation(existingTranslation.id);
-      }
-    } else {
-      await createTranslation({
-        langId,
-        app: appContext,
-        section,
-        key,
-        content
-      });
-    }
-    // Refresh quietly
-    await fetchTranslations();
-  } catch (err) {
-    console.error('Failed to inline update translation', err);
-    alert('Failed to save translation');
-  }
-};
 
 const handleGenerate = async () => {
   isGenerating.value = true;
@@ -132,10 +100,8 @@ const handleGenerate = async () => {
   }
 };
 
-
 onMounted(async () => {
   await fetchLangs();
-  await fetchTranslations();
 });
 </script>
 
@@ -143,11 +109,19 @@ onMounted(async () => {
   <div class="p-6">
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-bold">Translations</h1>
-      <Button variant="outline" @click="handleGenerate" :disabled="isGenerating">
-        {{ isGenerating ? 'Generating...' : 'Generate JSON' }}
-      </Button>
+      <div class="flex gap-2">
+        <AddTranslationDialog
+          :appContext="currentAppTab"
+          :langs="activeLangs"
+          @created="refreshKeyFront++; refreshKeyBack++;"
+        />
+        <Button variant="outline" @click="handleGenerate" :disabled="isGenerating">
+          {{ isGenerating ? 'Generating...' : 'Generate JSON' }}
+        </Button>
+      </div>
     </div>
 
+    <!-- For a properly paginated backend, we skip manual client grouping and just filter by app -->
     <Tabs v-model="currentAppTab" class="w-full mt-4">
       <TabsList class="mb-4">
         <TabsTrigger value="front">Front App</TabsTrigger>
@@ -155,11 +129,21 @@ onMounted(async () => {
       </TabsList>
 
       <TabsContent value="front">
-        <DataTable :columns="columns as any" :data="frontData" tableName="translations-table-front" />
+        <DataTable
+          :columns="columns"
+          :endpoint="endpointFront"
+          :refreshKey="refreshKeyFront"
+          tableName="translations-table-front"
+        />
       </TabsContent>
 
       <TabsContent value="back">
-        <DataTable :columns="columns as any" :data="backData" tableName="translations-table-back" />
+        <DataTable
+          :columns="columns"
+          :endpoint="endpointBack"
+          :refreshKey="refreshKeyBack"
+          tableName="translations-table-back"
+        />
       </TabsContent>
     </Tabs>
   </div>

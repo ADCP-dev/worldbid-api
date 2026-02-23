@@ -10,12 +10,18 @@ export const useTranslations = () => {
   const updateLang = (id: number, body: any) => fetchWrapper.patch(`${baseUrl}/langs/${id}`, body);
   const deleteLang = (id: number) => fetchWrapper.delete(`${baseUrl}/langs/${id}`);
 
-  const getTranslations = (params: any = {}) => {
+  const getTranslations = async (params: any = {}) => {
     // filter undefined
     const cleanParams = Object.fromEntries(Object.entries(params).filter(([_, v]) => v != null && v !== ''));
     const query = new URLSearchParams(cleanParams as any).toString();
-    return fetchWrapper.get(`${baseUrl}?${query}`);
+    const { data } = await fetchWrapper.get(`${baseUrl}?${query}`);
+    return data;
   };
+
+  const getExactTranslation = async (app: string, section: string, key: string) => {
+    return await fetchWrapper.get(`${baseUrl}/exact?app=${app}&section=${section}&key=${key}`);
+  };
+
   const createTranslation = (body: any) => fetchWrapper.post(baseUrl, body);
   const updateTranslation = (id: number, body: any) => fetchWrapper.patch(`${baseUrl}/${id}`, body);
   const deleteTranslation = (id: number) => fetchWrapper.delete(`${baseUrl}/${id}`);
@@ -27,6 +33,7 @@ export const useTranslations = () => {
     updateLang,
     deleteLang,
     getTranslations,
+    getExactTranslation,
     createTranslation,
     updateTranslation,
     deleteTranslation,

@@ -33,7 +33,11 @@ export class TranslationEntity extends EntityRelationalHelper {
   @Column({ type: 'text' })
   content: string;
 
-  @ManyToOne(() => LangEntity, { eager: true })
+  @ManyToOne(() => LangEntity, {
+    eager: true,
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  })
   lang: LangEntity;
 
   @Index()

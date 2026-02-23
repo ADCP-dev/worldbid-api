@@ -23,6 +23,8 @@
     "postadd:property": "npm run lint",
     "postadd:extension-property": "npm run lint",
     "seed:run": "ts-node -r tsconfig-paths/register ./src/infrastructure/database/seeds/run-seed.ts",
+    "translation:add": "ts-node -r tsconfig-paths/register ./src/modules/translations/cli/add-translation.ts",
+    "translation:sync": "ts-node -r tsconfig-paths/register ./src/modules/translations/cli/sync-translations.ts",
     "prebuild": "rimraf dist",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",

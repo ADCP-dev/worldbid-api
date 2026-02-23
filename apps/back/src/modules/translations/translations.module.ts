@@ -5,9 +5,13 @@ import { TranslationEntity } from './infrastructure/entities/translation.entity'
 import { TranslationsService } from './translations.service';
 import { TranslationsController } from './translations.controller';
 import { TranslationSeedService } from './infrastructure/seeds/translation-seed.service';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([LangEntity, TranslationEntity])],
+  imports: [
+    TypeOrmModule.forFeature([LangEntity, TranslationEntity]),
+    ConfigModule,
+  ],
   providers: [TranslationsService, TranslationSeedService],
   controllers: [TranslationsController],
   exports: [TranslationsService, TranslationSeedService],

@@ -21,39 +21,33 @@ interface FeaturesProps {
 const featureList: FeaturesProps[] = [
   {
     icon: "shield",
-    title: "Auth & Seguridad",
-    description:
-      "JWT, Google OAuth y sistema de roles (RBAC) con permisos granulares integrados en el core.",
+    title: "landing.features.list.shield.title",
+    description: "landing.features.list.shield.description",
   },
   {
     icon: "zap",
-    title: "Stripe & Facturación",
-    description:
-      "Integración completa con Stripe para gestionar suscripciones, cobros y portal del cliente.",
+    title: "landing.features.list.zap.title",
+    description: "landing.features.list.zap.description",
   },
   {
     icon: "layers",
-    title: "IA con LangChain",
-    description:
-      "Arquitectura preparada para agentes de IA que pueden interactuar con la base de datos de tu app.",
+    title: "landing.features.list.layers.title",
+    description: "landing.features.list.layers.description",
   },
   {
     icon: "database",
-    title: "Redis & Postgres",
-    description:
-      "Pila tecnológica robusta con PostgreSQL para datos persistentes y Redis para colas y caché.",
+    title: "landing.features.list.database.title",
+    description: "landing.features.list.database.description",
   },
   {
     icon: "workflow",
-    title: "CMS & Newsletter",
-    description:
-      "Sistema de blog profesional y gestión de newsletters listo para usar y atraer usuarios.",
+    title: "landing.features.list.workflow.title",
+    description: "landing.features.list.workflow.description",
   },
   {
     icon: "barChart3",
-    title: "Dashboard Premium",
-    description:
-      "Interfaz de administración completa construida con Shadcn UI para el control total de tu plataforma.",
+    title: "landing.features.list.barChart3.title",
+    description: "landing.features.list.barChart3.description",
   },
 ];
 
@@ -84,16 +78,15 @@ const iconMap: Record<
     <div class="max-w-7xl mx-auto">
       <div class="text-center mb-8" data-aos="fade-up">
         <h2 class="text-lg text-primary mb-2 tracking-wider">
-          Características Técnicas
+          {{ $t('landing.features.title.badge') }}
         </h2>
 
         <h2 class="text-3xl md:text-4xl font-bold mb-4">
-          Potencia tu Negocio con el Stack Definitivo
+          {{ $t('landing.features.title.main') }}
         </h2>
 
         <p class="max-w-2xl mx-auto text-xl text-muted-foreground">
-          Una base sólida construida con las tecnologías más modernas para que
-          puedas centrarte en las integraciones y funcionalidades que importan.
+          {{ $t('landing.features.title.description') }}
         </p>
       </div>
 
@@ -107,12 +100,12 @@ const iconMap: Record<
 
               </div>
               <CardTitle>
-                {{ title }}
+                {{ $t(title) }}
               </CardTitle>
             </CardHeader>
 
             <CardContent class="text-muted-foreground text-center">
-              {{ description }}
+              {{ $t(description) }}
             </CardContent>
           </Card>
         </div>

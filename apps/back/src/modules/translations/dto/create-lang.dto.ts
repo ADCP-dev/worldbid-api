@@ -13,6 +13,11 @@ export class CreateLangDto {
   name: string;
 
   @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  flagCode?: string;
+
+  @ApiProperty({ required: false })
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
