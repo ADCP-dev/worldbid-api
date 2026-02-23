@@ -125,7 +125,10 @@ const isOpen = ref<boolean>(false);
               </NuxtLink>
             </Button>
 
-            <LandingToggleTheme />
+            <div class="flex gap-2 align-center w-full">
+               <LangButton />
+               <LandingToggleTheme />
+            </div>
           </SheetFooter>
         </SheetContent>
       </Sheet>
@@ -170,7 +173,8 @@ v-for="{ title, description } in featureList" :key="title"
       </NavigationMenuList>
     </NavigationMenu>
 
-    <div class="hidden lg:flex">
+    <div class="hidden lg:flex gap-2">
+      <LangButton />
       <Button variant="outline" as-child>
         <NuxtLink to="/login">
           Login

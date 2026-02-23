@@ -2,6 +2,8 @@
 import { Toaster } from '@/components/ui/sonner'
 
 const colorMode = useColorMode()
+const i18n = useI18n()
+const config = useRuntimeConfig()
 
 const color = computed(() => colorMode.value === 'dark' ? '#09090b' : '#ffffff')
 
@@ -16,7 +18,7 @@ useHead({
     { rel: 'icon', href: '/favicon.ico' },
   ],
   htmlAttrs: {
-    lang: 'es',
+    lang: i18n.locale.value,
   },
 })
 
@@ -45,11 +47,15 @@ useHead({
 </script>
 
 <template>
-  <div>  
+  <div>
     <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>
-      
+
     <Toaster class="pointer-events-auto" />
+    <template v-if="config.public.env !== 'production'">
+      <TranslationDevToggle />
+      <InteractiveTranslationEditor />
+    </template>
   </div>
 </template>

@@ -5,7 +5,6 @@ import { ArrowRight, Zap, Code, Image } from "lucide-vue-next";
 import { useColorMode } from "@vueuse/core";
 
 const mode = useColorMode();
-
 </script>
 
 <template>
@@ -18,22 +17,22 @@ const mode = useColorMode();
 
         <div class="max-w-screen-lg mx-auto text-center text-5xl md:text-6xl font-bold">
           <h1>
-            <span class="text-transparent bg-gradient-to-r to-secondary/90 from-primary bg-clip-text">La Base Perfecta
+            <span class="text-transparent bg-gradient-to-r to-secondary/90 from-primary bg-clip-text">
+              {{ $t('landing.hero.title.prefix') }}
             </span>
-            para tu Próxima Gran App
+            {{ $t('landing.hero.title.suffix') }}
           </h1>
         </div>
 
         <p class="max-w-screen-md mx-auto text-xl text-muted-foreground">
-          Foundation es un monorepo premium con NuxtJS, NestJS, Shadcn, Redis, Postgres y LangChain.
-          Incluye Auth (Google), Stripe, Blog, Newsletter y más. La estructura definitiva para escalar tu negocio.
+          {{ $t('landing.hero.description') }}
         </p>
 
         <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
           <Button class="w-full sm:w-auto font-bold group/arrow px-8 py-5 text-md" as-child>
             <NuxtLink to="/login">
               <Zap class="size-6 mr-2" />
-              Empieza Gratis
+              {{ $t('landing.hero.start') }}
               <ArrowRight class="size-6 ml-2 group-hover/arrow:translate-x-1 transition-transform" />
             </NuxtLink>
           </Button>
@@ -41,7 +40,7 @@ const mode = useColorMode();
           <Button as-child variant="outline" class="w-full sm:w-auto font-bold px-8 py-5 text-md">
             <a href="#how-it-works">
               <Code class="size-6 mr-2" />
-              Ver Cómo Funciona
+              {{ $t('landing.hero.howItWorks') }}
             </a>
           </Button>
         </div>

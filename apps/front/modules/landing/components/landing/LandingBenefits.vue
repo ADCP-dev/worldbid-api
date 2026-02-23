@@ -15,6 +15,9 @@ import {
   PanelsTopLeft,
   CalendarClock,
 } from "lucide-vue-next";
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 interface BenefitsProps {
   icon: string;
@@ -37,9 +40,9 @@ const benefitList: BenefitsProps[] = [
   },
   {
     icon: "chartLine",
-    title: "IA con LangChain",
+    title: t('landing.features.list.layers.title'),
     description:
-      "Integra modelos de lenguaje con tus propios datos fácilmente gracias a la estructura preconfigurada.",
+      t('landing.features.list.layers.description'),
   },
   {
     icon: "panel",

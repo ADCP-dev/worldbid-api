@@ -107,9 +107,26 @@ const fetchData = async () => {
       (params as Record<string, unknown>).search = state.value.globalFilter;
     }
 
-    const { data } = await fetchWrapper.get(`${baseURL}/${props.endpoint}`, { params });
-    internalData.value = data.data;
-    totalCount.value = data.total;
+    // Convert params to query string since fetchWrapper.get doesn't accept query params in a body configuration natively
+    const queryPairs = [];
+    for (const [key, value] of Object.entries(params)) {
+       if (key === 'filter' && typeof value === 'object') {
+           for (const [filterKey, filterValue] of Object.entries((value as Record<string, any>))) {
+               if (filterValue !== null && filterValue !== undefined && filterValue !== '') {
+                  queryPairs.push(`filter[${filterKey}]=${encodeURIComponent(filterValue as string)}`);
+               }
+           }
+       } else if (value !== null && value !== undefined && value !== '') {
+           queryPairs.push(`${key}=${encodeURIComponent(value as string)}`);
+       }
+    }
+    const queryString = queryPairs.join('&');
+    const separator = props.endpoint.includes('?') ? '&' : '?';
+
+    const responseData = await fetchWrapper.get(`${baseURL}/${props.endpoint}${separator}${queryString}`);
+    // fetchWrapper already parses JSON and returns the body directly
+    internalData.value = responseData.data || [];
+    totalCount.value = responseData.total ?? 0;
   } catch (error) {
     console.error('Failed to fetch table data:', error);
   } finally {
@@ -237,6 +254,10 @@ const visiblePages = computed(() => {
     if (end === pageCount) start = Math.max(0, pageCount - 5);
   }
   return Array.from({ length: Math.max(0, end - start) }, (_, i) => start + i);
+});
+
+defineExpose({
+  fetchData
 });
 </script>
 
