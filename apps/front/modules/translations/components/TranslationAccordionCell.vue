@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
-import { BotIcon } from 'lucide-vue-next'
+import { BotIcon, Loader2 } from 'lucide-vue-next'
 import {
   Accordion,
   AccordionContent,
@@ -111,16 +111,30 @@ const summaryRows = computed(() => languageRows.value.filter(r => r.translation)
         </template>
       </AccordionTrigger>
       <AccordionContent>
-        <div class="flex flex-col gap-4 pt-2 pb-4">
-          <div class="flex justify-end mb-2">
-            <Button @click="translateRow" :disabled="isTranslating" variant="outline" size="sm" class="flex gap-2 items-center">
-                <BotIcon class="w-4 h-4"/>
-                {{ isTranslating ? 'Traduciendo...' : 'Auto-Traducir faltantes (IA)' }}
-            </Button>
-          </div>
-          <div v-for="row in languageRows" :key="row.lang.id" class="flex flex-col gap-1">
-             <div class="flex gap-2 items-center text-xs font-semibold uppercase text-muted-foreground">
-                <FlagIcon :code="row.lang.flagCode || row.lang.code" />
+          <div class="flex gap-3 items-center justify-center">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger as-child>
+                  <Button @click="translateRow" :disabled="isTranslating" variant="outline" size="icon" class="flex gap-2 items-center justify-center">
+                        <BotIcon v-if="!isTranslating" class="w-4 h-4"/>
+                        <Loader2 v-if="isTranslating" class="w-4 h-4 animate-spin"/>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <TooltipArrow />
+                    <TooltipPortal>
+                      <TooltipContent>
+                        <p>Auto-Traducir faltantes (IA)</p>
+                      </TooltipContent>
+                    </TooltipPortal>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <div class="w-full">
+
+                <div v-for="row in languageRows" :key="row.lang.id" class="flex flex-col gap-1">
+                  <div class="flex gap-2 items-center text-xs font-semibold uppercase text-muted-foreground">
+                    <FlagIcon :code="row.lang.flagCode || row.lang.code" />
                 <span>{{ row.lang.name }}</span>
              </div>
              <Textarea
@@ -129,7 +143,8 @@ const summaryRows = computed(() => languageRows.value.filter(r => r.translation)
               class="min-h-[40px] w-full"
               :placeholder="`Traducción en ${row.lang.name}...`"
               @blur="handleBlur(row, $event)"
-            />
+              />
+            </div>
           </div>
         </div>
       </AccordionContent>
