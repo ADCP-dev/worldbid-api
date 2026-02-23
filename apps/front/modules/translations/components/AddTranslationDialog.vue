@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Plus } from 'lucide-vue-next'
+import { toast } from 'vue-sonner'
 
 const props = defineProps<{
   appContext: string;
@@ -70,7 +71,7 @@ const handleCreate = async () => {
 
   } catch (error) {
     console.error('Error creating translation:', error)
-    alert('Failure creating the translation')
+    toast.error('Failure creating the translation')
   } finally {
     isSubmitting.value = false
   }

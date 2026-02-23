@@ -17,6 +17,30 @@ const editingKey = ref('');
 const missingLangs = ref<any[]>([]);
 
 const { getLangs, getTranslations, getExactTranslation, createTranslation, updateTranslation, generateJson } = useTranslations();
+const isBulkTranslating = ref(false);
+
+const bulkTranslate = async () => {
+    isBulkTranslating.value = true;
+    try {
+        const response = await $fetch('/api/v1/translations/bulk-translate', {
+            method: 'POST',
+            body: { app: 'front' },
+            headers: {
+                Authorization: `Bearer ${useCookie('auth_token').value}` // Adjust token access as needed based on your auth setup
+            }
+        });
+        alert(`Bulk Translation complete: ${response.message}`);
+        await generateJson();
+        setTimeout(() => {
+            window.location.reload();
+        }, 500);
+    } catch (error: any) {
+        console.error(error);
+        alert(`Bulk Translation failed: ${error.message || 'Unknown error'}`);
+    } finally {
+        isBulkTranslating.value = false;
+    }
+};
 
 // Extract $i18n safely within setup to use in fallback logic
 const nuxtApp = useNuxtApp();
@@ -242,7 +266,10 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <div class="flex justify-end pt-2 border-t mt-2">
+        <div class="flex justify-between pt-2 border-t mt-2">
+            <Button @click="bulkTranslate" :disabled="isBulkTranslating" variant="secondary" class="w-full sm:w-auto mr-2">
+                {{ isBulkTranslating ? 'Traduciendo Todos...' : 'Auto-Traducir Todos los Faltantes (IA)' }}
+            </Button>
             <Button @click="handleSaveAll" :disabled="isSaving" class="w-full sm:w-auto">
                 {{ isSaving ? 'Guardando...' : 'Guardar y Sincronizar' }}
             </Button>

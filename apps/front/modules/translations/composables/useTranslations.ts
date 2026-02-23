@@ -26,6 +26,7 @@ export const useTranslations = () => {
   const updateTranslation = (id: number, body: any) => fetchWrapper.patch(`${baseUrl}/${id}`, body);
   const deleteTranslation = (id: number) => fetchWrapper.delete(`${baseUrl}/${id}`);
   const generateJson = () => fetchWrapper.post(`${baseUrl}/generate`);
+  const bulkTranslate = (app: string) => fetchWrapper.post(`${baseUrl}/bulk-translate?app=${app}`, {});
 
   return {
     getLangs,
@@ -38,5 +39,6 @@ export const useTranslations = () => {
     updateTranslation,
     deleteTranslation,
     generateJson,
+    bulkTranslate,
   };
 };

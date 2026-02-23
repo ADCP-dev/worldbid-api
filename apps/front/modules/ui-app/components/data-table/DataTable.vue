@@ -255,6 +255,10 @@ const visiblePages = computed(() => {
   }
   return Array.from({ length: Math.max(0, end - start) }, (_, i) => start + i);
 });
+
+defineExpose({
+  fetchData
+});
 </script>
 
 <template>

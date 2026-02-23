@@ -21,6 +21,7 @@ import { Roles } from '@iam/roles/roles.decorator';
 import { RoleEnum } from '@iam/roles/roles.enum';
 import { RolesGuard } from '@iam/roles/roles.guard';
 import { TranslationsService } from './translations.service';
+import { TranslationAgentService } from './translation-agent.service';
 import { CreateLangDto } from './dto/create-lang.dto';
 import { UpdateLangDto } from './dto/update-lang.dto';
 import { CreateTranslationDto } from './dto/create-translation.dto';
@@ -38,6 +39,7 @@ import { AllConfigType } from '@src/config/config.type';
 export class TranslationsController {
   constructor(
     private readonly translationsService: TranslationsService,
+    private readonly translationAgentService: TranslationAgentService,
     private readonly configService: ConfigService<AllConfigType>,
   ) {}
 
@@ -155,6 +157,30 @@ export class TranslationsController {
   @ApiOperation({ summary: 'Generate static JSON files' })
   generateJsonFiles() {
     return this.translationsService.generateJsonFiles();
+  }
+
+  // --- AI Translation ---
+
+  @ApiBearerAuth()
+  @Roles(RoleEnum.admin)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Post('translate-row')
+  @ApiOperation({ summary: 'Auto-translate missing languages for a specific app, section, and key' })
+  async translateRow(@Body() body: { app: string; section: string; key: string }) {
+    const { app, section, key } = body;
+    const result = await this.translationAgentService.translateRow(app, section, key);
+    return { success: true, message: result };
+  }
+
+  @ApiBearerAuth()
+  @Roles(RoleEnum.admin)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Post('bulk-translate')
+  @ApiOperation({ summary: 'Bulk auto-translate ALL missing languages for an app context' })
+  async bulkTranslate(@Body() body: { app?: string }) {
+    const { app = 'front' } = body;
+    const result = await this.translationAgentService.bulkTranslateAll(app);
+    return { success: true, message: result };
   }
 
   // --- Exact Match Fetch ---

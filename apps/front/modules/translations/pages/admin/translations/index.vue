@@ -7,8 +7,10 @@ import DataTable from '@/modules/ui-app/components/data-table/DataTable.vue';
 import TranslationAccordionCell from '~/modules/translations/components/TranslationAccordionCell.vue';
 import AddTranslationDialog from '~/modules/translations/components/AddTranslationDialog.vue';
 import DeleteButton from '@/modules/ui-app/components/data-table/buttons/DeleteButton.vue';
+import { toast } from 'vue-sonner';
+import { BotIcon } from 'lucide-vue-next';
 
-const { getLangs, deleteTranslation, generateJson } = useTranslations();
+const { getLangs, deleteTranslation, generateJson, bulkTranslate } = useTranslations();
 
 const langs = ref<any[]>([]);
 const activeLangs = computed(() => langs.value.filter(l => l.isActive));
@@ -20,12 +22,18 @@ const endpointFront = computed(() => `translations?app=front`);
 const endpointBack = computed(() => `translations?app=back`);
 
 // To force reload DataTable when inline updates happen
-const refreshKeyFront = ref(0);
-const refreshKeyBack = ref(0);
+const frontTable = ref<any>(null);
+const backTable = ref<any>(null);
 const isGenerating = ref(false);
+const isBulkTranslating = ref(false);
 
 const fetchLangs = async () => {
   langs.value = await getLangs();
+};
+
+const refreshTables = () => {
+  frontTable.value?.fetchData();
+  backTable.value?.fetchData();
 };
 
 // Inline updating is now handled natively within TranslationAccordionCell.vue
@@ -56,8 +64,7 @@ const columns = computed(() => [
         appContext: currentAppTab.value,
         onUpdate: (payload: any) => {
            // Re-fetch trigger
-           if (currentAppTab.value === 'front') refreshKeyFront.value++;
-           if (currentAppTab.value === 'back') refreshKeyBack.value++;
+           refreshTables();
         }
       });
     }
@@ -74,11 +81,11 @@ const columns = computed(() => [
           if (confirm('Are you sure you want to delete this translation key across all languages?')) {
              try {
                await Promise.all(group.translations.map((t: any) => deleteTranslation(t.id)));
-               if (currentAppTab.value === 'front') refreshKeyFront.value++;
-               if (currentAppTab.value === 'back') refreshKeyBack.value++;
+               refreshTables();
+               toast.success('Translations deleted successfully.');
              } catch (error) {
                console.error(error);
-               alert('Failed to delete translations.');
+               toast.error('Failed to delete translations.');
              }
           }
         }
@@ -91,12 +98,26 @@ const handleGenerate = async () => {
   isGenerating.value = true;
   try {
     await generateJson();
-    alert('Generated successfully!');
+    toast.success('Generated successfully!');
   } catch (error) {
     console.error(error);
-    alert('Failed to generate');
+    toast.error('Failed to generate');
   } finally {
     isGenerating.value = false;
+  }
+};
+
+const handleBulkTranslate = async () => {
+  isBulkTranslating.value = true;
+  try {
+    const result = await bulkTranslate(currentAppTab.value);
+    toast.success(result.message || 'Bulk translation completed');
+    refreshTables();
+  } catch (error: any) {
+    console.error(error);
+    toast.error(`Translation failed: ${error.message || 'Unknown error'}`);
+  } finally {
+    isBulkTranslating.value = false;
   }
 };
 
@@ -110,10 +131,14 @@ onMounted(async () => {
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-bold">Translations</h1>
       <div class="flex gap-2">
+        <Button variant="outline" @click="handleBulkTranslate" :disabled="isBulkTranslating" class="flex gap-2 items-center">
+          <BotIcon class="w-4 h-4" />
+          {{ isBulkTranslating ? 'Traduciendo...' : 'Auto-Traducir Todo (IA)' }}
+        </Button>
         <AddTranslationDialog
           :appContext="currentAppTab"
           :langs="activeLangs"
-          @created="refreshKeyFront++; refreshKeyBack++;"
+          @created="refreshTables"
         />
         <Button variant="outline" @click="handleGenerate" :disabled="isGenerating">
           {{ isGenerating ? 'Generating...' : 'Generate JSON' }}
@@ -130,18 +155,18 @@ onMounted(async () => {
 
       <TabsContent value="front">
         <DataTable
+          ref="frontTable"
           :columns="columns"
           :endpoint="endpointFront"
-          :refreshKey="refreshKeyFront"
           tableName="translations-table-front"
         />
       </TabsContent>
 
       <TabsContent value="back">
         <DataTable
+          ref="backTable"
           :columns="columns"
           :endpoint="endpointBack"
-          :refreshKey="refreshKeyBack"
           tableName="translations-table-back"
         />
       </TabsContent>
