@@ -19,6 +19,7 @@ export class UserSeedService {
       where: {
         email: 'admin@example.com',
       },
+      withDeleted: true,
     });
 
     if (!existingAdmin) {
@@ -47,6 +48,7 @@ export class UserSeedService {
       where: {
         email: 'john.doe@example.com',
       },
+      withDeleted: true,
     });
 
     if (!existingUser) {

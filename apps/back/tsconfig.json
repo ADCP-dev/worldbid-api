@@ -20,6 +20,9 @@
     "esModuleInterop": true,
     "strictPropertyInitialization": false,
     "paths": {
+      "@ext/*": [
+        "src/extensions/*"
+      ],
       "@iam/*": [
         "src/modules/iam/*"
       ],
