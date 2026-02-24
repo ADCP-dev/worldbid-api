@@ -1,18 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-
 import { Check } from "lucide-vue-next";
-
 import StripeService from "~/services/stripe.service";
 
 const { t } = useI18n();
@@ -116,9 +105,9 @@ onMounted(() => {
 
       <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
         <div v-if="plans.length === 0" class="col-span-full text-center py-8">
-          <p class="text-muted-foreground">{{ $t('landing.pricing.loading') }}</p>
+          <p class="text-base-content/60">{{ $t('landing.pricing.loading') }}</p>
         </div>
-        <Card v-for="{
+        <div v-else v-for="{
           title,
           popular,
           price,
@@ -127,119 +116,93 @@ onMounted(() => {
           benefitList,
           interval,
           currencySymbol
-        }, index in plans" v-else :key="title" :class="{
-          'drop-shadow-xl shadow-black/10 dark:shadow-white/10 border-[1.5px] border-primary lg:scale-[1.1]':
-            popular,
-        }" :data-aos="'fade-up'" :data-aos-delay="index * 100">
-          <CardHeader>
-            <CardTitle class="pb-2">
+        }, index in plans" :key="title"
+          class="card bg-base-100 border border-base-300 shadow-xl transition-all duration-300"
+          :class="{
+            'ring-2 ring-primary scale-105 z-10': popular,
+          }"
+          :data-aos="'fade-up'" :data-aos-delay="index * 100">
+
+          <div class="card-body">
+            <div v-if="popular" class="badge badge-primary absolute top-4 right-4 animate-pulse">POPULAR</div>
+            <h2 class="card-title text-2xl font-bold">
               {{ $t(title) }}
-            </CardTitle>
+            </h2>
 
-            <CardDescription class="pb-4">{{ $t(description) }}</CardDescription>
+            <p class="text-base-content/60 flex-grow">{{ $t(description) }}</p>
 
-            <div>
-              <span class="text-3xl font-bold">{{ currencySymbol }}{{ price }}</span>
-              <span v-if="interval" class="text-muted-foreground"> /{{ interval }}</span>
-              <span v-else class="text-muted-foreground"> {{ $t('landing.pricing.month') }}</span>
-            </div>
-          </CardHeader>
-
-          <CardContent class="flex">
-            <div class="space-y-4">
-              <span v-for="benefit in benefitList" :key="benefit" class="flex">
-                <Check class="text-primary mr-2" />
-                <h3>{{ $t(benefit) }}</h3>
+            <div class="my-4">
+              <span class="text-4xl font-extrabold">{{ currencySymbol }}{{ price }}</span>
+              <span class="text-base-content/60 ml-1">
+                {{ interval ? `/${interval}` : $t('landing.pricing.month') }}
               </span>
             </div>
-          </CardContent>
 
-          <CardFooter>
-            <Button :variant="popular ? 'default' : 'secondary'" class="w-full">
-              {{ $t(buttonText) }}
-            </Button>
-          </CardFooter>
-        </Card>
+            <div class="divider my-2"></div>
+
+            <ul class="space-y-3 mb-6">
+              <li v-for="benefit in benefitList" :key="benefit" class="flex items-start gap-3">
+                <Check class="text-primary h-5 w-5 shrink-0" />
+                <span class="text-sm">{{ $t(benefit) }}</span>
+              </li>
+            </ul>
+
+            <div class="card-actions mt-auto">
+              <button class="btn w-full" :class="popular ? 'btn-primary' : 'btn-outline'">
+                {{ $t(buttonText) }}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Custom Plan Contact Card -->
-      <div class="mt-16">
-        <Card class="max-w-7xl mx-auto border-2 border-primary/20 shadow-lg">
-          <div class="p-8 md:p-10">
+      <div class="mt-20">
+        <div class="card bg-primary text-primary-content shadow-2xl overflow-hidden relative border-none">
+          <!-- Decorative patterns can be added here if needed -->
+          <div class="card-body p-8 md:p-12 relative z-10">
             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-12">
               <div class="flex-1">
-                <div class="flex items-center gap-3 mb-3">
-                  <div class="h-2 w-8 bg-primary rounded-full" />
-                  <span class="text-sm font-semibold text-primary uppercase tracking-wide">{{
-                    $t('landing.pricing.custom.badge') }}</span>
+                <div class="badge badge-secondary mb-4 font-bold tracking-wider uppercase">
+                  {{ $t('landing.pricing.custom.badge') }}
                 </div>
-                <CardTitle class="text-3xl font-bold mb-3 text-foreground">
+                <h2 class="text-4xl font-black mb-4 tracking-tight">
                   {{ $t('landing.pricing.custom.title') }}
-                </CardTitle>
-                <CardDescription class="text-lg text-muted-foreground mb-6">
+                </h2>
+                <p class="text-xl opacity-90 leading-relaxed max-w-2xl">
                   {{ $t('landing.pricing.custom.description') }}
-                </CardDescription>
+                </p>
 
-              </div>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div class="flex items-start gap-3">
-                  <div class="mt-1 bg-primary/10 rounded-full p-1.5">
-                    <Check class="text-primary h-4 w-4" />
-                  </div>
-                  <div>
-                    <div class="font-semibold text-sm">{{ $t('landing.pricing.custom.features.integration.title') }}
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-10">
+                  <div v-for="feature in [
+                    { title: 'landing.pricing.custom.features.integration.title', desc: 'landing.pricing.custom.features.integration.description' },
+                    { title: 'landing.pricing.custom.features.ai.title', desc: 'landing.pricing.custom.features.ai.description' },
+                    { title: 'landing.pricing.custom.features.support.title', desc: 'landing.pricing.custom.features.support.description' },
+                    { title: 'landing.pricing.custom.features.config.title', desc: 'landing.pricing.custom.features.config.description' }
+                  ]" :key="feature.title" class="flex items-start gap-3">
+                    <div class="bg-primary-content/20 rounded-lg p-1">
+                      <Check class="h-4 w-4" />
                     </div>
-                    <div class="text-xs text-muted-foreground">{{
-                      $t('landing.pricing.custom.features.integration.description') }}</div>
-                  </div>
-                </div>
-
-                <div class="flex items-start gap-3">
-                  <div class="mt-1 bg-primary/10 rounded-full p-1.5">
-                    <Check class="text-primary h-4 w-4" />
-                  </div>
-                  <div>
-                    <div class="font-semibold text-sm">{{ $t('landing.pricing.custom.features.ai.title') }}</div>
-                    <div class="text-xs text-muted-foreground">{{ $t('landing.pricing.custom.features.ai.description') }}
+                    <div>
+                      <div class="font-bold text-lg leading-none mb-1">{{ $t(feature.title) }}</div>
+                      <div class="text-sm opacity-80">{{ $t(feature.desc) }}</div>
                     </div>
-                  </div>
-                </div>
-
-                <div class="flex items-start gap-3">
-                  <div class="mt-1 bg-primary/10 rounded-full p-1.5">
-                    <Check class="text-primary h-4 w-4" />
-                  </div>
-                  <div>
-                    <div class="font-semibold text-sm">{{ $t('landing.pricing.custom.features.support.title') }}</div>
-                    <div class="text-xs text-muted-foreground">{{
-                      $t('landing.pricing.custom.features.support.description') }}</div>
-                  </div>
-                </div>
-
-                <div class="flex items-start gap-3">
-                  <div class="mt-1 bg-primary/10 rounded-full p-1.5">
-                    <Check class="text-primary h-4 w-4" />
-                  </div>
-                  <div>
-                    <div class="font-semibold text-sm">{{ $t('landing.pricing.custom.features.config.title') }}</div>
-                    <div class="text-xs text-muted-foreground">{{
-                      $t('landing.pricing.custom.features.config.description') }}</div>
                   </div>
                 </div>
               </div>
 
-              <div class="flex flex-col items-center gap-4">
-                <div class="text-center">
-                  <div class="text-3xl font-bold text-foreground">{{ $t('landing.pricing.custom.contact.title') }}</div>
-                  <div class="text-sm text-muted-foreground">{{ $t('landing.pricing.custom.contact.description') }}</div>
+              <div class="flex flex-col items-center lg:items-end gap-6 lg:min-w-[300px]">
+                <div class="text-center lg:text-right">
+                  <div class="text-4xl font-black mb-2">{{ $t('landing.pricing.custom.contact.title') }}</div>
+                  <div class="text-lg opacity-90">{{ $t('landing.pricing.custom.contact.description') }}</div>
                 </div>
-                <Button size="lg" class="w-full sm:w-auto px-8 bg-primary hover:bg-primary/90 shadow-lg">
+                <button class="btn btn-secondary btn-lg px-12 text-lg shadow-xl hover:scale-105 transition-transform active:scale-95 border-none">
                   {{ $t('landing.pricing.custom.contact.button') }}
-                </Button>
+                </button>
               </div>
             </div>
           </div>
-        </Card>
+        </div>
       </div>
     </div>
   </section>

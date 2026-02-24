@@ -1,12 +1,4 @@
 <script setup lang="ts">
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from "@/components/ui/card";
-
 import { Linkedin, Github, Twitter } from 'lucide-vue-next';
 
 interface TeamProps {
@@ -188,40 +180,42 @@ const socialIcon = (socialName: string) => {
           El Equipo de Ensueño de la Empresa
         </h2>
       </div>
-
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-        <Card v-for="{
+        <div v-for="{
           imageUrl,
           firstName,
           lastName,
           positions,
           socialNetworks,
         } in teamList" :key="imageUrl"
-          class="bg-muted/60 dark:bg-card flex flex-col h-full overflow-hidden group/hoverimg">
-          <CardHeader class="p-0 gap-0">
-            <div class="h-full overflow-hidden">
-              <img :src="imageUrl" alt=""
-                class="w-full aspect-square object-cover saturate-0 transition-all duration-200 ease-linear size-full group-hover/hoverimg:saturate-100 group-hover/hoverimg:scale-[1.01]">
+          class="card bg-muted/60 dark:bg-card flex flex-col h-full overflow-hidden group/hoverimg border border-base-300 shadow-sm transition-all duration-300 hover:shadow-xl">
+
+          <figure class="aspect-square overflow-hidden">
+            <img :src="imageUrl" alt=""
+              class="w-full h-full object-cover saturate-0 transition-all duration-500 ease-in-out group-hover/hoverimg:saturate-100 group-hover/hoverimg:scale-110">
+          </figure>
+
+          <div class="card-body p-6">
+            <h3 class="card-title text-xl font-bold">
+              {{ firstName }} <span class="text-primary">{{ lastName }}</span>
+            </h3>
+
+            <div class="flex flex-wrap gap-1 mt-2">
+              <span v-for="(position, index) in positions" :key="index" class="text-xs font-semibold py-1 px-2 rounded-lg bg-primary/10 text-primary">
+                {{ position }}
+              </span>
             </div>
-            <CardTitle class="py-6 pb-4 px-6">{{ firstName }}
-              <span class="text-primary">{{ lastName }}</span>
-            </CardTitle>
-          </CardHeader>
 
-          <CardContent v-for="(position, index) in positions" :key="index" :class="{
-            'pb-0 text-muted-foreground ': true,
-            'pb-4': index === positions.length - 1,
-          }">
-            {{ position }}<span v-if="index < positions.length - 1">,</span>
-          </CardContent>
+            <div class="divider my-4"></div>
 
-          <CardFooter class="space-x-4 mt-auto">
-            <a v-for="{ name, url } in socialNetworks" :key="name" :href="url" target="_blank"
-              class="hover:opacity-80 transition-all" :aria-label="`Visit our ${name} page`">
-              <component :is="socialIcon(name)" />
-            </a>
-          </CardFooter>
-        </Card>
+            <div class="flex gap-4 mt-auto">
+              <a v-for="{ name, url } in socialNetworks" :key="name" :href="url" target="_blank"
+                class="btn btn-ghost btn-sm btn-circle hover:text-primary transition-colors" :aria-label="`Visit our ${name} page`">
+                <component :is="socialIcon(name)" class="w-5 h-5" />
+              </a>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </section>

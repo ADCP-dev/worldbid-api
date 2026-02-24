@@ -364,7 +364,7 @@ importers:
         specifier: ^9.24.0
         version: 9.39.2(jiti@2.6.1)
       flag-icons:
-        specifier: ^7.5.0
+        specifier: ^7.3.2
         version: 7.5.0
       lucide-vue-next:
         specifier: ^0.487.0
@@ -433,6 +433,9 @@ importers:
       '@types/google.maps':
         specifier: ^3.58.1
         version: 3.58.1
+      daisyui:
+        specifier: ^5.5.19
+        version: 5.5.19
       pinia-plugin-persistedstate:
         specifier: ^4.2.0
         version: 4.7.1(@nuxt/kit@4.3.1(magicast@0.5.2))(@pinia/nuxt@0.11.3(magicast@0.5.2)(pinia@3.0.4(typescript@5.9.2)(vue@3.5.28(typescript@5.9.2))))(pinia@3.0.4(typescript@5.9.2)(vue@3.5.28(typescript@5.9.2)))
@@ -6324,6 +6327,9 @@ packages:
   d3@7.9.0:
     resolution: {integrity: sha512-e1U46jVP+w7Iut8Jt8ri1YsPOvFpg46k+K8TpCb0P+zjCkjkPnV7WzfDJzMHy1LnA+wj5pLT1wjO901gLXeEhA==}
     engines: {node: '>=12'}
+
+  daisyui@5.5.19:
+    resolution: {integrity: sha512-pbFAkl1VCEh/MPCeclKL61I/MqRIFFhNU7yiXoDDRapXN4/qNCoMxeCCswyxEEhqL5eiTTfwHvucFtOE71C9sA==}
 
   dargs@8.1.0:
     resolution: {integrity: sha512-wAV9QHOsNbwnWdNW2FYvE1P56wtgSbM+3SZcdGiWQILwVjACCXDCI3Ai8QlCjMDB8YK5zySiXZYBiwGmNY3lnw==}
@@ -19146,6 +19152,8 @@ snapshots:
       d3-timer: 3.0.1
       d3-transition: 3.0.1(d3-selection@3.0.0)
       d3-zoom: 3.0.0
+
+  daisyui@5.5.19: {}
 
   dargs@8.1.0: {}
 

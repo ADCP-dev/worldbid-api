@@ -1,13 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { Check, ChevronsUpDown } from 'lucide-vue-next'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
 
 interface FilterOption {
   value: string | number | boolean
@@ -52,46 +45,38 @@ function selectOption(option: FilterOption) {
 </script>
 
 <template>
-  <Popover v-model:open="open">
-    <PopoverTrigger as-child>
-      <Button
-        variant="outline"
-        role="combobox"
-        :aria-expanded="open"
-        class="w-full justify-between h-9 text-sm font-normal"
-        :class="{ 'text-muted-foreground': !modelValue }"
-      >
-        <span class="truncate">{{ selectedLabel || placeholder || 'Filtrar...' }}</span>
-        <ChevronsUpDown class="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" />
-      </Button>
-    </PopoverTrigger>
-    <PopoverContent class="w-[200px] p-0" align="start">
-      <div class="flex items-center border-b px-3">
+  <div class="dropdown" :class="{ 'dropdown-open': open }">
+    <button
+      role="combobox"
+      class="btn btn-outline btn-sm w-full font-normal justify-between"
+      :class="{ 'opacity-70': !modelValue }"
+      @click="open = !open"
+    >
+      <span class="truncate">{{ selectedLabel || placeholder || 'Filtrar...' }}</span>
+      <ChevronsUpDown class="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" />
+    </button>
+    <ul class="dropdown-content z-[10] menu p-2 shadow bg-base-100 rounded-box w-52 mt-1">
+      <li class="p-0 mb-2 border-b border-base-300 pb-2">
         <input
           v-model="searchTerm"
-          class="flex h-9 w-full bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground"
+          class="input input-sm input-ghost w-full"
           :placeholder="placeholder || 'Buscar...'"
         />
+      </li>
+      <div class="max-h-[200px] overflow-y-auto">
+        <li v-if="filteredOptions.length === 0" class="disabled">
+          <span class="py-2 text-center text-sm opacity-50 justify-center">Sin resultados.</span>
+        </li>
+        <li v-for="option in filteredOptions" :key="String(option.value)">
+          <a @click="selectOption(option)" class="flex items-center gap-2">
+            <Check :class="String(modelValue) === String(option.value) ? 'opacity-100' : 'opacity-0'" class="h-4 w-4" />
+            <span class="truncate flex-1">{{ option.label }}</span>
+          </a>
+        </li>
       </div>
-      <div class="max-h-[200px] overflow-y-auto p-1">
-        <div
-          v-if="filteredOptions.length === 0"
-          class="py-6 text-center text-sm text-muted-foreground"
-        >
-          Sin resultados.
-        </div>
-        <button
-          v-for="option in filteredOptions"
-          :key="String(option.value)"
-          class="relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-          @click="selectOption(option)"
-        >
-          <Check
-            :class="cn('mr-2 h-4 w-4', String(modelValue) === String(option.value) ? 'opacity-100' : 'opacity-0')"
-          />
-          <span class="truncate">{{ option.label }}</span>
-        </button>
-      </div>
-    </PopoverContent>
-  </Popover>
+    </ul>
+
+    <!-- Background overlay to catch outside clicks and close the dropdown -->
+    <div v-if="open" class="fixed inset-0 z-[9] cursor-default" @click.stop="open = false"></div>
+  </div>
 </template>

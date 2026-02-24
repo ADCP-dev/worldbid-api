@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import AppIcon from '../AppIcon.vue';
-
 interface Links {
   title: string
   href: string
@@ -14,25 +12,18 @@ withDefaults(defineProps<{
 </script>
 
 <template>
-  <Breadcrumb>
-    <BreadcrumbList>
-      <template v-for="(link, index) in links" :key="index">
-        <BreadcrumbItem>
-          <BreadcrumbLink v-if="index !== links.length - 1" as-child>
-            <NuxtLink :to="link.href">
-              {{ link.title }}
-            </NuxtLink>
-          </BreadcrumbLink>
-          <BreadcrumbPage v-else>
-            {{ link.title }}
-          </BreadcrumbPage>
-        </BreadcrumbItem>
-        <BreadcrumbSeparator v-if="index < links.length - 1">
-          <AppIcon :name="separator" mode="svg" />
-        </BreadcrumbSeparator>
-      </template>
-    </BreadcrumbList>
-  </Breadcrumb>
+  <div class="breadcrumbs text-sm text-base-content/60">
+    <ul>
+      <li v-for="(link, index) in links" :key="index">
+        <NuxtLink v-if="index !== links.length - 1" :to="link.href" class="hover:text-primary transition-colors flex items-center gap-1">
+          {{ link.title }}
+        </NuxtLink>
+        <span v-else class="text-base-content font-bold">
+          {{ link.title }}
+        </span>
+      </li>
+    </ul>
+  </div>
 </template>
 
 <style scoped>

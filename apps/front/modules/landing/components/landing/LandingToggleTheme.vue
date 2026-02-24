@@ -1,22 +1,19 @@
 <script setup lang="ts">
 import { useColorMode } from "@vueuse/core";
-import { Button } from "@/components/ui/button";
 import { Moon, Sun } from "lucide-vue-next";
 const mode = useColorMode();
 </script>
 
 <template>
-  <Button size="icon" variant="ghost" @click="mode = mode === 'dark' ? 'light' : 'dark'">
-    <div v-if="mode === 'light'" class="flex">
+  <button class="btn btn-ghost btn-circle btn-sm" @click="mode = mode === 'dark' ? 'light' : 'dark'">
+    <div v-if="mode === 'light'" class="flex items-center justify-center">
       <Moon class="size-5" />
-      <span class="block hidden"> Dark </span>
     </div>
 
-    <div v-else class="flex">
+    <div v-else class="flex items-center justify-center">
       <Sun class="size-5" />
-      <span class="block hidden">Light</span>
     </div>
 
     <span class="sr-only">Toggle theme</span>
-  </Button>
+  </button>
 </template>

@@ -1,188 +1,93 @@
 <script lang="ts" setup>
-import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-} from "@/components/ui/navigation-menu";
-import {
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-
-import { Menu, BotMessageSquare } from "lucide-vue-next";
+import { Menu } from "lucide-vue-next";
 import { ref } from "vue";
-
 import { useColorMode } from "@vueuse/core";
-
 
 const { route: homeRoute } = useHomeRoute();
 const colorMode = useColorMode();
-
 
 interface RouteProps {
   href: string;
   label: string;
 }
 
-interface FeatureProps {
-  title: string;
-  description: string;
-}
-
 const routeList: RouteProps[] = [
-  {
-    href: "#benefits",
-    label: "Beneficios",
-  },
-  {
-    href: "#features",
-    label: "Características",
-  },
-  {
-    href: "#services",
-    label: "Pilares",
-  },
-  {
-    href: "#plans",
-    label: "Planes",
-  },
-  {
-    href: "#faq",
-    label: "FAQ",
-  },
-];
-
-const featureList: FeatureProps[] = [
-  {
-    title: "Monorepo Premium",
-    description: "Arquitectura NuxtJS + NestJS perfectamente sincronizada para tu negocio.",
-  },
-  {
-    title: "Integraciones Listas",
-    description:
-      "Stripe, Auth (Google), Blog y Newsletter integrados desde el primer día.",
-  },
-  {
-    title: "IA Adaptada con LangChain",
-    description:
-      "Agentes de IA capaces de interactuar con los datos de tu propia aplicación.",
-  },
+  { href: "#benefits", label: "Beneficios" },
+  { href: "#features", label: "Características" },
+  { href: "#services", label: "Pilares" },
+  { href: "#plans", label: "Planes" },
+  { href: "#faq", label: "FAQ" },
 ];
 
 const isOpen = ref<boolean>(false);
 </script>
 
 <template>
-  <header :class="{
-    'shadow-light': colorMode === 'light',
-    'shadow-dark': colorMode === 'dark',
-    'container top-5 mx-auto place-items-center lg:max-w-screen-xl gap-8 mx-auto sticky border z-40 px-2 py-1 sm:p-3 rounded-sm sm:rounded-2xl flex justify-between items-center shadow-md backdrop-blur-xl': true,
-  }">
-    <AppLogo :show-text="false" />
-    <!-- Mobile -->
-    <div class="flex items-center lg:hidden">
-      <Sheet v-model:open="isOpen">
-        <SheetTrigger as-child>
-          <Menu class="cursor-pointer" @click="isOpen = true" />
-        </SheetTrigger>
+  <div class="drawer">
+    <input id="landing-drawer" type="checkbox" v-model="isOpen" class="drawer-toggle" />
+    <div class="drawer-content flex flex-col items-center">
+      <header :class="{
+        'shadow-light': colorMode === 'light',
+        'shadow-dark': colorMode === 'dark',
+        'container top-5 mx-auto place-items-center lg:max-w-screen-xl gap-8 mx-auto sticky border z-40 px-4 py-2 sm:px-6 rounded-2xl flex justify-between items-center shadow-md backdrop-blur-xl': true,
+      }">
+        <AppLogo :show-text="false" />
 
-        <SheetContent side="left" class="flex flex-col justify-between rounded-tr-2xl rounded-br-2xl bg-card">
-          <div>
-            <SheetHeader class="mb-4">
-              <SheetTitle class="flex items-center">
-                <a href="/" class="flex items-center">
-                  <AppLogo />
-                </a>
-              </SheetTitle>
-            </SheetHeader>
+        <!-- Mobile Toggle -->
+        <div class="flex items-center lg:hidden">
+          <label for="landing-drawer" class="btn btn-ghost btn-circle">
+            <Menu class="h-6 w-6" />
+          </label>
+        </div>
 
-            <div class="flex flex-col gap-2">
-              <Button v-for="{ href, label } in routeList" :key="label" as-child variant="ghost"
-                class="justify-start text-base">
-                <a :href="href" @click="isOpen = false">
-                  {{ label }}
-                </a>
-              </Button>
-            </div>
+        <!-- Desktop Navigation -->
+        <nav class="hidden lg:flex items-center gap-1">
+          <a v-for="{ href, label } in routeList" :key="label" :href="href" class="btn btn-ghost btn-sm font-medium">
+            {{ label }}
+          </a>
+        </nav>
+
+        <div class="hidden lg:flex gap-4 items-center">
+          <LangButton />
+          <NuxtLink to="/login" class="btn btn-outline btn-sm">
+            Login
+          </NuxtLink>
+          <ToggleTheme />
+        </div>
+      </header>
+    </div>
+
+    <!-- Mobile Drawer Side -->
+    <div class="drawer-side z-50">
+      <label for="landing-drawer" class="drawer-overlay"></label>
+      <div class="menu p-4 w-80 min-h-full bg-base-200 text-base-content flex flex-col">
+        <div class="flex items-center justify-between mb-8">
+          <AppLogo />
+          <label for="landing-drawer" class="btn btn-ghost btn-sm btn-circle">✕</label>
+        </div>
+
+        <ul class="flex-grow gap-2">
+          <li v-for="{ href, label } in routeList" :key="label">
+            <a :href="href" @click="isOpen = false" class="text-lg">
+              {{ label }}
+            </a>
+          </li>
+        </ul>
+
+        <div class="divider"></div>
+
+        <div class="flex flex-col gap-4 p-2">
+          <NuxtLink to="/login" class="btn btn-primary w-full" @click="isOpen = false">
+            Login
+          </NuxtLink>
+          <div class="flex justify-between items-center px-2">
+            <LangButton />
+            <LandingToggleTheme />
           </div>
-
-          <SheetFooter class="flex-col sm:flex-col justify-start items-start">
-            <Separator class="mb-2" />
-
-            <Button variant="outline" as-child class="w-full mb-2">
-              <NuxtLink to="/login" @click="isOpen = false">
-                Login
-              </NuxtLink>
-            </Button>
-
-            <div class="flex gap-2 align-center w-full">
-               <LangButton />
-               <LandingToggleTheme />
-            </div>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
+        </div>
+      </div>
     </div>
-
-    <!-- Desktop -->
-    <NavigationMenu class="hidden lg:block">
-      <NavigationMenuList>
-        <!-- <NavigationMenuItem>
-          <NavigationMenuTrigger class="bg-card text-base">
-            Características
-          </NavigationMenuTrigger>
-          <NavigationMenuContent>
-            <div class="grid w-[600px] grid-cols-2 gap-5 p-4">
-              <img src="https://www.radix-vue.com/logo.svg" alt="Beach" class="h-full w-full rounded-md object-cover" >
-              <ul class="flex flex-col gap-2">
-                <li
-v-for="{ title, description } in featureList" :key="title"
-                  class="rounded-md p-3 text-sm hover:bg-muted">
-                  <p class="mb-1 font-semibold leading-none text-foreground">
-                    {{ title }}
-                  </p>
-                  <p class="line-clamp-2 text-muted-foreground">
-                    {{ description }}
-                  </p>
-                </li>
-              </ul>
-            </div>
-          </NavigationMenuContent>
-        </NavigationMenuItem> -->
-
-        <NavigationMenuItem class="flex justify-end gap-2">
-          <NavigationMenuLink as-child>
-            <Button v-for="{ href, label } in routeList" :key="label" as-child variant="ghost"
-              class="justify-start text-base">
-              <a :href="href">
-                {{ label }}
-              </a>
-            </Button>
-          </NavigationMenuLink>
-        </NavigationMenuItem>
-      </NavigationMenuList>
-    </NavigationMenu>
-
-    <div class="hidden lg:flex gap-2">
-      <LangButton />
-      <Button variant="outline" as-child>
-        <NuxtLink to="/login">
-          Login
-        </NuxtLink>
-      </Button>
-      <ToggleTheme />
-    </div>
-  </header>
+  </div>
 </template>
 
 <style scoped>

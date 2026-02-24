@@ -1,31 +1,30 @@
 <script setup lang="ts">
 import AppSidebar from '@/components/layout/AppSidebar.vue'
 import Header from '@/components/layout/Header.vue'
-import {
-  SidebarInset,
-  SidebarProvider,
-} from '@/components/ui/sidebar/index'
 import LangButton from '~/components/LangButton.vue'
 
 </script>
 
 <template>
-  <SidebarProvider>
-    <AppSidebar />
-    <SidebarInset>
+  <div class="drawer lg:drawer-open">
+    <input id="main-drawer" type="checkbox" class="drawer-toggle" />
+    <div class="drawer-content flex flex-col min-h-screen bg-base-200">
       <Header>
-        <div class="flex items-center">
+        <div class="flex items-center gap-2">
           <LangButton />
-          <ColorButton />
         </div>
       </Header>
-      <div class="container mx-auto px-4 py-6">
+      <div class="container mx-auto px-4 py-6 grow">
         <Transition name="fade" mode="out-in">
           <slot />
         </Transition>
       </div>
-    </SidebarInset>
-  </SidebarProvider>
+    </div>
+    <div class="drawer-side z-50 is-drawer-close:overflow-visible">
+      <label for="main-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
+      <AppSidebar />
+    </div>
+  </div>
 </template>
 
 <style>

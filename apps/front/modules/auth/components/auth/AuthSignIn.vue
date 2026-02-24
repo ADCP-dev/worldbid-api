@@ -70,7 +70,7 @@ async function onSubmit(event: Event) {
         Login with Google
       </Button>
     </div> -->
-    <Separator label="Or continue with" />
+    <div class="divider">Or continue with</div>
     <div class="grid gap-2">
       <Label for="email">
         Email

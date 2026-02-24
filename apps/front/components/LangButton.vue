@@ -7,21 +7,28 @@ const availableLocales = computed(() => {
 })
 
 const currentLocaleObj = computed(() => locales.value.find(l => l.code === locale.value))
+const currentFlagCode = computed(() => {
+    const val = currentLocaleObj.value?.flagCode || locale.value
+    return String(val)
+})
+
+function getFlagCode(loc: any) {
+    return String(loc.flagCode || loc.code)
+}
 </script>
 <template>
-    <DropdownMenu>
-        <DropdownMenuTrigger as-child>
-            <Button variant="outline" class="mr-4 cursor-pointer flex gap-2 items-center">
-                <FlagIcon :code="currentLocaleObj?.flagCode || locale" />
-                <span class="uppercase font-semibold">{{ locale }}</span>
-            </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-            <DropdownMenuItem v-for="loc in availableLocales" :key="loc.code"
-                @click.prevent.stop="setLocale(loc.code)" class="flex gap-2 items-center cursor-pointer">
-                <FlagIcon :code="loc.flagCode || loc.code" />
-                <span>{{ loc.name }}</span>
-            </DropdownMenuItem>
-        </DropdownMenuContent>
-    </DropdownMenu>
+    <div class="dropdown dropdown-end">
+        <div tabindex="0" role="button" class="btn btn-outline btn-sm border border-base-content/20 gap-2">
+            <FlagIcon :code="currentFlagCode" />
+            <span class="font-bold uppercase">{{ locale }}</span>
+        </div>
+        <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52 mt-2 border border-base-content/20">
+            <li v-for="loc in availableLocales" :key="loc.code">
+                <button @click.prevent.stop="setLocale(loc.code)" class="flex gap-3 items-center">
+                    <FlagIcon :code="getFlagCode(loc)" />
+                    <span>{{ loc.name }}</span>
+                </button>
+            </li>
+        </ul>
+    </div>
 </template>

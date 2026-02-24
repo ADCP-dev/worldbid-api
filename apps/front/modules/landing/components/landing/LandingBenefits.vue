@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
 import {
   Sparkle,
   Code,
@@ -94,25 +92,25 @@ const iconMap: Record<
         </div>
 
         <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card v-for="({ icon, title, description }, index) in benefitList" :key="title"
-            class="bg-muted/50 dark:bg-card hover:bg-background dark:hover:bg-background transition-all delay-75 group/number"
+          <div v-for="({ icon, title, description }, index) in benefitList" :key="title"
+            class="card bg-muted/50 dark:bg-card hover:bg-base-100 transition-all delay-75 group/number border border-base-300 shadow-sm"
             :data-aos="'fade-up'" :data-aos-delay="index * 100">
-            <CardHeader>
-              <div class="flex justify-between">
+            <div class="card-body">
+              <div class="flex justify-between items-start">
                 <component class="size-8 mb-6 text-primary" :is="iconMap[icon]" />
 
                 <span
-                  class="text-5xl text-muted-foreground/15 font-medium transition-all delay-75 group-hover/number:text-muted-foreground/30">0{{
+                  class="text-6xl text-base-content/10 font-black transition-all delay-75 group-hover/number:text-primary/20 leading-none">0{{
                     index + 1 }}</span>
               </div>
 
-              <CardTitle class="text-xl font-bold">{{ title }}</CardTitle>
-            </CardHeader>
+              <h3 class="card-title text-xl font-bold mb-2">{{ title }}</h3>
 
-            <CardContent class="text-muted-foreground">
-              {{ description }}
-            </CardContent>
-          </Card>
+              <p class="text-base-content/60 leading-relaxed">
+                {{ description }}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

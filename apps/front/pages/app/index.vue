@@ -61,28 +61,27 @@ onMounted(() => {
       <h2 class="text-2xl font-bold tracking-tight">
         Dashboard
       </h2>
-      <div class="flex items-center space-x-2">
+      <div class="flex items-center gap-2">
         <BaseDateRangePicker />
-        <Button>Download</Button>
+        <button class="btn btn-primary">Download</button>
       </div>
     </div>
     <main class="flex flex-1 flex-col gap-4 md:gap-8">
       <div class="grid gap-4 lg:grid-cols-4 md:grid-cols-2 md:gap-8">
-        <Card>
-          <CardHeader class="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle class="text-sm font-medium">
-              Total Revenue
-            </CardTitle>
-            <DollarSign class="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
+        <!-- Total Revenue -->
+        <div class="card bg-base-100 shadow-sm border border-base-300">
+          <div class="card-body p-6 gap-0">
+            <div class="flex flex-row items-center justify-between pb-2">
+              <h3 class="text-sm font-medium">Total Revenue</h3>
+              <DollarSign class="h-4 w-4 text-base-content/60" />
+            </div>
             <div class="text-2xl font-bold">
               <NumberFlow
                 :value="dataCard.totalRevenue"
                 :format="{ style: 'currency', currency: 'USD', trailingZeroDisplay: 'stripIfInteger' }"
               />
             </div>
-            <p class="text-xs text-muted-foreground">
+            <p class="text-xs text-base-content/60">
               <NumberFlow
                 :value="dataCard.totalRevenueDesc"
                 prefix="+"
@@ -90,116 +89,120 @@ onMounted(() => {
               />
               from last month
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader class="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle class="text-sm font-medium">
-              Subscriptions
-            </CardTitle>
-            <Users class="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
+          </div>
+        </div>
+
+        <!-- Subscriptions -->
+        <div class="card bg-base-100 shadow-sm border border-base-300">
+          <div class="card-body p-6 gap-0">
+            <div class="flex flex-row items-center justify-between pb-2">
+              <h3 class="text-sm font-medium">Subscriptions</h3>
+              <Users class="h-4 w-4 text-base-content/60" />
+            </div>
             <div class="text-2xl font-bold">
               <NumberFlow
                 :value="dataCard.subscriptions"
                 prefix="+"
               />
             </div>
-            <p class="text-xs text-muted-foreground">
+            <p class="text-xs text-base-content/60">
               <NumberFlow
                 :value="dataCard.subscriptionsDesc"
                 prefix="+"
                 :format="{ style: 'percent', minimumFractionDigits: 1 }"
               /> from last month
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader class="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle class="text-sm font-medium">
-              Sales
-            </CardTitle>
-            <CreditCard class="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
+          </div>
+        </div>
+
+        <!-- Sales -->
+        <div class="card bg-base-100 shadow-sm border border-base-300">
+          <div class="card-body p-6 gap-0">
+            <div class="flex flex-row items-center justify-between pb-2">
+              <h3 class="text-sm font-medium">Sales</h3>
+              <CreditCard class="h-4 w-4 text-base-content/60" />
+            </div>
             <div class="text-2xl font-bold">
               <NumberFlow
                 :value="dataCard.sales"
                 prefix="+"
               />
             </div>
-            <p class="text-xs text-muted-foreground">
+            <p class="text-xs text-base-content/60">
               <NumberFlow
                 :value="dataCard.salesDesc"
                 prefix="+"
                 :format="{ style: 'percent', minimumFractionDigits: 1 }"
               /> from last month
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader class="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle class="text-sm font-medium">
-              Active Now
-            </CardTitle>
-            <Activity class="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
+          </div>
+        </div>
+
+        <!-- Active Now -->
+        <div class="card bg-base-100 shadow-sm border border-base-300">
+          <div class="card-body p-6 gap-0">
+            <div class="flex flex-row items-center justify-between pb-2">
+              <h3 class="text-sm font-medium">Active Now</h3>
+              <Activity class="h-4 w-4 text-base-content/60" />
+            </div>
             <div class="text-2xl font-bold">
               <NumberFlow
                 :value="dataCard.activeNow"
                 prefix="+"
               />
             </div>
-            <p class="text-xs text-muted-foreground">
+            <p class="text-xs text-base-content/60">
               <NumberFlow
                 :value="dataCard.activeNowDesc"
                 prefix="+"
               /> since last hour
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
+
       <div class="grid gap-4 lg:grid-cols-2 xl:grid-cols-3 md:gap-8">
-        <Card class="xl:col-span-2">
-          <CardHeader>
-            <CardTitle>Overview</CardTitle>
-          </CardHeader>
-          <CardContent class="pl-2">
-            <!-- <DashboardOverview /> -->
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Sales</CardTitle>
-          </CardHeader>
-          <CardContent class="grid gap-8">
-            <div
-              v-for="recentSales in dataRecentSales" :key="recentSales.name"
-              class="flex items-center gap-4"
-            >
-              <Avatar class="hidden h-9 w-9 sm:flex">
-                <AvatarFallback>{{ recentSales.name.split(' ').map((n) => n[0]).join('') }}</AvatarFallback>
-              </Avatar>
-              <div class="grid gap-1">
-                <p class="text-sm font-medium leading-none">
-                  {{ recentSales.name }}
-                </p>
-                <p class="text-sm text-muted-foreground">
-                  {{ recentSales.email }}
-                </p>
-              </div>
-              <div class="ml-auto font-medium">
-                <NumberFlow
-                  :value="recentSales.amount"
-                  :format="{ style: 'currency', currency: 'USD', trailingZeroDisplay: 'stripIfInteger' }"
-                  prefix="+"
-                />
+        <div class="card bg-base-100 shadow-sm border border-base-300 xl:col-span-2">
+          <div class="card-body p-6">
+            <h3 class="card-title text-lg font-semibold">Overview</h3>
+            <div class="pl-2">
+              <!-- <DashboardOverview /> -->
+            </div>
+          </div>
+        </div>
+
+        <div class="card bg-base-100 shadow-sm border border-base-300">
+          <div class="card-body p-6 gap-8">
+            <h3 class="card-title text-lg font-semibold">Recent Sales</h3>
+            <div class="grid gap-8">
+              <div
+                v-for="recentSales in dataRecentSales" :key="recentSales.name"
+                class="flex items-center gap-4"
+              >
+                <div class="avatar placeholder hidden sm:flex">
+                  <div class="bg-neutral text-neutral-content w-9 rounded-full">
+                    <span class="text-xs">{{ recentSales.name.split(' ').map((n) => n[0]).join('') }}</span>
+                  </div>
+                </div>
+                <div class="grid gap-1">
+                  <p class="text-sm font-medium leading-none">
+                    {{ recentSales.name }}
+                  </p>
+                  <p class="text-sm text-base-content/60">
+                    {{ recentSales.email }}
+                  </p>
+                </div>
+                <div class="ml-auto font-medium">
+                  <NumberFlow
+                    :value="recentSales.amount"
+                    :format="{ style: 'currency', currency: 'USD', trailingZeroDisplay: 'stripIfInteger' }"
+                    prefix="+"
+                  />
+                </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </main>
   </div>

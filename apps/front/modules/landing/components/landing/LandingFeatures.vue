@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
 import {
   Code,
   Zap,
@@ -93,21 +91,19 @@ const iconMap: Record<
       <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <div v-for="{ icon, title, description }, index in featureList" :key="title" :data-aos="'fade-up'"
           :data-aos-delay="index * 100">
-          <Card class="h-full bg-background border-0 shadow-none">
-            <CardHeader class="flex justify-center items-center flex-col">
-              <div class="bg-primary/20 p-2 rounded-full ring-8 ring-primary/10 mb-4">
-                <component :is="iconMap[icon]" class="size-6 text-primary" />
-
+          <div class="card h-full bg-base-100 border-none shadow-none text-center">
+            <div class="card-body items-center group">
+              <div class="bg-primary/20 p-4 rounded-2xl ring-0 ring-primary/10 mb-4 transition-all duration-300 group-hover:ring-8 group-hover:bg-primary group-hover:text-primary-content">
+                <component :is="iconMap[icon]" class="size-8" />
               </div>
-              <CardTitle>
+              <h3 class="card-title text-xl font-bold mb-2">
                 {{ $t(title) }}
-              </CardTitle>
-            </CardHeader>
-
-            <CardContent class="text-muted-foreground text-center">
-              {{ $t(description) }}
-            </CardContent>
-          </Card>
+              </h3>
+              <p class="text-base-content/60 leading-relaxed">
+                {{ $t(description) }}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

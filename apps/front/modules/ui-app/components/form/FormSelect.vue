@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import Label from "~/components/ui/label/Label.vue";
-import Select from "~/components/ui/select/Select.vue";
+import { useSlots } from "vue";
 import { PlusCircle } from "lucide-vue-next";
-import Button from "~/components/ui/button/Button.vue";
 
 defineProps<{
   label: string;
@@ -20,61 +18,57 @@ defineProps<{
 }>();
 
 const model = defineModel<string | number>();
-
 const slots = useSlots();
 </script>
 
 <template>
-  <div class="relative space-y-2">
-    <Label
-      >{{ label }}<span v-if="required" class="text-red-600">*</span></Label
-    >
-    <Select
-      v-model="model"
-      :placeholder="placeholder"
-      :disabled="disabled"
-    >
-      <SelectTrigger class="w-full" :class="{ 'border-destructive': error }">
-        <SelectValue :placeholder="placeholder" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem v-for="option in options" :key="option.value" :value="option.value">
-          {{ option.label }}
-        </SelectItem>
-        
-        <!-- Create button at the bottom (conditional) -->
-        <div 
-          v-if="showCreateButton" 
-          class="px-2 py-2 sticky bottom-0 border-t border-border bg-popover mt-1"
+  <div class="form-control w-full">
+    <label class="label">
+      <span class="label-text font-semibold">
+        {{ label }}<span v-if="required" class="text-error ml-1">*</span>
+      </span>
+    </label>
+
+    <div class="relative flex flex-col gap-2">
+      <div class="relative w-full">
+        <select
+          v-model="model"
+          :disabled="disabled"
+          class="select select-bordered w-full"
+          :class="{ 'select-error': error, 'pl-10': slots['icon-start'] }"
         >
-          <Button
-            type="button"
-            variant="outline"
-            @click.stop="onCreateClick && onCreateClick()"
-          >
-            <PlusCircle v-if="createButtonIcon" class="mr-2 h-4 w-4" />
-            {{ createButtonText || 'Crear nuevo' }}
-          </Button>
-        </div>
-      </SelectContent>
-    </Select>
-    <p v-if="description" class="text-xs text-muted-foreground">
-      {{ description }}
-    </p>
-    <span
-      v-if="slots['icon-start']"
-      class="absolute start-0 inset-y-0 flex items-center justify-center px-2"
-    >
-      <slot name="icon-start" />
-    </span>
-    <span
-      v-if="slots['icon-end']"
-      class="absolute end-0 inset-y-0 flex items-center justify-center px-2"
-    >
-      <slot name="icon-end" />
-    </span>
-    <p v-if="error" class="text-sm text-destructive">
-      {{ error }}
-    </p>
+          <option v-if="placeholder" disabled value="">{{ placeholder }}</option>
+          <option v-for="option in options" :key="option.value" :value="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+
+        <span
+          v-if="slots['icon-start']"
+          class="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center text-base-content/50 pointer-events-none"
+        >
+          <slot name="icon-start" />
+        </span>
+      </div>
+
+      <!-- Create button (conditional) -->
+      <button
+        v-if="showCreateButton"
+        type="button"
+        class="btn btn-outline btn-sm w-full"
+        @click.stop="onCreateClick && onCreateClick()"
+      >
+        <PlusCircle v-if="createButtonIcon" class="w-4 h-4" />
+        {{ createButtonText || 'Crear nuevo' }}
+      </button>
+    </div>
+
+    <label v-if="description" class="label py-1">
+      <span class="label-text-alt text-base-content/60">{{ description }}</span>
+    </label>
+
+    <label v-if="error" class="label py-0">
+      <span class="label-text-alt text-error font-medium">{{ error }}</span>
+    </label>
   </div>
 </template>

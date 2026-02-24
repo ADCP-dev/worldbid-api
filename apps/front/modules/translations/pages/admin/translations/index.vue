@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import { useTranslations } from '../../../composables/useTranslations';
 import { ref, onMounted, computed, h } from 'vue';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import DataTable from '@/modules/ui-app/components/data-table/DataTable.vue';
 import TranslationAccordionCell from '~/modules/translations/components/TranslationAccordionCell.vue';
 import AddTranslationDialog from '~/modules/translations/components/AddTranslationDialog.vue';
 import DeleteButton from '@/modules/ui-app/components/data-table/buttons/DeleteButton.vue';
 import { toast } from 'vue-sonner';
-import { BotIcon } from 'lucide-vue-next';
+import { BotIcon, LayersIcon, PanelTopIcon } from 'lucide-vue-next';
 
 const { getLangs, deleteTranslation, generateJson, bulkTranslate } = useTranslations();
 
@@ -128,48 +126,62 @@ onMounted(async () => {
 
 <template>
   <div class="p-6">
-    <div class="flex justify-between items-center mb-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
       <h1 class="text-2xl font-bold">Translations</h1>
-      <div class="flex gap-2">
-        <Button variant="outline" @click="handleBulkTranslate" :disabled="isBulkTranslating" class="flex gap-2 items-center">
-          <BotIcon class="w-4 h-4" />
+      <div class="flex flex-wrap gap-2">
+        <button class="btn btn-outline" @click="handleBulkTranslate" :disabled="isBulkTranslating">
+          <BotIcon class="w-4 h-4 mr-2" />
           {{ isBulkTranslating ? 'Traduciendo...' : 'Auto-Traducir Todo (IA)' }}
-        </Button>
+        </button>
         <AddTranslationDialog
           :appContext="currentAppTab"
           :langs="activeLangs"
           @created="refreshTables"
         />
-        <Button variant="outline" @click="handleGenerate" :disabled="isGenerating">
+        <button class="btn btn-outline" @click="handleGenerate" :disabled="isGenerating">
           {{ isGenerating ? 'Generating...' : 'Generate JSON' }}
-        </Button>
+        </button>
       </div>
     </div>
 
-    <!-- For a properly paginated backend, we skip manual client grouping and just filter by app -->
-    <Tabs v-model="currentAppTab" class="w-full mt-4">
-      <TabsList class="mb-4">
-        <TabsTrigger value="front">Front App</TabsTrigger>
-        <TabsTrigger value="back">Back App</TabsTrigger>
-      </TabsList>
+    <!-- DaisyUI Tabs for switching Apps -->
+    <div role="tablist" class="tabs tabs-border w-full xl:w-1/2 mb-4">
+      <a
+        role="tab"
+        class="tab"
+        :class="{ 'tab-active': currentAppTab === 'front' }"
+        @click="currentAppTab = 'front'"
+      >
+        <PanelTopIcon class="w-4 h-4 mr-2" />
+        Front App
+      </a>
+      <a
+        role="tab"
+        class="tab"
+        :class="{ 'tab-active': currentAppTab === 'back' }"
+        @click="currentAppTab = 'back'"
+      >
+        <LayersIcon class="w-4 h-4 mr-2" />
+        Back App
+      </a>
+    </div>
 
-      <TabsContent value="front">
-        <DataTable
-          ref="frontTable"
-          :columns="columns"
-          :endpoint="endpointFront"
-          tableName="translations-table-front"
-        />
-      </TabsContent>
+    <div v-show="currentAppTab === 'front'">
+      <DataTable
+        ref="frontTable"
+        :columns="columns"
+        :endpoint="endpointFront"
+        tableName="translations-table-front"
+      />
+    </div>
 
-      <TabsContent value="back">
-        <DataTable
-          ref="backTable"
-          :columns="columns"
-          :endpoint="endpointBack"
-          tableName="translations-table-back"
-        />
-      </TabsContent>
-    </Tabs>
+    <div v-show="currentAppTab === 'back'">
+      <DataTable
+        ref="backTable"
+        :columns="columns"
+        :endpoint="endpointBack"
+        tableName="translations-table-back"
+      />
+    </div>
   </div>
 </template>

@@ -1,23 +1,6 @@
 <script setup lang="ts">
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
-
 import { Star } from "lucide-vue-next";
+import { ref } from "vue";
 
 interface ReviewProps {
   image: string;
@@ -92,44 +75,46 @@ const reviewList: ReviewProps[] = [
         </h2>
       </div>
 
-      <Carousel :opts="{
-        align: 'start',
-      }" class="relative max-w-6xl mx-auto overflow-hidden">
-        <CarouselContent>
-          <CarouselItem v-for="(review, index) in reviewList" :key="review.name" class="md:basis-1/2 lg:basis-1/3"
+      <div class="relative max-w-6xl mx-auto">
+        <div class="flex overflow-x-auto gap-6 pb-8 snap-x no-scrollbar">
+          <div v-for="(review, index) in reviewList" :key="review.name"
+            class="min-w-[300px] md:min-w-[350px] snap-start"
             :data-aos="'fade-up'" :data-aos-delay="index * 100">
-            <Card class="bg-muted/50 dark:bg-card">
-              <CardContent class="pt-6 pb-0">
-                <div class="flex gap-1 pb-6">
-                  <Star class="size-4 fill-primary text-primary" />
-                  <Star class="size-4 fill-primary text-primary" />
-                  <Star class="size-4 fill-primary text-primary" />
-                  <Star class="size-4 fill-primary text-primary" />
-                  <Star class="size-4 fill-primary text-primary" />
+            <div class="card bg-muted/50 dark:bg-card border border-base-300 shadow-sm h-full">
+              <div class="card-body gap-4">
+                <div class="flex gap-1">
+                  <Star v-for="i in 5" :key="i" class="size-4 fill-primary text-primary" />
                 </div>
 
-                "{{ review.comment }}"
-              </CardContent>
+                <p class="text-base-content/80 italic">"{{ review.comment }}"</p>
 
-              <CardHeader>
-                <div class="flex flex-row items-center gap-4">
-                  <Avatar>
-                    <AvatarImage src="https://www.radix-vue.com/logo.svg" alt="@radix-vue" />
-                    <AvatarFallback>SV</AvatarFallback>
-                  </Avatar>
+                <div class="flex items-center gap-4 mt-auto pt-4 border-t border-base-300">
+                  <div class="avatar">
+                    <div class="w-12 rounded-full border border-primary/20 bg-base-300">
+                      <img :src="review.image" :alt="review.name" />
+                    </div>
+                  </div>
 
                   <div class="flex flex-col">
-                    <CardTitle class="text-lg">{{ review.name }}</CardTitle>
-                    <CardDescription>{{ review.userName }}</CardDescription>
+                    <span class="font-bold text-base">{{ review.name }}</span>
+                    <span class="text-xs opacity-60">{{ review.userName }}</span>
                   </div>
                 </div>
-              </CardHeader>
-            </Card>
-          </CarouselItem>
-        </CarouselContent>
-        <CarouselPrevious />
-        <CarouselNext />
-      </Carousel>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 </template>
+
+<style scoped>
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+</style>

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 
-import { Badge } from "@/components/ui/badge";
 import {
   Globe,
   Instagram,
@@ -112,9 +111,9 @@ const iconMap: Record<string, any> = {
                 <component :is="iconMap[icon]"
                   class="h-16 w-16 lg:h-20 lg:w-20 text-primary group-hover:scale-110 transition-transform duration-300" />
               </div>
-              <Badge v-if="tier === ServiceTier.PRO" variant="secondary" class="absolute -top-2 -right-2 z-10">
+              <div v-if="tier === ServiceTier.PRO" class="badge badge-secondary absolute -top-2 -right-2 z-10 font-bold px-3 py-1 text-xs">
                 PRO
-              </Badge>
+              </div>
               <!-- Decorative elements -->
               <div class="absolute -top-4 -left-4 w-8 h-8 bg-primary/10 rounded-full animate-pulse"></div>
               <div class="absolute -bottom-2 -right-2 w-6 h-6 bg-primary/20 rounded-full animate-pulse delay-300"></div>

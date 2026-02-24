@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { ArrowRight, Zap, Code, Image } from "lucide-vue-next";
 import { useColorMode } from "@vueuse/core";
 
@@ -28,21 +26,17 @@ const mode = useColorMode();
           {{ $t('landing.hero.description') }}
         </p>
 
-        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <Button class="w-full sm:w-auto font-bold group/arrow px-8 py-5 text-md" as-child>
-            <NuxtLink to="/login">
-              <Zap class="size-6 mr-2" />
-              {{ $t('landing.hero.start') }}
-              <ArrowRight class="size-6 ml-2 group-hover/arrow:translate-x-1 transition-transform" />
-            </NuxtLink>
-          </Button>
+        <div class="flex flex-col sm:flex-row gap-6 justify-center items-center">
+          <NuxtLink to="/login" class="btn btn-primary btn-lg w-full sm:w-auto font-black px-10 shadow-2xl hover:scale-105 transition-transform active:scale-95 group/arrow">
+            <Zap class="size-6 mr-1" />
+            {{ $t('landing.hero.start') }}
+            <ArrowRight class="size-6 ml-1 group-hover/arrow:translate-x-2 transition-transform" />
+          </NuxtLink>
 
-          <Button as-child variant="outline" class="w-full sm:w-auto font-bold px-8 py-5 text-md">
-            <a href="#how-it-works">
-              <Code class="size-6 mr-2" />
-              {{ $t('landing.hero.howItWorks') }}
-            </a>
-          </Button>
+          <a href="#how-it-works" class="btn btn-outline btn-lg w-full sm:w-auto font-black px-10 hover:bg-base-200 hover:text-base-content border-2">
+            <Code class="size-6 mr-1" />
+            {{ $t('landing.hero.howItWorks') }}
+          </a>
         </div>
       </div>
 

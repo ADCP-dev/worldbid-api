@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { defineProps } from 'vue'
-import { Button } from '@/components/ui/button'
 import { ArrowUpDown } from 'lucide-vue-next'
 
 const props = defineProps<{
@@ -10,11 +8,11 @@ const props = defineProps<{
 </script>
 
 <template>
-  <Button
-    variant="ghost"
+  <button
+    class="btn btn-ghost btn-sm"
     @click="() => props.column.toggleSorting(props.column.getIsSorted() === 'asc')"
   >
     {{ props.label }}
     <ArrowUpDown class="ml-2 h-4 w-4" />
-  </Button>
+  </button>
 </template>

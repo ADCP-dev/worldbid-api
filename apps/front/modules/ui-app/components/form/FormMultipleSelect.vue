@@ -64,10 +64,11 @@ function removeSelected(value: string | number) {
 }
 
 function handleClickOutside(e: MouseEvent) {
-  if (!(e.target as HTMLElement).closest(".fms-dropdown")) {
+  if (!(e.target as HTMLElement).closest(".dropdown")) {
     closeDropdown();
   }
 }
+
 watch(open, (val) => {
   if (val) document.addEventListener("mousedown", handleClickOutside);
   else document.removeEventListener("mousedown", handleClickOutside);
@@ -75,93 +76,97 @@ watch(open, (val) => {
 </script>
 
 <template>
-  <div class="space-y-2">
-    <label
-      v-if="label"
-      :for="name"
-      class="block text-sm font-medium text-foreground"
-    >
-      {{ label }}
+  <div class="form-control w-full">
+    <label v-if="label" class="label">
+      <span class="label-text font-semibold">
+        {{ label }}
+      </span>
     </label>
-    <div class="relative">
-      <button
-        type="button"
-        class="w-full border-input flex items-center justify-between border rounded-lg px-3 py-2 dark:bg-input/30 dark:hover:bg-input/50 text-left focus:outline-none focus:ring-2 focus:ring-primary transition min-h-[42px]"
-        :class="[
-          error ? 'border-destructive' : 'border-muted',
-          disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer',
-        ]"
-        :disabled="disabled"
+
+    <div class="dropdown w-full" :class="{ 'dropdown-open': open }">
+      <div
+        tabindex="0"
+        role="button"
+        class="select select-bordered w-full flex flex-wrap gap-1 h-auto min-h-[3rem] py-2 items-center justify-between"
+        :class="{ 'select-error': error, 'select-disabled cursor-not-allowed': disabled }"
         @click="toggleDropdown"
       >
-        <div class="flex flex-wrap gap-1">
+        <div class="flex flex-wrap gap-1 items-center">
           <span
             v-if="selected.length === 0"
-            class="text-muted-foreground text-sm"
+            class="opacity-50 text-sm"
           >
             {{ placeholder || "Selecciona opciones..." }}
           </span>
-          <span
+          <div
             v-for="val in selected"
             :key="val"
-            class="flex items-center bg-primary/10 text-primary rounded px-2 py-0.5 text-xs"
+            class="badge badge-primary gap-1 py-3"
           >
-            {{ options.find((opt) => opt.value === val)?.label || val }}
+            <span class="max-w-[150px] truncate">
+              {{ options.find((opt) => opt.value === val)?.label || val }}
+            </span>
             <X
-              class="ml-1 w-3 h-3 cursor-pointer hover:text-destructive"
+              class="w-3 h-3 cursor-pointer hover:text-error transition-colors"
               @click.stop="removeSelected(val)"
             />
-          </span>
+          </div>
         </div>
-        <ChevronDown class="w-4 h-4 text-muted-foreground ml-2" />
-      </button>
-      <Transition name="fade">
-        <div
-          v-if="open"
-          class="fms-dropdown absolute z-30 mt-2 w-full bg-popover border border-muted rounded-lg shadow-lg p-2"
-        >
+        <ChevronDown class="h-4 w-4 opacity-50 ml-auto" />
+      </div>
+
+      <div
+        v-if="open"
+        class="dropdown-content z-20 menu p-2 shadow-xl bg-base-100 rounded-box w-full border  mt-1"
+      >
+        <div class="p-1 mb-2">
           <input
             ref="inputRef"
             v-model="search"
             type="text"
-            class="w-full mb-2 px-2 py-1 rounded border border-muted focus:outline-none focus:border-primary text-sm"
+            class="input input-sm input-bordered w-full"
             placeholder="Buscar..."
+            @click.stop
           />
-          <ul class="max-h-48 overflow-auto space-y-1">
-            <li
-              v-for="opt in filteredOptions"
-              :key="opt.value"
-              class="flex items-center gap-2 px-2 py-2 rounded cursor-pointer transition hover:bg-muted select-none"
-              :class="
-                isSelected(opt.value) ? 'bg-primary/10 font-semibold' : ''
-              "
+        </div>
+
+        <ul class="max-h-60 overflow-y-auto w-full">
+          <li v-for="opt in filteredOptions" :key="opt.value">
+            <button
+              type="button"
+              class="w-full flex items-center justify-between"
+              :class="{ 'active': isSelected(opt.value) }"
               @click="toggleSelect(opt.value)"
             >
-              <span
-                class="inline-flex items-center justify-center w-5 h-5 border rounded mr-2"
-                :class="
-                  isSelected(opt.value)
-                    ? 'border-primary bg-primary text-white'
-                    : 'border-muted bg-background'
-                "
-              >
-                <Check v-if="isSelected(opt.value)" class="w-4 h-4" />
-              </span>
               <span class="truncate">{{ opt.label }}</span>
-            </li>
-            <li
-              v-if="filteredOptions.length === 0"
-              class="text-muted-foreground text-sm px-2 py-1"
-            >
-              Sin resultados
-            </li>
-          </ul>
-        </div>
-      </Transition>
+              <Check v-if="isSelected(opt.value)" class="h-4 w-4" />
+            </button>
+          </li>
+
+          <li v-if="filteredOptions.length === 0" class="disabled italic p-2 text-center opacity-50 text-sm">
+            Sin resultados
+          </li>
+        </ul>
+      </div>
     </div>
-    <p v-if="description" class="text-xs text-muted-foreground">
-      {{ description }}
-    </p>
-    <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
+
+    <label v-if="description" class="label py-1">
+      <span class="label-text-alt text-base-content/60">{{ description }}</span>
+    </label>
+
+    <label v-if="error" class="label py-1">
+      <span class="label-text-alt text-error font-medium">{{ error }}</span>
+    </label>
   </div>
 </template>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>

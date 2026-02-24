@@ -45,6 +45,7 @@ export default defineNuxtConfig({
     "@nuxtjs/color-mode",
     "@nuxtjs/robots",
     "shadcn-nuxt",
+    'vue-sonner/nuxt'
   ],
   css: ["~/assets/css/tailwind.css", "flag-icons/css/flag-icons.min.css"],
   vite: {

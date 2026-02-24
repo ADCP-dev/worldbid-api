@@ -7,8 +7,29 @@ const getBaseUrl = () => {
   return `${runtimeConfig.public.apiUrl}${runtimeConfig.public.apiPrefix}/auth`;
 };
 
+interface User {
+  id: string | number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: {
+    name: string;
+  };
+  photo?: {
+    path: string;
+  };
+}
+
+interface AuthState {
+  token: string | null;
+  refreshToken: string | null;
+  tokenExpires: number | null;
+  user: User | null;
+  refreshTokenTimeout: any;
+}
+
 export const useAuthStore = defineStore("auth", {
-  state: () => ({
+  state: (): AuthState => ({
     token: null,
     refreshToken: null,
     tokenExpires: null,
@@ -35,7 +56,7 @@ export const useAuthStore = defineStore("auth", {
     },
   },
   actions: {
-    async login(email, password) {
+    async login(email: string, password: string) {
       try {
         const baseUrl = getBaseUrl();
         const response = await fetchWrapper.post(`${baseUrl}/email/login`, {
@@ -47,12 +68,12 @@ export const useAuthStore = defineStore("auth", {
         this.startRefreshTokenTimer();
 
         return { success: true };
-      } catch (error) {
+      } catch (error: any) {
         return { success: false, error: error.message || "Login failed" };
       }
     },
 
-    async register(userData) {
+    async register(userData: any) {
       try {
         const baseUrl = getBaseUrl();
         const response = await fetchWrapper.post(
@@ -60,7 +81,7 @@ export const useAuthStore = defineStore("auth", {
           userData,
         );
         return { success: true, data: response };
-      } catch (error) {
+      } catch (error: any) {
         return {
           success: false,
           error: error.message || "Registration failed",
@@ -68,14 +89,14 @@ export const useAuthStore = defineStore("auth", {
       }
     },
 
-    async confirmEmail(hash) {
+    async confirmEmail(hash: string) {
       try {
         const baseUrl = getBaseUrl();
         const response = await fetchWrapper.post(`${baseUrl}/email/confirm`, {
           hash,
         });
         return { success: true, data: response };
-      } catch (error) {
+      } catch (error: any) {
         return {
           success: false,
           error: error.message || "Email confirmation failed",
@@ -83,7 +104,7 @@ export const useAuthStore = defineStore("auth", {
       }
     },
 
-    async resendConfirmation(email) {
+    async resendConfirmation(email: string) {
       try {
         const baseUrl = getBaseUrl();
         const response = await fetchWrapper.post(
@@ -91,7 +112,7 @@ export const useAuthStore = defineStore("auth", {
           { email },
         );
         return { success: true, data: response };
-      } catch (error) {
+      } catch (error: any) {
         return {
           success: false,
           error: error.message || "Failed to resend confirmation",
@@ -99,14 +120,14 @@ export const useAuthStore = defineStore("auth", {
       }
     },
 
-    async forgotPassword(email) {
+    async forgotPassword(email: string) {
       try {
         const baseUrl = getBaseUrl();
         const response = await fetchWrapper.post(`${baseUrl}/forgot/password`, {
           email,
         });
         return { success: true, data: response };
-      } catch (error) {
+      } catch (error: any) {
         return {
           success: false,
           error: error.message || "Failed to send reset email",
@@ -114,7 +135,7 @@ export const useAuthStore = defineStore("auth", {
       }
     },
 
-    async resetPassword(hash, password) {
+    async resetPassword(hash: string, password: string) {
       try {
         const baseUrl = getBaseUrl();
         const response = await fetchWrapper.post(`${baseUrl}/reset/password`, {

@@ -1,13 +1,10 @@
 <script setup lang="ts">
 import { useTranslations } from '../../../../composables/useTranslations';
 import { ref, onMounted } from 'vue';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Switch } from '@/components/ui/switch';
 import DeleteButton from '@/modules/ui-app/components/data-table/buttons/DeleteButton.vue';
 import { Pencil } from 'lucide-vue-next';
+import FormInput from '~/modules/ui-app/components/form/FormInput.vue'
+import FormSwitch from '~/modules/ui-app/components/form/FormSwitch.vue'
 
 const { getLangs, createLang, updateLang, deleteLang } = useTranslations();
 
@@ -35,9 +32,10 @@ const handleCreate = async () => {
   }
 };
 
-const handleToggle = async (lang: any, updates: any) => {
+const handleToggle = async (lang: any, isActive: boolean) => {
+  lang.isActive = isActive;
   try {
-    await updateLang(lang.id, updates);
+    await updateLang(lang.id, { isActive });
     fetchLangs();
   } catch (error) {
     console.error(error);
@@ -86,95 +84,83 @@ onMounted(fetchLangs);
   <div class="p-6">
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-bold">Languages</h1>
-      <Dialog v-model:open="isDialogOpen">
-        <DialogTrigger as-child>
-          <Button>Add Language</Button>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Language</DialogTitle>
-          </DialogHeader>
-          <div class="grid gap-4 py-4">
-            <div class="grid grid-cols-4 items-center gap-4">
-              <label class="text-right">Code</label>
-              <Input v-model="newLang.code" class="col-span-3" placeholder="en" />
-            </div>
-            <div class="grid grid-cols-4 items-center gap-4">
-              <label class="text-right">Flag Code</label>
-              <Input v-model="newLang.flagCode" class="col-span-3" placeholder="gb" />
-            </div>
-            <div class="grid grid-cols-4 items-center gap-4">
-              <label class="text-right">Name</label>
-              <Input v-model="newLang.name" class="col-span-3" placeholder="English" />
-            </div>
-            <div class="grid grid-cols-4 items-center gap-4">
-              <label class="text-right">Active</label>
-              <Switch v-model="newLang.isActive" />
-            </div>
+      <button class="btn btn-primary" @click="isDialogOpen = true">Add Language</button>
+
+      <!-- Add Dialog -->
+      <dialog class="modal" :class="{'modal-open': isDialogOpen}">
+        <div class="modal-box">
+          <h3 class="font-bold text-lg mb-4">Add Language</h3>
+          <div class="flex flex-col gap-4 py-4">
+            <FormInput v-model="newLang.code" label="Code" placeholder="en" required />
+            <FormInput v-model="newLang.flagCode" label="Flag Code" placeholder="gb" required />
+            <FormInput v-model="newLang.name" label="Name" placeholder="English" required />
+
+            <FormSwitch v-model="newLang.isActive" label="Active" />
           </div>
-          <Button @click="handleCreate">Save</Button>
-        </DialogContent>
-      </Dialog>
+          <div class="modal-action">
+            <button class="btn btn-ghost" @click="isDialogOpen = false">Cancel</button>
+            <button class="btn btn-primary" @click="handleCreate">Save</button>
+          </div>
+        </div>
+        <form method="dialog" class="modal-backdrop" @click="isDialogOpen = false">
+          <button>close</button>
+        </form>
+      </dialog>
     </div>
 
-    <div class="border rounded-md">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Flag</TableHead>
-            <TableHead>Code</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead>Active</TableHead>
-            <TableHead class="w-[100px]">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <TableRow v-for="lang in langs" :key="lang.id">
-            <TableCell>
+    <div class="overflow-x-auto bg-base-100 rounded-box border ">
+      <table class="table table-zebra w-full">
+        <thead>
+          <tr class="bg-base-200">
+            <th>Flag</th>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Active</th>
+            <th class="w-[100px]">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="lang in langs" :key="lang.id">
+            <td>
               <FlagIcon :code="lang.flagCode || lang.code" squared class="text-xl" />
-            </TableCell>
-            <TableCell class="font-medium">{{ lang.code }}</TableCell>
-            <TableCell>{{ lang.name }}</TableCell>
-            <TableCell>
-              <Switch v-model="lang.isActive" @update:model-value="handleToggle(lang, { isActive: $event })" />
-            </TableCell>
-            <TableCell class="flex items-center gap-2">
-              <Button variant="outline" size="sm" class="h-8 w-8 p-0" @click="openEditDialog(lang)">
-                <Pencil class="h-4 w-4" />
-              </Button>
-              <DeleteButton @click="handleDelete(lang.id)" />
-            </TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
+            </td>
+            <td class="font-medium">{{ lang.code }}</td>
+            <td>{{ lang.name }}</td>
+            <td>
+              <input type="checkbox" class="toggle toggle-primary toggle-sm" :checked="lang.isActive" @change="handleToggle(lang, ($event.target as HTMLInputElement).checked)" />
+            </td>
+            <td>
+              <div class="flex items-center gap-2">
+                <button class="btn btn-ghost btn-sm btn-square" @click="openEditDialog(lang)">
+                  <Pencil class="h-4 w-4" />
+                </button>
+                <DeleteButton @click="handleDelete(lang.id)" />
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <!-- Edit Dialog -->
-    <Dialog v-model:open="isEditDialogOpen">
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Edit Language</DialogTitle>
-        </DialogHeader>
-        <div class="grid gap-4 py-4" v-if="editingLang">
-          <div class="grid grid-cols-4 items-center gap-4">
-            <label class="text-right">Code</label>
-            <Input v-model="editingLang.code" class="col-span-3" />
-          </div>
-          <div class="grid grid-cols-4 items-center gap-4">
-            <label class="text-right">Flag Code</label>
-            <Input v-model="editingLang.flagCode" class="col-span-3" />
-          </div>
-          <div class="grid grid-cols-4 items-center gap-4">
-            <label class="text-right">Name</label>
-            <Input v-model="editingLang.name" class="col-span-3" />
-          </div>
-          <div class="grid grid-cols-4 items-center gap-4">
-            <label class="text-right">Active</label>
-            <Switch v-model="editingLang.isActive" />
-          </div>
+    <dialog class="modal" :class="{'modal-open': isEditDialogOpen}">
+      <div class="modal-box">
+        <h3 class="font-bold text-lg mb-4">Edit Language</h3>
+        <div class="flex flex-col gap-4 py-4" v-if="editingLang">
+          <FormInput v-model="editingLang.code" label="Code" placeholder="en" required />
+          <FormInput v-model="editingLang.flagCode" label="Flag Code" placeholder="gb" required />
+          <FormInput v-model="editingLang.name" label="Name" placeholder="English" required />
+
+          <FormSwitch v-model="editingLang.isActive" label="Active" />
         </div>
-        <Button @click="handleEditSubmit">Update</Button>
-      </DialogContent>
-    </Dialog>
+        <div class="modal-action">
+          <button class="btn btn-ghost" @click="isEditDialogOpen = false; editingLang = null">Cancel</button>
+          <button class="btn btn-primary" @click="handleEditSubmit">Update</button>
+        </div>
+      </div>
+      <form method="dialog" class="modal-backdrop" @click="isEditDialogOpen = false; editingLang = null">
+        <button>close</button>
+      </form>
+    </dialog>
   </div>
 </template>

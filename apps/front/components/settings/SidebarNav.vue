@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { cn } from '@/lib/utils'
 
 interface Item {
   title: string
@@ -13,30 +12,19 @@ const sidebarNavItems: Item[] = [
     title: 'Profile',
     href: '/app/settings/profile',
   },
-  {
-    title: 'Appearance',
-    href: '/app/settings/appearance',
-  },
-  {
-    title: 'Notifications',
-    href: '/app/settings/notifications',
-  },
-  {
-    title: 'Subscription',
-    href: '/app/settings/subscription',
-  },
 ]
 </script>
 
 <template>
-  <nav class="flex lg:flex-col space-x-2 lg:space-x-0 lg:space-y-1">
-    <Button v-for="item in sidebarNavItems" :key="item.title" variant="ghost" :class="cn(
-      'w-full text-left justify-start items-start',
-      route.path === item.href && 'bg-muted hover:bg-muted',
-    )" as-child>
-      <NuxtLink :to="item.href">
-        {{ item.title }}
-      </NuxtLink>
-    </Button>
+  <nav class="flex lg:flex-col gap-1">
+    <NuxtLink
+      v-for="item in sidebarNavItems"
+      :key="item.title"
+      :to="item.href"
+      class="btn btn-ghost justify-start w-full text-left"
+      :class="[route.path === item.href ? 'text-primary-content bg-gradient-to-r from-primary/10 to-primary' : '']"
+    >
+      {{ item.title }}
+    </NuxtLink>
   </nav>
 </template>

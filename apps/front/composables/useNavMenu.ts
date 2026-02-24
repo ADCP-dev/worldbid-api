@@ -8,6 +8,11 @@ export function useNavMenu() {
     heading: "General",
     items: [
       {
+        title: "Home",
+        icon: "House",
+        link: "/app",
+      },
+      {
         title: "Settings",
         icon: "Settings",
         link: "/app/settings/profile",
