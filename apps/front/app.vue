@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Toaster } from 'vue-sonner'
+
 const colorMode = useColorMode()
 const i18n = useI18n()
 const config = useRuntimeConfig()
@@ -65,10 +67,7 @@ const toastOptions = {
       <NuxtPage />
     </NuxtLayout>
 
-    <Toaster
-
-      :toast-options="toastOptions"
-    />
+    <Toaster :toast-options="toastOptions" />
     <template v-if="config.public.env !== 'production'">
       <TranslationDevToggle />
       <InteractiveTranslationEditor />

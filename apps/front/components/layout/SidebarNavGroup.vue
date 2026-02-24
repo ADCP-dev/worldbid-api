@@ -41,7 +41,6 @@ const closeDrawer = () => {
           <NuxtLink
             :to="subItem.link"
             exact-active-class="active"
-            @click="closeDrawer"
           >
             <template #default="{ isExactActive }">
               <span :class="[isExactActive ? 'text-primary dark:text-primary' : '']">{{ subItem.title }}</span>

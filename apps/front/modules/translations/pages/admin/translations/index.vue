@@ -125,7 +125,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="p-6">
+  <div class="p-1 md:p-6">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
       <h1 class="text-2xl font-bold">Translations</h1>
       <div class="flex flex-wrap gap-2">

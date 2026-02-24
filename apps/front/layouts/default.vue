@@ -2,12 +2,30 @@
 import AppSidebar from '@/components/layout/AppSidebar.vue'
 import Header from '@/components/layout/Header.vue'
 import LangButton from '~/components/LangButton.vue'
+import { ref, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 
+const isSidebarOpen = ref(false)
+const route = useRoute()
+
+onMounted(() => {
+  // Expanded by default on PC (lg: 1024px)
+  if (window.innerWidth >= 1024) {
+    isSidebarOpen.value = true
+  }
+})
+
+// Close sidebar on mobile when navigating
+watch(() => route.fullPath, () => {
+  if (window.innerWidth < 1024) {
+    isSidebarOpen.value = false
+  }
+})
 </script>
 
 <template>
   <div class="drawer lg:drawer-open">
-    <input id="main-drawer" type="checkbox" class="drawer-toggle" />
+    <input id="main-drawer" type="checkbox" class="drawer-toggle" v-model="isSidebarOpen" />
     <div class="drawer-content flex flex-col min-h-screen bg-base-200">
       <Header>
         <div class="flex items-center gap-2">

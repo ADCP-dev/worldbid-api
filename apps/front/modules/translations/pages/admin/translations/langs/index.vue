@@ -81,7 +81,7 @@ onMounted(fetchLangs);
 </script>
 
 <template>
-  <div class="p-6">
+  <div class="p-1 md:p-6">
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-bold">Languages</h1>
       <button class="btn btn-primary" @click="isDialogOpen = true">Add Language</button>

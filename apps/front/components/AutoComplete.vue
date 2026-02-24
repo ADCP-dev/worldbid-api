@@ -1,14 +1,5 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import { Input } from "@/components/ui/input";
-import { PlusCircle } from "lucide-vue-next";
 
 interface Props {
   placeholder?: string;
@@ -69,50 +60,38 @@ const handleCreateNew = () => {
 </script>
 
 <template>
-  <div class="relative w-full">
+  <div class="relative w-full dropdown" :class="{ 'dropdown-open': isOpen && (items.length > 0 || model) }">
     <div class="relative">
-      <Input
+      <input
         v-model="model"
+        type="text"
         :placeholder="placeholder"
-        class="w-full"
+        class="input input-bordered w-full"
         @focus="isOpen = true"
+        @blur="setTimeout(() => isOpen = false, 200)"
         @input="handleInput"
       />
     </div>
     <div
-      v-show="isOpen"
-      class="absolute z-50 min-w-[8rem] w-full overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2"
+      v-if="isOpen"
+      class="dropdown-content z-50 menu p-2 shadow bg-base-100 rounded-box w-full border border-base-content/20 mt-1 max-h-60 overflow-y-auto block"
     >
-      <Command class="w-full">
-        <CommandList>
-          <CommandEmpty v-if="!items.length">
-            <div class="py-6 text-center text-sm">
-              {{ emptyMessage }}
-            </div>
-          </CommandEmpty>
-          <CommandGroup v-else>
-            <CommandItem
-              v-for="item in items"
-              :key="item.value"
-              :value="item.label"
-              @select="() => handleSelect(item)"
-              class="cursor-pointer"
-            >
-              {{ item.label }}
-            </CommandItem>
-          </CommandGroup>
-          <CommandGroup>
-            <CommandItem
-              value=""
-              @select="handleCreateNew"
-              class="justify-center text-muted-foreground hover:text-primary border-t"
-            >
-              <PlusCircle class="mr-2 h-4 w-4" />
-              {{ createNewText }}
-            </CommandItem>
-          </CommandGroup>
-        </CommandList>
-      </Command>
+      <ul class="w-full p-0">
+        <li v-if="!items.length" class="disabled px-4 py-2 text-sm opacity-70">
+          {{ emptyMessage }}
+        </li>
+        <li v-for="item in items" :key="item.value">
+          <a @click.prevent="handleSelect(item)" class="flex items-center px-4 py-2">
+            {{ item.label }}
+          </a>
+        </li>
+        <li class="border-t border-base-content/10 mt-1">
+          <a @click.prevent="handleCreateNew" class="flex items-center justify-center text-primary font-semibold py-2">
+            <AppIcon name="lucide:plus-circle" class="mr-2 h-4 w-4" />
+            {{ createNewText }}
+          </a>
+        </li>
+      </ul>
     </div>
   </div>
 </template>

@@ -44,7 +44,6 @@ export default defineNuxtConfig({
     "@nuxtjs/sitemap",
     "@nuxtjs/color-mode",
     "@nuxtjs/robots",
-    "shadcn-nuxt",
     'vue-sonner/nuxt'
   ],
   css: ["~/assets/css/tailwind.css", "flag-icons/css/flag-icons.min.css"],
@@ -53,17 +52,6 @@ export default defineNuxtConfig({
   },
   colorMode: {
     classSuffix: "",
-  },
-  shadcn: {
-    /**
-     * Prefix for all the imported component
-     */
-    prefix: "",
-    /**
-     * Directory that the component lives in.
-     * @default "./components/ui"
-     */
-    componentDir: "./components/ui",
   },
   hooks: {
     async "i18n:registerModule"(register) {

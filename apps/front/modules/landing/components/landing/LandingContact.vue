@@ -138,12 +138,12 @@ const handleSubmit = () => {
                 </select>
               </div>
 
-              <div class="form-control w-full">
+              <div class="form-control w-full flex flex-col">
                 <label class="label" for="message">
                   <span class="label-text font-semibold">Mensaje</span>
                 </label>
                 <textarea id="message" v-model="contactForm.message" placeholder="Cuéntanos sobre tu proyecto..."
-                  class="textarea textarea-bordered h-32" />
+                  class="textarea textarea-bordered w-full h-32" />
               </div>
 
               <div v-if="invalidInputForm" class="alert alert-error shadow-lg">

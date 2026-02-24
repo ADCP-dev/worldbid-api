@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { ComponentFieldBindingObject } from 'vee-validate'
 import type { HTMLAttributes } from 'vue'
-import { cn } from '~/lib/utils'
 import AppIcon from './AppIcon.vue';
 
 const props = defineProps<{
@@ -13,40 +12,36 @@ const props = defineProps<{
   placeholder?: string
 }>()
 
-const showModal = useModel(props, 'modelValue')
+const model = useModel(props, 'modelValue')
 
 const showPassword = ref(false)
 </script>
 
 <template>
-  <div class="relative">
-    <Input
-      v-model="showModal"
+  <label :class="['input flex items-center gap-2 w-full', props.class]">
+    <input
+      v-model="model"
       :type="showPassword ? 'text' : 'password'"
-      :class="cn('pr-10', props?.class)"
-      :placeholder="props?.placeholder ? props.placeholder : 'Enter your password'"
-      :disabled="props?.disabled"
-      :autocomplete="props?.autocomplete"
-      v-bind="props?.componentField"
+      class="grow w-full"
+      :placeholder="props.placeholder || 'Enter your password'"
+      :disabled="props.disabled"
+      :autocomplete="props.autocomplete"
+      v-bind="props.componentField"
     />
-    <Button
+    <button
       type="button"
-      variant="ghost"
-      size="icon"
-      class="absolute right-0 top-0 h-full px-2 py-2 hover:bg-transparent"
-      :disabled="props?.disabled"
+      class="btn btn-ghost btn-circle btn-sm"
+      :disabled="props.disabled"
       @click="showPassword = !showPassword"
     >
       <AppIcon
-        v-if="showPassword"
-        name="LucideEye"
-        class="size-4"
+        :name="showPassword ? 'LucideEye' : 'LucideEyeOff'"
+        class="size-4 opacity-70"
         aria-hidden="true"
       />
-      <AppIcon v-else name="LucideEyeOff" class="size-4" aria-hidden="true" />
       <span class="sr-only">
         {{ showPassword ? "Show password" : "Hide password" }}
       </span>
-    </Button>
-  </div>
+    </button>
+  </label>
 </template>

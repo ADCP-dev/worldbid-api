@@ -1,8 +1,5 @@
 <script setup lang="ts">
-import { cn } from "@/lib/utils";
-import { Loader2 } from "lucide-vue-next";
 import PasswordInput from "~/components/PasswordInput.vue";
-
 import { toast } from 'vue-sonner';
 
 const router = useRouter();
@@ -66,31 +63,54 @@ async function onSubmit(event: Event) {
 </script>
 
 <template>
-  <div :class="cn('grid gap-6', $attrs.class ?? '')">
+  <div :class="['grid gap-6', $attrs.class ?? '']">
     <form @submit="onSubmit">
       <div class="grid gap-4">
-        <div class="grid gap-2">
-          <Label for="name"> Nombre </Label>
-          <Input id="name" v-model="name" placeholder="Introduce tu nombre" type="text" auto-capitalize="none"
-            auto-complete="name" auto-correct="off" :disabled="isLoading" />
+        <FormInput
+          label="Nombre"
+          v-model="name"
+          placeholder="Introduce tu nombre"
+          :disabled="isLoading"
+          required
+        />
+        
+        <FormInput
+          label="Email"
+          v-model="email"
+          placeholder="Introduce tu correo electrónico"
+          type="email"
+          :disabled="isLoading"
+          required
+        />
+
+        <div class="form-control w-full">
+          <label class="label">
+            <span class="label-text font-semibold">Contraseña</span>
+          </label>
+          <PasswordInput
+            id="password"
+            v-model="password"
+            placeholder="Introduce tu contraseña"
+            :disabled="isLoading"
+          />
         </div>
-        <div class="grid gap-2">
-          <Label for="email"> Email </Label>
-          <Input id="email" v-model="email" placeholder="Introduce tu correo electrónico" type="email"
-            auto-capitalize="none" auto-complete="email" auto-correct="off" :disabled="isLoading" />
+
+        <div class="form-control w-full">
+          <label class="label">
+            <span class="label-text font-semibold">Confirmar Contraseña</span>
+          </label>
+          <PasswordInput
+            id="confirm-password"
+            v-model="confirmPassword"
+            placeholder="Confirma tu contraseña"
+            :disabled="isLoading"
+          />
         </div>
-        <div class="grid gap-2">
-          <Label for="password"> Contraseña </Label>
-          <PasswordInput id="password" v-model="password" placeholder="Introduce tu contraseña" />
-        </div>
-        <div class="grid gap-2">
-          <Label for="confirm-password"> Confirmar Contraseña </Label>
-          <PasswordInput id="confirm-password" v-model="confirmPassword" placeholder="Confirma tu contraseña" />
-        </div>
-        <Button :disabled="isLoading">
-          <Loader2 v-if="isLoading" class="mr-2 h-4 w-4 animate-spin" />
+
+        <button type="submit" class="btn btn-primary w-full" :disabled="isLoading">
+          <span v-if="isLoading" class="loading loading-spinner loading-sm" />
           Registrarme
-        </Button>
+        </button>
       </div>
     </form>
   </div>

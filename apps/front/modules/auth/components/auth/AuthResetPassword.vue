@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Loader2, Eye, EyeOff } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import { useRouter, useRoute } from 'vue-router'
+import PasswordInput from '~/components/PasswordInput.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -13,8 +13,6 @@ const expires = computed(() => route.query.expires as string)
 const password = ref('')
 const confirmPassword = ref('')
 const isLoading = ref(false)
-const showPassword = ref(false)
-const showConfirm = ref(false)
 
 const isExpired = computed(() => {
   if (!expires.value) return false
@@ -82,67 +80,49 @@ async function onSubmit(event: Event) {
 <template>
   <div>
     <!-- Expired link warning -->
-    <div v-if="isExpired" class="rounded-md bg-destructive/10 border border-destructive/20 p-4 mb-4 text-sm text-destructive text-center">
-      Este enlace ha expirado. Por favor
-      <NuxtLink to="/forgot-password" class="font-medium underline underline-offset-2">
-        solicita uno nuevo
-      </NuxtLink>.
+    <div v-if="isExpired" class="alert alert-error mb-4 text-sm">
+      <span>
+        Este enlace ha expirado. Por favor
+        <NuxtLink to="/forgot-password" class="link font-medium">
+          solicita uno nuevo
+        </NuxtLink>.
+      </span>
     </div>
 
     <form v-else @submit="onSubmit">
       <div class="grid gap-4">
         <!-- New password -->
-        <div class="grid gap-2">
-          <Label for="password">Nueva contraseña</Label>
-          <div class="relative">
-            <Input
-              id="password"
-              v-model="password"
-              :type="showPassword ? 'text' : 'password'"
-              placeholder="••••••••"
-              auto-complete="new-password"
-              :disabled="isLoading"
-              class="pr-10"
-            />
-            <button
-              type="button"
-              class="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
-              @click="showPassword = !showPassword"
-            >
-              <EyeOff v-if="showPassword" class="h-4 w-4" />
-              <Eye v-else class="h-4 w-4" />
-            </button>
-          </div>
+        <div class="form-control w-full">
+          <label class="label" for="password">
+            <span class="label-text font-semibold">Nueva contraseña</span>
+          </label>
+          <PasswordInput
+            id="password"
+            v-model="password"
+            placeholder="••••••••"
+            auto-complete="new-password"
+            :disabled="isLoading"
+          />
         </div>
 
         <!-- Confirm password -->
-        <div class="grid gap-2">
-          <Label for="confirm-password">Confirmar contraseña</Label>
-          <div class="relative">
-            <Input
-              id="confirm-password"
-              v-model="confirmPassword"
-              :type="showConfirm ? 'text' : 'password'"
-              placeholder="••••••••"
-              auto-complete="new-password"
-              :disabled="isLoading"
-              class="pr-10"
-            />
-            <button
-              type="button"
-              class="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
-              @click="showConfirm = !showConfirm"
-            >
-              <EyeOff v-if="showConfirm" class="h-4 w-4" />
-              <Eye v-else class="h-4 w-4" />
-            </button>
-          </div>
+        <div class="form-control w-full">
+          <label class="label" for="confirm-password">
+            <span class="label-text font-semibold">Confirmar contraseña</span>
+          </label>
+          <PasswordInput
+            id="confirm-password"
+            v-model="confirmPassword"
+            placeholder="••••••••"
+            auto-complete="new-password"
+            :disabled="isLoading"
+          />
         </div>
 
-        <Button type="submit" :disabled="isLoading" class="w-full">
-          <Loader2 v-if="isLoading" class="mr-2 h-4 w-4 animate-spin" />
+        <button type="submit" class="btn btn-primary w-full" :disabled="isLoading">
+          <span v-if="isLoading" class="loading loading-spinner loading-sm" />
           Restablecer contraseña
-        </Button>
+        </button>
       </div>
     </form>
   </div>
