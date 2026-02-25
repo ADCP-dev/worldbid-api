@@ -7,7 +7,6 @@ const config = useRuntimeConfig()
 
 const color = computed(() => colorMode.value === 'dark' ? '#09090b' : '#ffffff')
 
-
 useHead({
   meta: [
     { charset: 'utf-8' },
@@ -22,28 +21,8 @@ useHead({
   },
 })
 
-// const title = ''
-// const description = ''
+useSeo()
 
-// useSeoMeta({
-//   title,
-//   description,
-//   ogTitle: title,
-//   ogDescription: description,
-//   ogUrl: '',
-//   ogImage: '',
-//   twitterTitle: title,
-//   twitterDescription: description,
-//   twitterImage: '',
-//   twitterCard: 'summary_large_image',
-// })
-
-// const router = useRouter()
-
-// defineShortcuts({
-//   'G-H': () => navigateTo('/'),
-//   'G-E': () => navigateTo('/email'),
-// })
 const toastOptions = {
   unstyled: true,
   classes: {
@@ -63,6 +42,7 @@ const toastOptions = {
 
 <template>
   <div class="min-h-screen bg-base-100 text-base-content font-sans antialiased">
+
     <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>
