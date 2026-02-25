@@ -149,18 +149,102 @@ deleteAccount(@UserId() userId: string) { ... }
 
 ### Protecting Based on Ownership (Same User Rule)
 
-For resources that belong to the current user, check ownership in the service:
+For resources that belong to the current user, check ownership in the service or controller.
+
+#### Pattern 1 — Admin sees all, Customer sees own
+
+The most common pattern: admins can access any resource, customers only their own.
 
 ```typescript
-@JwtAuth()
+import { JwtAuth, AdminAuth } from '@iam/auth/decorators/auth.decorator';
+import { CurrentUser, UserId } from '@iam/auth/decorators/current-user.decorator';
+import { RoleEnum } from '@iam/roles/roles.enum';
+
+@JwtAuth()                          // Any authenticated user
 @Get(':id')
-async findOne(@Param('id') id: string, @CurrentUser() user: User) {
-  const resource = await this.service.findById(id);
-  if (resource.userId !== user.id) {
+async findOne(
+  @Param('id') id: string,
+  @CurrentUser() user: User,
+) {
+  const resource = await this.resourceService.findById(id);
+  if (!resource) throw new NotFoundException();
+
+  // Admins can access any resource; customers only their own
+  if (user.role.id !== RoleEnum.admin && resource.userId !== user.id) {
     throw new ForbiddenException();
   }
   return resource;
 }
+```
+
+#### Pattern 2 — Guard helper (reusable)
+
+Extract ownership checking to keep controllers thin:
+
+```typescript
+// src/common/helpers/ownership.helper.ts
+import { ForbiddenException } from '@nestjs/common';
+import { User } from '@users/domain/user';
+import { RoleEnum } from '@iam/roles/roles.enum';
+
+export function assertOwnerOrAdmin(user: User, ownerId: number | string) {
+  if (user.role.id === RoleEnum.admin) return;   // Admin always passes
+  if (String(user.id) !== String(ownerId)) {
+    throw new ForbiddenException('Access denied: not the resource owner');
+  }
+}
+```
+
+Usage in the controller:
+
+```typescript
+import { assertOwnerOrAdmin } from '@common/helpers/ownership.helper';
+
+@JwtAuth()
+@Delete(':id')
+async remove(@Param('id') id: string, @CurrentUser() user: User) {
+  const resource = await this.resourceService.findById(id);
+  assertOwnerOrAdmin(user, resource.userId);
+  return this.resourceService.remove(id);
+}
+```
+
+#### Pattern 3 — Service-level enforcement
+
+When the endpoint is only for the current user (no admin override at URL level), pass the `userId` directly down to the service:
+
+```typescript
+@CustomerAuth()
+@Get('me/orders')
+async getMyOrders(@UserId() userId: number) {
+  // The service automatically scopes the query to this user
+  return this.ordersService.findByUser(userId);
+}
+```
+
+```typescript
+// orders.service.ts
+async findByUser(userId: number) {
+  return this.orderRepository.findAll({ where: { userId } });
+}
+```
+
+---
+
+### Role + Ownership Decision Tree
+
+```
+Request arrives at endpoint
+│
+├─ @AdminAuth()         → only admins, no ownership check needed
+├─ @CustomerAuth()      → only customers; use userId from token in queries
+└─ @JwtAuth()           → any authenticated user
+   │
+   └─ in handler/service:
+      ├─ user.role === admin  → allow
+      └─ user.role === customer
+         ├─ resource.userId === user.id  → allow
+         └─ otherwise                   → ForbiddenException
 ```
 
 ---
@@ -260,3 +344,87 @@ import { fetchWrapper } from '@/helpers/fetch-wrapper';
 const users = await fetchWrapper.get(`${apiUrl}/users`);
 const created = await fetchWrapper.post(`${apiUrl}/products`, { name: 'Test' });
 ```
+
+---
+
+### Custom Role Middleware (per-page protection)
+
+When you need a page accessible only to **a specific role** (beyond the global `admin.global.ts`), create a named middleware.
+
+#### Creating a role-specific middleware
+
+```typescript
+// apps/front/middleware/customer-only.ts
+export default defineNuxtRouteMiddleware(() => {
+  const authStore = useAuthStore();
+
+  if (!authStore.isAuthenticated) {
+    return navigateTo('/login');
+  }
+
+  if (!authStore.isCustomer) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Access Denied: Customer area only',
+    });
+  }
+});
+```
+
+Use it on a page:
+
+```vue
+<script setup>
+definePageMeta({ middleware: 'customer-only' })
+</script>
+```
+
+#### Reusable factory (multiple roles)
+
+If you need several role-specific middlewares, use a factory approach in `apps/front/utils/`:
+
+```typescript
+// apps/front/utils/create-role-middleware.ts
+import type { RoleName } from '~/modules/auth/types/role.types';
+
+export function createRoleMiddleware(requiredRole: RoleName, redirectTo = '/login') {
+  return defineNuxtRouteMiddleware(() => {
+    const authStore = useAuthStore();
+
+    if (!authStore.isAuthenticated) {
+      return navigateTo(redirectTo);
+    }
+
+    if (authStore.user?.role?.name !== requiredRole) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: `Access Denied: ${requiredRole} role required`,
+      });
+    }
+  });
+}
+```
+
+```typescript
+// apps/front/middleware/customer-only.ts
+import { createRoleMiddleware } from '~/utils/create-role-middleware';
+export default createRoleMiddleware('customer');
+
+// apps/front/middleware/admin-only.ts
+import { createRoleMiddleware } from '~/utils/create-role-middleware';
+export default createRoleMiddleware('admin');
+```
+
+---
+
+### Middleware Quick Reference
+
+| Middleware | Type | Who is allowed | File |
+|---|---|---|---|
+| `admin.global` | Global (auto) | Admins on `/app/*` | `middleware/admin.global.ts` |
+| `auth` | Named | Any authenticated user | `middleware/auth.ts` |
+| `guest` | Named | Unauthenticated users | `middleware/guest.ts` |
+| `customer-only` | Named | Customers only | `middleware/customer-only.ts` |
+
+> **Tip:** For simple role-based visibility in templates, use `authStore.isAdmin` / `authStore.isCustomer` reactive getters instead of dedicated middleware.
+

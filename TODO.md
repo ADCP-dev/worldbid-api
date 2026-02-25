@@ -3,7 +3,7 @@
   - [x] Frontend unir en carpetas los componentes
 - [x] Eliminar el authz basado en permisos y mejor en roles
 - [] Probar de asegurar un enpoint con decorador de roles y si es el mismo usuario del recurso y en el front tambien
-- [] Crear documentación de como usar el proyecto y como esta organizado
+- [x] Crear documentación de como usar el proyecto y como esta organizado
 - [] Revisar los api tokens
 - [] Estandarizador de implementar Webhooks
 
