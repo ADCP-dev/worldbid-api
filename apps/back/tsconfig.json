@@ -18,6 +18,35 @@
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
     "esModuleInterop": true,
-    "strictPropertyInitialization": false
+    "strictPropertyInitialization": false,
+    "paths": {
+      "@ext/*": [
+        "src/extensions/*"
+      ],
+      "@iam/*": [
+        "src/modules/iam/*"
+      ],
+      "@users/*": [
+        "src/modules/users/*"
+      ],
+      "@comms/*": [
+        "src/modules/communications/*"
+      ],
+      "@billing/*": [
+        "src/modules/billing/*"
+      ],
+      "@storage/*": [
+        "src/modules/storage/*"
+      ],
+      "@social/*": [
+        "src/modules/social/*"
+      ],
+      "@infra/*": [
+        "src/infrastructure/*"
+      ],
+      "@src/*": [
+        "src/*"
+      ]
+    }
   }
 }

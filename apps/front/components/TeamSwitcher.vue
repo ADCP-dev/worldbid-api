@@ -1,22 +1,5 @@
 <script setup lang="ts">
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-
-import {
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
-} from '@/components/ui/sidebar'
 import { ChevronsUpDown, Plus } from 'lucide-vue-next'
-
 import { type Component, ref } from 'vue'
 
 const props = defineProps<{
@@ -27,63 +10,46 @@ const props = defineProps<{
   }[]
 }>()
 
-const { isMobile } = useSidebar()
 const activeTeam = ref(props.teams[0])
 </script>
 
 <template>
-  <SidebarMenu>
-    <SidebarMenuItem>
-      <DropdownMenu>
-        <DropdownMenuTrigger as-child>
-          <SidebarMenuButton
-            size="lg"
-            class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-          >
-            <div class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-              <component :is="activeTeam.logo" class="size-4" />
-            </div>
-            <div class="grid flex-1 text-left text-sm leading-tight">
-              <span class="truncate font-medium">
-                {{ activeTeam.name }}
-              </span>
-              <span class="truncate text-xs">{{ activeTeam.plan }}</span>
-            </div>
-            <ChevronsUpDown class="ml-auto" />
-          </SidebarMenuButton>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          class="w-[--reka-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-          align="start"
-          :side="isMobile ? 'bottom' : 'right'"
-          :side-offset="4"
-        >
-          <DropdownMenuLabel class="text-xs text-muted-foreground">
-            Teams
-          </DropdownMenuLabel>
-          <DropdownMenuItem
-            v-for="(team, index) in teams"
-            :key="team.name"
-            class="gap-2 p-2"
-            @click="activeTeam = team"
-          >
-            <div class="flex size-6 items-center justify-center rounded-sm border">
-              <component :is="team.logo" class="size-3.5 shrink-0" />
-            </div>
-            {{ team.name }}
-            <DropdownMenuShortcut>⌘{{ index + 1 }}</DropdownMenuShortcut>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem class="gap-2 p-2">
-            <div class="flex size-6 items-center justify-center rounded-md border bg-transparent">
-              <Plus class="size-4" />
-            </div>
-            <div class="font-medium text-muted-foreground">
-              Add team
-            </div>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </SidebarMenuItem>
-  </SidebarMenu>
+  <div class="dropdown w-full">
+    <div tabindex="0" role="button" class="btn btn-ghost w-full justify-start px-2 h-auto py-2">
+      <div class="flex aspect-square size-8 items-center justify-center rounded-lg bg-base-300 text-base-content">
+        <component :is="activeTeam.logo" class="size-4" />
+      </div>
+      <div class="flex flex-col items-start ml-2 text-left flex-1 truncate">
+        <span class="truncate font-medium text-sm">
+          {{ activeTeam.name }}
+        </span>
+        <span class="truncate text-xs opacity-70">{{ activeTeam.plan }}</span>
+      </div>
+      <ChevronsUpDown class="ml-auto opacity-50" />
+    </div>
+
+    <ul tabindex="0" class="dropdown-content z-[2] menu p-2 shadow bg-base-100 rounded-box w-full mt-2">
+      <li class="menu-title text-base-content opacity-70 px-2 py-1 text-xs">
+        Teams
+      </li>
+      <li v-for="(team, index) in teams" :key="team.name" @click="activeTeam = team">
+        <a class="flex items-center gap-2 w-full">
+          <div class="flex size-6 items-center justify-center rounded-sm border">
+            <component :is="team.logo" class="size-3.5 shrink-0" />
+          </div>
+          <span class="flex-1">{{ team.name }}</span>
+          <span class="opacity-50 text-xs">⌘{{ index + 1 }}</span>
+        </a>
+      </li>
+      <div class="divider my-0"></div>
+      <li>
+        <a class="flex items-center gap-2">
+           <div class="flex size-6 items-center justify-center rounded-md border bg-transparent">
+             <Plus class="size-4" />
+           </div>
+           <span class="font-medium opacity-70">Add team</span>
+        </a>
+      </li>
+    </ul>
+  </div>
 </template>

@@ -9,4 +9,6 @@ export type AppConfig = {
   fallbackLanguage: string;
   headerLanguage: string;
   bunnyCdnUrl?: string;
+  openRouterApiKey?: string;
+  translationModel?: string;
 };

@@ -1,12 +1,12 @@
 import { AppConfig } from './app-config.type';
-import { AppleConfig } from '../auth-apple/config/apple-config.type';
-import { AuthConfig } from '../auth/config/auth-config.type';
-import { DatabaseConfig } from '../database/config/database-config.type';
-import { FacebookConfig } from '../auth-facebook/config/facebook-config.type';
-import { FileConfig } from '../files/config/file-config.type';
-import { GoogleConfig } from '../auth-google/config/google-config.type';
-import { MailConfig } from '../mail/config/mail-config.type';
-import { StripeConfig } from '../stripe/config/stripe-config.type';
+import { AppleConfig } from '@iam/auth-apple/config/apple-config.type';
+import { AuthConfig } from '@iam/auth/config/auth-config.type';
+import { DatabaseConfig } from '@infra/database/config/database-config.type';
+import { FacebookConfig } from '@iam/auth-facebook/config/facebook-config.type';
+import { FileConfig } from '@storage/files/config/file-config.type';
+import { GoogleConfig } from '@iam/auth-google/config/google-config.type';
+import { MailConfig } from '@comms/mail/config/mail-config.type';
+import { StripeConfig } from '@billing/stripe/config/stripe-config.type';
 import { WorkerConfig } from './worker-config.type';
 
 export type AllConfigType = {

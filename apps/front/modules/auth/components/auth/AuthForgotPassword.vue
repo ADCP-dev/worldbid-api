@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { Loader2 } from 'lucide-vue-next'
-
 import { toast } from 'vue-sonner';
 import { useRouter } from 'vue-router'
 
@@ -15,10 +13,8 @@ async function onSubmit(event: Event) {
   event.preventDefault()
 
   if (!email.value) {
-    toast({
-      title: 'Error',
+    toast.error('Error', {
       description: 'Por favor introduce tu correo electrónico',
-      variant: 'destructive',
     })
     return
   }
@@ -56,17 +52,18 @@ async function onSubmit(event: Event) {
 <template>
   <form @submit="onSubmit">
     <div class="grid gap-4">
-      <div class="grid gap-2">
-        <Label for="email">
-          Email
-        </Label>
-        <Input id="email" v-model="email" placeholder="name@example.com" type="email" auto-capitalize="none"
-          auto-complete="email" auto-correct="off" :disabled="isLoading" />
-      </div>
-      <Button :disabled="isLoading">
-        <Loader2 v-if="isLoading" class="mr-2 h-4 w-4 animate-spin" />
+      <FormInput
+        label="Email"
+        v-model="email"
+        placeholder="name@example.com"
+        type="email"
+        :disabled="isLoading"
+        required
+      />
+      <button type="submit" class="btn btn-primary w-full" :disabled="isLoading">
+        <span v-if="isLoading" class="loading loading-spinner loading-sm" />
         Enviar
-      </Button>
+      </button>
     </div>
   </form>
 </template>

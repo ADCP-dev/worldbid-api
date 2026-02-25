@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Button } from "@/components/ui/button";
 import { MessagesSquare } from "lucide-vue-next";
 </script>
 
@@ -23,11 +22,11 @@ import { MessagesSquare } from "lucide-vue-next";
             tus integraciones, obtén soporte y ayúdanos a construir la base definitiva. 🚀
           </div>
 
-          <Button as-child>
-            <a href="https://discord.gg/foundation" target="_blank">
-              Únete a Discord
-            </a>
-          </Button>
+          <a href="https://discord.gg/foundation" target="_blank"
+            class="btn btn-primary btn-lg shadow-xl hover:scale-105 transition-transform active:scale-95 group">
+            <MessagesSquare class="w-5 h-5 mr-1 group-hover:animate-bounce" />
+            Únete a Discord
+          </a>
         </div>
       </div>
     </div>

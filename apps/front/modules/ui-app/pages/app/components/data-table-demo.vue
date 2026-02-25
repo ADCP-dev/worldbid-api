@@ -1,192 +1,173 @@
 <script setup lang="ts">
-import { h } from "vue";
-import type { ColumnDef } from "@tanstack/vue-table";
-import { ArrowUpDown, MoreHorizontal } from "lucide-vue-next";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { h, ref } from 'vue';
+import DataTable from '@/modules/ui-app/components/data-table/DataTable.vue';
+import { toast } from 'vue-sonner';
+import { Pencil, Trash2, User, Mail, Shield, CheckCircle2, XCircle } from 'lucide-vue-next';
 
-// Define the type locally as it's not exported from the module's types.ts in a way that's easily importable here without relative paths
-interface FilterOption {
-    value: string | number | boolean;
-    label: string;
-}
+// Sample data for the demo
+const users = ref([
+  { id: 1, name: 'Adrián Rodríguez', email: 'adrian@example.com', role: 'admin', status: 'active', createdAt: '2024-01-15' },
+  { id: 2, name: 'Juan Pérez', email: 'juan@example.com', role: 'user', status: 'active', createdAt: '2024-02-10' },
+  { id: 3, name: 'María García', email: 'maria@example.com', role: 'manager', status: 'inactive', createdAt: '2024-03-05' },
+  { id: 4, name: 'Elena López', email: 'elena@example.com', role: 'user', status: 'active', createdAt: '2024-01-20' },
+  { id: 5, name: 'Carlos Ruiz', email: 'carlos@example.com', role: 'user', status: 'pending', createdAt: '2024-02-25' },
+]);
 
-type MyColumnDef<TData, TValue = unknown> = ColumnDef<TData, TValue> & {
-    options?: FilterOption[];
-    headerName?: string;
-    filterType?: 'number' | 'date' | 'string' | 'select' | 'boolean';
+const columns = [
+  {
+    accessorKey: "name",
+    headerName: "Usuario",
+    header: "Usuario",
+    filterType: "string",
+    cell: ({ row }: any) => {
+      return h('div', { class: 'flex items-center gap-3' }, [
+        h('div', { class: 'avatar placeholder' }, [
+          h('div', { class: 'bg-neutral text-neutral-content rounded-full w-8 flex items-center justify-center' }, [
+            h('span', { class: 'text-xs' }, row.original.name.charAt(0))
+          ])
+        ]),
+        h('div', [
+          h('div', { class: 'font-bold' }, row.original.name),
+          h('div', { class: 'text-sm opacity-50' }, `ID: ${row.original.id}`)
+        ])
+      ]);
+    }
+  },
+  {
+    accessorKey: "email",
+    headerName: "Email",
+    header: "Email",
+    filterType: "string",
+  },
+  {
+    accessorKey: "role",
+    headerName: "Rol",
+    header: "Rol",
+    filterType: "select",
+    options: [
+      { label: 'Todos', value: '' },
+      { label: 'Admin', value: 'admin' },
+      { label: 'User', value: 'user' },
+      { label: 'Manager', value: 'manager' },
+    ],
+    cell: ({ row }: any) => {
+      const role = row.original.role;
+      const badgeClass = role === 'admin' ? 'badge-primary' : role === 'manager' ? 'badge-secondary' : 'badge-ghost';
+      return h('span', { class: `badge ${badgeClass} capitalize` }, role);
+    }
+  },
+  {
+    accessorKey: "status",
+    headerName: "Estado",
+    header: "Estado",
+    filterType: "boolean",
+    cell: ({ row }: any) => {
+      const status = row.original.status;
+      const colorClass = status === 'active' ? 'text-success' : status === 'pending' ? 'text-warning' : 'text-error';
+      const Icon = status === 'active' ? CheckCircle2 : status === 'pending' ? Shield : XCircle;
+
+      return h('div', { class: `flex items-center gap-2 ${colorClass}` }, [
+        h(Icon, { class: 'w-4 h-4' }),
+        h('span', { class: 'capitalize font-medium' }, status)
+      ]);
+    }
+  },
+  {
+    accessorKey: "createdAt",
+    headerName: "Fecha Alta",
+    header: "Fecha Alta",
+    filterType: "date",
+  },
+  {
+    id: "actions",
+    headerName: "Acciones",
+    header: "Acciones",
+    enableSorting: false,
+    cell: ({ row }: any) => {
+      return h('div', { class: 'flex items-center gap-2' }, [
+        h('button', {
+          class: 'btn btn-ghost btn-xs btn-square',
+          onClick: (e: Event) => {
+            e.stopPropagation();
+            toast.info(`Editando a ${row.original.name}`);
+          }
+        }, [h(Pencil, { class: 'w-4 h-4' })]),
+        h('button', {
+          class: 'btn btn-ghost btn-xs btn-square text-error',
+          onClick: (e: Event) => {
+            e.stopPropagation();
+            toast.error(`Eliminando a ${row.original.name}`);
+          }
+        }, [h(Trash2, { class: 'w-4 h-4' })])
+      ]);
+    }
+  }
+];
+
+const handleRowClick = (row: any) => {
+  toast(`Fila seleccionada: ${row.name}`, {
+    description: `Email: ${row.email}`,
+  });
 };
-
-interface Payment {
-    id: string;
-    amount: number;
-    status: "pending" | "processing" | "success" | "failed";
-    email: string;
-}
-
-const data: Payment[] = [
-    {
-        id: "m5gr84i9",
-        amount: 316,
-        status: "success",
-        email: "ken99@yahoo.com",
-    },
-    {
-        id: "3u1reoj4",
-        amount: 242,
-        status: "success",
-        email: "Abe45@gmail.com",
-    },
-    {
-        id: "derv1ws0",
-        amount: 837,
-        status: "processing",
-        email: "Monserrat44@gmail.com",
-    },
-    {
-        id: "5kma53ae",
-        amount: 874,
-        status: "success",
-        email: "Silas22@gmail.com",
-    },
-    {
-        id: "bhqecj4p",
-        amount: 721,
-        status: "failed",
-        email: "carmella@hotmail.com",
-    },
-    { id: "inv001", amount: 120, status: "pending", email: "user1@example.com" },
-    { id: "inv002", amount: 200, status: "processing", email: "user2@example.com" },
-    { id: "inv003", amount: 300, status: "success", email: "user3@example.com" },
-    { id: "inv004", amount: 400, status: "failed", email: "user4@example.com" },
-    { id: "inv005", amount: 500, status: "pending", email: "user5@example.com" },
-];
-
-const columns: MyColumnDef<Payment>[] = [
-    {
-        id: "select",
-        header: ({ table }) =>
-            h(Checkbox, {
-                checked: table.getIsAllPageRowsSelected(),
-                "onUpdate:checked": (value: boolean) =>
-                    table.toggleAllPageRowsSelected(!!value),
-                ariaLabel: "Select all",
-            }),
-        cell: ({ row }) =>
-            h(Checkbox, {
-                checked: row.getIsSelected(),
-                "onUpdate:checked": (value: boolean) => row.toggleSelected(!!value),
-                ariaLabel: "Select row",
-            }),
-        enableSorting: false,
-        enableHiding: false,
-    },
-    {
-        accessorKey: "status",
-        headerName: "Estado",
-        header: "Status",
-        filterType: "select",
-        options: [
-            { label: "Pending", value: "pending" },
-            { label: "Processing", value: "processing" },
-            { label: "Success", value: "success" },
-            { label: "Failed", value: "failed" },
-        ],
-        cell: ({ row }) => h("div", { class: "capitalize" }, row.getValue("status")),
-    },
-    {
-        accessorKey: "email",
-        headerName: "Email",
-        header: ({ column }) => {
-            return h(
-                Button,
-                {
-                    variant: "ghost",
-                    onClick: () => column.toggleSorting(column.getIsSorted() === "asc"),
-                },
-                () => ["Email", h(ArrowUpDown, { class: "ml-2 h-4 w-4" })]
-            );
-        },
-        cell: ({ row }) => h("div", { class: "lowercase" }, row.getValue("email")),
-    },
-    {
-        accessorKey: "amount",
-        headerName: "Amount",
-        header: () => h("div", { class: "text-right" }, "Amount"),
-        cell: ({ row }) => {
-            const amount = Number.parseFloat(row.getValue("amount"));
-            const formatted = new Intl.NumberFormat("en-US", {
-                style: "currency",
-                currency: "USD",
-            }).format(amount);
-            return h("div", { class: "text-right font-medium" }, formatted);
-        },
-        filterType: "number",
-    },
-    {
-        id: "actions",
-        enableHiding: false,
-        cell: ({ row }) => {
-            const payment = row.original;
-            return h(
-                "div",
-                { class: "relative" },
-                h(DropdownMenu, {}, [
-                    h(DropdownMenuTrigger, { asChild: true }, [
-                        h(
-                            Button,
-                            { variant: "ghost", class: "h-8 w-8 p-0" },
-                            [
-                                h("span", { class: "sr-only" }, "Open menu"),
-                                h(MoreHorizontal, { class: "h-4 w-4" }),
-                            ]
-                        ),
-                    ]),
-                    h(DropdownMenuContent, { align: "end" }, [
-                        h(DropdownMenuLabel, "Actions"),
-                        h(
-                            DropdownMenuItem,
-                            { onClick: () => navigator.clipboard.writeText(payment.id) },
-                            "Copy payment ID"
-                        ),
-                        h(DropdownMenuSeparator),
-                        h(DropdownMenuItem, "View customer"),
-                        h(DropdownMenuItem, "View payment details"),
-                    ]),
-                ])
-            );
-        },
-    },
-];
 </script>
 
 <template>
-    <div class="container mx-auto py-10">
-        <div class="flex flex-col gap-4">
-            <div>
-                <h2 class="text-2xl font-bold tracking-tight">DataTable Demo</h2>
-                <p class="text-muted-foreground">
-                    Using the new modularized DataTable component.
-                </p>
-            </div>
-
-            <Card class="w-full">
-                <CardHeader>
-                    <CardTitle>Payments</CardTitle>
-                    <CardDescription>Manage your payments (Demo)</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <DataTable :columns="columns" :data="data" tableName="payments-demo" />
-                </CardContent>
-            </Card>
-        </div>
+  <div class="p-1 md:p-6 max-w-7xl mx-auto">
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold mb-2">DataTable Demo</h1>
+      <p class="text-base-content/60">
+        Ejemplo de uso del componente DataTable con filtrado, ordenación, paginación y celdas personalizadas.
+      </p>
     </div>
+
+    <div class="card bg-base-100 shadow-xl border border-base-content/5">
+      <div class="card-body p-0">
+        <div class="p-6 border-b border-base-content/5 flex justify-between items-center">
+          <h2 class="card-title text-xl">Gestión de Usuarios</h2>
+          <button class="btn btn-primary btn-sm" @click="toast.success('Abriendo formulario...')">
+            Nuevo Usuario
+          </button>
+        </div>
+
+        <div class="p-6">
+          <DataTable
+            :columns="columns"
+            :data="users"
+            tableName="demo-users-table"
+            @row-click="handleRowClick"
+          />
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="card bg-base-100 shadow-md border border-base-content/5">
+        <div class="card-body">
+          <h3 class="font-bold text-lg mb-2">Características</h3>
+          <ul class="list-disc list-inside space-y-1 text-sm text-base-content/70">
+            <li>Filtrado global e individual por columna</li>
+            <li>Ordenación ascendente y descendente</li>
+            <li>Paginación configurable</li>
+            <li>Visibilidad de columnas dinámica</li>
+            <li>Estado persistente en Pinia</li>
+            <li>Renderizado de celdas mediante render functions (h)</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card bg-base-100 shadow-md border border-base-content/5">
+        <div class="card-body">
+          <h3 class="font-bold text-lg mb-2">Configuración</h3>
+          <div class="mockup-code text-xs">
+            <pre><code>&lt;DataTable
+  :columns="columns"
+  :data="users"
+  tableName="users-table"
+  @row-click="handleRowClick"
+/&gt;</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>

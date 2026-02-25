@@ -9,9 +9,9 @@ import { NestFactory, Reflector } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { useContainer } from 'class-validator';
 import { AppModule } from './app.module';
-import validationOptions from './utils/validation-options';
+import validationOptions from '@infra/utils/validation-options';
 import { AllConfigType } from './config/config.type';
-import { ResolvePromisesInterceptor } from './utils/serializer.interceptor';
+import { ResolvePromisesInterceptor } from '@infra/utils/serializer.interceptor';
 import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {

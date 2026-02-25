@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import DeleteButton from "../data-table/Buttons/DeleteButton.vue";
-import { File, FileUp } from "lucide-vue-next";
+import DeleteButton from "../data-table/buttons/DeleteButton.vue";
+import { File as FileIcon, FileUp } from "lucide-vue-next";
 
 const props = defineProps<{
   label?: string;
@@ -60,18 +60,17 @@ function onDragOver(e: DragEvent) {
 </script>
 
 <template>
-  <div class="space-y-2">
-    <label
-      v-if="label"
-      :for="name"
-      class="block text-sm font-medium text-foreground"
-    >
-      {{ label }}
+  <div class="form-control w-full">
+    <label v-if="label" class="label">
+      <span class="label-text font-semibold">
+        {{ label }}
+      </span>
     </label>
+
     <div
-      class="relative flex flex-col items-center justify-center border-2 border-dashed rounded-xl px-8 py-10 bg-background transition hover:border-primary focus-within:border-primary"
+      class="relative flex flex-col items-center justify-center border-2 border-dashed rounded-xl px-8 py-10 transition-colors duration-200 group"
       :class="[
-        error ? 'border-destructive' : 'border-muted',
+        error ? 'border-error bg-error/5' : 'border-base-content/20 bg-base-200/50 hover:bg-base-200',
         disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
       ]"
       tabindex="0"
@@ -88,19 +87,20 @@ function onDragOver(e: DragEvent) {
         :disabled="disabled"
         aria-label="Seleccionar archivos"
         @change="onFileChange"
-      />
+      >
       <div
         class="flex flex-col items-center justify-center pointer-events-none min-h-[80px]"
       >
-        <FileUp class="w-8 h-8 text-muted-foreground mb-2" />
-        <span class="text-muted-foreground text-base font-medium text-center">
-          Arrastra y suelta archivos aquí<br />o haz clic para seleccionar
+        <FileUp class="w-8 h-8 opacity-50 mb-2 group-hover:scale-110 transition-transform" />
+        <span class="text-base font-medium text-center">
+          Arrastra y suelta archivos aquí<br>o haz clic para seleccionar
         </span>
-        <span v-if="description" class="text-xs text-muted-foreground mt-1">
+        <span v-if="description" class="text-xs opacity-60 mt-1">
           {{ description }}
         </span>
       </div>
     </div>
+
     <transition-group
       v-if="files.length"
       name="fade"
@@ -110,19 +110,22 @@ function onDragOver(e: DragEvent) {
       <li
         v-for="(file, idx) in files"
         :key="file.name + file.size + idx"
-        class="flex items-center justify-between bg-muted/70 px-4 py-2 rounded-lg shadow-sm border border-muted hover:bg-muted transition group"
+        class="flex items-center justify-between bg-base-200/50 px-4 py-2 rounded-lg border  hover:bg-base-200 transition-colors group"
       >
         <div class="flex items-center gap-2">
-          <File class="w-5 h-5 text-primary" />
+          <FileIcon class="w-5 h-5 text-primary" />
           <span class="truncate text-sm font-medium">{{ file.name }}</span>
-          <span class="ml-2 text-xs text-muted-foreground"
+          <span class="ml-2 text-xs opacity-60"
             >({{ (file.size / 1024).toFixed(1) }} KB)</span
           >
         </div>
         <DeleteButton @click="removeFile(idx)" />
       </li>
     </transition-group>
-    <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
+
+    <label v-if="error" class="label py-1">
+      <span class="label-text-alt text-error font-medium">{{ error }}</span>
+    </label>
   </div>
 </template>
 

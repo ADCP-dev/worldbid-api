@@ -1,25 +1,4 @@
 <script setup lang="ts">
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, Mail, MapPin, Phone, Clock } from "lucide-vue-next";
 import { ref } from "vue";
 
@@ -118,72 +97,71 @@ const handleSubmit = () => {
         </div>
 
         <!-- form -->
-        <Card class="bg-muted/60 dark:bg-card" data-aos="fade-left">
-          <CardHeader class="text-primary text-2xl" />
-          <CardContent>
-            <form class="grid gap-4" @submit.prevent="handleSubmit">
-              <div class="flex flex-col md:flex-row gap-8">
-                <div class="flex flex-col w-full gap-1.5">
-                  <Label for="first-name">Nombre</Label>
-                  <Input id="first-name" v-model="contactForm.firstName" type="text" placeholder="Juan" />
+        <div class="card bg-muted/60 dark:bg-card border border-base-300 shadow-xl" data-aos="fade-left">
+          <div class="card-body">
+            <h2 class="card-title text-primary text-2xl mb-4 text-center justify-center">Escríbenos</h2>
+            <form class="grid gap-6" @submit.prevent="handleSubmit">
+              <div class="flex flex-col md:flex-row gap-6">
+                <div class="form-control w-full">
+                  <label class="label" for="first-name">
+                    <span class="label-text font-semibold">Nombre</span>
+                  </label>
+                  <input id="first-name" v-model="contactForm.firstName" type="text" placeholder="Juan" class="input input-bordered w-full" />
                 </div>
 
-                <div class="flex flex-col w-full gap-1.5">
-                  <Label for="last-name">Apellidos</Label>
-                  <Input id="last-name" v-model="contactForm.lastName" type="text" placeholder="García" />
+                <div class="form-control w-full">
+                  <label class="label" for="last-name">
+                    <span class="label-text font-semibold">Apellidos</span>
+                  </label>
+                  <input id="last-name" v-model="contactForm.lastName" type="text" placeholder="García" class="input input-bordered w-full" />
                 </div>
               </div>
 
-              <div class="flex flex-col gap-1.5">
-                <Label for="email">Correo Electrónico</Label>
-                <Input id="email" v-model="contactForm.email" type="email" placeholder="juan@empresa.com" />
+              <div class="form-control w-full">
+                <label class="label" for="email">
+                  <span class="label-text font-semibold">Correo Electrónico</span>
+                </label>
+                <input id="email" v-model="contactForm.email" type="email" placeholder="juan@empresa.com" class="input input-bordered w-full" />
               </div>
 
-              <div class="flex flex-col gap-1.5">
-                <Label for="subject">Asunto</Label>
-
-                <Select v-model="contactForm.subject">
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona un asunto" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="Consulta General">
-                        Consulta General
-                      </SelectItem>
-                      <SelectItem value="Soporte Técnico">
-                        Soporte Técnico
-                      </SelectItem>
-                      <SelectItem value="Plan Empresarial"> Plan Empresarial </SelectItem>
-                      <SelectItem value="Integración Personalizada"> Integración Personalizada </SelectItem>
-                      <SelectItem value="Alianzas">
-                        Alianzas
-                      </SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
+              <div class="form-control w-full">
+                <label class="label" for="subject">
+                  <span class="label-text font-semibold">Asunto</span>
+                </label>
+                <select v-model="contactForm.subject" class="select select-bordered w-full">
+                  <option disabled selected value="">Selecciona un asunto</option>
+                  <option value="Consulta General">Consulta General</option>
+                  <option value="Soporte Técnico">Soporte Técnico</option>
+                  <option value="Plan Empresarial">Plan Empresarial</option>
+                  <option value="Integración Personalizada">Integración Personalizada</option>
+                  <option value="Alianzas">Alianzas</option>
+                </select>
               </div>
 
-              <div class="flex flex-col gap-1.5">
-                <Label for="message">Mensaje</Label>
-                <Textarea id="message" v-model="contactForm.message" placeholder="Cuéntanos sobre tu proyecto..."
-                  rows="5" />
+              <div class="form-control w-full flex flex-col">
+                <label class="label" for="message">
+                  <span class="label-text font-semibold">Mensaje</span>
+                </label>
+                <textarea id="message" v-model="contactForm.message" placeholder="Cuéntanos sobre tu proyecto..."
+                  class="textarea textarea-bordered w-full h-32" />
               </div>
 
-              <Alert v-if="invalidInputForm" variant="destructive">
-                <AlertCircle class="w-4 h-4" />
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription>
-                  Hay un error en el formulario. Por favor, revisa los campos.
-                </AlertDescription>
-              </Alert>
+              <div v-if="invalidInputForm" class="alert alert-error shadow-lg">
+                <div class="flex items-center gap-2">
+                  <AlertCircle class="w-6 h-6" />
+                  <div>
+                    <h3 class="font-bold">Error</h3>
+                    <div class="text-xs text-error-content/80">Hay un error en el formulario. Por favor, revisa los campos.</div>
+                  </div>
+                </div>
+              </div>
 
-              <Button class="mt-4">Enviar mensaje</Button>
+              <div class="card-actions mt-4">
+                <button class="btn btn-primary btn-block text-lg font-bold shadow-lg">Enviar mensaje</button>
+              </div>
             </form>
-          </CardContent>
-
-          <CardFooter />
-        </Card>
+          </div>
+        </div>
       </section>
     </div>
   </section>

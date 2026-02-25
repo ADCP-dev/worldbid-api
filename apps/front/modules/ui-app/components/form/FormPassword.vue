@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import Input from "~/components/ui/input/Input.vue";
-import Label from "~/components/ui/label/Label.vue";
-import { ref } from "vue";
+import { ref, computed, useSlots } from "vue";
 import { Eye, EyeOff } from "lucide-vue-next";
 
 defineProps<{
@@ -28,40 +26,48 @@ const togglePasswordVisibility = () => {
 </script>
 
 <template>
-  <div class="relative space-y-2">
-    <Label
-      >{{ label }}<span v-if="required" class="text-red-600">*</span></Label
-    >
+  <div class="form-control w-full">
+    <label class="label">
+      <span class="label-text font-semibold">
+        {{ label }}<span v-if="required" class="text-error ml-1">*</span>
+      </span>
+    </label>
+
     <div class="relative">
-      <Input
+      <input
         v-model="model"
-        :placeholder="placeholder"
         :type="inputType"
+        :placeholder="placeholder"
         :disabled="disabled"
-        class="pr-10"
+        class="input input-bordered w-full pr-10"
+        :class="{ 'input-error': error, 'pl-10': slots['icon-start'] }"
       />
+
+      <span
+        v-if="slots['icon-start']"
+        class="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center text-base-content/50"
+      >
+        <slot name="icon-start" />
+      </span>
+
       <button
         type="button"
-        class="absolute end-0 inset-y-0 flex items-center justify-center px-3 focus:outline-none cursor-pointer"
+        class="absolute right-0 top-1/2 -translate-y-1/2 flex items-center justify-center px-3 focus:outline-none cursor-pointer text-base-content/50 hover:text-base-content transition-colors"
         tabindex="-1"
         @click="togglePasswordVisibility"
       >
         <!-- Lucide icons for password visibility -->
-        <Eye v-if="isPasswordVisible" class="h-5 w-5 text-gray-500" />
-        <EyeOff v-else class="h-5 w-5 text-gray-500" />
+        <Eye v-if="isPasswordVisible" class="h-5 w-5" />
+        <EyeOff v-else class="h-5 w-5" />
       </button>
     </div>
-    <span
-      v-if="slots['icon-start']"
-      class="absolute start-0 inset-y-0 flex items-center justify-center px-2"
-    >
-      <slot name="icon-start" />
-    </span>
-    <p v-if="description" class="text-xs text-muted-foreground">
-      {{ description }}
-    </p>
-    <p v-if="error" class="text-sm text-destructive">
-      {{ error }}
-    </p>
+
+    <label v-if="description" class="label py-1">
+      <span class="label-text-alt text-base-content/60">{{ description }}</span>
+    </label>
+
+    <label v-if="error" class="label py-0">
+      <span class="label-text-alt text-error font-medium">{{ error }}</span>
+    </label>
   </div>
 </template>

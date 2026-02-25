@@ -4,7 +4,7 @@ export default defineNuxtPlugin((nuxtApp) => {
   const config = useRuntimeConfig();
 
   // Only register in dev/staging/local environments
-  if (["development", "staging", "local"].includes(config.public.env)) {
+  if (config.public.env !== 'production') {
     // Get the shared state specific to nav menu items
     const menuItems = useState<NavMenu[]>("nav:menuItems", () => []);
 

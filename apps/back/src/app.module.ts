@@ -1,35 +1,38 @@
 import { Module } from '@nestjs/common';
-import { UsersModule } from './users/users.module';
-import { FilesModule } from './files/files.module';
-import { AuthModule } from './auth/auth.module';
-import databaseConfig from './database/config/database.config';
-import authConfig from './auth/config/auth.config';
+import { UsersModule } from '@users/users.module';
+import { FilesModule } from '@storage/files/files.module';
+import { AuthModule } from '@iam/auth/auth.module';
+import databaseConfig from '@infra/database/config/database.config';
+import authConfig from '@iam/auth/config/auth.config';
 import appConfig from './config/app.config';
-import mailConfig from './mail/config/mail.config';
-import fileConfig from './files/config/file.config';
-import facebookConfig from './auth-facebook/config/facebook.config';
-import googleConfig from './auth-google/config/google.config';
-import appleConfig from './auth-apple/config/apple.config';
+import mailConfig from '@comms/mail/config/mail.config';
+import fileConfig from '@storage/files/config/file.config';
+import facebookConfig from '@iam/auth-facebook/config/facebook.config';
+import googleConfig from '@iam/auth-google/config/google.config';
+import appleConfig from '@iam/auth-apple/config/apple.config';
 import path, { join } from 'path';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AuthAppleModule } from './auth-apple/auth-apple.module';
-import { AuthFacebookModule } from './auth-facebook/auth-facebook.module';
-import { AuthGoogleModule } from './auth-google/auth-google.module';
+import { AuthAppleModule } from '@iam/auth-apple/auth-apple.module';
+import { AuthFacebookModule } from '@iam/auth-facebook/auth-facebook.module';
+import { AuthGoogleModule } from '@iam/auth-google/auth-google.module';
 import { HeaderResolver, I18nModule } from 'nestjs-i18n';
-import { TypeOrmConfigService } from './database/typeorm-config.service';
-import { MailModule } from './mail/mail.module';
-import { HomeModule } from './home/home.module';
+import { TypeOrmConfigService } from '@infra/database/typeorm-config.service';
+import { MailModule } from '@comms/mail/mail.module';
+import { HomeModule } from '@comms/home/home.module';
 import { DataSource, DataSourceOptions } from 'typeorm';
 import { AllConfigType } from './config/config.type';
-import { SessionModule } from './session/session.module';
-import { MailerModule } from './mailer/mailer.module';
+import { SessionModule } from '@iam/session/session.module';
+import { MailerModule } from '@infra/mailer/mailer.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
-import { ApiKeysModule } from './api-keys/api-keys.module';
-import { StripeModule } from './stripe/stripe.module';
-import stripeConfig from './stripe/config/stripe.config';
+import { ApiKeysModule } from '@iam/api-keys/api-keys.module';
+import { StripeModule } from '@billing/stripe/stripe.module';
+import stripeConfig from '@billing/stripe/config/stripe.config';
 import workerConfig from './config/worker.config';
-import { EmailQueueModule } from './email-queue/email-queue.module';
+import { EmailQueueModule } from '@comms/email-queue/email-queue.module';
+import { ExtensionLoaderModule } from './core/extension-loader';
+import { TranslationsModule } from './modules/translations/translations.module';
+import { discoverExtensionConfigs } from './core/config-loader';
 
 const infrastructureDatabaseModule = TypeOrmModule.forRootAsync({
   useClass: TypeOrmConfigService,
@@ -56,6 +59,7 @@ const infrastructureDatabaseModule = TypeOrmModule.forRootAsync({
         appleConfig,
         stripeConfig,
         workerConfig,
+        ...discoverExtensionConfigs(),
       ],
       envFilePath: ['.env'],
     }),
@@ -96,6 +100,8 @@ const infrastructureDatabaseModule = TypeOrmModule.forRootAsync({
     StripeModule,
     HomeModule,
     EmailQueueModule.register(),
+    ExtensionLoaderModule.register(),
+    TranslationsModule,
   ],
 })
 export class AppModule {}

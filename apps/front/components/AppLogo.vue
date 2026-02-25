@@ -43,6 +43,6 @@ const textSize = computed(() => {
     <a href="#" class="flex font-bold items-center gap-3">
         <img src="/logo.svg" alt="logo" :class="logoSize" />
 
-        <h3 v-if="showText" :class="textSize">{{ $config.public.appName }}</h3>
+        <h3 v-if="showText" :class="textSize + ' is-drawer-close:hidden'">{{ $config.public.appName }}</h3>
     </a>
 </template>

@@ -3,6 +3,8 @@ import { toTypedSchema } from '@vee-validate/zod'
 import { useForm } from 'vee-validate'
 import * as z from 'zod'
 import { toast } from 'vue-sonner'
+import FormInput from '~/modules/ui-app/components/form/FormInput.vue'
+import FormPassword from '~/modules/ui-app/components/form/FormPassword.vue'
 
 const authStore = useAuthStore()
 
@@ -49,7 +51,7 @@ const profileFormSchema = toTypedSchema(z.object({
   photo: z.any().optional(),
 }))
 
-const { handleSubmit, resetForm, setValues } = useForm({
+const { handleSubmit, resetForm, setValues, errors, defineField } = useForm({
   validationSchema: profileFormSchema,
   initialValues: {
     firstName: '',
@@ -60,6 +62,12 @@ const { handleSubmit, resetForm, setValues } = useForm({
     photo: null,
   },
 })
+
+const [firstName] = defineField('firstName')
+const [lastName] = defineField('lastName')
+const [email] = defineField('email')
+const [password] = defineField('password')
+const [oldPassword] = defineField('oldPassword')
 
 // Load current user data
 onMounted(async () => {
@@ -162,121 +170,109 @@ const onSubmit = handleSubmit(async (values) => {
 </script>
 
 <template>
-  <div>
-    <h3 class="text-lg font-medium">
-      Profile
-    </h3>
-    <p class="text-sm text-muted-foreground">
-      This is how others will see you on the site.
-    </p>
-  </div>
-  <Separator />
-  <form class="space-y-8" @submit="onSubmit">
-    <!-- Profile photo upload -->
-    <FormField name="photo">
-      <FormItem>
-        <FormLabel>Profile Photo</FormLabel>
-        <div class="flex items-center gap-4">
-          <div class="h-16 w-16 rounded-full overflow-hidden border bg-muted flex items-center justify-center">
-            <img v-if="photoPreviewUrl || authStore.user?.photo?.path"
-              :src="photoPreviewUrl || authStore.user?.photo?.path" class="h-full w-full object-cover"
-              alt="Profile photo" />
-            <span v-else class="text-sm text-muted-foreground">No photo</span>
-          </div>
-          <div class="flex flex-col gap-2">
-            <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="onPhotoChange" />
-            <div class="flex items-center gap-2">
-              <Button type="button" variant="secondary" @click="triggerFileSelect">
-                Choose image
-              </Button>
-              <span class="text-sm text-muted-foreground truncate max-w-[200px]">
-                {{ selectedPhotoFile?.name || 'No file selected' }}
-              </span>
-              <Button v-if="photoPreviewUrl" type="button" variant="outline" @click="removeSelectedPhoto">
-                Remove selected
-              </Button>
+  <div class="max-w-xl space-y-6">
+    <div>
+      <h3 class="text-lg font-medium">Profile</h3>
+      <p class="text-sm text-base-content/70">
+        This is how others will see you on the site.
+      </p>
+    </div>
+
+    <div class="divider"></div>
+
+    <form class="space-y-8" @submit.prevent="onSubmit">
+      <!-- Profile photo upload -->
+      <div class="form-control w-full">
+        <label class="label">
+          <span class="label-text font-semibold">Profile Photo</span>
+        </label>
+        <div class="flex items-center gap-6">
+          <div class="avatar">
+            <div class="w-20 rounded-full overflow-hidden bg-base-300">
+              <img v-if="photoPreviewUrl || authStore.user?.photo?.path"
+                   :src="photoPreviewUrl || authStore.user?.photo?.path"
+                   class="object-cover"
+                   alt="Profile photo" />
+              <div v-else class="flex items-center justify-center p-4">
+                <span class="text-xs text-base-content/70">No photo</span>
+              </div>
             </div>
           </div>
+
+          <div class="flex flex-col gap-3">
+            <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="onPhotoChange" />
+            <div class="flex flex-wrap items-center gap-2">
+              <button type="button" class="btn btn-sm btn-outline border-base-content/20" @click="triggerFileSelect">
+                Choose image
+              </button>
+              <span class="text-xs text-base-content/60 truncate max-w-[150px]">
+                {{ selectedPhotoFile?.name || 'No file selected' }}
+              </span>
+              <button v-if="photoPreviewUrl" type="button" class="btn btn-sm btn-ghost text-error" @click="removeSelectedPhoto">
+                Remove selected
+              </button>
+            </div>
+            <p class="text-xs text-base-content/60">
+              Upload a new profile photo. JPG/PNG recommended.
+            </p>
+          </div>
         </div>
-        <FormDescription>
-          Upload a new profile photo. JPG/PNG recommended.
-        </FormDescription>
-      </FormItem>
-    </FormField>
+      </div>
 
-    <FormField v-slot="{ componentField }" name="firstName">
-      <FormItem>
-        <FormLabel>First Name</FormLabel>
-        <FormControl>
-          <Input type="text" placeholder="John" v-bind="componentField" />
-        </FormControl>
-        <FormDescription>
-          Your first name as it appears on your account.
-        </FormDescription>
-        <FormMessage />
-      </FormItem>
-    </FormField>
+      <div class="space-y-4">
+        <FormInput
+          v-model="firstName"
+          label="First Name"
+          placeholder="John"
+          description="Your first name as it appears on your account."
+          :error="errors.firstName"
+          required
+        />
 
-    <FormField v-slot="{ componentField }" name="lastName">
-      <FormItem>
-        <FormLabel>Last Name</FormLabel>
-        <FormControl>
-          <Input type="text" placeholder="Doe" v-bind="componentField" />
-        </FormControl>
-        <FormDescription>
-          Your last name as it appears on your account.
-        </FormDescription>
-        <FormMessage />
-      </FormItem>
-    </FormField>
+        <FormInput
+          v-model="lastName"
+          label="Last Name"
+          placeholder="Doe"
+          description="Your last name as it appears on your account."
+          :error="errors.lastName"
+          required
+        />
 
-    <FormField v-slot="{ componentField }" name="email">
-      <FormItem>
-        <FormLabel>Email</FormLabel>
-        <FormControl>
-          <Input type="email" placeholder="john.doe@example.com" v-bind="componentField" />
-        </FormControl>
-        <FormDescription>
-          Your email address. This will be used for account notifications.
-        </FormDescription>
-        <FormMessage />
-      </FormItem>
-    </FormField>
+        <FormInput
+          v-model="email"
+          type="email"
+          label="Email"
+          placeholder="john.doe@example.com"
+          description="Your email address. This will be used for account notifications."
+          :error="errors.email"
+          required
+        />
 
-    <FormField v-slot="{ componentField }" name="password">
-      <FormItem>
-        <FormLabel>New Password</FormLabel>
-        <FormControl>
-          <Input type="password" placeholder="••••••••" v-bind="componentField" />
-        </FormControl>
-        <FormDescription>
-          Leave blank to keep your current password.
-        </FormDescription>
-        <FormMessage />
-      </FormItem>
-    </FormField>
+        <div class="divider">Change Password</div>
 
-    <FormField v-slot="{ componentField }" name="oldPassword">
-      <FormItem>
-        <FormLabel>Current Password</FormLabel>
-        <FormControl>
-          <Input type="password" placeholder="••••••••" v-bind="componentField" />
-        </FormControl>
-        <FormDescription>
-          Required only if you're changing your password.
-        </FormDescription>
-        <FormMessage />
-      </FormItem>
-    </FormField>
+        <FormPassword
+          v-model="password"
+          label="New Password"
+          placeholder="••••••••"
+          description="Leave blank to keep your current password."
+          :error="errors.password"
+        />
 
-    <div class="flex justify-start gap-2">
-      <Button type="submit">
-        Update profile
-      </Button>
+        <FormPassword
+          v-model="oldPassword"
+          label="Current Password"
+          placeholder="••••••••"
+          description="Required only if you're changing your password."
+          :error="errors.oldPassword"
+        />
 
-      <Button type="button" variant="outline" @click="resetForm">
-        Reset form
-      </Button>
-    </div>
-  </form>
+        <div class="flex justify-end gap-4">
+          <button type="submit" class="btn btn-primary" :disabled="Object.keys(errors).length > 0">
+            Update profile
+          </button>
+        </div>
+      </div>
+
+    </form>
+  </div>
 </template>

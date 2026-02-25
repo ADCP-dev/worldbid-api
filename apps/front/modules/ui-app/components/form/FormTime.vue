@@ -1,9 +1,6 @@
 <script setup lang="ts">
-import Label from '~/components/ui/label/Label.vue';
+import { ref, computed, useSlots } from 'vue';
 import { Clock } from 'lucide-vue-next';
-import { Input } from '~/components/ui/input';
-import { cn } from '~/lib/utils';
-import { ref } from 'vue';
 
 defineProps<{
   label: string;
@@ -23,70 +20,67 @@ const inputRef = ref<HTMLInputElement | null>(null);
 // Custom time input clicks handler to always show time picker
 const handleContainerClick = (event: MouseEvent) => {
   // Only open the picker if we're not clicking on another control
-  if (event.target === event.currentTarget || 
+  if (event.target === event.currentTarget ||
       (event.target as HTMLElement).classList.contains('time-input-container')) {
     inputRef.value?.showPicker();
   }
 };
-
-const inputClasses = computed(() => {
-  return cn(
-    'pl-8',
-    slots['icon-end'] && 'pr-10',
-    'time-input' // Add class for styling
-  );
-});
-
 </script>
 
 <template>
-  <div class="relative space-y-2">
-    <Label>
-      {{ label }}<span v-if="required" class="text-red-600">*</span>
-    </Label>
-    <div 
-      class="relative flex time-input-container cursor-pointer" 
+  <div class="form-control w-full">
+    <label class="label">
+      <span class="label-text font-semibold">
+        {{ label }}<span v-if="required" class="text-error ml-1">*</span>
+      </span>
+    </label>
+
+    <div
+      class="relative flex time-input-container cursor-pointer"
       @click="handleContainerClick"
     >
-      <Clock 
-        class="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" 
-        v-if="!slots['icon-start']" 
+      <Clock
+        class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-base-content/50 pointer-events-none z-10"
+        v-if="!slots['icon-start']"
       />
-      <span 
-        v-if="slots['icon-start']" 
-        class="absolute start-0 inset-y-0 flex items-center justify-center px-2 text-muted-foreground"
+
+      <span
+        v-if="slots['icon-start']"
+        class="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center text-base-content/50 z-10"
       >
         <slot name="icon-start" />
       </span>
-      
-      <Input
+
+      <input
         ref="inputRef"
-        :name="name"
         v-model="model"
         type="time"
         step="60"
+        :name="name"
         :placeholder="placeholder"
         :required="required"
         :disabled="disabled"
-        :class="inputClasses"
         min="00:00"
         max="23:59"
+        class="input input-bordered w-full pl-10 time-input"
+        :class="{ 'input-error': error, 'pr-10': slots['icon-end'] }"
       />
-      
-      <span 
-        v-if="slots['icon-end']" 
-        class="absolute end-0 inset-y-0 flex items-center justify-center px-2 text-muted-foreground"
+
+      <span
+        v-if="slots['icon-end']"
+        class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center text-base-content/50 z-10"
       >
         <slot name="icon-end" />
       </span>
     </div>
-    
-    <p v-if="description" class="text-xs text-muted-foreground">
-      {{ description }}
-    </p>
-    <p v-if="error" class="text-sm text-destructive">
-      {{ error }}
-    </p>
+
+    <label v-if="description" class="label py-1">
+      <span class="label-text-alt text-base-content/60">{{ description }}</span>
+    </label>
+
+    <label v-if="error" class="label py-0">
+      <span class="label-text-alt text-error font-medium">{{ error }}</span>
+    </label>
   </div>
 </template>
 
@@ -99,20 +93,12 @@ const inputClasses = computed(() => {
   opacity: 0;
 }
 
-/* Make sure the input field doesn't show any default styling for time inputs */
-.time-input {
-  position: relative;
-  cursor: pointer;
-}
-
-/* Add some better hover effect on the container */
-.time-input-container:hover {
-  background-color: hsl(var(--muted) / 0.2);
-  border-radius: 0.375rem;
-}
-
 /* Improve cursor and click experience */
 .time-input-container {
   transition: background-color 0.2s ease;
+}
+
+.time-input-container:hover {
+  background-color: hsl(var(--bc) / 0.05);
 }
 </style>

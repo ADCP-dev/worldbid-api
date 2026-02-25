@@ -1,42 +1,17 @@
-ARG NODE_VERSION=22.15.0
+FROM node:22.15.0-alpine AS build
 
-# Create build stage
-FROM node:${NODE_VERSION}-slim AS build
-
-# Setup for npm
-RUN npm --version
-
-# Set the working directory inside the container
 WORKDIR /app
+COPY pnpm-lock.yaml package.json ./
 
-# Copy package.json and package-lock.json files to the working directory
-COPY ./package.json /app/
-COPY ./package-lock.json /app/
+# Enable corepack for pnpm support
+RUN corepack enable
+RUN pnpm install --frozen-lockfile --prod
 
-## Install dependencies
-RUN npm ci
+COPY . .
+RUN pnpm run build
 
-# Copy the rest of the application files to the working directory
-COPY . ./
-
-# Build the application
-RUN npm run build
-
-# Create a new stage for the production image
-FROM node:${NODE_VERSION}-slim
-
-# Set the working directory inside the container
+FROM node:22.15.0-alpine AS final
 WORKDIR /app
-
-# Copy the output from the build stage to the working directory
-COPY --from=build /app/.output ./
-
-# Define environment variables
-ENV HOST=0.0.0.0 NODE_ENV=production
-ENV NODE_ENV=production
-
-# Expose the port the application will run on
+COPY --from=build /app/.output .output
 EXPOSE 3000
-
-# Start the application
-CMD ["node","/app/server/index.mjs"]
+CMD ["node", ".output/server/index.mjs"]

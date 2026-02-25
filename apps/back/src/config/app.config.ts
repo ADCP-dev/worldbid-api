@@ -1,6 +1,6 @@
 import { registerAs } from '@nestjs/config';
 import { AppConfig } from './app-config.type';
-import validateConfig from '.././utils/validate-config';
+import validateConfig from '@infra/utils/validate-config';
 import {
   IsEnum,
   IsInt,
@@ -51,6 +51,14 @@ class EnvironmentVariablesValidator {
   @IsUrl({ require_tld: false })
   @IsOptional()
   BUNNY_CDN_URL: string;
+
+  @IsString()
+  @IsOptional()
+  OPENROUTER_API_KEY: string;
+
+  @IsString()
+  @IsOptional()
+  TRANSLATION_MODEL: string;
 }
 
 export default registerAs<AppConfig>('app', () => {
@@ -71,5 +79,7 @@ export default registerAs<AppConfig>('app', () => {
     fallbackLanguage: process.env.APP_FALLBACK_LANGUAGE || 'en',
     headerLanguage: process.env.APP_HEADER_LANGUAGE || 'x-custom-lang',
     bunnyCdnUrl: process.env.BUNNY_CDN_URL,
+    openRouterApiKey: process.env.OPENROUTER_API_KEY,
+    translationModel: process.env.TRANSLATION_MODEL || 'openrouter/free',
   };
 });

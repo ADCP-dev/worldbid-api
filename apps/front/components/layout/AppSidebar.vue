@@ -1,30 +1,15 @@
 <script setup lang="ts">
-import type { SidebarProps } from '@/components/ui/sidebar/index'
 import { useNavMenu } from '~/composables/useNavMenu'
 
 import NavUser from '~/components/layout/NavUser.vue'
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarRail,
-} from '@/components/ui/sidebar/index'
-
-import SidebarMenu from '@/components/ui/sidebar/SidebarMenu.vue'
-import SidebarMenuItem from '@/components/ui/sidebar/SidebarMenuItem.vue'
-import SidebarMenuButton from '@/components/ui/sidebar/SidebarMenuButton.vue'
 import AppLogo from '@/components/AppLogo.vue'
-import SidebarHeader from '@/components/ui/sidebar/SidebarHeader.vue'
 import type { NavGroup, NavLink, NavSectionTitle } from '~/types/nav'
 import { NavSearch } from '#components'
-
-const props = withDefaults(defineProps<SidebarProps>(), {
-  collapsible: 'icon',
-})
 
 const { navMenu, navMenuBottom } = useNavMenu()
 
 const authStore = useAuthStore()
+
 
 function resolveNavItemComponent(item: NavLink | NavGroup | NavSectionTitle): any {
   if ('children' in item)
@@ -38,39 +23,38 @@ const user: {
   email: string
   avatar: string
 } = {
-  name: authStore.user?.firstName + ' ' + authStore.user?.lastName,
-  email: authStore.user?.email,
-  avatar: authStore.user?.photo?.path,
+  name: ((authStore.user?.firstName || '') + ' ' + (authStore.user?.lastName || '')).trim(),
+  email: authStore.user?.email || '',
+  avatar: authStore.user?.photo?.path || '',
 }
 </script>
 
 <template>
-  <Sidebar v-bind="props">
-    <SidebarHeader>
-      <SidebarMenu>
-        <SidebarMenuItem>
-          <SidebarMenuButton size="lg" as-child>
-            <AppLogo />
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      </SidebarMenu>
-      <NavSearch />
-    </SidebarHeader>
-    <SidebarContent>
-      <SidebarGroup v-for="(nav, indexGroup) in navMenu" :key="indexGroup">
-        <SidebarGroupLabel v-if="nav.heading">
+  <div class="is-drawer-close:w-16 is-drawer-open:w-72 border-r min-h-full bg-base-300 flex flex-col relative transition-all duration-300">
+    <div class="p-4 flex flex-col gap-4 w-full">
+      <div>
+        <AppLogo />
+      </div>
+      <div class="is-drawer-close:hidden">
+        <NavSearch />
+      </div>
+    </div>
+
+    <div class="flex-1 overflow-x-hidden overflow-y-auto is-drawer-close:overflow-visible w-full px-2">
+      <ul class="menu w-full" v-for="(nav, indexGroup) in navMenu" :key="indexGroup">
+        <li v-if="nav.heading" class="menu-title uppercase text-xs font-semibold py-2 is-drawer-close:hidden">
           {{ nav.heading }}
-        </SidebarGroupLabel>
+        </li>
         <component :is="resolveNavItemComponent(item)" v-for="(item, index) in nav.items" :key="index" :item="item" />
-      </SidebarGroup>
-      <SidebarGroup class="mt-auto">
-        <component :is="resolveNavItemComponent(item)" v-for="(item, index) in navMenuBottom" :key="index" :item="item"
-          size="sm" />
-      </SidebarGroup>
-    </SidebarContent>
-    <SidebarFooter>
+      </ul>
+
+      <ul class="menu w-full mt-auto">
+        <component :is="resolveNavItemComponent(item)" v-for="(item, index) in navMenuBottom" :key="index" :item="item" size="sm" />
+      </ul>
+    </div>
+
+    <div class="p-4 mt-auto border-t w-full">
       <NavUser :user="user" />
-    </SidebarFooter>
-    <SidebarRail />
-  </Sidebar>
+    </div>
+  </div>
 </template>
