@@ -1,31 +1,28 @@
 ---
 inject: true
 to: src/extensions/<%= h.inflection.transform(extension, ['pluralize', 'underscore', 'dasherize']) %>/infrastructure/mappers/<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.mapper.ts
-after: new <%= name %>Entity\(\)
+after: // <mapping-properties />
 ---
 <% if (kind === 'primitive') { -%>
-  persistenceEntity.<%= property %> = domainEntity.<%= property %>;
+  persistenceEntity.<%= property %> = dto.<%= property %>;
 <% } else if (kind === 'reference' || kind === 'duplication') { -%>
   <% if (referenceType === 'oneToOne' || referenceType === 'manyToOne') { -%>
-    if (domainEntity.<%= property %>) {
-      persistenceEntity.<%= property %> = <%= type %>Mapper.toPersistence(domainEntity.<%= property %>);
+    if (dto.<%= property %>) {
+      persistenceEntity.<%= property %> = <%= type %>Mapper.toDomain(dto.<%= property %>);
     }
     <% if (isNullable) { -%>
-      else if (domainEntity.<%= property %> === null) {
+      else if (dto.<%= property %> === null) {
         persistenceEntity.<%= property %> = null;
       }
     <% } -%>
   <% } else if (referenceType === 'oneToMany' || referenceType === 'manyToMany') { -%>
-    if (domainEntity.<%= property %>) {
-      persistenceEntity.<%= property %> = domainEntity.<%= property %>.map((item) => <%= type %>Mapper.toPersistence(item));
+    if (dto.<%= property %>) {
+      persistenceEntity.<%= property %> = dto.<%= property %>.map((item) => <%= type %>Mapper.toDomain(item));
     }
     <% if (isNullable) { -%>
-      else if (domainEntity.<%= property %> === null) {
+      else if (dto.<%= property %> === null) {
         persistenceEntity.<%= property %> = null;
       }
     <% } -%>
   <% } -%>
 <% } -%>
-
-
-

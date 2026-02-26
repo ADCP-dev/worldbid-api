@@ -28,7 +28,7 @@
    // /src/posts/infrastructure/persistence/relational/entities/post.entity.ts
 
    import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
-   import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
+   import { EntityRelationalHelper } from '@infra/utils/relational-entity-helper';
 
    @Entity()
    export class Post extends EntityRelationalHelper {

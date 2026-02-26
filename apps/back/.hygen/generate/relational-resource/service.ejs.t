@@ -1,16 +1,15 @@
 ---
 to: src/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>.service.ts
 ---
-import { 
+import {
   // common
   Injectable,
 } from '@nestjs/common';
 import { Create<%= name %>Dto } from './dto/create-<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.dto';
 import { Update<%= name %>Dto } from './dto/update-<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.dto';
 import { <%= name %>Repository } from './infrastructure/<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.repository';
-import { IPaginationOptions } from '@src/utils/types/pagination-options';
 import { <%= name %> } from './domain/<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>';
-import { infinityPagination } from '@src/utils/infinity-pagination';
+import { infinityPagination } from '@infra/utils/infinity-pagination';
 import { InfinityPaginationResponseDto } from '@infra/utils/dto/infinity-pagination-response.dto';
 import { FindAll<%= h.inflection.transform(name, ['pluralize']) %>Dto } from './dto/find-all-<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>.dto';
 import { FindAll<%= h.inflection.transform(name, ['pluralize']) %>PaginatedDto } from './dto/find-all-<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>-paginated.dto';
@@ -29,13 +28,7 @@ export class <%= h.inflection.transform(name, ['pluralize']) %>Service {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     create<%= name %>Dto: Create<%= name %>Dto
   ) {
-    // Do not remove comment below.
-    // <creating-property />
-
-    return this.<%= h.inflection.camelize(name, true) %>Repository.create({
-      // Do not remove comment below.
-      // <creating-property-payload />
-    });
+    return this.<%= h.inflection.camelize(name, true) %>Repository.create(create<%= name %>Dto);
   }
 
   findById(id: <%= name %>['id']) {
@@ -91,13 +84,7 @@ export class <%= h.inflection.transform(name, ['pluralize']) %>Service {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     update<%= name %>Dto: Update<%= name %>Dto,
   ) {
-    // Do not remove comment below.
-    // <updating-property />
-
-    return this.<%= h.inflection.camelize(name, true) %>Repository.update(id, {
-      // Do not remove comment below.
-      // <updating-property-payload />
-    });
+    return this.<%= h.inflection.camelize(name, true) %>Repository.update(id, update<%= name %>Dto);
   }
 
   remove(id: <%= name %>['id']) {

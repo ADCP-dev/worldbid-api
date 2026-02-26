@@ -1,11 +1,3 @@
 ---
-inject: true
-to: src/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>.service.ts
-after: \<creating\-property\-payload \/\>
----
-
-<% if (kind === 'reference' || kind === 'duplication') { -%>
-  <%= property %>,
-<% } else { -%>
-  <%= property %>: create<%= name %>Dto.<%= property %>,
-<% } -%>
+# This file is no longer needed - the service now passes the DTO directly to the repository
+# The mapping is handled in the mapper's toPersistence method

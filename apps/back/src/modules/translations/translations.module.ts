@@ -13,8 +13,16 @@ import { TranslationAgentService } from './translation-agent.service';
     TypeOrmModule.forFeature([LangEntity, TranslationEntity]),
     ConfigModule,
   ],
-  providers: [TranslationsService, TranslationSeedService, TranslationAgentService],
+  providers: [
+    TranslationsService,
+    TranslationSeedService,
+    TranslationAgentService,
+  ],
   controllers: [TranslationsController],
-  exports: [TranslationsService, TranslationSeedService, TranslationAgentService],
+  exports: [
+    TranslationsService,
+    TranslationSeedService,
+    TranslationAgentService,
+  ],
 })
 export class TranslationsModule {}

@@ -6,10 +6,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { <%= name %>Entity } from './entities/<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.entity';
 import { NullableType } from '@infra/utils/types/nullable.type';
-import { <%= name %> } from '../../domain/<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>';
+import { <%= name %> } from '../domain/<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>';
 import { <%= name %>Mapper } from './mappers/<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.mapper';
 import { IPaginationOptions } from '@infra/utils/types/pagination-options';
 import { buildWhereClause } from '@infra/utils/parse-filter';
+import { Create<%= name %>Dto } from '../dto/create-<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.dto';
 
 @Injectable()
 export class <%= name %>Repository {
@@ -18,7 +19,7 @@ export class <%= name %>Repository {
     private readonly <%= h.inflection.camelize(name, true) %>Repository: Repository<<%= name %>Entity>,
   ) {}
 
-  async create(data: <%= name %>): Promise<<%= name %>> {
+  async create(data: Create<%= name %>Dto): Promise<<%= name %>> {
     const persistenceModel = <%= name %>Mapper.toPersistence(data);
     const newEntity = await this.<%= h.inflection.camelize(name, true) %>Repository.save(
       this.<%= h.inflection.camelize(name, true) %>Repository.create(persistenceModel),
@@ -89,12 +90,10 @@ export class <%= name %>Repository {
     }
 
     const updatedEntity = await this.<%= h.inflection.camelize(name, true) %>Repository.save(
-      this.<%= h.inflection.camelize(name, true) %>Repository.create(
-        <%= name %>Mapper.toPersistence({
-          ...<%= name %>Mapper.toDomain(entity),
-          ...payload,
-        }),
-      ),
+      <%= name %>Mapper.toPersistence({
+        ...<%= name %>Mapper.toDomain(entity),
+        ...payload,
+      }),
     );
 
     return <%= name %>Mapper.toDomain(updatedEntity);

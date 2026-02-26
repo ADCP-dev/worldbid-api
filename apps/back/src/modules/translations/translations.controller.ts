@@ -165,10 +165,19 @@ export class TranslationsController {
   @Roles(RoleEnum.admin)
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Post('translate-row')
-  @ApiOperation({ summary: 'Auto-translate missing languages for a specific app, section, and key' })
-  async translateRow(@Body() body: { app: string; section: string; key: string }) {
+  @ApiOperation({
+    summary:
+      'Auto-translate missing languages for a specific app, section, and key',
+  })
+  async translateRow(
+    @Body() body: { app: string; section: string; key: string },
+  ) {
     const { app, section, key } = body;
-    const result = await this.translationAgentService.translateRow(app, section, key);
+    const result = await this.translationAgentService.translateRow(
+      app,
+      section,
+      key,
+    );
     return { success: true, message: result };
   }
 
@@ -176,7 +185,9 @@ export class TranslationsController {
   @Roles(RoleEnum.admin)
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Post('bulk-translate')
-  @ApiOperation({ summary: 'Bulk auto-translate ALL missing languages for an app context' })
+  @ApiOperation({
+    summary: 'Bulk auto-translate ALL missing languages for an app context',
+  })
   async bulkTranslate(@Body() body: { app?: string }) {
     const { app = 'front' } = body;
     const result = await this.translationAgentService.bulkTranslateAll(app);

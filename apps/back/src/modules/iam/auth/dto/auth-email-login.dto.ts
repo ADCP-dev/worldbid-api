@@ -4,13 +4,13 @@ import { Transform } from 'class-transformer';
 import { lowerCaseTransformer } from '@infra/utils/transformers/lower-case.transformer';
 
 export class AuthEmailLoginDto {
-  @ApiProperty({ example: 'test1@example.com', type: String })
+  @ApiProperty({ example: 'admin@example.com', type: String })
   @Transform(lowerCaseTransformer)
   @IsEmail()
   @IsNotEmpty()
   email: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: 'secret', type: String })
   @IsNotEmpty()
   password: string;
 }

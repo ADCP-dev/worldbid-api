@@ -189,8 +189,7 @@ Combos: ${JSON.stringify(combos)}`;
             }
           }
 
-          if (!missing.length)
-            return `No missing for ${combos.length} combos.`;
+          if (!missing.length) return `No missing for ${combos.length} combos.`;
 
           // 1 LLM call: Batch translate
           const targetCodes = langs

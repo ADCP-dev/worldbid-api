@@ -39,10 +39,7 @@ export function discoverExtensionConfigs(): Array<(...args: any[]) => any> {
         .filter((f) => f.match(/\.config\.(ts|js)$/));
 
       for (const file of configFiles) {
-        const configPath = path.join(
-          configDir,
-          file.replace(/\.(ts|js)$/, ''),
-        );
+        const configPath = path.join(configDir, file.replace(/\.(ts|js)$/, ''));
 
         try {
           // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -51,18 +48,14 @@ export function discoverExtensionConfigs(): Array<(...args: any[]) => any> {
 
           if (typeof configFactory === 'function') {
             configs.push(configFactory);
-            logger.log(
-              `✅ Loaded config: ${dir.name}/${file}`,
-            );
+            logger.log(`✅ Loaded config: ${dir.name}/${file}`);
           } else {
             logger.warn(
               `⚠️  Config file "${dir.name}/${file}" does not export a config factory`,
             );
           }
         } catch (err) {
-          logger.warn(
-            `⚠️  Error loading config "${dir.name}/${file}": ${err}`,
-          );
+          logger.warn(`⚠️  Error loading config "${dir.name}/${file}": ${err}`);
         }
       }
     } catch (err) {

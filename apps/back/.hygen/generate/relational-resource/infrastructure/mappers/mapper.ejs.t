@@ -3,6 +3,7 @@ to: src/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize'
 ---
 import { <%= name %> } from '../../domain/<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>';
 import { <%= name %>Entity } from '../entities/<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.entity';
+import { Create<%= name %>Dto } from '../../dto/create-<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.dto';
 
 export class <%= name %>Mapper {
   static toDomain(raw: <%= name %>Entity): <%= name %> {
@@ -14,14 +15,13 @@ export class <%= name %>Mapper {
     return domainEntity;
   }
 
-  static toPersistence(domainEntity: <%= name %>): <%= name %>Entity {
+  static toPersistence(data: Create<%= name %>Dto | Partial<<%= name %>>): <%= name %>Entity {
     const persistenceEntity = new <%= name %>Entity();
-    if (domainEntity.id) {
-      persistenceEntity.id = domainEntity.id;
+    // <mapping-properties />
+    // Handle id for updates
+    if ('id' in data && data.id) {
+      persistenceEntity.id = data.id;
     }
-    persistenceEntity.createdAt = domainEntity.createdAt;
-    persistenceEntity.updatedAt = domainEntity.updatedAt;
-
     return persistenceEntity;
   }
 }
