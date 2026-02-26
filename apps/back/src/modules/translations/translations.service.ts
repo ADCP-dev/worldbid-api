@@ -7,8 +7,8 @@ import { CreateLangDto } from './dto/create-lang.dto';
 import { UpdateLangDto } from './dto/update-lang.dto';
 import { CreateTranslationDto } from './dto/create-translation.dto';
 import { UpdateTranslationDto } from './dto/update-translation.dto';
-import { InfinityPaginationResponseDto } from '@src/infrastructure/utils/dto/infinity-pagination-response.dto';
-import { infinityPagination } from '@src/infrastructure/utils/infinity-pagination';
+import { InfinityPaginationResponseDto } from '@infra/utils/dto/infinity-pagination-response.dto';
+import { infinityPagination } from '@infra/utils/infinity-pagination';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 

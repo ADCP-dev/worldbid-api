@@ -7,7 +7,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { EntityRelationalHelper } from '../../../../utils/relational-entity-helper';
+import { EntityRelationalHelper } from '@infra/utils/relational-entity-helper';
 
 @Entity({
   name: '<%= h.inflection.transform(name, ['underscore']) %>',

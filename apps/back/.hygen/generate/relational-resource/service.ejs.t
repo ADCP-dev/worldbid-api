@@ -8,14 +8,14 @@ import {
 import { Create<%= name %>Dto } from './dto/create-<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.dto';
 import { Update<%= name %>Dto } from './dto/update-<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.dto';
 import { <%= name %>Repository } from './infrastructure/<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.repository';
-import { IPaginationOptions } from '../utils/types/pagination-options';
+import { IPaginationOptions } from '@src/utils/types/pagination-options';
 import { <%= name %> } from './domain/<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>';
-import { infinityPagination } from '../utils/infinity-pagination';
-import { InfinityPaginationResponseDto } from '../utils/dto/infinity-pagination-response.dto';
+import { infinityPagination } from '@src/utils/infinity-pagination';
+import { InfinityPaginationResponseDto } from '@infra/utils/dto/infinity-pagination-response.dto';
 import { FindAll<%= h.inflection.transform(name, ['pluralize']) %>Dto } from './dto/find-all-<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>.dto';
 import { FindAll<%= h.inflection.transform(name, ['pluralize']) %>PaginatedDto } from './dto/find-all-<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>-paginated.dto';
 import { ConfigService } from '@nestjs/config';
-import { AllConfigType } from '../config/config.type';
+import { AllConfigType } from '@src/config/config.type';
 
 @Injectable()
 export class <%= h.inflection.transform(name, ['pluralize']) %>Service {

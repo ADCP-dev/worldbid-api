@@ -5,11 +5,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { <%= name %>Entity } from './entities/<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.entity';
-import { NullableType } from '../../../utils/types/nullable.type';
+import { NullableType } from '@infra/utils/types/nullable.type';
 import { <%= name %> } from '../domain/<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>';
 import { <%= name %>Mapper } from './mappers/<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.mapper';
-import { IPaginationOptions } from '../../../utils/types/pagination-options';
-import { buildWhereClause } from '../../../utils/parse-filter';
+import { IPaginationOptions } from '@infra/utils/types/pagination-options';
+import { buildWhereClause } from '@infra/utils/parse-filter';
 
 @Injectable()
 export class <%= name %>Repository {

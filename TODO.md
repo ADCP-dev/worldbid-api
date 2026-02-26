@@ -1,3 +1,5 @@
+- A LOS GENERADORES AÑADIR EL @ en las importaciones! Ahora están rotos
+
 - [x] Dejar organizado el proyecto
   - [x] Backend unir en carpetas modulos
   - [x] Frontend unir en carpetas los componentes
