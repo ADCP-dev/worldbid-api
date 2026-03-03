@@ -1,12 +1,12 @@
 ---
 inject: true
-to: src/extensions/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>/dto/create-<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.dto.ts
-after: export class Create<%= name %>Dto
+to: src/extensions/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>/dto/update-<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.dto.ts
+after: // <update-properties />
 ---
 
 <% if (isAddToDto) { -%>
   @ApiProperty({
-    required: <%= !(isOptional || isNullable) %>,
+    required: false,
     type: () => 
       <% if (kind === 'primitive') { -%>
         <% if (type === 'string') { -%>
@@ -29,9 +29,7 @@ after: export class Create<%= name %>Dto
 <% } -%>
 
 <% if (isAddToDto) { -%>
-  <% if (isOptional || isNullable) { -%>
-    @IsOptional()
-  <% } -%>
+  @IsOptional()
   <% if (kind === 'primitive') { -%>
     <% if (type === 'string') { -%>
       @IsString()
@@ -40,7 +38,7 @@ after: export class Create<%= name %>Dto
     <% } else if (type === 'boolean') { -%>
       @IsBoolean()
     <% } else if (type === 'Date') { -%>
-      @Transform(({ value }) => new Date(value))
+      @Transform(({ value }) => value ? new Date(value) : null)
       @IsDate()
     <% } -%>
   <% } else if (kind === 'reference' || kind === 'duplication') { -%>

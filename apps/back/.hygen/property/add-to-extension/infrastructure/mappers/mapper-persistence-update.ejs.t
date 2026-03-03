@@ -1,10 +1,12 @@
 ---
 inject: true
 to: src/extensions/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>/infrastructure/mappers/<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.mapper.ts
-after: // <mapping-properties />
+after: // <mapping-properties-update />
 ---
 <% if (kind === 'primitive') { -%>
-  persistenceEntity.<%= property %> = data.<%= property %>;
+  if (data.<%= property %> !== undefined) {
+    persistenceEntity.<%= property %> = data.<%= property %>;
+  }
 <% } else if (kind === 'reference') { -%>
   <% if (referenceType === 'oneToMany' || referenceType === 'manyToMany') { -%>
   if (data.<%= property %>Ids && data.<%= property %>Ids.length > 0) {

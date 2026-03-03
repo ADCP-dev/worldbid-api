@@ -1,11 +1,11 @@
 ---
 inject: true
-to: src/extensions/<%= h.inflection.transform(extension, ['pluralize', 'underscore', 'dasherize']) %>/dto/create-<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.dto.ts
+to: src/extensions/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>/dto/create-<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.dto.ts
 before: export class Create<%= name %>Dto
-skip_if: "} from 'class-transformer'"
+skip_if: Transform,
 ---
-<% if (isAddToDto && (kind === 'reference' || kind === 'duplication' || (kind === 'primitive' && type === 'Date'))) { -%>
+<% if (isAddToDto && kind === 'primitive' && type === 'Date') { -%>
   import {
-    // decorators here
+    Transform,
   } from 'class-transformer';
 <% } -%>

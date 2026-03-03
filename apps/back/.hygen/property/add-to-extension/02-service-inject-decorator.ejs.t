@@ -1,6 +1,6 @@
 ---
 inject: true
-to: src/extensions/<%= h.inflection.transform(extension, ['pluralize', 'underscore', 'dasherize']) %>/<%= h.inflection.transform(extension, ['pluralize', 'underscore', 'dasherize']) %>.service.ts
+to: src/extensions/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>.service.ts
 before: private readonly <%= h.inflection.camelize(type, true) %>Service
 skip_if: \=\> <%= h.inflection.transform(type, ['pluralize']) %>Service\)\)
 ---
