@@ -15,11 +15,23 @@ export class <%= name %>Mapper {
     return domainEntity;
   }
 
-  static toPersistence(data: Create<%= name %>Dto | Partial<<%= name %>>): <%= name %>Entity {
+  /**
+   * Maps a Create<%= name %>Dto to a <%= name %>Entity for database creation.
+   */
+  static toPersistenceForCreate(data: Create<%= name %>Dto): <%= name %>Entity {
+    const persistenceEntity = new <%= name %>Entity();
+    // <mapping-properties />
+    return persistenceEntity;
+  }
+
+  /**
+   * Maps a Partial<<%= name %>> to a <%= name %>Entity for database update.
+   */
+  static toPersistenceForUpdate(data: Partial<<%= name %>>): <%= name %>Entity {
     const persistenceEntity = new <%= name %>Entity();
     // <mapping-properties />
     // Handle id for updates
-    if ('id' in data && data.id) {
+    if (data.id) {
       persistenceEntity.id = data.id;
     }
     return persistenceEntity;

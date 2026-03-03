@@ -20,10 +20,8 @@ export class <%= name %>Repository {
   ) {}
 
   async create(data: Create<%= name %>Dto): Promise<<%= name %>> {
-    const persistenceModel = <%= name %>Mapper.toPersistence(data);
-    const newEntity = await this.<%= h.inflection.camelize(name, true) %>Repository.save(
-      this.<%= h.inflection.camelize(name, true) %>Repository.create(persistenceModel),
-    );
+    const persistenceModel = <%= name %>Mapper.toPersistenceForCreate(data);
+    const newEntity = await this.<%= h.inflection.camelize(name, true) %>Repository.save(persistenceModel);
     return <%= name %>Mapper.toDomain(newEntity);
   }
 
@@ -87,12 +85,10 @@ export class <%= name %>Repository {
       throw new Error('Record not found');
     }
 
-    const updatedEntity = await this.<%= h.inflection.camelize(name, true) %>Repository.save(
-      <%= name %>Mapper.toPersistence({
-        ...<%= name %>Mapper.toDomain(entity),
-        ...payload,
-      }),
-    );
+    const updatedEntity = await this.<%= h.inflection.camelize(name, true) %>Repository.save({
+      ...entity,
+      ...<%= name %>Mapper.toPersistenceForUpdate(payload),
+    });
 
     return <%= name %>Mapper.toDomain(updatedEntity);
   }

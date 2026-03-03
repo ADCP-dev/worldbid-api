@@ -11,6 +11,7 @@ import { <%= name %>Mapper } from './mappers/<%= h.inflection.transform(name, ['
 import { IPaginationOptions } from '@infra/utils/types/pagination-options';
 import { buildWhereClause } from '@infra/utils/parse-filter';
 import { Create<%= name %>Dto } from '../dto/create-<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.dto';
+import { Update<%= name %>Dto } from '../dto/update-<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.dto';
 
 @Injectable()
 export class <%= name %>Repository {
@@ -20,11 +21,27 @@ export class <%= name %>Repository {
   ) {}
 
   async create(data: Create<%= name %>Dto): Promise<<%= name %>> {
-    const persistenceModel = <%= name %>Mapper.toPersistence(data);
-    const newEntity = await this.<%= h.inflection.camelize(name, true) %>Repository.save(
-      this.<%= h.inflection.camelize(name, true) %>Repository.create(persistenceModel),
-    );
+    const persistenceModel = <%= name %>Mapper.toPersistenceForCreate(data);
+    const newEntity = await this.<%= h.inflection.camelize(name, true) %>Repository.save(persistenceModel);
     return <%= name %>Mapper.toDomain(newEntity);
+  }
+
+  async update(id: <%= name %>['id'], data: Update<%= name %>Dto): Promise<<%= name %>> {
+    const persistenceModel = <%= name %>Mapper.toPersistenceForUpdate(data);
+    const entity = await this.<%= h.inflection.camelize(name, true) %>Repository.findOne({
+      where: { id },
+    });
+
+    if (!entity) {
+      throw new Error('Record not found');
+    }
+
+    const updatedEntity = await this.<%= h.inflection.camelize(name, true) %>Repository.save({
+      ...entity,
+      ...persistenceModel,
+    });
+
+    return <%= name %>Mapper.toDomain(updatedEntity);
   }
 
   async findAllWithPagination({
@@ -75,28 +92,6 @@ export class <%= name %>Repository {
     });
 
     return entities.map((entity) => <%= name %>Mapper.toDomain(entity));
-  }
-
-  async update(
-    id: <%= name %>['id'],
-    payload: Partial<<%= name %>>,
-  ): Promise<<%= name %>> {
-    const entity = await this.<%= h.inflection.camelize(name, true) %>Repository.findOne({
-      where: { id },
-    });
-
-    if (!entity) {
-      throw new Error('Record not found');
-    }
-
-    const updatedEntity = await this.<%= h.inflection.camelize(name, true) %>Repository.save(
-      <%= name %>Mapper.toPersistence({
-        ...<%= name %>Mapper.toDomain(entity),
-        ...payload,
-      }),
-    );
-
-    return <%= name %>Mapper.toDomain(updatedEntity);
   }
 
   async remove(id: <%= name %>['id']): Promise<void> {
