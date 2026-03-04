@@ -24,7 +24,7 @@ const closeDrawer = () => {
       exact-active-class="active bg-gradient-to-r from-primary/10 to-primary"
     >
       <template #default="{ isExactActive }">
-        <button class="is-drawer-close:tooltip is-drawer-close:tooltip-right gap-2 w-full flex items-center" :data-tip="item.title">
+        <button class="is-drawer-close:tooltip is-drawer-close:tooltip-right gap-2 w-full flex items-center is-drawer-close:justify-center" :data-tip="item.title">
           <AppIcon :name="item.icon || ''" mode="svg" class="size-5" :class="[isExactActive ? 'text-primary' : '']" />
           <span class="is-drawer-close:hidden" :class="[isExactActive ? 'text-primary-content' : '']">{{ item.title }}</span>
           <span v-if="item.new" class="ml-auto rounded-md bg-#adfa1d px-1.5 py-0.5 text-xs text-black leading-none no-underline group-hover:no-underline is-drawer-close:hidden">
