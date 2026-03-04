@@ -1,5 +1,5 @@
 ---
-to: src/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>/dto/find-all-<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>-paginated.dto.ts
+to: src/<%= destination %>/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>/dto/find-all-<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>-paginated.dto.ts
 ---
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsNumber, IsOptional } from 'class-validator';

@@ -1,5 +1,5 @@
 ---
-to: src/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>/dto/update-<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.dto.ts
+to: src/<%= destination %>/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>/dto/update-<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.dto.ts
 ---
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { ApiProperty } from '@nestjs/swagger';

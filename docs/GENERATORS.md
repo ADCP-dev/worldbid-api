@@ -5,14 +5,27 @@ The backend uses **Hygen** for scaffolding. All commands run from `apps/back/`.
 ```
 apps/back/.hygen/
 ├── generate/
-│   ├── relational-resource/   # Full CRUD resource
-│   └── extension-resource/    # Resource inside an extension
+│   ├── relational-resource/   # Full CRUD resource (custom/modules)
+│   └── extension-resource/     # Resource inside an extension
 ├── property/
 │   ├── add-to-relational/     # Add field to a regular resource
 │   └── add-to-extension/      # Add field to an extension resource
 └── seeds/
     └── create-relational/     # New seeder file
 ```
+
+---
+
+## APP_MODE Variable
+
+In `apps/back/.env`:
+
+| Value         | Behavior                                     |
+| ------------- | -------------------------------------------- |
+| `development` | Allows choosing destination (custom/modules) |
+| `client`      | Only generates in `custom/`                  |
+
+You can also override via CLI: `--destination=modules`
 
 ---
 
@@ -23,7 +36,7 @@ apps/back/.hygen/
 Scaffolds a full CRUD module:
 
 ```
-src/<name>/
+src/<destination>/<name>/
 ├── <name>.module.ts
 ├── <name>.controller.ts
 ├── <name>.service.ts
@@ -39,7 +52,8 @@ src/<name>/
     └── mappers/<name>.mapper.ts
 ```
 
-> ⚠️ The generator outputs to `src/<name>/`. After generation, **move the folder** to the correct `src/modules/<group>/` directory and update the import in `app.module.ts`.
+- **Destination**: `custom/` (default) or `modules/` (development only)
+- In `client` mode, only `custom/` is allowed
 
 ### `pnpm generate:extension`
 
@@ -48,6 +62,7 @@ Same as above but outputs to `src/extensions/<extension-name>/<resource>/`.
 ### `pnpm add:property`
 
 Adds a new column to an existing resource. Prompts for:
+
 - **Resource name** (must already exist)
 - **Property name** (camelCase)
 - **Property type** (`string`, `number`, `boolean`, `Date`)
@@ -87,13 +102,13 @@ export class <%= h.capitalize(name) %>Service {
 
 ### Common EJS Helpers
 
-| Helper | Example output |
-|---|---|
-| `h.capitalize(name)` | `product` → `Product` |
-| `h.inflection.pluralize(name)` | `product` → `products` |
-| `h.changeCase.camel(name)` | `my-product` → `myProduct` |
-| `h.changeCase.pascal(name)` | `my-product` → `MyProduct` |
-| `h.changeCase.snake(name)` | `myProduct` → `my_product` |
+| Helper                         | Example output             |
+| ------------------------------ | -------------------------- |
+| `h.capitalize(name)`           | `product` → `Product`      |
+| `h.inflection.pluralize(name)` | `product` → `products`     |
+| `h.changeCase.camel(name)`     | `my-product` → `myProduct` |
+| `h.changeCase.pascal(name)`    | `my-product` → `MyProduct` |
+| `h.changeCase.snake(name)`     | `myProduct` → `my_product` |
 
 ---
 
@@ -126,9 +141,7 @@ export class <%= h.capitalize(name) %>Controller { … }
 // .hygen/my-generator/new/index.js
 module.exports = {
   prompt: ({ inquirer }) =>
-    inquirer.prompt([
-      { type: 'input', name: 'name', message: 'Name?' },
-    ]),
+    inquirer.prompt([{ type: "input", name: "name", message: "Name?" }]),
 };
 ```
 

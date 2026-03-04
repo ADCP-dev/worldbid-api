@@ -1,5 +1,5 @@
 ---
-to: src/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>/infrastructure/<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.repository.ts
+to: src/<%= destination %>/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>/infrastructure/<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.repository.ts
 ---
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
