@@ -158,7 +158,20 @@ module.exports = {
                   type: 'select',
                   name: 'type',
                   message: 'Property type',
-                  choices: ['string', 'number', 'boolean', 'Date'],
+                  choices: [
+                    'string',
+                    'text',
+                    'number',
+                    'decimal',
+                    'boolean',
+                    'Date',
+                    'timestamp',
+                    'uuid',
+                    'json',
+                    'jsonb',
+                    'array',
+                    'enum',
+                  ],
                 });
               }),
             );

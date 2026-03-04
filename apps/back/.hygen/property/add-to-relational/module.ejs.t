@@ -1,8 +1,8 @@
 ---
 inject: true
-to: src/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>.module.ts
+to: src/custom/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>.module.ts
 after: imports.*\[
-skip_if: <%= h.inflection.transform(type, ['pluralize']) %>Module\)?,
+skip_if: __skip_module_import__
 ---
 
 <% if (kind === 'reference' || kind === 'duplication') { -%>

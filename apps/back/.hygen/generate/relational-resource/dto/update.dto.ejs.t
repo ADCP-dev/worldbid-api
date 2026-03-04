@@ -3,7 +3,7 @@ to: src/<%= destination %>/<%= h.inflection.transform(name, ['pluralize', 'under
 ---
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, IsNumber, IsBoolean, IsDate, IsUUID, IsArray } from 'class-validator';
+import { IsOptional, IsString, IsNumber, IsBoolean, IsDate, IsUUID, IsArray, IsEnum } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 /* eslint-enable @typescript-eslint/no-unused-vars */
 

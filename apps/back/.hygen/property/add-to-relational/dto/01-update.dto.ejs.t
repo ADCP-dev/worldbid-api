@@ -1,62 +1,51 @@
 ---
 inject: true
-to: src/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>/dto/update-<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.dto.ts
+to: src/custom/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>/dto/update-<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.dto.ts
 after: // <update-properties />
 ---
 
-<% if (isAddToDto) { -%>
-  @ApiProperty({
-    required: false,
-    type: () => 
-      <% if (kind === 'primitive') { -%>
-        <% if (type === 'string') { -%>
-          String,
-        <% } else if (type === 'number') { -%>
-          Number,
-        <% } else if (type === 'boolean') { -%>
-          Boolean,
-        <% } else if (type === 'Date') { -%>
-          Date,
-        <% } -%>
-      <% } else if (kind === 'reference' || kind === 'duplication') { -%>
-        <% if (referenceType === 'oneToMany' || referenceType === 'manyToMany') { -%>
-          [String],
-        <% } else { -%>
-          String,
-        <% } -%>
-      <% } -%>
-  })
-<% } -%>
-
-<% if (isAddToDto) { -%>
+<% if (isAddToDto && kind === 'primitive') { -%>
+<% if (type === 'string' || type === 'text') { -%>
+  @ApiProperty({ required: false, type: String })
   @IsOptional()
-  <% if (kind === 'primitive') { -%>
-    <% if (type === 'string') { -%>
-      @IsString()
-    <% } else if (type === 'number') { -%>
-      @IsNumber()
-    <% } else if (type === 'boolean') { -%>
-      @IsBoolean()
-    <% } else if (type === 'Date') { -%>
-      @Transform(({ value }) => value ? new Date(value) : null)
-      @IsDate()
-    <% } -%>
-  <% } else if (kind === 'reference' || kind === 'duplication') { -%>
-    <% if (referenceType === 'oneToMany' || referenceType === 'manyToMany') { -%>
-      @IsArray()
-      @IsUUID('4', { each: true })
-    <% } else { -%>
-      @IsUUID()
-    <% } -%>
-  <% } -%>
+  @IsString()
+  <%= property %>?: string<% if (isNullable) { -%> | null<% } -%>;
+<% } else if (type === 'uuid') { -%>
+  @ApiProperty({ required: false, type: String })
+  @IsOptional()
+  @IsUUID()
+  <%= property %>?: string<% if (isNullable) { -%> | null<% } -%>;
+<% } else if (type === 'enum') { -%>
+  @ApiProperty({ required: false, type: String })
+  @IsOptional()
+  @IsEnum(Object)
+  <%= property %>?: string<% if (isNullable) { -%> | null<% } -%>;
+<% } else if (type === 'number' || type === 'decimal') { -%>
+  @ApiProperty({ required: false, type: Number })
+  @IsOptional()
+  @IsNumber()
+  <%= property %>?: number<% if (isNullable) { -%> | null<% } -%>;
+<% } else if (type === 'boolean') { -%>
+  @ApiProperty({ required: false, type: Boolean })
+  @IsOptional()
+  @IsBoolean()
+  <%= property %>?: boolean<% if (isNullable) { -%> | null<% } -%>;
+<% } else if (type === 'Date' || type === 'timestamp') { -%>
+  @ApiProperty({ required: false, type: Date })
+  @IsOptional()
+  @Transform(({ value }) => value ? new Date(value) : null)
+  @IsDate()
+  <%= property %>?: Date<% if (isNullable) { -%> | null<% } -%>;
+<% } else if (type === 'json' || type === 'jsonb') { -%>
+  @ApiProperty({ required: false, type: Object })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => Object)
+  <%= property %>?: Record<string, any><% if (isNullable) { -%> | null<% } -%>;
+<% } else if (type === 'array') { -%>
+  @ApiProperty({ required: false, type: [String] })
+  @IsOptional()
+  @IsString()
+  <%= property %>?: string<% if (isNullable) { -%> | null<% } -%>;
 <% } -%>
-
-<% if (kind === 'reference' || kind === 'duplication') { -%>
-  <% if (referenceType === 'oneToMany' || referenceType === 'manyToMany') { -%>
-  <%= property %>Ids<% if (!isAddToDto || isOptional) { -%>?<% } -%>: string[] <% if (isNullable) { -%> | null<% } -%>;
-  <% } else { -%>
-  <%= property %>Id<% if (!isAddToDto || isOptional) { -%>?<% } -%>: string <% if (isNullable) { -%> | null<% } -%>;
-  <% } -%>
-<% } else { -%>
-  <%= property %><% if (!isAddToDto || isOptional) { -%>?<% } -%>: <%= type %> <% if (isNullable) { -%> | null<% } -%>;
 <% } -%>

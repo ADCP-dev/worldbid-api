@@ -1,9 +1,12 @@
 ---
 inject: true
-to: src/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>/dto/create-<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.dto.ts
+to: src/custom/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>/dto/create-<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.dto.ts
 before: "} from 'class-transformer'"
 skip_if: \Type,
 ---
-<% if (isAddToDto && kind === 'primitive' && type === 'Date') { -%>
+<% if (isAddToDto && kind === 'primitive' && (type === 'Date' || type === 'timestamp')) { -%>
+  Type,
+<% } -%>
+<% if (isAddToDto && kind === 'primitive' && (type === 'json' || type === 'jsonb')) { -%>
   Type,
 <% } -%>

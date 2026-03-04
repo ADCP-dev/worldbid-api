@@ -4,6 +4,9 @@ to: src/extensions/<%= h.inflection.transform(name, ['pluralize', 'underscore', 
 before: "} from 'class-transformer'"
 skip_if: \Type,
 ---
-<% if (isAddToDto && kind === 'primitive' && type === 'Date') { -%>
+<% if (isAddToDto && kind === 'primitive' && (type === 'Date' || type === 'timestamp')) { -%>
+  Type,
+<% } -%>
+<% if (isAddToDto && kind === 'primitive' && (type === 'json' || type === 'jsonb')) { -%>
   Type,
 <% } -%>

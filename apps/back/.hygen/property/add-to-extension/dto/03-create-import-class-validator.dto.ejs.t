@@ -2,10 +2,16 @@
 inject: true
 to: src/extensions/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>/dto/create-<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.dto.ts
 at_line: 0
-skip_if: IsUUID,
+skip_if: IsEnum,
 ---
 <% if (isAddToDto && kind === 'primitive') { -%>
-  <% if (isOptional || isNullable) { -%>
+  <% if (type === 'json' || type === 'jsonb') { -%>
+import { IsOptional, ValidateNested } from 'class-validator';
+  <% } else if (type === 'enum') { -%>
+import { IsOptional, IsEnum } from 'class-validator';
+  <% } else if (type === 'uuid') { -%>
+import { IsOptional, IsUUID } from 'class-validator';
+  <% } else if (isOptional || isNullable) { -%>
 import {
   IsString, IsNumber, IsBoolean, IsDate, IsOptional,
 } from 'class-validator';

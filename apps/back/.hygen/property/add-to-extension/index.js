@@ -8,10 +8,8 @@ const collectPromisesResults = (callback) => async (prevValues) => {
 
 module.exports = {
   prompt: async ({ prompter, args }) => {
-    console.log("ARGS PASSED:", args);
-    if (Object.keys(args).length > 1) {
+    if (Object.keys(args).length) {
       return Promise.resolve({
-        extension: args.extension,
         name: args.name,
         property: args.property,
         kind: args.kind,
@@ -27,34 +25,19 @@ module.exports = {
     const result = await prompter
       .prompt({
         type: 'input',
-        name: 'extension',
-        message: "Extension module name (e.g. 'Store')",
+        name: 'name',
+        message: "Entity name (e.g. 'User')",
         validate: (input) => {
           if (!input.trim()) {
-            return 'Extension name is required';
+            return 'Entity name is required';
           }
+
           return true;
         },
-        format: (input) => input.trim(),
+        format: (input) => {
+          return input.trim();
+        },
       })
-      .then(
-        collectPromisesResults(() => {
-          return prompter.prompt({
-            type: 'input',
-            name: 'name',
-            message: "Entity name (e.g. 'Product')",
-            validate: (input) => {
-              if (!input.trim()) {
-                return 'Entity name is required';
-              }
-              return true;
-            },
-            format: (input) => {
-              return input.trim();
-            },
-          });
-        })
-      )
       .then(
         collectPromisesResults(() => {
           return prompter.prompt({
@@ -175,7 +158,20 @@ module.exports = {
                   type: 'select',
                   name: 'type',
                   message: 'Property type',
-                  choices: ['string', 'number', 'boolean', 'Date'],
+                  choices: [
+                    'string',
+                    'text',
+                    'number',
+                    'decimal',
+                    'boolean',
+                    'Date',
+                    'timestamp',
+                    'uuid',
+                    'json',
+                    'jsonb',
+                    'array',
+                    'enum',
+                  ],
                 });
               }),
             );
@@ -225,7 +221,7 @@ module.exports = {
       result.referenceType === 'oneToMany'
     ) {
       execSync(
-        `npm run add:extension-property -- --extension ${result.extension} --name ${result.type} --property ${result.propertyInReference} --propertyInReference ${result.property} --kind ${result.kind} --type ${result.name} --referenceType manyToOne --isAddToDto ${result.isAddToDto} --isOptional false --isNullable false`,
+        `npm run add:property -- --name ${result.type} --property ${result.propertyInReference} --propertyInReference ${result.property} --kind ${result.kind} --type ${result.name} --referenceType manyToOne --isAddToDto ${result.isAddToDto} --isOptional false --isNullable false`,
         {
           stdio: 'inherit',
         },

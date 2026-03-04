@@ -7,12 +7,12 @@
 - [] Probar de asegurar un enpoint con decorador de roles y si es el mismo usuario del recurso y en el front tambien
 - [x] Crear documentación de como usar el proyecto y como esta organizado
 - [] Revisar los api tokens
-- [] Estandarizador de implementar Webhooks
+- [] Estandarizador de implementar Webhooks (crear observers)
 
 ---
 
 - [] Quitar apartados de config
-- [] Sistema de traducciones decente
+- [x] Sistema de traducciones decente
 - [] Traducir la app a español
 - [] Traducir la app a ingles
 - [] En las traducciones, tabla con paginación de api rest, con busqueda y filtro como los demás + utilizar componente de tabla
@@ -24,6 +24,8 @@
   - [] Como traducir
   - [] Como quitar traducciones
   - [] Como añadir traducciones (comando, escribir en el archivo, via ui)
+
+- en las traducciones, añadir un sidebar derecho donde muestre todos los tokens de la página, con un buscador y un toggle para hacer highlight de todos los de la página, al hacer hover a un token del sidebar también se hace highlight en la página. Al hacer click mostraría el modal de edición
 
 Probar que todo funcione y pensar como funciona el sync en despliegue, solo mostrar el boton flotante en dev
 
