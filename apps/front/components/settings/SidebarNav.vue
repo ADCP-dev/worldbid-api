@@ -21,8 +21,8 @@ const sidebarNavItems: Item[] = [
       v-for="item in sidebarNavItems"
       :key="item.title"
       :to="item.href"
-      class="btn btn-ghost justify-start w-full text-left"
-      :class="[route.path === item.href ? 'text-primary-content bg-gradient-to-r from-primary/10 to-primary' : '']"
+      class="btn btn-ghost justify-start w-full text-left rounded-none rounded-r-sm border-l-1"
+      :class="[route.path === item.href ? 'text-primary-content border-l-primary bg-primary/10' : 'border-l-transparent']"
     >
       {{ item.title }}
     </NuxtLink>

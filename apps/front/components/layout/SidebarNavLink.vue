@@ -9,19 +9,20 @@ withDefaults(defineProps<{
   size: 'default',
 })
 
-const closeDrawer = () => {
-  if (typeof document !== 'undefined') {
-    const el = document.getElementById('main-drawer') as HTMLInputElement
-    if (el) el.checked = false
-  }
-}
+// const closeDrawer = () => {
+//   if (typeof document !== 'undefined') {
+//     const el = document.getElementById('main-drawer') as HTMLInputElement
+//     if (el) el.checked = false
+//   }
+// }
 </script>
 
 <template>
   <li>
     <NuxtLink
       :to="item.link"
-      exact-active-class="active bg-gradient-to-r from-primary/10 to-primary"
+      class="rounded-none rounded-e-sm"
+      exact-active-class="active menu-active border-l-1 border-l-primary bg-primary/10"
     >
       <template #default="{ isExactActive }">
         <button class="is-drawer-close:tooltip is-drawer-close:tooltip-right gap-2 w-full flex items-center is-drawer-close:justify-center" :data-tip="item.title">

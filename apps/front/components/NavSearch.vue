@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useNavMenu } from '~/composables/useNavMenu'
-import { computed, ref, watch, nextTick } from 'vue'
-import { onKeyStroke, onClickOutside } from '@vueuse/core'
+import { computed, ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { onClickOutside } from '@vueuse/core'
 
 const { metaSymbol } = useShortcuts()
 
@@ -10,6 +10,7 @@ const searchQuery = ref('')
 const activeIndex = ref(0)
 const modalRef = ref<HTMLElement | null>(null)
 const resultsListRef = ref<HTMLElement | null>(null)
+const inputRef = ref<HTMLInputElement | null>(null)
 const { route: homeRoute } = useHomeRoute()
 
 defineShortcuts({
@@ -17,6 +18,9 @@ defineShortcuts({
     openCommand.value = true
     searchQuery.value = ''
     activeIndex.value = 0
+    nextTick(() => {
+      inputRef.value?.focus()
+    })
   },
 })
 
@@ -54,8 +58,8 @@ watch(filteredItems, () => {
   activeIndex.value = 0
 })
 
-// Keyboard navigation using VueUse
-onKeyStroke(['ArrowDown', 'ArrowUp', 'Enter'], (event) => {
+// Use window-level keydown listener when modal is open
+function handleGlobalKeydown(event: KeyboardEvent) {
   if (!openCommand.value) return
 
   const len = filteredItems.value.length
@@ -70,12 +74,21 @@ onKeyStroke(['ArrowDown', 'ArrowUp', 'Enter'], (event) => {
     event.preventDefault()
     scrollActiveIntoView()
   } else if (event.key === 'Enter') {
+    event.preventDefault()
     const activeItem = filteredItems.value[activeIndex.value]
     if (activeItem) {
       handleSelectLink(activeItem.link)
-      event.preventDefault()
     }
   }
+}
+
+// Register global listener
+onMounted(() => {
+  window.addEventListener('keydown', handleGlobalKeydown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleGlobalKeydown)
 })
 
 function scrollActiveIntoView() {
@@ -87,24 +100,6 @@ function scrollActiveIntoView() {
   })
 }
 
-// Define shortcuts based on all available menu items
-const defineMenuShortcuts = () => {
-  const shortcuts: Record<string, () => void> = {
-    'G-H': () => navigateTo(homeRoute.value),
-  }
-  allItems.value.forEach((item: any) => {
-    if (item.shortcut && item.link) {
-      shortcuts[item.shortcut] = () => navigateTo(item.link)
-    }
-  })
-  return shortcuts
-}
-
-// Keep shortcuts in sync
-watch(allItems, () => {
-  defineShortcuts(defineMenuShortcuts())
-}, { immediate: true })
-
 function handleSelectLink(link: string) {
   navigateTo(link)
   openCommand.value = false
@@ -115,14 +110,25 @@ function handleSelectLink(link: string) {
 onClickOutside(modalRef, () => {
   openCommand.value = false
 })
+
+function handleOpenModal() {
+  openCommand.value = true
+  nextTick(() => {
+    inputRef.value?.focus()
+  })
+}
 </script>
 
 <template>
   <li>
-    <button class="btn btn-outline btn-sm text-xs w-full justify-start border-base-content/20" @click="openCommand = !openCommand">
+    <button
+      class="btn btn-outline btn-sm text-xs w-full is-drawer-close:justify-center justify-start border-base-content/20 is-drawer-close:btn-circle"
+      :class="{ 'is-drawer-close:btn-ghost': !openCommand }"
+      @click="handleOpenModal"
+    >
       <AppIcon name="Search" class="size-4" />
-      <span class="font-normal flex-1 text-left">Buscar...</span>
-      <div class="ml-auto flex items-center gap-1 opacity-50">
+      <span class="font-normal flex-1 text-left is-drawer-close:hidden">Buscar...</span>
+      <div class="ml-auto flex items-center gap-1 opacity-50 is-drawer-close:hidden">
         <kbd class="kbd kbd-sm">{{ metaSymbol }}</kbd>
         <kbd class="kbd kbd-sm">K</kbd>
       </div>
@@ -134,11 +140,11 @@ onClickOutside(modalRef, () => {
       <div class="modal-box p-0 overflow-hidden flex flex-col h-[80vh] max-h-[400px] mt-16 sm:mt-0" ref="modalRef">
         <div class="p-4 border-b border-base-300">
           <input
+            ref="inputRef"
             type="text"
             placeholder="Buscar..."
             class="input input-bordered w-full"
             v-model="searchQuery"
-            autofocus
           />
         </div>
 
@@ -148,9 +154,9 @@ onClickOutside(modalRef, () => {
 
         <ul v-else class="menu flex-1 overflow-y-auto w-full p-2 flex-nowrap" ref="resultsListRef">
           <li v-for="(nav, index) in filteredItems" :key="nav.link">
-            <a 
-              class="flex items-center gap-2" 
-              :class="{ 'active': activeIndex === index }"
+            <a
+              class="flex items-center gap-2"
+              :class="{ 'bg-primary text-primary-content': activeIndex === index }"
               @click="handleSelectLink(nav.link)"
               @mouseenter="activeIndex = index"
             >
