@@ -31,17 +31,17 @@ const user: {
 
 <template>
   <div class="is-drawer-close:w-16 is-drawer-open:w-72 border-r min-h-full bg-base-300 flex flex-col relative transition-all duration-300">
-    <div class="p-4 flex flex-col gap-4 w-full">
+    <label for="main-drawer" class="absolute -right-2 top-0 bottom-0 w-4 cursor-e-resize z-50 hover:bg-primary/10 transition-colors"></label>
+
+    <div class="is-drawer-close:p-2 p-4 flex flex-col gap-4 w-full">
       <div>
         <AppLogo />
       </div>
-      <div class="is-drawer-close:hidden">
-        <NavSearch />
-      </div>
+      <NavSearch />
     </div>
 
-    <div class="flex-1 overflow-x-hidden overflow-y-auto is-drawer-close:overflow-visible w-full px-2">
-      <ul class="menu w-full" v-for="(nav, indexGroup) in navMenu" :key="indexGroup">
+    <div class="flex-1 overflow-x-hidden overflow-y-auto is-drawer-close:overflow-visible w-full is-drawer-close:px-0 px-2">
+      <ul class="menu w-full gap-1" v-for="(nav, indexGroup) in navMenu" :key="indexGroup">
         <li v-if="nav.heading" class="menu-title uppercase text-xs font-semibold py-2 is-drawer-close:hidden">
           {{ nav.heading }}
         </li>
@@ -53,7 +53,7 @@ const user: {
       </ul>
     </div>
 
-    <div class="p-4 mt-auto border-t w-full">
+    <div class="mt-auto border-t w-full">
       <NavUser :user="user" />
     </div>
   </div>
