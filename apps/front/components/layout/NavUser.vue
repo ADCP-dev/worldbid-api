@@ -53,22 +53,13 @@ const closeDrawer = () => {
       </li>
       <div class="divider my-0"></div>
       <li>
-        <a><Sparkles class="w-4 h-4" /> Upgrade to Pro</a>
-      </li>
-      <div class="divider my-0"></div>
-      <li>
         <NuxtLink to="/app/settings/profile" @click="closeDrawer">
-          <User class="w-4 h-4" /> Account
-        </NuxtLink>
-      </li>
-      <li>
-        <NuxtLink to="/app/settings/notifications" @click="closeDrawer">
-          <Bell class="w-4 h-4" /> Notifications
+          <User class="w-4 h-4" /> {{ $t('base.nav.account') }}
         </NuxtLink>
       </li>
       <div class="divider my-0"></div>
       <li>
-        <a @click="logout"><LogOut class="w-4 h-4" /> Cerrar sesión</a>
+        <a @click="logout"><LogOut class="w-4 h-4" /> {{ $t('base.nav.logout') }}</a>
       </li>
     </ul>
   </div>

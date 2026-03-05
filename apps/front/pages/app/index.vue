@@ -58,16 +58,16 @@ onMounted(() => {
 <template>
   <div class="w-full flex flex-col gap-4">
     <div class="flex flex-wrap items-center justify-between gap-2">
-      <h2 class="text-2xl font-bold tracking-tight">Dashboard</h2>
+      <h2 class="text-2xl font-bold tracking-tight">{{ $t('app.dashboard.title') }}</h2>
       <div class="flex items-center gap-2">
         <BaseDateRangePicker />
-        <button class="btn btn-primary">Download</button>
+        <button class="btn btn-primary">{{ $t('app.dashboard.download') }}</button>
       </div>
     </div>
     <main class="flex flex-1 flex-col gap-4 md:gap-8">
       <div class="grid gap-4 lg:grid-cols-4 md:grid-cols-2 md:gap-8">
         <DashboardCard
-          title="Total Revenue"
+          :title="$t('app.dashboard.totalRevenue')"
           :icon="DollarSign"
           :value="dataCard.totalRevenue"
           :value-format="{
@@ -78,39 +78,39 @@ onMounted(() => {
           :description-value="dataCard.totalRevenueDesc"
           description-prefix="+"
           :description-format="{ style: 'percent', minimumFractionDigits: 1 }"
-          description-suffix="from last month"
+          :description-suffix="$t('app.dashboard.fromLastMonth')"
         />
 
         <DashboardCard
-          title="Subscriptions"
+          :title="$t('app.dashboard.subscriptions')"
           :icon="Users"
           :value="dataCard.subscriptions"
           value-prefix="+"
           :description-value="dataCard.subscriptionsDesc"
           description-prefix="+"
           :description-format="{ style: 'percent', minimumFractionDigits: 1 }"
-          description-suffix="from last month"
+          :description-suffix="$t('app.dashboard.fromLastMonth')"
         />
 
         <DashboardCard
-          title="Sales"
+          :title="$t('app.dashboard.sales')"
           :icon="CreditCard"
           :value="dataCard.sales"
           value-prefix="+"
           :description-value="dataCard.salesDesc"
           description-prefix="+"
           :description-format="{ style: 'percent', minimumFractionDigits: 1 }"
-          description-suffix="from last month"
+          :description-suffix="$t('app.dashboard.fromLastMonth')"
         />
 
         <DashboardCard
-          title="Active Now"
+          :title="$t('app.dashboard.activeNow')"
           :icon="Activity"
           :value="dataCard.activeNow"
           value-prefix="+"
           :description-value="dataCard.activeNowDesc"
           description-prefix="+"
-          description-suffix="since last hour"
+          :description-suffix="$t('app.dashboard.sinceLastHour')"
         />
       </div>
 
@@ -119,7 +119,7 @@ onMounted(() => {
           class="card bg-base-100 shadow-sm border border-base-300 xl:col-span-2"
         >
           <div class="card-body p-6">
-            <h3 class="card-title text-lg font-semibold">Overview</h3>
+            <h3 class="card-title text-lg font-semibold">{{ $t('app.dashboard.overview') }}</h3>
             <div class="pl-2">
               <!-- <DashboardOverview /> -->
             </div>
@@ -128,7 +128,7 @@ onMounted(() => {
 
         <div class="card bg-base-100 shadow-sm border border-base-300">
           <div class="card-body p-6 gap-8">
-            <h3 class="card-title text-lg font-semibold">Recent Sales</h3>
+            <h3 class="card-title text-lg font-semibold">{{ $t('app.dashboard.recentSales') }}</h3>
             <div class="grid gap-8">
               <div
                 v-for="recentSales in dataRecentSales"

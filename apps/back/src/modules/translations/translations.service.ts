@@ -321,22 +321,44 @@ export class TranslationsService {
         },
       });
 
-      // Group by App -> TopLevelSection -> RestOfKey
-      const groupedData: Record<string, Record<string, any>> = {
+      // Group by App -> "subFolder/topLevelSection" -> RestOfKey
+      // Key format: "subFolder|topLevelSection" to distinguish folder vs section
+      const groupedData: Record<
+        string,
+        Record<string, { subFolder: string; data: Record<string, any> }>
+      > = {
         front: {},
         back: {},
       };
 
       for (const t of translations) {
         const fullPath = t.section ? `${t.section}.${t.key}` : t.key;
-        const firstDotIndex = fullPath.indexOf('.');
-        let topLevelSection = fullPath;
+
+        // Detect colon separator: "base:auth.loginPage.key" or "landing.hero.key"
+        const colonIdx = fullPath.indexOf(':');
+        let subFolder = ''; // e.g. "base" or "base/admin"
+        let pathAfterFolder = fullPath; // everything after the colon
+
+        if (colonIdx !== -1) {
+          // Replace dots with path separator for subfolder
+          subFolder = fullPath.substring(0, colonIdx).replace(/\./g, path.sep);
+          pathAfterFolder = fullPath.substring(colonIdx + 1);
+        }
+
+        // Now extract the top-level section (filename) from pathAfterFolder
+        const firstDotIndex = pathAfterFolder.indexOf('.');
+        let topLevelSection = pathAfterFolder;
         let restOfPath = '';
 
         if (firstDotIndex !== -1) {
-          topLevelSection = fullPath.substring(0, firstDotIndex);
-          restOfPath = fullPath.substring(firstDotIndex + 1);
+          topLevelSection = pathAfterFolder.substring(0, firstDotIndex);
+          restOfPath = pathAfterFolder.substring(firstDotIndex + 1);
         }
+
+        // Unique key per output file: combine subFolder and topLevelSection
+        const fileKey = subFolder
+          ? `${subFolder}|${topLevelSection}`
+          : topLevelSection;
 
         // Determine destination apps
         const targetApps: ('front' | 'back' | 'common')[] = [];
@@ -345,17 +367,17 @@ export class TranslationsService {
         else targetApps.push('front', 'back'); // 'common' or null defaults to both
 
         for (const targetApp of targetApps) {
-          if (!groupedData[targetApp][topLevelSection]) {
-            groupedData[targetApp][topLevelSection] = {};
+          if (!groupedData[targetApp][fileKey]) {
+            groupedData[targetApp][fileKey] = { subFolder, data: {} };
           }
           if (restOfPath) {
             this.setDeepValue(
-              groupedData[targetApp][topLevelSection],
+              groupedData[targetApp][fileKey].data,
               restOfPath,
               t.content,
             );
           } else {
-            groupedData[targetApp][topLevelSection] = t.content;
+            groupedData[targetApp][fileKey].data = t.content as any;
           }
         }
       }
@@ -367,10 +389,21 @@ export class TranslationsService {
 
         await fs.mkdir(langPath, { recursive: true });
 
-        for (const [sectionName, data] of Object.entries(sections)) {
+        for (const [fileKey, { subFolder, data }] of Object.entries(sections)) {
+          // Extract filename from fileKey (after the '|' if present)
+          const pipeIdx = fileKey.indexOf('|');
+          const sectionName =
+            pipeIdx !== -1 ? fileKey.substring(pipeIdx + 1) : fileKey;
+
+          // Build the target directory (lang dir + optional subfolder)
+          const targetDir = subFolder
+            ? path.join(langPath, subFolder)
+            : langPath;
+          await fs.mkdir(targetDir, { recursive: true });
+
           const jsonContent = JSON.stringify(data, null, 2);
           const fileName = `${sectionName}.json`;
-          await fs.writeFile(path.join(langPath, fileName), jsonContent);
+          await fs.writeFile(path.join(targetDir, fileName), jsonContent);
         }
       }
     }

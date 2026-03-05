@@ -1,0 +1,24 @@
+{
+  "goBack": "Go back",
+  "goHome": "Back to home",
+  "401": {
+    "title": "Unauthorized",
+    "description": "Please log in with appropriate credentials <br> to access this resource."
+  },
+  "403": {
+    "title": "Access denied",
+    "description": "You do not have permission to view this resource."
+  },
+  "404": {
+    "title": "Oops! Page not found",
+    "description": "It seems the page you are looking for <br> does not exist or may have been deleted."
+  },
+  "500": {
+    "title": "Oops! Something went wrong :')",
+    "description": "We apologize for the inconvenience. <br> Please try again later."
+  },
+  "503": {
+    "title": "Site under maintenance",
+    "description": "The site is currently unavailable. <br> We will be back online soon."
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "title": "Languages",
+  "addLanguageBtn": "Add Language",
+  "addLanguageDialogTitle": "Add Language",
+  "editLanguageDialogTitle": "Edit Language",
+  "code": "Code",
+  "flagCode": "Flag Code",
+  "name": "Name",
+  "active": "Active",
+  "cancelBtn": "Cancel",
+  "saveBtn": "Save",
+  "updateBtn": "Update",
+  "confirmDelete": "Are you sure you want to delete this language?",
+  "tableFlag": "Flag",
+  "tableCode": "Code",
+  "tableName": "Name",
+  "tableActive": "Active",
+  "tableActions": "Actions"
+}

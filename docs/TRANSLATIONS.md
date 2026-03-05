@@ -18,7 +18,7 @@ Two main entities manage the translations:
 - `isActive`: Toggle availability.
 
 **Translation (`translation`)**
-- `section`: Namespace for organization (e.g., `landing.hero`).
+- `section`: Namespace for organization (e.g., `base:auth.loginPage`).
 - `key`: Specific identifier (e.g., `title`).
 - `content`: The translated text.
 - `lang`: Foreign key to `Lang`.
@@ -27,19 +27,46 @@ Two main entities manage the translations:
 
 If `entityName` and `entityId` are `null`, the translation is considered **Static**. Otherwise, it is **Dynamic**.
 
+---
+
+## Subfolder Convention (`:` separator)
+
+The `section` field supports a **colon separator** to organize JSON files into subdirectories.
+
+**Format**: `[folderPath:]fileSection.keyPath`
+
+| DB `section` value | Output file | Vue i18n key |
+|---|---|---|
+| `landing.hero` | `locales/en/landing.json` | `$t('landing.hero.title')` |
+| `base:auth.loginPage` | `locales/en/base/auth.json` | `$t('base.auth.loginPage.title')` |
+| `base:nav` | `locales/en/base/nav.json` | `$t('base.nav.general')` |
+| `base.admin:users.form` | `locales/en/base/admin/users.json` | `$t('base.admin.users.form.title')` |
+
+**Rules:**
+- Everything **before** `:` is the subfolder path (dots become path separators).
+- Everything **after** `:` is the JSON filename + key path within it.
+- If there is **no colon**, the file is written at the lang root (e.g., `landing.json`).
+
+**Current layout:**
+- `locales/[lang]/landing.json` — kept at root, no changes.
+- `locales/[lang]/base/` — all other front static files (auth, nav, settings, error, app).
+
+---
+
 ## Workflows
 
 ### 1. Development (JSON -> DB)
 
-Developers add new translation keys directly to the JSON files located in `apps/back/src/i18n/*.json`.
+Developers add new translation keys directly to the JSON files located in `apps/front/locales/[lang]/base/*.json` (or `apps/back/src/i18n/*.json` for back-end).
 
 When the seed command runs:
 ```bash
 npm run seed:run
 ```
 The `TranslationSeedService`:
-1.  Reads the JSON files.
-2.  Flattens the structure (e.g., `{"landing": {"hero": "Title"}}` -> `landing.hero = Title`).
+1.  Reads the JSON files **recursively** (including subdirectories).
+2.  Flattens the structure, encoding the subfolder path into the `section` with `:` separator.
+    e.g., `base/auth.json` → keys stored as `section: "base:auth.loginPage"`, `key: "description"`.
 3.  Checks the database for existing keys (by `lang`, `section`, `key`).
 4.  **Inserts only new keys.** Existing database values are preserved to respect admin edits.
 
@@ -58,7 +85,7 @@ Developers can quickly scaffold new keys without relying on the UI by utilizing 
 ```bash
 npm run i18n:add
 ```
-> Within `apps/back`, this interactive script will prompt for the App Context (`front`/`back`), `section`, `key`, and the content for each available language. It saves them linearly to the generated DB structure.
+> Within `apps/back`, this interactive script will prompt for the App Context (`front`/`back`), `section`, `key`, and the content for each available language. Use the `:` convention in `section` for subfolders (e.g., `base:auth.loginPage`).
 
 ### 4. Deployment / Static Generation (DB -> JSON)
 
@@ -70,7 +97,8 @@ To update the frontend with changes made in the Admin UI or CLI (for static labe
 This service:
 1.  Fetches all translations from the DB.
 2.  Groups them by Language and Target Application.
-3.  Writes the structured JSON files to `apps/front/locales/` or `apps/back/src/i18n/`.
+3.  Parses the `:` separator in `section` to determine the output subfolder.
+4.  Writes the structured JSON files — e.g., `base:auth.*` entries → `locales/en/base/auth.json`.
 
 ### 5. Developer Tools (Dev Mode Toggle)
 
@@ -80,7 +108,7 @@ While developing locally (`NODE_ENV=development`), you will notice a floating **
 
 When you click this toggle, it activates `i18n-show-keys` mode:
 1. It intercepts all `$t()` translator calls globally.
-2. It visually exposes the raw Translation Token Key directly in the UI layout (e.g., you will literally see `landing.hero.start` inside your buttons instead of "Empieza Gratis").
+2. It visually exposes the raw Translation Token Key directly in the UI layout (e.g., you will literally see `base.auth.loginPage.description` inside your buttons instead of "Inicia sesión para entrar en tu cuenta").
 
 ![Exposed Keys](./assets/landing_page_keys_exposed_1771846347730.png)
 

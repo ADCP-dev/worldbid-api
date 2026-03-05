@@ -12,16 +12,14 @@ const router = useRouter()
       <h1 class="text-[7rem] font-bold leading-tight">
         403
       </h1>
-      <span class="font-medium">Acceso no autorizado</span>
-      <p class="text-center text-muted-foreground">
-        No tienes permiso para ver este recurso.
-      </p>
+      <span class="font-medium">{{ $t('base.error.403.title') }}</span>
+      <p class="text-center text-muted-foreground" v-html="$t('base.error.403.description')"></p>
       <div class="mt-6 flex gap-4">
         <Button variant="outline" @click="router.back()">
-          Volver
+          {{ $t('base.error.goBack') }}
         </Button>
         <Button @click="navigateTo('/')">
-          Volver al inicio
+          {{ $t('base.error.goHome') }}
         </Button>
       </div>
     </div>

@@ -14,19 +14,19 @@ definePageMeta({
         <div class="card-body gap-8 p-8 sm:p-12">
           <div class="text-center space-y-2">
             <h2 class="card-title text-3xl justify-center font-bold">
-              Contraseña olvidada
+              {{ $t('base.auth.forgotPassword.title') }}
             </h2>
             <p class="text-sm text-base-content/60">
-              Introduce tu correo electrónico para restablecer tu contraseña
+              {{ $t('base.auth.forgotPassword.description') }}
             </p>
           </div>
 
           <AuthForgotPassword />
 
           <p class="text-center text-sm text-base-content/60">
-            ¿Tienes una cuenta?
+            {{ $t('base.auth.haveAccount') }}
             <NuxtLink to="/login" class="link link-primary no-underline font-medium">
-              Iniciar sesión
+              {{ $t('base.auth.signIn') }}
             </NuxtLink>
           </p>
         </div>

@@ -12,17 +12,14 @@ const router = useRouter()
       <h1 class="text-[7rem] font-bold leading-tight">
         503
       </h1>
-      <span class="font-medium">Sitio en mantenimiento</span>
-      <p class="text-center text-muted-foreground">
-        El sitio no está disponible en este momento. <br>
-        Volveremos en línea pronto.
-      </p>
+      <span class="font-medium">{{ $t('base.error.503.title') }}</span>
+      <p class="text-center text-muted-foreground" v-html="$t('base.error.503.description')"></p>
       <div class="mt-6 flex gap-4">
         <Button variant="outline" @click="router.back()">
-          Volver
+          {{ $t('base.error.goBack') }}
         </Button>
         <Button @click="navigateTo('/')">
-          Volver al inicio
+          {{ $t('base.error.goHome') }}
         </Button>
       </div>
     </div>

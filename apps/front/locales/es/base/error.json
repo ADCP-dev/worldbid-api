@@ -1,0 +1,24 @@
+{
+  "goBack": "Volver",
+  "goHome": "Volver al inicio",
+  "401": {
+    "title": "Acceso no autorizado",
+    "description": "Por favor, inicia sesión con las credenciales apropiadas <br> para acceder a este recurso."
+  },
+  "403": {
+    "title": "Acceso denegado",
+    "description": "No tienes permiso para ver este recurso."
+  },
+  "404": {
+    "title": "¡Oops! Página no encontrada",
+    "description": "Parece que la página que estás buscando <br> no existe o puede haber sido eliminada."
+  },
+  "500": {
+    "title": "¡Oops! Algo salió mal :')",
+    "description": "Nos disculpamos por el inconveniente. <br> Por favor, inténtalo de nuevo más tarde."
+  },
+  "503": {
+    "title": "Sitio en mantenimiento",
+    "description": "El sitio no está disponible en este momento. <br> Volveremos en línea pronto."
+  }
+}

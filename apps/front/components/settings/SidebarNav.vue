@@ -1,18 +1,21 @@
 <script setup lang="ts">
 
+import { useI18n } from 'vue-i18n'
+
 interface Item {
   title: string
   href: string
 }
 
 const route = useRoute()
+const { t } = useI18n()
 
-const sidebarNavItems: Item[] = [
+const sidebarNavItems = computed<Item[]>(() => [
   {
-    title: 'Profile',
+    title: t('base.settings.profile.title'),
     href: '/app/settings/profile',
   },
-]
+])
 </script>
 
 <template>

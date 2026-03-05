@@ -5,6 +5,9 @@ import DeleteButton from '@/modules/ui-app/components/data-table/buttons/DeleteB
 import { Pencil } from 'lucide-vue-next';
 import FormInput from '~/modules/ui-app/components/form/FormInput.vue'
 import FormSwitch from '~/modules/ui-app/components/form/FormSwitch.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const { getLangs, createLang, updateLang, deleteLang } = useTranslations();
 
@@ -67,7 +70,7 @@ const handleEditSubmit = async () => {
 };
 
 const handleDelete = async (id: number) => {
-  if (confirm('Are you sure?')) {
+  if (confirm(t('base.languages.confirmDelete'))) {
     try {
       await deleteLang(id);
       fetchLangs();
@@ -83,23 +86,23 @@ onMounted(fetchLangs);
 <template>
   <div class="p-1 md:p-6">
     <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold">Languages</h1>
-      <button class="btn btn-primary" @click="isDialogOpen = true">Add Language</button>
+      <h1 class="text-2xl font-bold">{{ $t('base.languages.title') }}</h1>
+      <button class="btn btn-primary" @click="isDialogOpen = true">{{ $t('base.languages.addLanguageBtn') }}</button>
 
       <!-- Add Dialog -->
       <dialog class="modal" :class="{'modal-open': isDialogOpen}">
         <div class="modal-box">
-          <h3 class="font-bold text-lg mb-4">Add Language</h3>
+          <h3 class="font-bold text-lg mb-4">{{ $t('base.languages.addLanguageDialogTitle') }}</h3>
           <div class="flex flex-col gap-4 py-4">
-            <FormInput v-model="newLang.code" label="Code" placeholder="en" required />
-            <FormInput v-model="newLang.flagCode" label="Flag Code" placeholder="gb" required />
-            <FormInput v-model="newLang.name" label="Name" placeholder="English" required />
+            <FormInput v-model="newLang.code" :label="$t('base.languages.code')" placeholder="en" required />
+            <FormInput v-model="newLang.flagCode" :label="$t('base.languages.flagCode')" placeholder="gb" required />
+            <FormInput v-model="newLang.name" :label="$t('base.languages.name')" placeholder="English" required />
 
-            <FormSwitch v-model="newLang.isActive" label="Active" />
+            <FormSwitch v-model="newLang.isActive" :label="$t('base.languages.active')" />
           </div>
           <div class="modal-action">
-            <button class="btn btn-ghost" @click="isDialogOpen = false">Cancel</button>
-            <button class="btn btn-primary" @click="handleCreate">Save</button>
+            <button class="btn btn-ghost" @click="isDialogOpen = false">{{ $t('base.languages.cancelBtn') }}</button>
+            <button class="btn btn-primary" @click="handleCreate">{{ $t('base.languages.saveBtn') }}</button>
           </div>
         </div>
         <form method="dialog" class="modal-backdrop" @click="isDialogOpen = false">
@@ -112,11 +115,11 @@ onMounted(fetchLangs);
       <table class="table table-zebra w-full">
         <thead>
           <tr class="bg-base-200">
-            <th>Flag</th>
-            <th>Code</th>
-            <th>Name</th>
-            <th>Active</th>
-            <th class="w-[100px]">Actions</th>
+            <th>{{ $t('base.languages.tableFlag') }}</th>
+            <th>{{ $t('base.languages.tableCode') }}</th>
+            <th>{{ $t('base.languages.tableName') }}</th>
+            <th>{{ $t('base.languages.tableActive') }}</th>
+            <th class="w-[100px]">{{ $t('base.languages.tableActions') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -145,17 +148,17 @@ onMounted(fetchLangs);
     <!-- Edit Dialog -->
     <dialog class="modal" :class="{'modal-open': isEditDialogOpen}">
       <div class="modal-box">
-        <h3 class="font-bold text-lg mb-4">Edit Language</h3>
+        <h3 class="font-bold text-lg mb-4">{{ $t('app.languages.editLanguageDialogTitle') }}</h3>
         <div class="flex flex-col gap-4 py-4" v-if="editingLang">
-          <FormInput v-model="editingLang.code" label="Code" placeholder="en" required />
-          <FormInput v-model="editingLang.flagCode" label="Flag Code" placeholder="gb" required />
-          <FormInput v-model="editingLang.name" label="Name" placeholder="English" required />
+          <FormInput v-model="editingLang.code" :label="$t('app.languages.code')" placeholder="en" required />
+          <FormInput v-model="editingLang.flagCode" :label="$t('app.languages.flagCode')" placeholder="gb" required />
+          <FormInput v-model="editingLang.name" :label="$t('app.languages.name')" placeholder="English" required />
 
-          <FormSwitch v-model="editingLang.isActive" label="Active" />
+          <FormSwitch v-model="editingLang.isActive" :label="$t('app.languages.active')" />
         </div>
         <div class="modal-action">
-          <button class="btn btn-ghost" @click="isEditDialogOpen = false; editingLang = null">Cancel</button>
-          <button class="btn btn-primary" @click="handleEditSubmit">Update</button>
+          <button class="btn btn-ghost" @click="isEditDialogOpen = false; editingLang = null">{{ $t('base.languages.cancelBtn') }}</button>
+          <button class="btn btn-primary" @click="handleEditSubmit">{{ $t('base.languages.updateBtn') }}</button>
         </div>
       </div>
       <form method="dialog" class="modal-backdrop" @click="isEditDialogOpen = false; editingLang = null">

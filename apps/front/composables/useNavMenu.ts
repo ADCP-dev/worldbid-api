@@ -1,48 +1,56 @@
 import type { NavMenu, NavMenuItems } from "~/types/nav";
+import { useI18n } from "vue-i18n";
 
 export function useNavMenu() {
   const authStore = useAuthStore();
   const config = useRuntimeConfig();
-
-  const baseGeneral: NavMenu = {
-    heading: "General",
-    items: [
-      {
-        title: "Home",
-        icon: "House",
-        link: "/app",
-      },
-      {
-        title: "Settings",
-        icon: "Settings",
-        link: "/app/settings/profile",
-      },
-    ],
-  };
+  const { t } = useI18n();
 
   const navMenu = computed<NavMenu[]>(() => {
+    const baseGeneral: NavMenu = {
+      heading: t("base.nav.general"),
+      items: [
+        {
+          title: t("base.nav.home"),
+          icon: "House",
+          link: "/app",
+        },
+        {
+          title: t("base.nav.settings"),
+          icon: "Settings",
+          link: "/app/settings/profile",
+        },
+      ],
+    };
+
     const menu: NavMenu[] = [baseGeneral];
 
-    // if (authStore.isAdmin) {
-    //   menu.push({
-    //     heading: "Admin",
-    //     items: [
-    //       {
-    //         title: "Dashboard",
-    //         icon: "House",
-    //         link: "/admin/dashboard",
-    //         new: true,
-    //       },
-    //     ],
-    //   });
-    // }
+    if (authStore.isAdmin) {
+      menu.push({
+        heading: t("base.nav.admin"),
+        items: [
+          {
+            title: t("base.nav.users"),
+            icon: "Users",
+            link: "/admin/users",
+          },
+        ],
+      });
+    }
 
     // Dynamic menu items from modules
     const dynamicItems = useState<NavMenu[]>("nav:menuItems", () => []);
 
-    // Merge base items with dynamic items
+    // Merge base items with dynamic items and translate
     dynamicItems.value.forEach((item) => {
-      menu.push(item);
+      menu.push({
+        ...item,
+        heading: item.heading ? t(item.heading) : undefined,
+        items: item.items.map(subItem => ({
+          ...subItem,
+          title: t(subItem.title),
+        }))
+      });
     });
 
     return menu;

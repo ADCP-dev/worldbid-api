@@ -1,0 +1,22 @@
+{
+  "title": "Traducciones",
+  "section": "Sección",
+  "key": "Clave",
+  "translations": "Traducciones",
+  "actions": "Acciones",
+  "autoTranslateBtn": "Traducir automáticamente",
+  "bulkTranslatingMsg": "Traduciendo...",
+  "generateJsonBtn": "Generar JSON",
+  "generatingMsg": "Generando...",
+  "frontAppTab": "Frontend",
+  "backAppTab": "Backend",
+  "confirmDelete": "¿Estás seguro de que quieres eliminar este grupo de traducción?",
+  "toast": {
+    "deleted": "Traducción eliminada correctamente.",
+    "deleteFailed": "Error al eliminar la traducción.",
+    "generated": "Archivos JSON generados correctamente.",
+    "generateFailed": "Error al generar los archivos JSON.",
+    "bulkComplete": "Traducción masiva completada.",
+    "bulkFailed": "La traducción masiva falló"
+  }
+}

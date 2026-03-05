@@ -13,21 +13,13 @@ definePageMeta({
           <AppLogo />
         </h1>
         <p class="text-balance text-sm text-base-content/60">
-          Inicia sesión para entrar en tu cuenta
+          {{ $t('base.auth.loginPage.description') }}
         </p>
       </div>
-      
+
       <AuthSignIn />
-      
-      <p class="text-center mt-5 text-xs text-base-content/60">
-        Al iniciar sesión confirmas que has leído, comprendes y aceptas nuestros
-        <a href="https://ACME.com/terms-of-use.html" class="link link-primary no-underline">Términos y
-          Condiciones</a>, así como nuestra
-        <a href="https://ACME.com/privacy-policy.html" class="link link-primary no-underline">Política de
-          Privacidad</a>. Copyright © {{ new Date().getFullYear() }}
-        <a href="https://ACME.com" class="link link-primary no-underline">ACME Coorporate, S.L.</a>.
-        Todos los derechos reservados.
-      </p>
+
+      <p class="text-center mt-5 text-xs text-base-content/60" v-html="$t('base.auth.terms.login', { year: new Date().getFullYear() })"></p>
     </div>
   </AuthLayout>
 </template>

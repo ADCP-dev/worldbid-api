@@ -1,0 +1,22 @@
+{
+  "title": "Translations",
+  "section": "Section",
+  "key": "Key",
+  "translations": "Translations",
+  "actions": "Actions",
+  "autoTranslateBtn": "Auto Translate",
+  "bulkTranslatingMsg": "Translating...",
+  "generateJsonBtn": "Generate JSON",
+  "generatingMsg": "Generating...",
+  "frontAppTab": "Frontend",
+  "backAppTab": "Backend",
+  "confirmDelete": "Are you sure you want to delete this translation group?",
+  "toast": {
+    "deleted": "Translation deleted successfully.",
+    "deleteFailed": "Failed to delete translation.",
+    "generated": "JSON files generated successfully.",
+    "generateFailed": "Failed to generate JSON files.",
+    "bulkComplete": "Bulk translation completed.",
+    "bulkFailed": "Bulk translation failed"
+  }
+}

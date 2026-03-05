@@ -1,0 +1,14 @@
+{
+  "general": "General",
+  "admin": "Administration",
+  "searchPlaceholder": "Search...",
+  "noResults": "No results found",
+  "account": "My account",
+  "logout": "Log out",
+  "home": "Home",
+  "settings": "Settings",
+  "users": "Users",
+  "translations_heading": "Translations",
+  "languages": "Languages",
+  "all_translations": "Translations"
+}

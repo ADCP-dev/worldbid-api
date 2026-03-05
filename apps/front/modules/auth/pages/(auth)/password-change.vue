@@ -10,24 +10,24 @@ definePageMeta({
       <NuxtLink to="/" class="flex items-center self-center gap-2 font-medium">
         <AppLogo />
       </NuxtLink>
-      
+
       <div class="card bg-base-100 shadow-xl">
         <div class="card-body gap-6">
           <div class="text-center space-y-2">
             <h2 class="card-title text-2xl font-bold justify-center">
-              Restablecer contraseña
+              {{ $t('base.auth.resetPassword.title') }}
             </h2>
             <p class="text-sm text-base-content/60">
-              Introduce tu nueva contraseña para continuar
+              {{ $t('base.auth.resetPassword.description') }}
             </p>
           </div>
-          
+
           <AuthResetPassword />
-          
+
           <p class="text-center text-sm text-base-content/60">
-            ¿Recuerdas tu contraseña?
+            {{ $t('base.auth.rememberPassword') }}
             <NuxtLink to="/login" class="link link-primary no-underline font-medium">
-              Iniciar sesión
+              {{ $t('base.auth.signIn') }}
             </NuxtLink>
           </p>
         </div>

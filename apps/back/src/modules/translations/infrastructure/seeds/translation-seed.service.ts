@@ -38,16 +38,17 @@ export class TranslationSeedService {
         const stat = await fs.stat(langPath);
 
         if (stat.isDirectory()) {
-          const files = await fs.readdir(langPath);
-          const jsonFiles = files.filter((f) => f.endsWith('.json'));
+          // Recursively collect all JSON files with their relative subfolder path
+          const jsonFiles = await this.collectJsonFiles(langPath, '');
 
-          for (const file of jsonFiles) {
-            const sectionName = path.basename(file, '.json');
+          for (const { filePath, folderPrefix } of jsonFiles) {
+            const sectionName = path.basename(filePath, '.json');
             await this.seedLangFile(
               langCode,
               sectionName,
-              path.join(langPath, file),
+              filePath,
               appContext,
+              folderPrefix,
             );
           }
         }
@@ -60,11 +61,44 @@ export class TranslationSeedService {
     }
   }
 
+  /**
+   * Recursively collect all .json files under a lang directory.
+   * Returns each file's absolute path and its relative folder prefix
+   * (relative to the lang root, using '.' as separator).
+   * e.g. base/auth.json → { filePath: '.../base/auth.json', folderPrefix: 'base' }
+   * e.g. landing.json   → { filePath: '.../landing.json',   folderPrefix: '' }
+   */
+  private async collectJsonFiles(
+    dir: string,
+    relativePrefix: string,
+  ): Promise<{ filePath: string; folderPrefix: string }[]> {
+    const results: { filePath: string; folderPrefix: string }[] = [];
+    const entries = await fs.readdir(dir);
+
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry);
+      const stat = await fs.stat(fullPath);
+
+      if (stat.isDirectory()) {
+        const subPrefix = relativePrefix
+          ? `${relativePrefix}.${entry}`
+          : entry;
+        const sub = await this.collectJsonFiles(fullPath, subPrefix);
+        results.push(...sub);
+      } else if (entry.endsWith('.json')) {
+        results.push({ filePath: fullPath, folderPrefix: relativePrefix });
+      }
+    }
+
+    return results;
+  }
+
   private async seedLangFile(
     langCode: string,
     sectionName: string,
     filePath: string,
     appContext: string,
+    folderPrefix: string,
   ) {
     let lang = await this.langRepository.findOne({ where: { code: langCode } });
     if (!lang) {
@@ -79,6 +113,13 @@ export class TranslationSeedService {
     const content = await fs.readFile(filePath, 'utf-8');
     const json = JSON.parse(content);
     const flattened = this.flattenObject(json);
+
+    // The section prefix encodes the folder path with ':' separator:
+    // - no subfolder  → sectionName          (e.g. "landing")
+    // - with subfolder → "folderPrefix:sectionName" (e.g. "base:auth")
+    const sectionFilePrefix = folderPrefix
+      ? `${folderPrefix}:${sectionName}`
+      : sectionName;
 
     // Fetch existing keys for this lang and app
     const existingTranslations = await this.translationRepository.find({
@@ -98,8 +139,9 @@ export class TranslationSeedService {
     const toInsert: Partial<TranslationEntity>[] = [];
 
     for (const [flatKey, value] of Object.entries(flattened)) {
-      // Combines the filename (sectionName) with the nested flat path
-      const fullKey = `${sectionName}.${flatKey}`;
+      // Combines the sectionFilePrefix with the nested flat path
+      // e.g. "base:auth" + "loginPage.description" → "base:auth.loginPage.description"
+      const fullKey = `${sectionFilePrefix}.${flatKey}`;
 
       if (!existingSet.has(fullKey)) {
         const lastDotIndex = fullKey.lastIndexOf('.');
@@ -128,11 +170,11 @@ export class TranslationSeedService {
         await this.translationRepository.save(toInsert.slice(i, i + chunkSize));
       }
       console.log(
-        `Seeded ${toInsert.length} new translations for ${langCode} (${appContext})`,
+        `Seeded ${toInsert.length} new translations for ${langCode} (${appContext} - ${sectionFilePrefix})`,
       );
     } else {
       console.log(
-        `No new translations for ${langCode} (${appContext} - ${sectionName})`,
+        `No new translations for ${langCode} (${appContext} - ${sectionFilePrefix})`,
       );
     }
   }

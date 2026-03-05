@@ -48,8 +48,8 @@ async function onSubmit(event: Event) {
 
 <template>
   <form class="grid gap-6" @submit="onSubmit">
-    <div class="divider">Or continue with</div>
-    
+    <!-- <div class="divider">Or continue with</div> -->
+
     <FormInput
       label="Email"
       v-model="email"

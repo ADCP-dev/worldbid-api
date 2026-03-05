@@ -58,7 +58,7 @@ const slots = useSlots();
       <span class="label-text-alt text-base-content/60">{{ description }}</span>
     </label>
 
-    <label v-if="error" class="label py-0">
+    <label v-if="error" class="label py-0 block">
       <span class="label-text-alt text-error font-medium">{{ error }}</span>
     </label>
   </div>

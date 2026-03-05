@@ -7,6 +7,9 @@ import AddTranslationDialog from '~/modules/translations/components/AddTranslati
 import DeleteButton from '@/modules/ui-app/components/data-table/buttons/DeleteButton.vue';
 import { toast } from 'vue-sonner';
 import { BotIcon, LayersIcon, PanelTopIcon } from 'lucide-vue-next';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const { getLangs, deleteTranslation, generateJson, bulkTranslate } = useTranslations();
 
@@ -39,20 +42,20 @@ const refreshTables = () => {
 const columns = computed(() => [
   {
     accessorKey: "section",
-    headerName: "Sección",
-    header: "Sección",
+    headerName: t('base.translations.section'),
+    header: t('base.translations.section'),
     filterType: "string"
   },
   {
     accessorKey: "key",
-    headerName: "Clave",
-    header: "Clave",
+    headerName: t('base.translations.key'),
+    header: t('base.translations.key'),
     filterType: "string"
   },
   {
     id: "content",
-    headerName: "Traducciones",
-    header: "Traducciones",
+    headerName: t('base.translations.translations'),
+    header: t('base.translations.translations'),
     enableSorting: false,
     cell: ({ row }: any) => {
       const group = row.original;
@@ -69,21 +72,21 @@ const columns = computed(() => [
   },
   {
     id: "actions",
-    headerName: "Acciones",
-    header: "Acciones",
+    headerName: t('base.translations.actions'),
+    header: t('base.translations.actions'),
     enableSorting: false,
     cell: ({ row }: any) => {
       const group = row.original;
       return h(DeleteButton, {
         onClick: async () => {
-          if (confirm('Are you sure you want to delete this translation key across all languages?')) {
+          if (confirm(t('base.translations.confirmDelete'))) {
              try {
                await Promise.all(group.translations.map((t: any) => deleteTranslation(t.id)));
                refreshTables();
-               toast.success('Translations deleted successfully.');
+               toast.success(t('base.translations.toast.deleted'));
              } catch (error) {
                console.error(error);
-               toast.error('Failed to delete translations.');
+               toast.error(t('base.translations.toast.deleteFailed'));
              }
           }
         }
@@ -96,10 +99,10 @@ const handleGenerate = async () => {
   isGenerating.value = true;
   try {
     await generateJson();
-    toast.success('Generated successfully!');
+    toast.success(t('base.translations.toast.generated'));
   } catch (error) {
     console.error(error);
-    toast.error('Failed to generate');
+    toast.error(t('base.translations.toast.generateFailed'));
   } finally {
     isGenerating.value = false;
   }
@@ -109,11 +112,11 @@ const handleBulkTranslate = async () => {
   isBulkTranslating.value = true;
   try {
     const result = await bulkTranslate(currentAppTab.value);
-    toast.success(result.message || 'Bulk translation completed');
+    toast.success(result.message || t('base.translations.toast.bulkComplete'));
     refreshTables();
   } catch (error: any) {
     console.error(error);
-    toast.error(`Translation failed: ${error.message || 'Unknown error'}`);
+    toast.error(t('base.translations.toast.bulkFailed') + `: ${error.message || 'Unknown error'}`);
   } finally {
     isBulkTranslating.value = false;
   }
@@ -127,11 +130,11 @@ onMounted(async () => {
 <template>
   <div class="p-1 md:p-6">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-      <h1 class="text-2xl font-bold">Translations</h1>
+      <h1 class="text-2xl font-bold">{{ $t('base.translations.title') }}</h1>
       <div class="flex flex-wrap gap-2">
         <button class="btn btn-outline" @click="handleBulkTranslate" :disabled="isBulkTranslating">
           <BotIcon class="w-4 h-4 mr-2" />
-          {{ isBulkTranslating ? 'Traduciendo...' : 'Auto-Traducir Todo (IA)' }}
+          {{ isBulkTranslating ? $t('base.translations.bulkTranslatingMsg') : $t('base.translations.autoTranslateBtn') }}
         </button>
         <AddTranslationDialog
           :appContext="currentAppTab"
@@ -139,7 +142,7 @@ onMounted(async () => {
           @created="refreshTables"
         />
         <button class="btn btn-outline" @click="handleGenerate" :disabled="isGenerating">
-          {{ isGenerating ? 'Generating...' : 'Generate JSON' }}
+          {{ isGenerating ? $t('base.translations.generatingMsg') : $t('base.translations.generateJsonBtn') }}
         </button>
       </div>
     </div>
@@ -153,7 +156,7 @@ onMounted(async () => {
         @click="currentAppTab = 'front'"
       >
         <PanelTopIcon class="w-4 h-4 mr-2" />
-        Front App
+        {{ $t('base.translations.frontAppTab') }}
       </a>
       <a
         role="tab"
@@ -162,7 +165,7 @@ onMounted(async () => {
         @click="currentAppTab = 'back'"
       >
         <LayersIcon class="w-4 h-4 mr-2" />
-        Back App
+        {{ $t('base.translations.backAppTab') }}
       </a>
     </div>
 

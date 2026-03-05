@@ -5,51 +5,43 @@ import * as z from 'zod'
 import { toast } from 'vue-sonner'
 import FormInput from '~/modules/ui-app/components/form/FormInput.vue'
 import FormPassword from '~/modules/ui-app/components/form/FormPassword.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const authStore = useAuthStore()
 
 const selectedPhotoFile = ref<File | null>(null)
-// Preview URL for selected image; falls back to current photo path in template
 const photoPreviewUrl = ref<string>('')
 const fileInput = ref<HTMLInputElement | null>(null)
 const triggerFileSelect = () => fileInput.value?.click()
 
-const profileFormSchema = toTypedSchema(z.object({
+const profileFormSchema = computed(() => toTypedSchema(z.object({
   firstName: z
     .string()
-    .min(2, {
-      message: 'First name must be at least 2 characters.',
-    })
-    .max(30, {
-      message: 'First name must not be longer than 30 characters.',
-    }),
+    .min(2, { message: t('base.settings.profile.validation.nameMin') })
+    .max(30, { message: t('base.settings.profile.validation.nameMax') }),
   lastName: z
     .string()
-    .min(2, {
-      message: 'Last name must be at least 2 characters.',
-    })
-    .max(30, {
-      message: 'Last name must not be longer than 30 characters.',
-    }),
+    .min(2, { message: t('base.settings.profile.validation.nameMin') })
+    .max(30, { message: t('base.settings.profile.validation.nameMax') }),
   email: z
-    .string({
-      required_error: 'Please enter your email.',
-    })
-    .email({ message: 'Please enter a valid email address.' }),
+    .string({ required_error: t('base.settings.profile.validation.emailRequired') })
+    .email({ message: t('base.settings.profile.validation.emailInvalid') }),
   password: z
     .string()
     .optional()
-    .refine(val => !val || val.length >= 6, {
-      message: 'Password must be at least 6 characters.',
+    .refine(val => !val || val.length >= 8, {
+      message: t('base.settings.profile.validation.passwordMin'),
     }),
   oldPassword: z
     .string()
     .optional()
     .refine(val => !val || val.length >= 1, {
-      message: 'Old password is required to change password.',
+      message: t('base.settings.profile.validation.oldPasswordRequired'),
     }),
   photo: z.any().optional(),
-}))
+})))
 
 const { handleSubmit, resetForm, setValues, errors, defineField } = useForm({
   validationSchema: profileFormSchema,
@@ -69,12 +61,10 @@ const [email] = defineField('email')
 const [password] = defineField('password')
 const [oldPassword] = defineField('oldPassword')
 
-// Load current user data
 onMounted(async () => {
   if (!authStore.user) {
     await authStore.getMe()
   }
-
   if (authStore.user) {
     setValues({
       firstName: authStore.user.firstName || '',
@@ -115,20 +105,15 @@ const uploadProfilePhoto = async (): Promise<string | null> => {
     const base = `${runtimeConfig.public.apiUrl}${runtimeConfig.public.apiPrefix}`
     const res = await fetch(`${base}/files/upload`, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${authStore.token}`,
-      },
+      headers: { Authorization: `Bearer ${authStore.token}` },
       body: formData,
     })
-    if (!res.ok) {
-      const text = await res.text()
-      throw new Error(text)
-    }
+    if (!res.ok) throw new Error(await res.text())
     const json = await res.json()
     return json?.file?.id ?? null
   } catch (err) {
     console.error('Profile photo upload failed:', err)
-    toast.error('Failed to upload profile photo')
+    toast.error(t('base.settings.profile.uploadFailed'))
     return null
   }
 }
@@ -141,13 +126,11 @@ const onSubmit = handleSubmit(async (values) => {
       email: values.email,
     }
 
-    // Only include password if provided
     if (values.password && values.oldPassword) {
       updateData.password = values.password
       updateData.oldPassword = values.oldPassword
     }
 
-    // Upload profile photo if a new one was selected
     const photoId = await uploadProfilePhoto()
     if (photoId) {
       updateData.photo = { id: photoId }
@@ -156,14 +139,20 @@ const onSubmit = handleSubmit(async (values) => {
     const result = await authStore.updateProfile(updateData)
 
     if (result.success) {
-      toast.success('Profile updated successfully')
+      toast.success(t('base.settings.profile.successTitle'), {
+        description: t('base.settings.profile.successDescription'),
+      })
       await authStore.getMe()
       removeSelectedPhoto()
     } else {
-      toast.error(result.error || 'Failed to update profile')
+      toast.error(t('base.settings.profile.errorTitle'), {
+        description: result.error || t('base.settings.profile.errorDescription'),
+      })
     }
   } catch (error) {
-    toast.error('An error occurred while updating profile')
+    toast.error(t('base.settings.profile.errorTitle'), {
+      description: t('settings.profile.errorDescription'),
+    })
     console.error('Profile update error:', error)
   }
 })
@@ -172,10 +161,7 @@ const onSubmit = handleSubmit(async (values) => {
 <template>
   <div class="max-w-xl space-y-6">
     <div>
-      <h3 class="text-lg font-medium">Profile</h3>
-      <p class="text-sm text-base-content/70">
-        This is how others will see you on the site.
-      </p>
+      <h3 class="text-lg font-medium">{{ $t('base.settings.profile.title') }}</h3>
     </div>
 
     <div class="divider"></div>
@@ -184,17 +170,19 @@ const onSubmit = handleSubmit(async (values) => {
       <!-- Profile photo upload -->
       <div class="form-control w-full">
         <label class="label">
-          <span class="label-text font-semibold">Profile Photo</span>
+          <span class="label-text font-semibold">{{ $t('base.settings.profile.photoLabel') }}</span>
         </label>
         <div class="flex items-center gap-6">
           <div class="avatar">
             <div class="w-20 rounded-full overflow-hidden bg-base-300">
-              <img v-if="photoPreviewUrl || authStore.user?.photo?.path"
-                   :src="photoPreviewUrl || authStore.user?.photo?.path"
-                   class="object-cover"
-                   alt="Profile photo" />
+              <img
+                v-if="photoPreviewUrl || authStore.user?.photo?.path"
+                :src="photoPreviewUrl || authStore.user?.photo?.path"
+                class="object-cover"
+                alt="Profile photo"
+              />
               <div v-else class="flex items-center justify-center p-4">
-                <span class="text-xs text-base-content/70">No photo</span>
+                <span class="text-xs text-base-content/70">{{ $t('base.settings.profile.noPhoto') }}</span>
               </div>
             </div>
           </div>
@@ -203,17 +191,17 @@ const onSubmit = handleSubmit(async (values) => {
             <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="onPhotoChange" />
             <div class="flex flex-wrap items-center gap-2">
               <button type="button" class="btn btn-sm btn-outline border-base-content/20" @click="triggerFileSelect">
-                Choose image
+                {{ $t('base.settings.profile.uploadPhoto') }}
               </button>
               <span class="text-xs text-base-content/60 truncate max-w-[150px]">
-                {{ selectedPhotoFile?.name || 'No file selected' }}
+                {{ selectedPhotoFile?.name || $t('base.settings.profile.noFileSelected') }}
               </span>
               <button v-if="photoPreviewUrl" type="button" class="btn btn-sm btn-ghost text-error" @click="removeSelectedPhoto">
-                Remove selected
+                {{ $t('base.settings.profile.removePhoto') }}
               </button>
             </div>
             <p class="text-xs text-base-content/60">
-              Upload a new profile photo. JPG/PNG recommended.
+              {{ $t('base.settings.profile.photoDescription') }}
             </p>
           </div>
         </div>
@@ -222,18 +210,18 @@ const onSubmit = handleSubmit(async (values) => {
       <div class="space-y-4">
         <FormInput
           v-model="firstName"
-          label="First Name"
-          placeholder="John"
-          description="Your first name as it appears on your account."
+          :label="$t('base.settings.profile.firstNameLabel')"
+          :placeholder="$t('base.settings.profile.firstNamePlaceholder')"
+          :description="$t('base.settings.profile.firstNameDescription')"
           :error="errors.firstName"
           required
         />
 
         <FormInput
           v-model="lastName"
-          label="Last Name"
-          placeholder="Doe"
-          description="Your last name as it appears on your account."
+          :label="$t('base.settings.profile.lastNameLabel')"
+          :placeholder="$t('base.settings.profile.lastNamePlaceholder')"
+          :description="$t('base.settings.profile.lastNameDescription')"
           :error="errors.lastName"
           required
         />
@@ -241,38 +229,37 @@ const onSubmit = handleSubmit(async (values) => {
         <FormInput
           v-model="email"
           type="email"
-          label="Email"
-          placeholder="john.doe@example.com"
-          description="Your email address. This will be used for account notifications."
+          :label="$t('base.settings.profile.emailLabel')"
+          :placeholder="$t('base.settings.profile.emailPlaceholder')"
+          :description="$t('base.settings.profile.emailDescription')"
           :error="errors.email"
           required
         />
 
-        <div class="divider">Change Password</div>
+        <div class="divider">{{ $t('base.settings.profile.changePassword') }}</div>
 
         <FormPassword
           v-model="password"
-          label="New Password"
+          :label="$t('base.settings.profile.newPassword')"
           placeholder="••••••••"
-          description="Leave blank to keep your current password."
+          :description="$t('base.settings.profile.newPasswordDescription')"
           :error="errors.password"
         />
 
         <FormPassword
           v-model="oldPassword"
-          label="Current Password"
+          :label="$t('base.settings.profile.currentPassword')"
           placeholder="••••••••"
-          description="Required only if you're changing your password."
+          :description="$t('base.settings.profile.currentPasswordDescription')"
           :error="errors.oldPassword"
         />
 
         <div class="flex justify-end gap-4">
           <button type="submit" class="btn btn-primary" :disabled="Object.keys(errors).length > 0">
-            Update profile
+            {{ $t('base.settings.profile.updateProfile') }}
           </button>
         </div>
       </div>
-
     </form>
   </div>
 </template>
