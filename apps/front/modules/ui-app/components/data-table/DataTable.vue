@@ -248,9 +248,10 @@ defineExpose({
 <template>
   <div>
     <div class="flex flex-wrap items-center py-4 gap-2">
-      <input type="text" class="input input-bordered input-sm max-w-sm" placeholder="Buscar..."
+      <input
+        type="text" class="input input-bordered input-sm max-w-sm" placeholder="Buscar..."
         :value="table.getState().globalFilter ?? ''"
-        @input="(e) => table.setGlobalFilter((e.target as HTMLInputElement).value)" />
+        @input="(e) => table.setGlobalFilter((e.target as HTMLInputElement).value)" >
       <button
         class="btn btn-outline btn-sm ml-2"
         @click="clearAllFilters"
@@ -264,12 +265,13 @@ defineExpose({
           <ChevronDown class="w-4 h-4 ml-2" />
         </label>
         <ul tabindex="0" class="dropdown-content z-[2] menu p-2 shadow bg-base-100 rounded-box w-52 mt-1">
-          <li v-for="column in table
+          <li
+            v-for="column in table
             .getAllColumns()
             .filter((column) => column.getCanHide())"
               :key="column.id" class="capitalize">
             <label class="cursor-pointer label justify-start gap-2">
-              <input type="checkbox" class="checkbox checkbox-sm" :checked="column.getIsVisible()" @change="(e) => column.toggleVisibility((e.target as HTMLInputElement).checked)" />
+              <input type="checkbox" class="checkbox checkbox-sm" :checked="column.getIsVisible()" @change="(e) => column.toggleVisibility((e.target as HTMLInputElement).checked)" >
               <span class="label-text">{{ (column.columnDef as MyColumnDef<TData, TValue>)?.headerName || column.columnDef?.header }}</span>
             </label>
           </li>
@@ -283,7 +285,8 @@ defineExpose({
             v-for="headerGroup in table.getHeaderGroups().filter(group => group.headers.some(header => header.column.getIsVisible()))"
             :key="headerGroup.id"
           >
-            <th v-for="header in headerGroup.headers"
+            <th
+              v-for="header in headerGroup.headers"
               :key="header.id"
             >
               <FlexRender
@@ -294,11 +297,13 @@ defineExpose({
           </tr>
           <!-- Filter row -->
           <tr>
-            <th v-for="column in table.getAllLeafColumns().filter(col => col.getIsVisible())"
+            <th
+              v-for="column in table.getAllLeafColumns().filter(col => col.getIsVisible())"
               :key="column.id"
               class="py-1">
-              <template v-if="column.getCanFilter()">
-                <input v-if="(column.columnDef as MyColumnDef<TData, TValue>)?.filterType === 'number'"
+              <template v-if="column.getCanFilter() && (column.columnDef as MyColumnDef<TData, TValue>)?.filterType">
+                <input
+                  v-if="(column.columnDef as MyColumnDef<TData, TValue>)?.filterType === 'number'"
                   type="number"
                   class="input input-sm input-bordered w-full max-w-xs font-normal"
                   :placeholder="`Filtrar ${(column.columnDef as MyColumnDef<TData, TValue>)?.headerName || column.columnDef?.header}`"
@@ -306,13 +311,14 @@ defineExpose({
                     const val = (e.target as HTMLInputElement).value;
                     const parsed = val === '' ? null : Number(val);
                     column.setFilterValue(parsed);
-                  }" />
-                <input v-else-if="(column.columnDef as MyColumnDef<TData, TValue>)?.filterType === 'date'"
+                  }" >
+                <input
+                  v-else-if="(column.columnDef as MyColumnDef<TData, TValue>)?.filterType === 'date'"
                   type="date"
                   class="input input-sm input-bordered w-full max-w-xs font-normal"
                   :placeholder="`Filtrar ${(column.columnDef as MyColumnDef<TData, TValue>)?.headerName || column.columnDef?.header}`"
                   :value="(column.getFilterValue() as string) ?? ''"
-                  @input="(e) => column.setFilterValue && column.setFilterValue((e.target as HTMLInputElement).value as string)" />
+                  @input="(e) => column.setFilterValue && column.setFilterValue((e.target as HTMLInputElement).value as string)" >
                 <DataTableComboboxFilter
                   v-else-if="(column.columnDef as MyColumnDef<TData, TValue>)?.filterType === 'combobox'"
                   :model-value="(column.getFilterValue() as number | string) ?? ''"
@@ -320,7 +326,8 @@ defineExpose({
                   :placeholder="`Filtrar ${(column.columnDef as MyColumnDef<TData, TValue>)?.headerName || ''}`"
                   @update:model-value="(val) => column.setFilterValue && column.setFilterValue(val || null)"
                 />
-                <select v-else-if="(column.columnDef as MyColumnDef<TData, TValue>)?.filterType === 'select'"
+                <select
+                  v-else-if="(column.columnDef as MyColumnDef<TData, TValue>)?.filterType === 'select'"
                   :value="(column.getFilterValue() as string) ?? ''"
                   class="select select-sm select-bordered w-full max-w-xs font-normal"
                   @change="
@@ -329,13 +336,14 @@ defineExpose({
                       column.setFilterValue((e.target as HTMLSelectElement).value)
                   "
                   >
-                  <option v-for="option in (column.columnDef as MyColumnDef<TData, TValue>)?.options || []"
+                  <option
+                    v-for="option in (column.columnDef as MyColumnDef<TData, TValue>)?.options || []"
                     :key="String(option.value)" :value="option.value">
                     {{ option.label }}
                   </option>
                 </select>
-                <select v-else-if="(column.columnDef as MyColumnDef<TData, TValue>)?.filterType === 'boolean'"
-
+                <select
+                  v-else-if="(column.columnDef as MyColumnDef<TData, TValue>)?.filterType === 'boolean'"
                   :value="(column.getFilterValue() as string) ?? ''"
                   class="select select-sm select-bordered w-full max-w-xs font-normal"
                   @change="(e) => {
@@ -349,12 +357,13 @@ defineExpose({
                   <option value="true">Sí</option>
                   <option value="false">No</option>
                 </select>
-                <input v-else class="input input-sm input-bordered w-full max-w-xs font-normal"
+                <input
+                  v-else class="input input-sm input-bordered w-full max-w-xs font-normal"
                   :placeholder="`Filtrar ${(column.columnDef as MyColumnDef<TData, TValue>)?.headerName ?? column.columnDef?.header?.toString()
                   }`"
                   :value="(column.getFilterValue() as string) ?? ''" @input="
                     (e) => column.setFilterValue && column.setFilterValue && column.setFilterValue((e.target as HTMLInputElement).value as string)
-                  " />
+                  " >
               </template>
             </th>
           </tr>
@@ -398,24 +407,29 @@ defineExpose({
         de {{ totalCount }}
       </div>
       <div class="flex flex-wrap items-center gap-2 mt-4 sm:mt-0">
-        <button class="btn btn-outline btn-sm"
+        <button
+          class="btn btn-outline btn-sm"
           :disabled="!table.getCanPreviousPage()"
           @click="table.setPageIndex(0)">Primera</button>
-        <button class="btn btn-outline btn-sm"
+        <button
+          class="btn btn-outline btn-sm"
           :disabled="!table.getCanPreviousPage()"
           @click="table.previousPage()">Anterior</button>
         <template v-for="page in visiblePages" :key="page">
-          <button class="btn btn-outline btn-sm"
-          :class="{
-            'btn-active':
-              table.getState().pagination.pageIndex === page,
+          <button
+            class="btn btn-outline btn-sm"
+            :class="{
+              'btn-active':
+                table.getState().pagination.pageIndex === page,
           }"
           @click="table.setPageIndex(page)">{{ page + 1 }}</button>
         </template>
-        <button class="btn btn-outline btn-sm"
+        <button
+          class="btn btn-outline btn-sm"
           :disabled="!table.getCanNextPage()"
           @click="table.nextPage()">Siguiente</button>
-        <button class="btn btn-outline btn-sm"
+        <button
+          class="btn btn-outline btn-sm"
           :disabled="!table.getCanNextPage()"
           @click="table.setPageIndex(table.getPageCount() - 1)">Última</button>
         <select
