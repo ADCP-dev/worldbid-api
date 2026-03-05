@@ -26,7 +26,7 @@ const closeDrawer = () => {
 
 <template>
   <div class="dropdown dropdown-top is-drawer-close:dropdown-right w-full">
-    <div tabindex="0" role="button" class="btn btn-ghost w-full justify-start px-2 h-auto py-2 bg-base-200 hover:bg-base-300">
+    <div tabindex="0" role="button" class="btn btn-ghost py-2 hover:bg-base-200 w-full justify-start is-drawer-close:justify-center is-drawer-close:px-0 h-auto">
       <div class="avatar">
         <div class="w-8 rounded-lg">
           <img :src="user.avatar" :alt="user.name" />

@@ -23,7 +23,7 @@ const closeDrawer = () => {
 <template>
   <li>
     <details>
-      <summary class="is-drawer-close:tooltip is-drawer-close:tooltip-right" :data-tip="item.title">
+      <summary class="is-drawer-close:tooltip is-drawer-close:tooltip-right is-drawer-close:justify-center" :data-tip="item.title">
         <AppIcon :name="item.icon || ''" mode="svg" />
         <span class="is-drawer-close:hidden">{{ item.title }}</span>
         <span
