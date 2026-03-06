@@ -19,15 +19,15 @@ const triggerFileSelect = () => fileInput.value?.click()
 const profileFormSchema = computed(() => toTypedSchema(z.object({
   firstName: z
     .string()
-    .min(2, { message: t('base.settings.profile.validation.nameMin') })
-    .max(30, { message: t('base.settings.profile.validation.nameMax') }),
+    .min(2)
+    .max(30),
   lastName: z
     .string()
-    .min(2, { message: t('base.settings.profile.validation.nameMin') })
-    .max(30, { message: t('base.settings.profile.validation.nameMax') }),
+    .min(2)
+    .max(30),
   email: z
-    .string({ required_error: t('base.settings.profile.validation.emailRequired') })
-    .email({ message: t('base.settings.profile.validation.emailInvalid') }),
+    .string()
+    .email(),
   password: z
     .string()
     .optional()

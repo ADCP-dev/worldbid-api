@@ -2,7 +2,9 @@
 import { toast } from 'vue-sonner'
 import { useRouter, useRoute } from 'vue-router'
 import PasswordInput from '~/components/PasswordInput.vue'
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
@@ -23,29 +25,29 @@ async function onSubmit(event: Event) {
   event.preventDefault()
 
   if (!hash.value) {
-    toast.error('Enlace inválido', {
-      description: 'El enlace de restablecimiento no es válido.',
+    toast.error(t('base.auth.resetPassword.errorInvalidLinkTitle'), {
+      description: t('base.auth.resetPassword.errorInvalidLinkDesc'),
     })
     return
   }
 
   if (isExpired.value) {
-    toast.error('Enlace expirado', {
-      description: 'El enlace de restablecimiento ha expirado. Solicita uno nuevo.',
+    toast.error(t('base.auth.resetPassword.errorExpiredLinkTitle'), {
+      description: t('base.auth.resetPassword.errorExpiredLinkDesc'),
     })
     return
   }
 
   if (!password.value || password.value.length < 6) {
-    toast.error('Contraseña inválida', {
-      description: 'La contraseña debe tener al menos 6 caracteres.',
+    toast.error(t('base.auth.resetPassword.errorInvalidPasswordTitle'), {
+      description: t('base.auth.resetPassword.errorInvalidPasswordDesc'),
     })
     return
   }
 
   if (password.value !== confirmPassword.value) {
-    toast.error('Las contraseñas no coinciden', {
-      description: 'Por favor asegúrate de que ambas contraseñas sean iguales.',
+    toast.error(t('base.auth.resetPassword.errorPasswordMismatchTitle'), {
+      description: t('base.auth.resetPassword.errorPasswordMismatchDesc'),
     })
     return
   }
@@ -56,20 +58,20 @@ async function onSubmit(event: Event) {
     const result = await authStore.resetPassword(hash.value, password.value)
 
     if (result.success) {
-      toast.success('Contraseña actualizada', {
-        description: 'Tu contraseña ha sido restablecida correctamente. Ya puedes iniciar sesión.',
+      toast.success(t('base.auth.resetPassword.successResetTitle'), {
+        description: t('base.auth.resetPassword.successResetDesc'),
       })
       setTimeout(() => {
         router.push('/login')
       }, 2000)
     } else {
-      toast.error('Error', {
-        description: result.error || 'No se pudo restablecer la contraseña.',
+      toast.error(t('base.auth.resetPassword.errorGeneric'), {
+        description: result.error || t('base.auth.resetPassword.errorResetFailed'),
       })
     }
   } catch (error: any) {
-    toast.error('Error', {
-      description: error?.message || 'Error al restablecer la contraseña.',
+    toast.error(t('base.auth.resetPassword.errorGeneric'), {
+      description: error?.message || t('base.auth.resetPassword.errorResetCatch'),
     })
   } finally {
     isLoading.value = false
@@ -82,9 +84,9 @@ async function onSubmit(event: Event) {
     <!-- Expired link warning -->
     <div v-if="isExpired" class="alert alert-error mb-4 text-sm">
       <span>
-        Este enlace ha expirado. Por favor
+        {{ $t('base.auth.resetPassword.expiredWarningText') }}
         <NuxtLink to="/forgot-password" class="link font-medium">
-          solicita uno nuevo
+          {{ $t('base.auth.resetPassword.requestNewLink') }}
         </NuxtLink>.
       </span>
     </div>
@@ -94,12 +96,12 @@ async function onSubmit(event: Event) {
         <!-- New password -->
         <div class="form-control w-full">
           <label class="label" for="password">
-            <span class="label-text font-semibold">Nueva contraseña</span>
+            <span class="label-text font-semibold">{{ $t('base.auth.resetPassword.newPasswordLabel') }}</span>
           </label>
           <PasswordInput
             id="password"
             v-model="password"
-            placeholder="••••••••"
+            :placeholder="$t('base.auth.resetPassword.newPasswordPlaceholder')"
             auto-complete="new-password"
             :disabled="isLoading"
           />
@@ -108,12 +110,12 @@ async function onSubmit(event: Event) {
         <!-- Confirm password -->
         <div class="form-control w-full">
           <label class="label" for="confirm-password">
-            <span class="label-text font-semibold">Confirmar contraseña</span>
+            <span class="label-text font-semibold">{{ $t('base.auth.resetPassword.confirmPasswordLabel') }}</span>
           </label>
           <PasswordInput
             id="confirm-password"
             v-model="confirmPassword"
-            placeholder="••••••••"
+            :placeholder="$t('base.auth.resetPassword.confirmPasswordPlaceholder')"
             auto-complete="new-password"
             :disabled="isLoading"
           />
@@ -121,7 +123,7 @@ async function onSubmit(event: Event) {
 
         <button type="submit" class="btn btn-primary w-full" :disabled="isLoading">
           <span v-if="isLoading" class="loading loading-spinner loading-sm" />
-          Restablecer contraseña
+          {{ $t('base.auth.resetPassword.submitButton') }}
         </button>
       </div>
     </form>

@@ -1,4 +1,5 @@
-- A LOS GENERADORES AÑADIR EL @ en las importaciones! Ahora están rotos
+Acabar comprobar el i18n, comprobar el zod locale y comprobar la funcionalidad de las generadores de modulos
+
 
 - [x] Dejar organizado el proyecto
   - [x] Backend unir en carpetas modulos

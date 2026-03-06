@@ -34,11 +34,6 @@
     "passwordSuccessTitle": "Password updated",
     "passwordSuccessDescription": "Your password has been updated successfully.",
     "validation": {
-      "nameMin": "This field must be at least 2 characters",
-      "nameMax": "This field cannot exceed 30 characters",
-      "emailRequired": "Email is required",
-      "emailInvalid": "Invalid email address",
-      "passwordMin": "Password must be at least 8 characters",
       "passwordsMatch": "Passwords do not match",
       "oldPasswordRequired": "Current password is required"
     }

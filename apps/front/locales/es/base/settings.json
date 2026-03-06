@@ -34,11 +34,6 @@
     "passwordSuccessTitle": "Contraseña actualizada",
     "passwordSuccessDescription": "Tu contraseña ha sido actualizada correctamente.",
     "validation": {
-      "nameMin": "El campo debe tener al menos 2 caracteres",
-      "nameMax": "El campo no puede tener más de 30 caracteres",
-      "emailRequired": "El correo electrónico es obligatorio",
-      "emailInvalid": "El correo electrónico no es válido",
-      "passwordMin": "La contraseña debe tener al menos 8 caracteres",
       "passwordsMatch": "Las contraseñas no coinciden",
       "oldPasswordRequired": "La contraseña actual es requerida"
     }

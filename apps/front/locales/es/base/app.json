@@ -1,1 +1,19 @@
-{}
+{
+  "dataTable": {
+    "search": "Buscar...",
+    "clearFilters": "Limpiar filtros",
+    "columns": "Columnas",
+    "filterBy": "Filtrar",
+    "all": "Todos",
+    "yes": "Sí",
+    "no": "No",
+    "noResults": "No hay resultados.",
+    "showing": "Mostrando",
+    "of": "de",
+    "first": "Primera",
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "last": "Última",
+    "show": "Mostrar"
+  }
+}

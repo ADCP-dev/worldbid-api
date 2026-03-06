@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { toast } from 'vue-sonner';
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n()
 const router = useRouter()
 const authStore = useAuthStore()
 
@@ -13,8 +15,8 @@ async function onSubmit(event: Event) {
   event.preventDefault()
 
   if (!email.value) {
-    toast.error('Error', {
-      description: 'Por favor introduce tu correo electrónico',
+    toast.error(t('base.auth.forgotPassword.errorGeneric'), {
+      description: t('base.auth.forgotPassword.errorEmptyFields'),
     })
     return
   }
@@ -26,8 +28,8 @@ async function onSubmit(event: Event) {
 
     if (result.success) {
       isSuccess.value = true
-      toast.success('Correo enviado', {
-        description: 'Se ha enviado un correo electrónico con instrucciones para restablecer tu contraseña',
+      toast.success(t('base.auth.forgotPassword.successForgotTitle'), {
+        description: t('base.auth.forgotPassword.successForgotDesc'),
       })
 
       // Optionally redirect after a delay
@@ -35,13 +37,13 @@ async function onSubmit(event: Event) {
         router.push('/login')
       }, 3000)
     } else {
-      toast.error('Error', {
-        description: result.error || 'No se pudo enviar el correo de recuperación',
+      toast.error(t('base.auth.forgotPassword.errorGeneric'), {
+        description: result.error || t('base.auth.forgotPassword.errorForgotFailed'),
       })
     }
   } catch (error: any) {
-    toast.error('Error', {
-      description: error?.message || 'Error al solicitar restablecimiento de contraseña',
+    toast.error(t('base.auth.forgotPassword.errorGeneric'), {
+      description: error?.message || t('base.auth.forgotPassword.errorForgotCatch'),
     })
   } finally {
     isLoading.value = false
@@ -53,16 +55,16 @@ async function onSubmit(event: Event) {
   <form @submit="onSubmit">
     <div class="grid gap-4">
       <FormInput
-        label="Email"
+        :label="$t('base.auth.forgotPassword.emailLabel')"
         v-model="email"
-        placeholder="name@example.com"
+        :placeholder="$t('base.auth.forgotPassword.emailPlaceholder')"
         type="email"
         :disabled="isLoading"
         required
       />
       <button type="submit" class="btn btn-primary w-full" :disabled="isLoading">
         <span v-if="isLoading" class="loading loading-spinner loading-sm" />
-        Enviar
+        {{ $t('base.auth.forgotPassword.submitButton') }}
       </button>
     </div>
   </form>

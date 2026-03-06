@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import PasswordInput from "~/components/PasswordInput.vue";
 import { toast } from 'vue-sonner';
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n()
 const router = useRouter();
 const authStore = useAuthStore();
 
@@ -16,15 +18,15 @@ async function onSubmit(event: Event) {
 
   // Form validation
   if (!name.value || !email.value || !password.value || !confirmPassword.value) {
-    toast.error('Error', {
-      description: 'Por favor completa todos los campos',
+    toast.error(t('base.auth.signUp.errorGeneric'), {
+      description: t('base.auth.signUp.errorEmptyFields'),
     });
     return;
   }
 
   if (password.value !== confirmPassword.value) {
-    toast.error('Error', {
-      description: 'Las contraseñas no coinciden',
+    toast.error(t('base.auth.signUp.errorGeneric'), {
+      description: t('base.auth.signUp.errorPasswordMismatch'),
     });
     return;
   }
@@ -41,20 +43,20 @@ async function onSubmit(event: Event) {
     });
 
     if (result.success) {
-      toast.success('Cuenta creada', {
-        description: 'Tu cuenta ha sido creada correctamente',
+      toast.success(t('base.auth.signUp.successRegisterTitle'), {
+        description: t('base.auth.signUp.successRegisterDesc'),
       });
 
       const { navigateHome } = useHomeRoute();
       navigateHome();
     } else {
-      toast.error('Error', {
-        description: result.error || 'Error al crear la cuenta',
+      toast.error(t('base.auth.signUp.errorGeneric'), {
+        description: result.error || t('base.auth.signUp.errorRegisterFailed'),
       });
     }
   } catch (error: any) {
-    toast.error('Error', {
-      description: error?.message || 'Error al registrarse',
+    toast.error(t('base.auth.signUp.errorGeneric'), {
+      description: error?.message || t('base.auth.signUp.errorRegisterCatch'),
     });
   } finally {
     isLoading.value = false;
@@ -67,17 +69,17 @@ async function onSubmit(event: Event) {
     <form @submit="onSubmit">
       <div class="grid gap-4">
         <FormInput
-          label="Nombre"
+          :label="$t('base.auth.signUp.nameLabel')"
           v-model="name"
-          placeholder="Introduce tu nombre"
+          :placeholder="$t('base.auth.signUp.namePlaceholder')"
           :disabled="isLoading"
           required
         />
-        
+
         <FormInput
-          label="Email"
+          :label="$t('base.auth.signUp.emailLabel')"
           v-model="email"
-          placeholder="Introduce tu correo electrónico"
+          :placeholder="$t('base.auth.signUp.emailPlaceholder')"
           type="email"
           :disabled="isLoading"
           required
@@ -85,31 +87,31 @@ async function onSubmit(event: Event) {
 
         <div class="form-control w-full">
           <label class="label">
-            <span class="label-text font-semibold">Contraseña</span>
+            <span class="label-text font-semibold">{{ $t('base.auth.signUp.passwordLabel') }}</span>
           </label>
           <PasswordInput
             id="password"
             v-model="password"
-            placeholder="Introduce tu contraseña"
+            :placeholder="$t('base.auth.signUp.passwordPlaceholder')"
             :disabled="isLoading"
           />
         </div>
 
         <div class="form-control w-full">
           <label class="label">
-            <span class="label-text font-semibold">Confirmar Contraseña</span>
+            <span class="label-text font-semibold">{{ $t('base.auth.signUp.confirmPasswordLabel') }}</span>
           </label>
           <PasswordInput
             id="confirm-password"
             v-model="confirmPassword"
-            placeholder="Confirma tu contraseña"
+            :placeholder="$t('base.auth.signUp.confirmPasswordPlaceholder')"
             :disabled="isLoading"
           />
         </div>
 
         <button type="submit" class="btn btn-primary w-full" :disabled="isLoading">
           <span v-if="isLoading" class="loading loading-spinner loading-sm" />
-          Registrarme
+          {{ $t('base.auth.signUp.submitButton') }}
         </button>
       </div>
     </form>

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import PasswordInput from '~/components/PasswordInput.vue'
 import { toast } from 'vue-sonner';
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n()
 const router = useRouter()
 const authStore = useAuthStore()
 
@@ -13,8 +15,8 @@ async function onSubmit(event: Event) {
   event.preventDefault()
 
   if (!email.value || !password.value) {
-    toast.error('Error', {
-      description: 'Por favor introduce el email y la contraseña',
+    toast.error(t('base.auth.signIn.errorGeneric'), {
+      description: t('base.auth.signIn.errorEmptyFields'),
     })
     return
   }
@@ -25,20 +27,20 @@ async function onSubmit(event: Event) {
     const result = await authStore.login(email.value, password.value)
 
     if (result.success) {
-      toast.success('Bienvenido', {
-        description: 'Has iniciado sesión correctamente',
+      toast.success(t('base.auth.signIn.successLoginTitle'), {
+        description: t('base.auth.signIn.successLoginDesc'),
       })
 
       const { navigateHome } = useHomeRoute()
       navigateHome()
     } else {
-      toast.error('Error', {
-        description: result.error || 'Credenciales inválidas',
+      toast.error(t('base.auth.signIn.errorGeneric'), {
+        description: result.error || t('base.auth.signIn.errorInvalidCreds'),
       })
     }
   } catch (error: any) {
-    toast.error('Error', {
-      description: error?.message || 'Error al iniciar sesión',
+    toast.error(t('base.auth.signIn.errorGeneric'), {
+      description: error?.message || t('base.auth.signIn.errorLoginFailed'),
     })
   } finally {
     isLoading.value = false
@@ -51,18 +53,18 @@ async function onSubmit(event: Event) {
     <!-- <div class="divider">Or continue with</div> -->
 
     <FormInput
-      label="Email"
+      :label="$t('base.auth.signIn.emailLabel')"
       v-model="email"
       type="email"
-      placeholder="name@example.com"
+      :placeholder="$t('base.auth.signIn.emailPlaceholder')"
       :disabled="isLoading"
     />
 
     <div class="form-control w-full">
       <div class="label justify-between">
-        <span class="label-text font-semibold">Contraseña</span>
+        <span class="label-text font-semibold">{{ $t('base.auth.signIn.passwordLabel') }}</span>
         <NuxtLink to="/forgot-password" class="label-text-alt link link-hover">
-          ¿Olvidaste tu contraseña?
+          {{ $t('base.auth.signIn.forgotPasswordLink') }}
         </NuxtLink>
       </div>
       <PasswordInput id="password" v-model="password" />
@@ -70,13 +72,13 @@ async function onSubmit(event: Event) {
 
     <button type="submit" class="btn btn-primary w-full" :disabled="isLoading">
       <span v-if="isLoading" class="loading loading-spinner loading-sm" />
-      Iniciar sesión
+      {{ $t('base.auth.signIn.submitButton') }}
     </button>
   </form>
   <div class="mt-4 text-center text-sm opacity-60">
-    ¿No tienes una cuenta?
+    {{ $t('base.auth.signIn.noAccountPrompt') }}
     <NuxtLink to="/register" class="link font-medium">
-      Regístrate
+      {{ $t('base.auth.signIn.registerLink') }}
     </NuxtLink>
   </div>
 </template>

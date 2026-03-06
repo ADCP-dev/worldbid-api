@@ -8,15 +8,9 @@ import FormSwitch from "~/modules/ui-app/components/form/FormSwitch.vue";
 
 // Define schema
 const formSchema = z.object({
-    username: z.string().min(2, {
-        message: "Username must be at least 2 characters.",
-    }),
-    email: z.string().email({
-        message: "Invalid email address.",
-    }),
-    role: z.string().min(1, {
-        message: "Please select a role.",
-    }),
+    username: z.string().min(2),
+    email: z.string().email(),
+    role: z.string().min(1),
     notifications: z.boolean().default(false).optional(),
     bio: z.string().optional(),
 });
@@ -43,7 +37,7 @@ function onSubmit() {
     // Basic manual validation for the demo
     errors.value = {};
     const result = formSchema.safeParse(form.value);
-    
+
     if (!result.success) {
         result.error.issues.forEach((issue) => {
             errors.value[issue.path[0] as string] = issue.message;
@@ -73,38 +67,38 @@ function onSubmit() {
             <div class="card bg-base-100 shadow-xl border border-base-content/5">
                 <div class="card-body p-8">
                     <h2 class="card-title text-xl mb-6">Profile Settings</h2>
-                    
+
                     <form @submit.prevent="onSubmit" class="space-y-6">
-                        <FormInput 
-                            v-model="form.username" 
-                            label="Username" 
+                        <FormInput
+                            v-model="form.username"
+                            label="Username"
                             placeholder="Introduce tu nombre de usuario"
-                            :error="errors.username" 
-                            required 
-                            description="Este es tu nombre público visible para otros usuarios." 
+                            :error="errors.username"
+                            required
+                            description="Este es tu nombre público visible para otros usuarios."
                         />
 
-                        <FormInput 
-                            v-model="form.email" 
-                            label="Email" 
-                            type="email" 
+                        <FormInput
+                            v-model="form.email"
+                            label="Email"
+                            type="email"
                             placeholder="ejemplo@correo.com"
-                            :error="errors.email" 
-                            required 
+                            :error="errors.email"
+                            required
                         />
 
-                        <FormSelect 
-                            v-model="form.role" 
-                            label="Role" 
-                            :options="roles" 
+                        <FormSelect
+                            v-model="form.role"
+                            label="Role"
+                            :options="roles"
                             placeholder="Selecciona un rol"
-                            :error="errors.role" 
-                            required 
+                            :error="errors.role"
+                            required
                         />
 
-                        <FormSwitch 
-                            v-model="form.notifications" 
-                            label="Enable notifications" 
+                        <FormSwitch
+                            v-model="form.notifications"
+                            label="Enable notifications"
                             variant="primary"
                             description="Recibe alertas sobre actividad importante."
                         />
@@ -117,7 +111,7 @@ function onSubmit() {
                     </form>
                 </div>
             </div>
-            
+
             <div class="alert alert-info shadow-sm">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
               <div>

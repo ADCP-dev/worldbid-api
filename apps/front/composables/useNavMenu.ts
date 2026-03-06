@@ -32,7 +32,7 @@ export function useNavMenu() {
           {
             title: t("base.nav.users"),
             icon: "Users",
-            link: "/admin/users",
+            link: "/app/users",
           },
         ],
       });

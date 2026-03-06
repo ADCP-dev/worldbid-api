@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, h, resolveComponent } from 'vue';
 import { useUsers } from '~/composables/useUsers';
+import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import {
   UserIcon,
@@ -19,6 +20,7 @@ import UserRoleDialog from '~/components/users/UserRoleDialog.vue';
 import TableActionMenu from '~/components/ui/TableActionMenu.vue';
 
 const { deleteUser } = useUsers();
+const { t } = useI18n();
 
 const tableRef = ref<any>(null);
 const userFormDialogRef = ref<any>(null);
@@ -52,14 +54,14 @@ const handleChangeRole = (user: any) => {
 };
 
 const handleDelete = async (user: any) => {
-  if (confirm(`¿Estás seguro de que deseas eliminar al usuario ${user.email}?`)) {
+  if (confirm(t('base.users.messages.deleteConfirm', { email: user.email }))) {
     try {
       await deleteUser(user.id);
-      toast.success('Usuario eliminado correctamente');
+      toast.success(t('base.users.messages.deleteSuccess'));
       refreshTable();
     } catch (error: any) {
       console.error(error);
-      toast.error('Error al eliminar usuario');
+      toast.error(t('base.users.messages.deleteError'));
     }
   }
 };
@@ -67,39 +69,39 @@ const handleDelete = async (user: any) => {
 const columns = computed(() => [
   {
     accessorKey: "id",
-    headerName: "ID",
-    header: "ID",
+    headerName: t('base.users.table.ID'),
+    header: t('base.users.table.ID'),
     filterType: "number"
   },
   {
     accessorKey: "firstName",
-    headerName: "Nombre",
-    header: "Nombre",
+    headerName: t('base.users.table.firstName'),
+    header: t('base.users.table.firstName'),
     filterType: "string"
   },
   {
     accessorKey: "lastName",
-    headerName: "Apellidos",
-    header: "Apellidos",
+    headerName: t('base.users.table.lastName'),
+    header: t('base.users.table.lastName'),
     filterType: "string"
   },
   {
     accessorKey: "email",
-    headerName: "Email",
-    header: "Email",
+    headerName: t('base.users.table.email'),
+    header: t('base.users.table.email'),
     filterType: "string"
   },
   {
     accessorKey: "role.id",
     id: "role.id",
-    headerName: "Rol",
-    header: "Rol",
+    headerName: t('base.users.table.role'),
+    header: t('base.users.table.role'),
     enableSorting: false,
     filterType: "select",
     options: [
-      { value: '', label: 'Todos' },
-      { value: '1', label: 'Admin' },
-      { value: '2', label: 'User' }
+      { value: '', label: t('base.users.table.roles.all') },
+      { value: '1', label: t('base.users.table.roles.admin') },
+      { value: '2', label: t('base.users.table.roles.user') }
     ],
     cell: ({ row }: any) => {
       const user = row.original;
@@ -109,14 +111,14 @@ const columns = computed(() => [
   {
     accessorKey: "status.id",
     id: "status.id",
-    headerName: "Estado",
-    header: "Estado",
+    headerName: t('base.users.table.status'),
+    header: t('base.users.table.status'),
     enableSorting: false,
     filterType: "select",
     options: [
-      { value: '', label: 'Todos' },
-      { value: '1', label: 'Activo' },
-      { value: '2', label: 'Inactivo' }
+      { value: '', label: t('base.users.table.statuses.all') },
+      { value: '1', label: t('base.users.table.statuses.active') },
+      { value: '2', label: t('base.users.table.statuses.inactive') }
     ],
     cell: ({ row }: any) => {
       const user = row.original;
@@ -127,8 +129,8 @@ const columns = computed(() => [
   },
   {
     id: "actions",
-    headerName: "Acciones",
-    header: "Acciones",
+    headerName: t('base.users.table.actions'),
+    header: t('base.users.table.actions'),
     enableSorting: false,
     cell: ({ row }: any) => {
       const user = row.original;
@@ -139,22 +141,22 @@ const columns = computed(() => [
         default: ({ close }: { close: () => void }) => [
           h('li', {}, [
             h('button', { onClick: () => { close(); handleEdit(user); } }, [
-              h(EditIcon, { class: 'w-4 h-4' }), 'Editar'
+              h(EditIcon, { class: 'w-4 h-4' }), t('base.users.actions.edit')
             ])
           ]),
           h('li', {}, [
             h('button', { onClick: () => { close(); handleChangeRole(user); } }, [
-              h(ShieldIcon, { class: 'w-4 h-4' }), 'Cambiar Rol / Estado'
+              h(ShieldIcon, { class: 'w-4 h-4' }), t('base.users.actions.changeRole')
             ])
           ]),
           h('li', {}, [
             h('button', { onClick: () => { close(); handleChangePassword(user); } }, [
-              h(KeyIcon, { class: 'w-4 h-4' }), 'Cambiar Contraseña'
+              h(KeyIcon, { class: 'w-4 h-4' }), t('base.users.actions.changePassword')
             ])
           ]),
           h('li', { class: 'border-t border-base-200 mt-1 pt-1' }, [
             h('button', { class: 'text-error', onClick: () => { close(); handleDelete(user); } }, [
-              h(Trash2Icon, { class: 'w-4 h-4' }), 'Eliminar'
+              h(Trash2Icon, { class: 'w-4 h-4' }), t('base.users.actions.delete')
             ])
           ])
         ]
@@ -171,15 +173,15 @@ const columns = computed(() => [
       <div>
         <h1 class="text-2xl font-bold flex items-center gap-2">
           <UserIcon class="w-6 h-6 text-primary" />
-          Gestión de Usuarios
+          {{ $t('base.users.title') }}
         </h1>
-        <p class="text-base-content/70 mt-1">Administra los usuarios de la plataforma</p>
+        <p class="text-base-content/70 mt-1">{{ $t('base.users.description') }}</p>
       </div>
 
       <div class="flex gap-2">
         <button class="btn btn-primary" @click="handleCreate">
           <PlusIcon class="w-4 h-4 mr-2" />
-          Nuevo Usuario
+          {{ $t('base.users.actions.create') }}
         </button>
       </div>
     </div>
