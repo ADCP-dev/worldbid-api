@@ -3,6 +3,9 @@ import { computed, ref } from 'vue';
 import { BotIcon, Loader2 } from 'lucide-vue-next'
 import { fetchWrapper } from '~/helpers/fetch-wrapper';
 import { toast } from 'vue-sonner';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const { createTranslation, updateTranslation, deleteTranslation } = useTranslations();
 
@@ -33,10 +36,10 @@ const translateRow = async () => {
 
         // Tell parent to refresh
         emit('update', 'Translated via AI');
-        toast.success(`Translation successful: ${response.message}`);
+        toast.success(`${t('base.translations.accordion.toast.success')}: ${response.message}`);
     } catch (error: any) {
         console.error('Failed to translate row', error);
-        toast.error(`Translation failed: ${error.message || 'Unknown error'}`);
+        toast.error(`${t('base.translations.accordion.toast.error')}: ${error.message || 'Unknown error'}`);
     } finally {
         isTranslating.value = false;
     }
@@ -81,7 +84,7 @@ const handleBlur = async (row: any, event: Event) => {
     emit('update', newContent);
   } catch (err) {
     console.error('Failed to update translation', err);
-    toast.error('Failed to save translation');
+    toast.error(t('base.translations.accordion.toast.saveError'));
   }
 };
 
@@ -99,13 +102,13 @@ const summaryRows = computed(() => languageRows.value.filter(r => r.translation)
          </div>
       </template>
       <template v-else>
-          <span class="italic opacity-50">Sin traducciones</span>
+          <span class="italic opacity-50">{{ $t('base.translations.accordion.noTranslations') }}</span>
       </template>
     </div>
     <div class="collapse-content bg-base-200/20 px-4">
       <div class="flex flex-col sm:flex-row gap-4">
         <div class="flex items-center justify-center">
-          <div class="tooltip tooltip-right" data-tip="Auto-Traducir faltantes (IA)">
+          <div class="tooltip tooltip-right" :data-tip="$t('base.translations.accordion.tooltip')">
             <button
               class="btn btn-outline btn-square btn-sm"
               @click="translateRow"
@@ -129,7 +132,7 @@ const summaryRows = computed(() => languageRows.value.filter(r => r.translation)
               class="textarea textarea-bordered textarea-sm w-full min-h-[60px]"
               :value="row.content"
               :key="`${row.lang.id}-${row.content}`"
-              :placeholder="`Traducción en ${row.lang.name}...`"
+              :placeholder="$t('base.translations.accordion.placeholder', { lang: row.lang.name })"
               @blur="handleBlur(row, $event)"
             ></textarea>
           </div>

@@ -37,5 +37,29 @@
     "toast": {
       "error": "Failure creating the translation"
     }
+  },
+  "editor": {
+    "bulkTranslating": "Translating All...",
+    "autoTranslateAll": "Auto-Translate All Missing (AI)",
+    "saving": "Saving...",
+    "saveSync": "Save and Sync",
+    "editTitle": "Edit Translation:",
+    "placeholder": "Enter translation...",
+    "toast": {
+      "bulkSuccess": "Bulk translation completed",
+      "bulkError": "Bulk translation failed",
+      "saveSuccess": "Translations saved successfully",
+      "saveError": "Error saving translations"
+    }
+  },
+  "accordion": {
+    "noTranslations": "No translations",
+    "tooltip": "Auto-Translate missing (AI)",
+    "placeholder": "Translation in {lang}...",
+    "toast": {
+      "success": "Translation successful",
+      "error": "Translation failed",
+      "saveError": "Failed to save translation"
+    }
   }
 }

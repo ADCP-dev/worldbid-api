@@ -37,5 +37,29 @@
     "toast": {
       "error": "Error al crear la traducción"
     }
+  },
+  "editor": {
+    "bulkTranslating": "Traduciendo Todos...",
+    "autoTranslateAll": "Auto-Traducir Todos los Faltantes (IA)",
+    "saving": "Guardando...",
+    "saveSync": "Guardar y Sincronizar",
+    "editTitle": "Editar Traducción:",
+    "placeholder": "Introducir traducción...",
+    "toast": {
+      "bulkSuccess": "Traducción masiva completada",
+      "bulkError": "Traducción masiva fallida",
+      "saveSuccess": "Traducciones guardadas correctamente",
+      "saveError": "Error al guardar las traducciones"
+    }
+  },
+  "accordion": {
+    "noTranslations": "Sin traducciones",
+    "tooltip": "Auto-Traducir faltantes (IA)",
+    "placeholder": "Traducción en {lang}...",
+    "toast": {
+      "success": "Traducción exitosa",
+      "error": "Traducción fallida",
+      "saveError": "Error al guardar la traducción"
+    }
   }
 }

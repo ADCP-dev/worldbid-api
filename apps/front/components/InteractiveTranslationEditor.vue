@@ -20,14 +20,14 @@ const bulkTranslate = async () => {
                 Authorization: `Bearer ${useCookie('auth_token').value}`
             }
         });
-        toast.success('Traducción masiva completada');
+        toast.success(nuxtApp.$i18n.t('base.translations.editor.toast.bulkSuccess'));
         await generateJson();
         setTimeout(() => {
             window.location.reload();
         }, 500);
     } catch (error: any) {
         console.error(error);
-        toast.error(`Traducción masiva fallida: ${error.message || 'Error desconocido'}`);
+        toast.error(`${nuxtApp.$i18n.t('base.translations.editor.toast.bulkError')}: ${error.message || 'Error desconocido'}`);
     } finally {
         isBulkTranslating.value = false;
     }
@@ -117,13 +117,13 @@ const handleSaveAll = async () => {
         }
 
         await generateJson();
-        toast.success('Traducciones guardadas correctamente');
+        toast.success(nuxtApp.$i18n.t('base.translations.editor.toast.saveSuccess'));
         setTimeout(() => {
             window.location.reload();
         }, 500);
     } catch (e) {
         console.error(e);
-        toast.error('Error al guardar las traducciones');
+        toast.error(nuxtApp.$i18n.t('base.translations.editor.toast.saveError'));
     } finally {
         isSaving.value = false;
     }
@@ -229,7 +229,7 @@ import { toast } from 'vue-sonner';
       <div class="modal-box max-w-xl max-h-[80vh] flex flex-col p-6">
         <div class="flex items-center justify-between mb-4">
           <h3 class="font-bold text-lg">
-            Edit Translation:
+            {{ $t('base.translations.editor.editTitle') }}
             <span class="text-primary font-mono text-sm ml-2">{{ editingKey }}</span>
           </h3>
           <button @click="isEditing = false" class="btn btn-sm btn-circle btn-ghost">✕</button>
@@ -246,7 +246,7 @@ import { toast } from 'vue-sonner';
                 v-if="translationsData[lang.id]"
                 v-model="translationsData[lang.id].content"
                 class="textarea textarea-bordered w-full"
-                placeholder="Introducir traducción..."
+                :placeholder="$t('base.translations.editor.placeholder')"
                 rows="3"
               />
             </div>
@@ -256,11 +256,11 @@ import { toast } from 'vue-sonner';
         <div class="modal-action flex-col sm:flex-row gap-2 mt-0">
           <button @click="bulkTranslate" :disabled="isBulkTranslating" class="btn btn-neutral grow">
             <AppIcon v-if="isBulkTranslating" name="lucide:loader-2" class="w-4 h-4 animate-spin mr-2" />
-            {{ isBulkTranslating ? 'Traduciendo Todos...' : 'Auto-Traducir Todos los Faltantes (IA)' }}
+            {{ isBulkTranslating ? $t('base.translations.editor.bulkTranslating') : $t('base.translations.editor.autoTranslateAll') }}
           </button>
           <button @click="handleSaveAll" :disabled="isSaving" class="btn btn-primary sm:w-auto">
             <AppIcon v-if="isSaving" name="lucide:loader-2" class="w-4 h-4 animate-spin mr-2" />
-            {{ isSaving ? 'Guardando...' : 'Guardar y Sincronizar' }}
+            {{ isSaving ? $t('base.translations.editor.saving') : $t('base.translations.editor.saveSync') }}
           </button>
         </div>
       </div>

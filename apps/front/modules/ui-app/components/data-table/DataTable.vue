@@ -167,6 +167,10 @@ const clearAllFilters = () => {
   tableStateStore.resetTableState(tableName.value)
 }
 
+const hasActiveFilters = computed(() => {
+  return state.value.columnFilters.length > 0 || !!state.value.globalFilter;
+});
+
 const table = useVueTable({
   get data() {
     return internalData.value as TData[];
@@ -258,7 +262,8 @@ defineExpose({
         :value="table.getState().globalFilter ?? ''"
         @input="(e) => table.setGlobalFilter((e.target as HTMLInputElement).value)" >
       <button
-        class="btn btn-outline btn-sm ml-2"
+        class="btn btn-sm ml-2"
+        :class="hasActiveFilters ? 'btn-primary' : 'btn-outline'"
         @click="clearAllFilters"
       >
         {{ $t('base.app.dataTable.clearFilters') }}
@@ -422,12 +427,10 @@ defineExpose({
           @click="table.previousPage()">{{ $t('base.app.dataTable.previous') }}</button>
         <template v-for="page in visiblePages" :key="page">
           <button
-            class="btn btn-outline btn-sm"
-            :class="{
-              'btn-active':
-                table.getState().pagination.pageIndex === page,
-          }"
-          @click="table.setPageIndex(page)">{{ page + 1 }}</button>
+            class="btn btn-sm"
+            :class="table.getState().pagination.pageIndex === page ? 'btn-primary' : 'btn-outline'"
+            @click="table.setPageIndex(page)"
+          >{{ page + 1 }}</button>
         </template>
         <button
           class="btn btn-outline btn-sm"
