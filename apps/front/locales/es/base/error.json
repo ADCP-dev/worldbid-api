@@ -1,6 +1,4 @@
 {
-  "goBack": "Volver",
-  "goHome": "Volver al inicio",
   "401": {
     "title": "Acceso no autorizado",
     "description": "Por favor, inicia sesión con las credenciales apropiadas <br> para acceder a este recurso."
@@ -20,5 +18,7 @@
   "503": {
     "title": "Sitio en mantenimiento",
     "description": "El sitio no está disponible en este momento. <br> Volveremos en línea pronto."
-  }
+  },
+  "goBack": "Volver",
+  "goHome": "Volver al inicio"
 }

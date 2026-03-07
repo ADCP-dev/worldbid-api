@@ -1,6 +1,4 @@
 {
-  "goBack": "Go back",
-  "goHome": "Back to home",
   "401": {
     "title": "Unauthorized",
     "description": "Please log in with appropriate credentials <br> to access this resource."
@@ -20,5 +18,7 @@
   "503": {
     "title": "Site under maintenance",
     "description": "The site is currently unavailable. <br> We will be back online soon."
-  }
+  },
+  "goBack": "Go back",
+  "goHome": "Back to home"
 }

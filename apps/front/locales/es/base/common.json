@@ -1,4 +1,17 @@
 {
+  "status": {
+    "processing": "Procesando",
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "pending": "Pendiente",
+    "completed": "Completado",
+    "success": "Éxito",
+    "error": "Error",
+    "warning": "Advertencia",
+    "info": "Información",
+    "loading": "Cargando...",
+    "empty": "No hay datos disponibles"
+  },
   "actions": {
     "save": "Guardar",
     "edit": "Editar",
@@ -26,19 +39,6 @@
     "view": "Ver",
     "reset": "Restablecer",
     "clear": "Limpiar"
-  },
-  "status": {
-    "active": "Activo",
-    "inactive": "Inactivo",
-    "pending": "Pendiente",
-    "completed": "Completado",
-    "processing": "Procesando",
-    "success": "Éxito",
-    "error": "Error",
-    "warning": "Advertencia",
-    "info": "Información",
-    "loading": "Cargando...",
-    "empty": "No hay datos disponibles"
   },
   "pagination": {
     "previous": "Anterior",

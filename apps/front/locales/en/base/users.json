@@ -1,4 +1,23 @@
 {
+  "table": {
+    "role": "Role",
+    "status": "Status",
+    "actions": "Actions",
+    "roles": {
+      "all": "All",
+      "admin": "Admin",
+      "user": "User"
+    },
+    "ID": "ID",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "email": "Email",
+    "statuses": {
+      "all": "All",
+      "active": "Active",
+      "inactive": "Inactive"
+    }
+  },
   "title": "User Management",
   "description": "Manage platform users",
   "actions": {
@@ -12,24 +31,5 @@
     "deleteConfirm": "Are you sure you want to delete the user {email}?",
     "deleteSuccess": "User deleted successfully",
     "deleteError": "Error deleting user"
-  },
-  "table": {
-    "ID": "ID",
-    "firstName": "First Name",
-    "lastName": "Last Name",
-    "email": "Email",
-    "role": "Role",
-    "status": "Status",
-    "actions": "Actions",
-    "roles": {
-      "all": "All",
-      "admin": "Admin",
-      "user": "User"
-    },
-    "statuses": {
-      "all": "All",
-      "active": "Active",
-      "inactive": "Inactive"
-    }
   }
 }

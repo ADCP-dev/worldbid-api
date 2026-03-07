@@ -8,40 +8,35 @@
       "prefix": "The Foundation"
     }
   },
-  "features": {
-    "list": {
-      "zap": {
-        "title": "Billing with stripe",
-        "description": "Full integration with Stripe to manage subscriptions, payments and customer portal."
+  "pricing": {
+    "custom": {
+      "features": {
+        "ai": {
+          "title": "AI Elements",
+          "description": "Adapted to your processes"
+        },
+        "integration": {
+          "title": "Multiple Integration",
+          "description": "Channels and systems"
+        },
+        "support": {
+          "title": "Exclusive Support",
+          "description": "24/7 priority assistance"
+        },
+        "config": {
+          "title": "Advanced Configuration",
+          "description": "For large organizations"
+        }
       },
-      "workflow": {
-        "title": "CMS y Newsletter",
-        "description": "Professional blog system and newsletter management ready to use and attract users."
-      },
-      "shield": {
-        "title": "Auth & Security",
-        "description": "JWT, Google OAuth and role-based access control (RBAC) with granular permissions integrated in the core."
-      },
-      "layers": {
-        "title": "AI with LangChain",
-        "description": "Architecture prepared for AI agents that can interact with your app's database."
-      },
-      "database": {
-        "title": "Redis & Postgres",
-        "description": "Robust tech stack with PostgreSQL for persistent data and Redis for queues and caching."
-      },
-      "barChart3": {
-        "title": "Premium Dashboard",
-        "description": "Complete admin interface built with Shadcn UI for full control of your platform."
+      "badge": "Enterprise",
+      "title": "Custom",
+      "description": "Solutions for large companies and public administrations. Integration with multiple channels and systems, AI fully adapted to your processes.",
+      "contact": {
+        "title": "Let's Talk",
+        "description": "Custom pricing",
+        "button": "Contact Sales"
       }
     },
-    "title": {
-      "badge": "Technical Features",
-      "main": "Power your Business with the Ultimate Stack",
-      "description": "A solid foundation built with the most modern technologies so you can focus on integrations and features that matter."
-    }
-  },
-  "pricing": {
     "title": {
       "badge": "Plans",
       "main": "The foundation that scales with you",
@@ -85,34 +80,39 @@
           "4": "Integration consulting"
         }
       }
-    },
-    "custom": {
-      "badge": "Enterprise",
-      "title": "Custom",
-      "description": "Solutions for large companies and public administrations. Integration with multiple channels and systems, AI fully adapted to your processes.",
-      "features": {
-        "integration": {
-          "title": "Multiple Integration",
-          "description": "Channels and systems"
-        },
-        "ai": {
-          "title": "Custom AI",
-          "description": "Adapted to your processes"
-        },
-        "support": {
-          "title": "Exclusive Support",
-          "description": "24/7 priority assistance"
-        },
-        "config": {
-          "title": "Advanced Configuration",
-          "description": "For large organizations"
-        }
+    }
+  },
+  "features": {
+    "list": {
+      "zap": {
+        "title": "Billing with stripe",
+        "description": "Full integration with Stripe to manage subscriptions, payments and customer portal."
       },
-      "contact": {
-        "title": "Let's Talk",
-        "description": "Custom pricing",
-        "button": "Contact Sales"
+      "workflow": {
+        "title": "CMS y Newsletter",
+        "description": "Professional blog system and newsletter management ready to use and attract users."
+      },
+      "shield": {
+        "title": "Auth & Security",
+        "description": "JWT, Google OAuth and role-based access control (RBAC) with granular permissions integrated in the core."
+      },
+      "layers": {
+        "title": "AI with LangChain",
+        "description": "Architecture prepared for AI agents that can interact with your app's database."
+      },
+      "database": {
+        "title": "Redis & Postgres",
+        "description": "Robust tech stack with PostgreSQL for persistent data and Redis for queues and caching."
+      },
+      "barChart3": {
+        "title": "Premium Dashboard",
+        "description": "Complete admin interface built with Shadcn UI for full control of your platform."
       }
+    },
+    "title": {
+      "badge": "Technical Features",
+      "main": "Power your Business with the Ultimate Stack",
+      "description": "A solid foundation built with the most modern technologies so you can focus on integrations and features that matter."
     }
   }
 }

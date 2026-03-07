@@ -1,11 +1,11 @@
 {
+  "home": "Inicio",
   "general": "General",
   "admin": "Administración",
   "searchPlaceholder": "Buscar...",
   "noResults": "No se encontraron resultados",
   "account": "Mi cuenta",
   "logout": "Cerrar sesión",
-  "home": "Inicio",
   "settings": "Configuración",
   "users": "Usuarios",
   "translations_heading": "Traducciones",

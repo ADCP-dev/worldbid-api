@@ -8,40 +8,35 @@
     },
     "howItWorks": "Ver Cómo Funciona"
   },
-  "features": {
-    "list": {
-      "zap": {
-        "title": "Facturación con stripe",
-        "description": "Integración completa con Stripe para gestionar suscripciones, cobros y portal del cliente."
-      },
-      "shield": {
-        "title": "Auth & Seguridad",
-        "description": "JWT, Google OAuth y sistema de roles (RBAC) con permisos granulares integrados en el core."
-      },
-      "layers": {
-        "title": "IA con LangChain",
-        "description": "Arquitectura preparada para agentes de IA que pueden interactuar con la base de datos de tu app."
-      },
-      "database": {
-        "title": "Redis & Postgres",
-        "description": "Pila tecnológica robusta con PostgreSQL para datos persistentes y Redis para colas y caché."
-      },
-      "workflow": {
-        "description": "Sistema de blog profesional y gestión de newsletters listo para usar y atraer usuarios.",
-        "title": "CMS y Newsletter"
-      },
-      "barChart3": {
-        "title": "Dashboard Premium",
-        "description": "Interfaz de administración completa construida con Shadcn UI para el control total de tu plataforma."
-      }
-    },
-    "title": {
-      "badge": "Características Técnicas",
-      "main": "Potencia tu Negocio con el Stack Definitivo",
-      "description": "Una base sólida construida con las tecnologías más modernas para que puedas centrarte en las integraciones y funcionalidades que importan."
-    }
-  },
   "pricing": {
+    "custom": {
+      "features": {
+        "ai": {
+          "title": "Elementos IA",
+          "description": "Adaptada a tus procesos"
+        },
+        "integration": {
+          "title": "Integración múltiple",
+          "description": "Canales y sistemas"
+        },
+        "support": {
+          "title": "Soporte exclusivo",
+          "description": "Asistencia prioritaria 24/7"
+        },
+        "config": {
+          "title": "Configuración avanzada",
+          "description": "Para grandes organizaciones"
+        }
+      },
+      "badge": "Enterprise",
+      "description": "Soluciones para grandes empresas y administraciones públicas. Integración con múltiples canales y sistemas, IA totalmente adaptada a tus procesos.",
+      "contact": {
+        "title": "Hablamos",
+        "description": "Precio personalizado",
+        "button": "Contactar Ventas"
+      },
+      "title": "Personalizado😉"
+    },
     "title": {
       "badge": "Planes",
       "main": "La base que escala contigo",
@@ -85,34 +80,39 @@
           "4": "Consultoría de integración"
         }
       }
+    }
+  },
+  "features": {
+    "list": {
+      "zap": {
+        "title": "Facturación con stripe",
+        "description": "Integración completa con Stripe para gestionar suscripciones, cobros y portal del cliente."
+      },
+      "shield": {
+        "title": "Auth & Seguridad",
+        "description": "JWT, Google OAuth y sistema de roles (RBAC) con permisos granulares integrados en el core."
+      },
+      "layers": {
+        "title": "IA con LangChain",
+        "description": "Arquitectura preparada para agentes de IA que pueden interactuar con la base de datos de tu app."
+      },
+      "database": {
+        "title": "Redis & Postgres",
+        "description": "Pila tecnológica robusta con PostgreSQL para datos persistentes y Redis para colas y caché."
+      },
+      "workflow": {
+        "description": "Sistema de blog profesional y gestión de newsletters listo para usar y atraer usuarios.",
+        "title": "CMS y Newsletter"
+      },
+      "barChart3": {
+        "title": "Dashboard Premium",
+        "description": "Interfaz de administración completa construida con Shadcn UI para el control total de tu plataforma."
+      }
     },
-    "custom": {
-      "badge": "Enterprise",
-      "description": "Soluciones para grandes empresas y administraciones públicas. Integración con múltiples canales y sistemas, IA totalmente adaptada a tus procesos.",
-      "features": {
-        "integration": {
-          "title": "Integración múltiple",
-          "description": "Canales y sistemas"
-        },
-        "ai": {
-          "title": "IA personalizada",
-          "description": "Adaptada a tus procesos"
-        },
-        "support": {
-          "title": "Soporte exclusivo",
-          "description": "Asistencia prioritaria 24/7"
-        },
-        "config": {
-          "title": "Configuración avanzada",
-          "description": "Para grandes organizaciones"
-        }
-      },
-      "contact": {
-        "title": "Hablamos",
-        "description": "Precio personalizado",
-        "button": "Contactar Ventas"
-      },
-      "title": "Personalizado😉"
+    "title": {
+      "badge": "Características Técnicas",
+      "main": "Potencia tu Negocio con el Stack Definitivo",
+      "description": "Una base sólida construida con las tecnologías más modernas para que puedas centrarte en las integraciones y funcionalidades que importan."
     }
   }
 }
