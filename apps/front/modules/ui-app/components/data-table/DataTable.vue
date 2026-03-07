@@ -122,8 +122,13 @@ onMounted(() => {
   fetchData();
 });
 
+let fetchTimeout: any = null;
+
 watch([() => props.endpoint, () => props.refreshKey, state], () => {
-  fetchData();
+  if (fetchTimeout) clearTimeout(fetchTimeout);
+  fetchTimeout = setTimeout(() => {
+    fetchData();
+  }, 300);
 }, { deep: true });
 
 watch(() => props.data, (newData) => {

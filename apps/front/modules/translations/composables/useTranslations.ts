@@ -22,6 +22,10 @@ export const useTranslations = () => {
     return await fetchWrapper.get(`${baseUrl}/exact?app=${app}&section=${section}&key=${key}`);
   };
 
+  const getExactTranslationByDotPath = async (app: string, dotPath: string) => {
+    return await fetchWrapper.get(`${baseUrl}/exact-by-path?app=${app}&dotPath=${dotPath}`);
+  };
+
   const createTranslation = (body: any) => fetchWrapper.post(baseUrl, body);
   const updateTranslation = (id: number, body: any) => fetchWrapper.patch(`${baseUrl}/${id}`, body);
   const deleteTranslation = (id: number) => fetchWrapper.delete(`${baseUrl}/${id}`);
@@ -35,6 +39,7 @@ export const useTranslations = () => {
     deleteLang,
     getTranslations,
     getExactTranslation,
+    getExactTranslationByDotPath,
     createTranslation,
     updateTranslation,
     deleteTranslation,

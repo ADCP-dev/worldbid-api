@@ -74,6 +74,7 @@ export class TranslationsService {
   async findAllTranslationsWithPagination(
     filters: {
       section?: string;
+      key?: string;
       langId?: number;
       entityName?: string;
       entityId?: string;
@@ -103,8 +104,13 @@ export class TranslationsService {
 
     // Apply Filters to the group query
     if (filters.section) {
-      groupQueryBuilder.andWhere('translation.section = :section', {
-        section: filters.section,
+      groupQueryBuilder.andWhere('translation.section ILIKE :section', {
+        section: `%${filters.section}%`,
+      });
+    }
+    if (filters.key) {
+      groupQueryBuilder.andWhere('translation.key ILIKE :key', {
+        key: `%${filters.key}%`,
       });
     }
     if (filters.langId) {
@@ -255,6 +261,32 @@ export class TranslationsService {
       },
       relations: ['lang'],
     });
+
+    return {
+      app,
+      section,
+      key,
+      translations,
+    };
+  }
+
+  async getExactTranslationGroupByDotPath(
+    app: string,
+    dotPath: string,
+  ): Promise<any> {
+    const translations = await this.translationRepository
+      .createQueryBuilder('translation')
+      .leftJoinAndSelect('translation.lang', 'lang')
+      // Important to support both with and without section (if section is null)
+      .where("COALESCE(REPLACE(translation.section, ':', '.'), '') || CASE WHEN translation.section IS NULL THEN '' ELSE '.' END || translation.key = :dotPath", { dotPath })
+      .andWhere('translation.app = :app', { app })
+      .andWhere('translation.entityName IS NULL')
+      .andWhere('translation.entityId IS NULL')
+      .getMany();
+
+    const firstMatch = translations[0];
+    const section = firstMatch?.section || '';
+    const key = firstMatch?.key || '';
 
     return {
       app,

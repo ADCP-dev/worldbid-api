@@ -69,7 +69,17 @@ export const useAuthStore = defineStore("auth", {
 
         return { success: true };
       } catch (error: any) {
-        return { success: false, error: error.message || "Login failed" };
+        let errorMessage = error.message || "Login failed";
+        let errorCode = undefined;
+
+        if (error.data?.errors) {
+          const firstErrorKey = Object.keys(error.data.errors)[0];
+          if (firstErrorKey) {
+            errorCode = error.data.errors[firstErrorKey];
+          }
+        }
+
+        return { success: false, error: errorMessage, errorCode };
       }
     },
 

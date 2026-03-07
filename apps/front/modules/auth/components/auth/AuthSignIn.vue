@@ -35,13 +35,23 @@ async function onSubmit(event: Event) {
       const { navigateHome } = useHomeRoute()
       navigateHome()
     } else {
+      let description = result.error || t('base.auth.signIn.errorInvalidCreds');
+      if (result.errorCode === 'incorrectPassword' || result.errorCode === 'notFound' || result.errorCode === 'incorrectEmail') {
+        description = t('base.auth.signIn.errorIncorrectLogin');
+      }
+
       toast.error(t('base.auth.signIn.errorGeneric'), {
-        description: result.error || t('base.auth.signIn.errorInvalidCreds'),
+        description,
       })
     }
   } catch (error: any) {
+    let description = error?.message || t('base.auth.signIn.errorLoginFailed');
+    if (error?.data?.errors?.password === 'incorrectPassword' || error?.data?.errors?.email === 'notFound') {
+      description = t('base.auth.signIn.errorIncorrectLogin');
+    }
+
     toast.error(t('base.auth.signIn.errorGeneric'), {
-      description: error?.message || t('base.auth.signIn.errorLoginFailed'),
+      description,
     })
   } finally {
     isLoading.value = false

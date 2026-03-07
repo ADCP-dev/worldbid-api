@@ -7,7 +7,7 @@ const isEditing = ref(false);
 const editingKey = ref('');
 // ... (rest of logic remains similar, just removing imports)
 
-const { getLangs, getExactTranslation, createTranslation, updateTranslation, generateJson } = useTranslations();
+const { getLangs, getExactTranslationByDotPath, createTranslation, updateTranslation, generateJson } = useTranslations();
 const isBulkTranslating = ref(false);
 
 const bulkTranslate = async () => {
@@ -59,11 +59,7 @@ const openEditor = async (keyText: string) => {
     isEditing.value = true;
 
     try {
-        const parts = keyText.split('.');
-        const topSection = parts.slice(0, -1).join('.');
-        const restKey = parts.slice(-1)[0];
-
-        const res = await getExactTranslation('front', topSection, restKey);
+        const res = await getExactTranslationByDotPath('front', keyText);
         groupData.value = res;
 
         const newTranslationsData: Record<number, any> = {};
@@ -95,9 +91,13 @@ const isSaving = ref(false);
 const handleSaveAll = async () => {
     isSaving.value = true;
     try {
+        // Fallback for brand new keys
         const parts = editingKey.value.split('.');
-        const topSection = parts[0];
-        const restKey = parts.slice(1).join('.');
+        const fallbackSection = parts.length > 1 ? parts[0] : 'common';
+        const fallbackKey = parts.length > 1 ? parts.slice(1).join('.') : editingKey.value;
+
+        const finalSection = groupData.value?.section || fallbackSection;
+        const finalKey = groupData.value?.key || fallbackKey;
 
         for (const lang of allLangs.value) {
             const data = translationsData.value[lang.id];
@@ -109,8 +109,8 @@ const handleSaveAll = async () => {
                 await createTranslation({
                     langId: lang.id,
                     app: 'front',
-                    section: topSection,
-                    key: restKey,
+                    section: finalSection,
+                    key: finalKey,
                     content: data.content
                 });
             }
