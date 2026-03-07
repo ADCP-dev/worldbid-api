@@ -5,6 +5,7 @@ export function useNavMenu() {
   const authStore = useAuthStore();
   const config = useRuntimeConfig();
   const { t } = useI18n();
+  const localePath = useLocalePath();
 
   const navMenu = computed<NavMenu[]>(() => {
     const baseGeneral: NavMenu = {
@@ -13,12 +14,12 @@ export function useNavMenu() {
         {
           title: t("base.nav.home"),
           icon: "House",
-          link: "/app",
+          link: localePath("/app"),
         },
         {
           title: t("base.nav.settings"),
           icon: "Settings",
-          link: "/app/settings/profile",
+          link: localePath("/app/settings/profile"),
         },
       ],
     };
@@ -32,7 +33,7 @@ export function useNavMenu() {
           {
             title: t("base.nav.users"),
             icon: "Users",
-            link: "/app/users",
+            link: localePath("/app/users"),
           },
         ],
       });

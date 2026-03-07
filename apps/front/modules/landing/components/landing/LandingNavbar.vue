@@ -3,8 +3,8 @@ import { Menu } from "lucide-vue-next";
 import { ref } from "vue";
 import { useColorMode } from "@vueuse/core";
 
-const { route: homeRoute } = useHomeRoute();
 const colorMode = useColorMode();
+const localePath = useLocalePath();
 
 interface RouteProps {
   href: string;
@@ -49,7 +49,7 @@ const isOpen = ref<boolean>(false);
 
         <div class="hidden lg:flex gap-4 items-center">
           <LangButton />
-          <NuxtLink to="/login" class="btn btn-outline btn-sm">
+          <NuxtLink :to="localePath('/login')" class="btn btn-outline btn-sm">
             Login
           </NuxtLink>
           <ToggleTheme />
@@ -77,7 +77,7 @@ const isOpen = ref<boolean>(false);
         <div class="divider"></div>
 
         <div class="flex flex-col gap-4 p-2">
-          <NuxtLink to="/login" class="btn btn-primary w-full" @click="isOpen = false">
+          <NuxtLink :to="localePath('/login')" class="btn btn-primary w-full" @click="isOpen = false">
             Login
           </NuxtLink>
           <div class="flex justify-between items-center px-2">

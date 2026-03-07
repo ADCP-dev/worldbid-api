@@ -1,5 +1,6 @@
 export default defineNuxtPlugin(() => {
   const menuItems = useState<any[]>("nav:menuItems", () => []);
+  const localePath = useLocalePath();
 
   menuItems.value.push({
     heading: "base.nav.translations_heading",
@@ -7,12 +8,12 @@ export default defineNuxtPlugin(() => {
       {
         title: "base.nav.languages",
         icon: "Globe",
-        link: "/admin/translations/langs",
+        link: localePath("/admin/translations/langs"),
       },
       {
         title: "base.nav.all_translations",
         icon: "FileText",
-        link: "/admin/translations",
+        link: localePath("/admin/translations"),
       },
     ],
   });

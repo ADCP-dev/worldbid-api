@@ -1,4 +1,6 @@
 <script setup lang="ts">
+const localePath = useLocalePath();
+
 definePageMeta({
   layout: "blank",
 });
@@ -17,9 +19,9 @@ definePageMeta({
       <AuthSignUp />
 
       <p class="text-center text-sm text-base-content/60">
-        {{ $t('base.auth.haveAccount') }}
-        <NuxtLink to="/login" class="link link-primary no-underline font-medium">
-          {{ $t('base.auth.signIn') }}
+        {{ $t('base.auth.signIn.haveAccount') }}
+        <NuxtLink :to="localePath('/login')" class="link link-primary no-underline font-medium">
+          {{ $t('base.auth.signIn.description') }}
         </NuxtLink>
       </p>
 

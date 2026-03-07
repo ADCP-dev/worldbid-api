@@ -6,6 +6,7 @@ import { useI18n } from 'vue-i18n';
 const { t } = useI18n()
 const router = useRouter()
 const authStore = useAuthStore()
+const localePath = useLocalePath()
 
 const isLoading = ref(false)
 const email = ref('')
@@ -63,7 +64,7 @@ async function onSubmit(event: Event) {
     <div class="form-control w-full">
       <div class="label justify-between">
         <span class="label-text font-semibold">{{ $t('base.auth.signIn.passwordLabel') }}</span>
-        <NuxtLink to="/forgot-password" class="label-text-alt link link-hover">
+        <NuxtLink :to="localePath('/forgot-password')" class="label-text-alt link link-hover">
           {{ $t('base.auth.signIn.forgotPasswordLink') }}
         </NuxtLink>
       </div>
@@ -77,7 +78,7 @@ async function onSubmit(event: Event) {
   </form>
   <div class="mt-4 text-center text-sm opacity-60">
     {{ $t('base.auth.signIn.noAccountPrompt') }}
-    <NuxtLink to="/register" class="link font-medium">
+    <NuxtLink :to="localePath('/register')" class="link font-medium">
       {{ $t('base.auth.signIn.registerLink') }}
     </NuxtLink>
   </div>

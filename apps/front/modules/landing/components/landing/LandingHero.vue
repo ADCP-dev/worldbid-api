@@ -3,6 +3,7 @@ import { ArrowRight, Zap, Code, Image } from "lucide-vue-next";
 import { useColorMode } from "@vueuse/core";
 
 const mode = useColorMode();
+const localePath = useLocalePath();
 </script>
 
 <template>
@@ -27,7 +28,7 @@ const mode = useColorMode();
         </p>
 
         <div class="flex flex-col sm:flex-row gap-6 justify-center items-center">
-          <NuxtLink to="/login" class="btn btn-primary btn-lg w-full sm:w-auto font-black px-10 shadow-2xl hover:scale-105 transition-transform active:scale-95 group/arrow">
+          <NuxtLink :to="localePath('/login')" class="btn btn-primary btn-lg w-full sm:w-auto font-black px-10 shadow-2xl hover:scale-105 transition-transform active:scale-95 group/arrow">
             <Zap class="size-6 mr-1" />
             {{ $t('landing.hero.start') }}
             <ArrowRight class="size-6 ml-1 group-hover/arrow:translate-x-2 transition-transform" />

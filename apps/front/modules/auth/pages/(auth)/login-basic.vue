@@ -1,4 +1,6 @@
 <script setup lang="ts">
+const localePath = useLocalePath()
+
 definePageMeta({
   layout: 'blank',
 })
@@ -7,7 +9,7 @@ definePageMeta({
 <template>
   <div class="flex flex-col items-center justify-center gap-6 bg-base-200 p-6 min-h-svh md:p-10">
     <div class="max-w-sm w-full flex flex-col gap-6">
-      <NuxtLink to="/" class="flex items-center self-center gap-2 font-medium">
+      <NuxtLink :to="localePath('/')" class="flex items-center self-center gap-2 font-medium">
         <AppLogo />
       </NuxtLink>
 

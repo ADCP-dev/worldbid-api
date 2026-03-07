@@ -5,10 +5,11 @@ export default defineNuxtRouteMiddleware(async (to) => {
   }
 
   const authStore = useAuthStore();
+  const localePath = useLocalePath();
 
   // Check if user is authenticated
   if (!authStore.isAuthenticated) {
-    return navigateTo("/login?redirect=" + encodeURIComponent(to.fullPath));
+    return navigateTo(localePath("/login") + "?redirect=" + encodeURIComponent(to.fullPath));
   }
 
   // Check if user has admin role
@@ -24,10 +25,10 @@ export default defineNuxtRouteMiddleware(async (to) => {
     try {
       const result = await authStore.refreshAccessToken();
       if (!result.success) {
-        return navigateTo("/login?redirect=" + encodeURIComponent(to.fullPath));
+        return navigateTo(localePath("/login") + "?redirect=" + encodeURIComponent(to.fullPath));
       }
     } catch (error) {
-      return navigateTo("/login?redirect=" + encodeURIComponent(to.fullPath));
+      return navigateTo(localePath("/login") + "?redirect=" + encodeURIComponent(to.fullPath));
     }
   }
 });

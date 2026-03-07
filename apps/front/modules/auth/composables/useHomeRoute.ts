@@ -1,6 +1,7 @@
 export function useHomeRoute() {
   const authStore = useAuthStore();
   const config = useRuntimeConfig();
+  const localePath = useLocalePath();
 
   /**
    * Resolves the home route based on the user's role.
@@ -8,7 +9,7 @@ export function useHomeRoute() {
    */
   const resolveHomeRoute = (roleName?: string) => {
     // If no role is provided or user is not logged in, use the default app route
-    if (!roleName) return config.public.mainAppRoute;
+    if (!roleName) return localePath(config.public.mainAppRoute);
 
     // Mapping of roles to their respective dashboards/home pages
     const roleRoutes: Record<string, string> = {
@@ -18,7 +19,7 @@ export function useHomeRoute() {
       // staff: '/app/staff/dashboard',
     };
 
-    return roleRoutes[roleName.toLowerCase()] || config.public.mainAppRoute;
+    return localePath(roleRoutes[roleName.toLowerCase()] || config.public.mainAppRoute);
   };
 
   // Reactive home route based on the current user's role

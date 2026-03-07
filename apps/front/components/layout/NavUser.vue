@@ -15,6 +15,7 @@ defineProps<{
 }>()
 
 const { logout } = useAuthStore()
+const localePath = useLocalePath()
 
 const closeDrawer = () => {
   if (typeof document !== 'undefined') {
@@ -53,7 +54,7 @@ const closeDrawer = () => {
       </li>
       <div class="divider my-0"></div>
       <li>
-        <NuxtLink to="/app/settings/profile" @click="closeDrawer">
+        <NuxtLink :to="localePath('/app/settings/profile')" @click="closeDrawer">
           <User class="w-4 h-4" /> {{ $t('base.nav.account') }}
         </NuxtLink>
       </li>

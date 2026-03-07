@@ -8,6 +8,7 @@ const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+const localePath = useLocalePath()
 
 const hash = computed(() => route.query.hash as string)
 const expires = computed(() => route.query.expires as string)
@@ -62,7 +63,7 @@ async function onSubmit(event: Event) {
         description: t('base.auth.resetPassword.successResetDesc'),
       })
       setTimeout(() => {
-        router.push('/login')
+        router.push(localePath('/login'))
       }, 2000)
     } else {
       toast.error(t('base.auth.resetPassword.errorGeneric'), {
@@ -85,7 +86,7 @@ async function onSubmit(event: Event) {
     <div v-if="isExpired" class="alert alert-error mb-4 text-sm">
       <span>
         {{ $t('base.auth.resetPassword.expiredWarningText') }}
-        <NuxtLink to="/forgot-password" class="link font-medium">
+        <NuxtLink :to="localePath('/forgot-password')" class="link font-medium">
           {{ $t('base.auth.resetPassword.requestNewLink') }}
         </NuxtLink>.
       </span>
