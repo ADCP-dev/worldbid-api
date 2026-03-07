@@ -18,5 +18,24 @@
     "generateFailed": "Error al generar los archivos JSON.",
     "bulkComplete": "Traducción masiva completada.",
     "bulkFailed": "La traducción masiva falló"
+  },
+  "add": {
+    "btn": "Nueva Traducción",
+    "title": "Añadir Traducción",
+    "description": "Crea una nueva clave de traducción para la aplicación \"<strong>{app}</strong>\".",
+    "sectionLabel": "Sección",
+    "sectionPlaceholder": "ej: common",
+    "keyLabel": "Clave",
+    "keyPlaceholder": "ej: welcome_message",
+    "langLabel": "Idioma Base",
+    "langPlaceholder": "Selecciona un idioma",
+    "contentLabel": "Contenido",
+    "contentPlaceholder": "Texto traducido...",
+    "cancelBtn": "Cancelar",
+    "saveBtn": "Guardar",
+    "savingBtn": "Guardando...",
+    "toast": {
+      "error": "Error al crear la traducción"
+    }
   }
 }

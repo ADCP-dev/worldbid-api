@@ -18,5 +18,24 @@
     "generateFailed": "Failed to generate JSON files.",
     "bulkComplete": "Bulk translation completed.",
     "bulkFailed": "Bulk translation failed"
+  },
+  "add": {
+    "btn": "New Translation",
+    "title": "Add Translation",
+    "description": "Create a new translation key for the \"<strong>{app}</strong>\" application.",
+    "sectionLabel": "Section",
+    "sectionPlaceholder": "ex: common",
+    "keyLabel": "Key",
+    "keyPlaceholder": "ex: welcome_message",
+    "langLabel": "Base Language",
+    "langPlaceholder": "Select a language",
+    "contentLabel": "Content",
+    "contentPlaceholder": "Translated text...",
+    "cancelBtn": "Cancel",
+    "saveBtn": "Save",
+    "savingBtn": "Saving...",
+    "toast": {
+      "error": "Failure creating the translation"
+    }
   }
 }

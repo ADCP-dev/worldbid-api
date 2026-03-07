@@ -4,6 +4,9 @@ import { Plus } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import FormInput from '~/modules/ui-app/components/form/FormInput.vue'
 import FormSelect from '~/modules/ui-app/components/form/FormSelect.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   appContext: string;
@@ -52,7 +55,7 @@ const handleCreate = async () => {
 
   } catch (error) {
     console.error('Error creating translation:', error)
-    toast.error('Failure creating the translation')
+    toast.error(t('base.translations.add.toast.error'))
   } finally {
     isSubmitting.value = false
   }
@@ -67,55 +70,53 @@ const langOptions = computed(() =>
   <div>
     <button class="btn btn-primary" @click="open = true">
       <Plus class="w-4 h-4 mr-2" />
-      Nueva Traducción
+      {{ $t('base.translations.add.btn') }}
     </button>
 
     <dialog class="modal" :class="{'modal-open': open}">
       <div class="modal-box sm:max-w-[425px]">
-        <h3 class="font-bold text-lg">Añadir Traducción</h3>
-        <p class="py-4 text-sm text-base-content/70">
-          Crea una nueva clave de traducción para la aplicación "<strong>{{ appContext }}</strong>".
-        </p>
+        <h3 class="font-bold text-lg">{{ $t('base.translations.add.title') }}</h3>
+        <p class="py-4 text-sm text-base-content/70" v-html="$t('base.translations.add.description', { app: appContext })"></p>
 
         <div class="flex flex-col gap-4 py-4">
           <FormInput
             v-model="section"
-            label="Sección"
-            placeholder="ex: common"
+            :label="$t('base.translations.add.sectionLabel')"
+            :placeholder="$t('base.translations.add.sectionPlaceholder')"
             required
           />
 
           <FormInput
             v-model="key"
-            label="Clave"
-            placeholder="ex: welcome_message"
+            :label="$t('base.translations.add.keyLabel')"
+            :placeholder="$t('base.translations.add.keyPlaceholder')"
             required
           />
 
           <FormSelect
             v-model="selectedLangId"
-            label="Idioma Base"
-            placeholder="Selecciona un idioma"
+            :label="$t('base.translations.add.langLabel')"
+            :placeholder="$t('base.translations.add.langPlaceholder')"
             :options="langOptions"
             required
           />
 
           <div class="form-control w-full">
             <label class="label">
-              <span class="label-text font-semibold">Contenido</span>
+              <span class="label-text font-semibold">{{ $t('base.translations.add.contentLabel') }}</span>
             </label>
             <textarea
               v-model="content"
-              placeholder="Texto traducido..."
+              :placeholder="$t('base.translations.add.contentPlaceholder')"
               class="textarea textarea-bordered h-24"
             ></textarea>
           </div>
         </div>
 
         <div class="modal-action">
-          <button class="btn btn-ghost" @click="open = false">Cancelar</button>
+          <button class="btn btn-ghost" @click="open = false">{{ $t('base.translations.add.cancelBtn') }}</button>
           <button class="btn btn-primary" type="submit" @click="handleCreate" :disabled="!isValid || isSubmitting">
-            {{ isSubmitting ? 'Guardando...' : 'Guardar' }}
+            {{ isSubmitting ? $t('base.translations.add.savingBtn') : $t('base.translations.add.saveBtn') }}
           </button>
         </div>
       </div>
