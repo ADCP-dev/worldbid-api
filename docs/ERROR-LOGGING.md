@@ -27,7 +27,15 @@ El sistema captura errores automáticamente a través de:
 
 #### Frontend (Nuxt)
 
-Los errores del frontend se pueden reportar usando el composable `useErrors`:
+Los errores del frontend se capturan automáticamente mediante un plugin que intercepta:
+
+1. **Errores de Vue** - Errores en componentes Vue
+2. **Unhandled Rejections** - Promesas sin capturar
+3. **Errores globales** - Errores de JavaScript en ventana
+
+El plugin ignora automáticamente errores 400, 401, 403, 422 (respuestas de validación).
+
+También puedes reportar errores manualmente si lo necesitas:
 
 ```typescript
 const { reportError } = useErrors();
@@ -85,7 +93,8 @@ apps/front/modules/error-tracker/
 │   └── admin/
 │       └── errors.vue            # Página de errores
 ├── plugins/
-│   └── nav.ts                    # Añade al sidebar
+│   ├── nav.ts                    # Añade al sidebar (solo admin)
+│   └── error-handler.client.ts   # Captura automática de errores
 └── nuxt.config.ts                # Config del módulo
 ```
 
