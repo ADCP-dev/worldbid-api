@@ -1,5 +1,3 @@
-import { FileEntity } from '@storage/files/infrastructure/entities/file.entity';
-import { FileMapper } from '@storage/files/infrastructure/mappers/file.mapper';
 import { RoleEntity } from '@iam/roles/infrastructure/entities/role.entity';
 import { StatusEntity } from '@users/statuses/infrastructure/entities/status.entity';
 import { User } from '@users/domain/user';
@@ -15,9 +13,6 @@ export class UserMapper {
     domainEntity.socialId = raw.socialId;
     domainEntity.firstName = raw.firstName;
     domainEntity.lastName = raw.lastName;
-    if (raw.photo) {
-      domainEntity.photo = FileMapper.toDomain(raw.photo);
-    }
     domainEntity.role = raw.role;
     domainEntity.status = raw.status;
     domainEntity.stripeCustomerId = raw.stripeCustomerId;
@@ -33,16 +28,6 @@ export class UserMapper {
     if (domainEntity.role) {
       role = new RoleEntity();
       role.id = Number(domainEntity.role.id);
-    }
-
-    let photo: FileEntity | undefined | null = undefined;
-
-    if (domainEntity.photo) {
-      photo = new FileEntity();
-      photo.id = domainEntity.photo.id;
-      photo.path = domainEntity.photo.path;
-    } else if (domainEntity.photo === null) {
-      photo = null;
     }
 
     let status: StatusEntity | undefined = undefined;
@@ -62,7 +47,6 @@ export class UserMapper {
     persistenceEntity.socialId = domainEntity.socialId;
     persistenceEntity.firstName = domainEntity.firstName;
     persistenceEntity.lastName = domainEntity.lastName;
-    persistenceEntity.photo = photo;
     persistenceEntity.role = role;
     persistenceEntity.status = status;
     persistenceEntity.stripeCustomerId = domainEntity.stripeCustomerId;

@@ -1,19 +1,16 @@
 import {
-  HttpStatus,
   Module,
-  UnprocessableEntityException,
 } from '@nestjs/common';
 import { FilesLocalController } from '@storage/files/infrastructure/uploader/local/files.controller';
 import { MulterModule } from '@nestjs/platform-express';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { diskStorage } from 'multer';
-import { randomStringGenerator } from '@nestjs/common/utils/random-string-generator.util';
+import { memoryStorage } from 'multer';
 import { FilesLocalService } from '@storage/files/infrastructure/uploader/local/files.service';
 import { FilePersistenceModule } from '@storage/files/infrastructure/persistence.module';
 import { AllConfigType } from '@src/config/config.type';
 import { FilesService } from '@storage/files/files.service';
 import { FileLocalSubscriber } from '@storage/files/infrastructure/subscribers/file-local.subscriber';
-import * as fs from 'fs';
+import { ImageProcessingService } from '@storage/files/infrastructure/image-processing/image-processing.service';
 
 const infrastructurePersistenceModule = FilePersistenceModule;
 
@@ -26,39 +23,11 @@ const infrastructurePersistenceModule = FilePersistenceModule;
       useFactory: (configService: ConfigService<AllConfigType>) => {
         return {
           fileFilter: (request, file, callback) => {
-            if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/i)) {
-              return callback(
-                new UnprocessableEntityException({
-                  status: HttpStatus.UNPROCESSABLE_ENTITY,
-                  errors: {
-                    file: `cantUploadFileType`,
-                  },
-                }),
-                false,
-              );
-            }
-
+            // Accept all types; image optimization is handled in the service
             callback(null, true);
           },
-          storage: diskStorage({
-            destination: (req, file, callback) => {
-              // We'll use a temporary upload directory first
-              const tempUploadDir = './files/temp';
-              // Ensure the directory exists and create it if it doesn't
-              fs.mkdirSync(tempUploadDir, { recursive: true });
-
-              callback(null, tempUploadDir);
-            },
-            filename: (request, file, callback) => {
-              callback(
-                null,
-                `${randomStringGenerator()}.${file.originalname
-                  .split('.')
-                  .pop()
-                  ?.toLowerCase()}`,
-              );
-            },
-          }),
+          // Use memory storage so we can read the buffer and optimize before writing
+          storage: memoryStorage(),
           limits: {
             fileSize: configService.get('file.maxFileSize', { infer: true }),
           },
@@ -73,6 +42,7 @@ const infrastructurePersistenceModule = FilePersistenceModule;
     FilesLocalService,
     FilesService,
     FileLocalSubscriber,
+    ImageProcessingService,
     {
       provide: 'FILE_UPLOADER_SERVICE',
       useExisting: FilesLocalService,

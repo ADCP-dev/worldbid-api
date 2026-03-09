@@ -62,5 +62,9 @@ export default registerAs<FileConfig>('file', () => {
     awsS3Region: process.env.AWS_S3_REGION,
     awsS3Endpoint: process.env.AWS_S3_ENDPOINT,
     maxFileSize: 20971520, // 20mb
+    imageOptimizationEnabled: process.env.IMAGE_OPTIMIZATION_ENABLED !== 'false',
+    imageOptimizationQuality: parseInt(process.env.IMAGE_OPTIMIZATION_QUALITY ?? '80', 10),
+    imageOptimizationMaxWidth: parseInt(process.env.IMAGE_OPTIMIZATION_MAX_WIDTH ?? '1920', 10),
+    imageOptimizationMaxHeight: parseInt(process.env.IMAGE_OPTIMIZATION_MAX_HEIGHT ?? '1080', 10),
   };
 });

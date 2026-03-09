@@ -62,25 +62,6 @@ export class UsersService {
       email = createUserDto.email;
     }
 
-    let photo: FileType | null | undefined = undefined;
-
-    if (createUserDto.photo?.id) {
-      const fileObject = await this.filesService.findById(
-        createUserDto.photo.id,
-      );
-      if (!fileObject) {
-        throw new UnprocessableEntityException({
-          status: HttpStatus.UNPROCESSABLE_ENTITY,
-          errors: {
-            photo: 'imageNotExists',
-          },
-        });
-      }
-      photo = fileObject;
-    } else if (createUserDto.photo === null) {
-      photo = null;
-    }
-
     let role: Role | undefined = undefined;
 
     if (createUserDto.role?.id) {
@@ -124,7 +105,6 @@ export class UsersService {
       lastName: createUserDto.lastName,
       email: email,
       password: password,
-      photo: photo,
       role: role,
       status: status,
       provider: createUserDto.provider ?? AuthProvidersEnum.email,
@@ -178,8 +158,19 @@ export class UsersService {
     );
   }
 
-  findById(id: User['id']): Promise<NullableType<User>> {
-    return this.usersRepository.findById(id);
+  async findById(id: User['id']): Promise<NullableType<User>> {
+    const user = await this.usersRepository.findById(id);
+    if (!user) return null;
+
+    // Resolve profile photo polymorphically via the file storage system
+    const photos = await this.filesService.findWithFilters({
+      entityName: 'user',
+      entityId: String(id),
+      context: 'profile',
+    });
+    user.photo = photos[0] ?? null;
+
+    return user;
   }
 
   findByIds(ids: User['id'][]): Promise<User[]> {
@@ -242,25 +233,6 @@ export class UsersService {
       email = null;
     }
 
-    let photo: FileType | null | undefined = undefined;
-
-    if (updateUserDto.photo?.id) {
-      const fileObject = await this.filesService.findById(
-        updateUserDto.photo.id,
-      );
-      if (!fileObject) {
-        throw new UnprocessableEntityException({
-          status: HttpStatus.UNPROCESSABLE_ENTITY,
-          errors: {
-            photo: 'imageNotExists',
-          },
-        });
-      }
-      photo = fileObject;
-    } else if (updateUserDto.photo === null) {
-      photo = null;
-    }
-
     let role: Role | undefined = undefined;
 
     if (updateUserDto.role?.id) {
@@ -304,7 +276,6 @@ export class UsersService {
       lastName: updateUserDto.lastName,
       email,
       password,
-      photo,
       role,
       status,
       provider: updateUserDto.provider,

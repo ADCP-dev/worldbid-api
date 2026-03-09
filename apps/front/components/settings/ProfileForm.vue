@@ -92,34 +92,47 @@ const removeSelectedPhoto = () => {
   photoPreviewUrl.value = ''
 }
 
-const uploadProfilePhoto = async (): Promise<string | null> => {
-  if (!selectedPhotoFile.value) return null
+const uploadProfilePhoto = async (): Promise<void> => {
+  if (!selectedPhotoFile.value) return
   try {
+    const runtimeConfig = useRuntimeConfig()
+    const base = `${runtimeConfig.public.apiUrl}${runtimeConfig.public.apiPrefix}`
+    const headers = { Authorization: `Bearer ${authStore.token}` }
+
+    // Delete the existing profile photo before uploading the new one
+    // (the file was uploaded with entityName='user', entityId=userId, context='profile')
+    if (authStore.user?.photo?.id) {
+      await fetch(`${base}/files/${authStore.user.photo.id}`, {
+        method: 'DELETE',
+        headers,
+      })
+    }
+
+    // Upload new photo with context='profile' for polymorphic resolution
     const formData = new FormData()
     formData.append('file', selectedPhotoFile.value)
     formData.append('isPublic', 'true')
     formData.append('entityName', 'user')
     formData.append('entityId', String(authStore.user?.id ?? ''))
+    formData.append('context', 'profile')
 
-    const runtimeConfig = useRuntimeConfig()
-    const base = `${runtimeConfig.public.apiUrl}${runtimeConfig.public.apiPrefix}`
     const res = await fetch(`${base}/files/upload`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${authStore.token}` },
+      headers,
       body: formData,
     })
     if (!res.ok) throw new Error(await res.text())
-    const json = await res.json()
-    return json?.file?.id ?? null
   } catch (err) {
     console.error('Profile photo upload failed:', err)
     toast.error(t('base.settings.profile.uploadFailed'))
-    return null
   }
 }
 
 const onSubmit = handleSubmit(async (values) => {
   try {
+    // Upload photo first (if selected) — it self-registers via file metadata
+    await uploadProfilePhoto()
+
     const updateData: any = {
       firstName: values.firstName,
       lastName: values.lastName,
@@ -129,11 +142,6 @@ const onSubmit = handleSubmit(async (values) => {
     if (values.password && values.oldPassword) {
       updateData.password = values.password
       updateData.oldPassword = values.oldPassword
-    }
-
-    const photoId = await uploadProfilePhoto()
-    if (photoId) {
-      updateData.photo = { id: photoId }
     }
 
     const result = await authStore.updateProfile(updateData)

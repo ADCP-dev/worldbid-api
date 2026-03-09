@@ -8,11 +8,9 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
   JoinColumn,
-  OneToOne,
 } from 'typeorm';
 import { RoleEntity } from '@iam/roles/infrastructure/entities/role.entity';
 import { StatusEntity } from '@users/statuses/infrastructure/entities/status.entity';
-import { FileEntity } from '@storage/files/infrastructure/entities/file.entity';
 
 import { AuthProvidersEnum } from '@iam/auth/auth-providers.enum';
 import { EntityRelationalHelper } from '@infra/utils/relational-entity-helper';
@@ -46,12 +44,6 @@ export class UserEntity extends EntityRelationalHelper {
   @Index()
   @Column({ type: String, nullable: true })
   lastName: string | null;
-
-  @OneToOne(() => FileEntity, {
-    eager: true,
-  })
-  @JoinColumn()
-  photo?: FileEntity | null;
 
   @ManyToOne(() => RoleEntity, {
     eager: true,

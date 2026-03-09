@@ -14,6 +14,8 @@ import {
   HttpCode,
   HttpStatus,
   BadRequestException,
+  StreamableFile,
+  Header,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -36,6 +38,7 @@ import { FilesService } from '@storage/files/files.service';
 import { FileFilterDto } from '@storage/files/dto/file-filter.dto';
 import { FileType } from '@storage/files/domain/file';
 import { UserId } from '@iam/auth/decorators/current-user.decorator';
+import { ImageProcessingService } from '@storage/files/infrastructure/image-processing/image-processing.service';
 
 @ApiTags('Files')
 @Controller({
@@ -46,6 +49,7 @@ export class FilesLocalController {
   constructor(
     private readonly filesService: FilesLocalService,
     private readonly filesGenericService: FilesService,
+    private readonly imageProcessingService: ImageProcessingService,
   ) {}
 
   @ApiOkResponse({
@@ -170,6 +174,47 @@ export class FilesLocalController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteFile(@Param('id') id: string): Promise<void> {
     return this.filesService.delete(id);
+  }
+
+  /**
+   * Stateless image optimization endpoint.
+   * Accepts any image file, returns the optimized WebP bytes directly.
+   * The file is NOT stored — useful for client-side preview or on-the-fly optimization.
+   */
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Post('optimize')
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Optimize an image and return it directly (no storage)' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { file: { type: 'string', format: 'binary' } },
+      required: ['file'],
+    },
+  })
+  @UseInterceptors(FileInterceptor('file'))
+  async optimizeImage(
+    @UploadedFile() file: Express.Multer.File,
+  ): Promise<StreamableFile> {
+    if (!file?.buffer) {
+      throw new BadRequestException('No file provided');
+    }
+    if (!this.imageProcessingService.isImage(file.mimetype)) {
+      throw new BadRequestException('Only image files can be optimized');
+    }
+    const processed = await this.imageProcessingService.processImage(
+      file.buffer,
+      file.mimetype,
+      file.originalname,
+    );
+    const outputName = this.imageProcessingService.getOptimizedFilename(
+      file.originalname,
+    );
+    return new StreamableFile(processed.buffer, {
+      type: 'image/webp',
+      disposition: `attachment; filename="${outputName}"`,
+    });
   }
 
   @Get('public/*path')

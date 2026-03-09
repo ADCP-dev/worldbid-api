@@ -13,4 +13,8 @@ export type FileConfig = {
   awsS3Region?: string;
   awsS3Endpoint?: string;
   maxFileSize: number;
+  imageOptimizationEnabled: boolean;
+  imageOptimizationQuality: number;
+  imageOptimizationMaxWidth: number;
+  imageOptimizationMaxHeight: number;
 };

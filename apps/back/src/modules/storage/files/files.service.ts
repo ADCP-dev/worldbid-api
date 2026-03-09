@@ -27,4 +27,13 @@ export class FilesService {
 
     return this.fileRepository.findWithFilters(filters);
   }
+
+  /**
+   * Deletes the file record from the database.
+   * Note: this only removes the DB record — physical file cleanup is handled
+   * by the driver-specific subscribers (GlobalFileCleanupSubscriber).
+   */
+  delete(id: FileType['id']): Promise<void> {
+    return this.fileRepository.delete(id);
+  }
 }

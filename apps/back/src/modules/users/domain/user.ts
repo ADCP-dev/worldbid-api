@@ -50,6 +50,8 @@ export class User {
 
   @ApiProperty({
     type: () => FileType,
+    description: 'Profile photo, resolved via the polymorphic file system',
+    required: false,
   })
   photo?: FileType | null;
 

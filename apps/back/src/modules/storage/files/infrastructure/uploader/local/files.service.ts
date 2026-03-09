@@ -15,6 +15,8 @@ import { AllConfigType } from '@src/config/config.type';
 import { FileType } from '@storage/files/domain/file';
 import { FileUploadDto } from '@storage/files/dto/file-upload.dto';
 import { FileCleanupErrorRepository } from '@storage/files/infrastructure/file-cleanup-error.repository';
+import { ImageProcessingService } from '@storage/files/infrastructure/image-processing/image-processing.service';
+import { buildStoragePath } from '@storage/files/infrastructure/utils/build-storage-path.util';
 
 @Injectable()
 export class FilesLocalService {
@@ -24,6 +26,7 @@ export class FilesLocalService {
     private readonly configService: ConfigService<AllConfigType>,
     private readonly fileRepository: FileRepository,
     private readonly cleanupErrorRepository: FileCleanupErrorRepository,
+    private readonly imageProcessingService: ImageProcessingService,
   ) {}
 
   async create(
@@ -34,77 +37,84 @@ export class FilesLocalService {
     if (!file) {
       throw new UnprocessableEntityException({
         status: HttpStatus.UNPROCESSABLE_ENTITY,
-        errors: {
-          file: 'selectFile',
-        },
+        errors: { file: 'selectFile' },
       });
     }
 
-    // Determine filename and temp path depending on storage type (disk or memory)
-    let filename: string;
-    const tempFilePath: string | undefined = (file as any).path;
-
-    if (tempFilePath && typeof tempFilePath === 'string') {
-      // Disk storage provides a temporary file path
-      const normalizedPath = tempFilePath.replace(/\\/g, '/');
-      filename = normalizedPath.split('/').pop() || tempFilePath;
-    } else {
-      // Memory storage: generate a safe filename using the original extension
-      const original = file.originalname || 'upload';
-      const ext = original.includes('.')
-        ? original.split('.').pop()?.toLowerCase()
-        : undefined;
-      const rand = Math.random().toString(36).slice(2);
-      filename = ext ? `${Date.now()}-${rand}.${ext}` : `${Date.now()}-${rand}`;
+    if (!file.buffer) {
+      throw new InternalServerErrorException(
+        'File buffer is missing. Ensure multer is using memory storage.',
+      );
     }
 
-    // Determine the final storage location
-    const baseFolder = './files';
-    const visibilityFolder = body.isPublic == true ? 'public' : 'private';
+    const optimizationEnabled = this.configService.get(
+      'file.imageOptimizationEnabled',
+      { infer: true },
+    );
 
-    // Build the destination folder path
-    const finalFolderPath = `${baseFolder}/${visibilityFolder}`;
+    // Determine base filename
+    const original = file.originalname || 'upload';
+    const ext = original.includes('.')
+      ? original.split('.').pop()?.toLowerCase()
+      : undefined;
+    const rand = Math.random().toString(36).slice(2);
+    let filename = ext
+      ? `${Date.now()}-${rand}.${ext}`
+      : `${Date.now()}-${rand}`;
 
-    // Create directory if it doesn't exist
+    // Process buffer through Sharp if it's an image
+    let finalBuffer = file.buffer;
+    let finalMimeType = file.mimetype;
+    let finalSize = file.size;
+    let finalOriginalName = file.originalname;
+
+    if (
+      optimizationEnabled &&
+      this.imageProcessingService.isImage(file.mimetype)
+    ) {
+      const processed = await this.imageProcessingService.processImage(
+        file.buffer,
+        file.mimetype,
+        file.originalname,
+      );
+      finalBuffer = processed.buffer;
+      finalMimeType = processed.mimeType;
+      finalSize = processed.size;
+      filename = this.imageProcessingService.getOptimizedFilename(filename);
+      finalOriginalName = this.imageProcessingService.getOptimizedFilename(
+        file.originalname,
+      );
+    }
+
+    // Build structured subfolder: userId/entityName/entityId/context  (or subsets)
+    const visibility = body.isPublic === false ? 'private' : 'public';
+    const subPath = buildStoragePath(userId, body);
+    const finalFolderPath = path.join('./files', visibility, subPath);
+
     fs.mkdirSync(finalFolderPath, { recursive: true });
 
-    // Define the final file path
     const finalFilePath = path.join(finalFolderPath, filename);
+    fs.writeFileSync(finalFilePath, finalBuffer);
+    this.logger.log(`File written to ${finalFilePath}`);
 
-    // Move the file from temp to final location (disk) or write from buffer (memory)
-    try {
-      if (tempFilePath && typeof tempFilePath === 'string') {
-        fs.renameSync(tempFilePath, finalFilePath);
-        this.logger.log(`File moved from ${tempFilePath} to ${finalFilePath}`);
-      } else if ((file as any).buffer) {
-        fs.writeFileSync(finalFilePath, (file as any).buffer);
-        this.logger.log(`File written to ${finalFilePath} from memory buffer`);
-      } else {
-        throw new InternalServerErrorException(
-          'Failed to save file: no temp path or buffer provided',
-        );
-      }
-    } catch (error) {
-      this.logger.error(`Failed to move/write file: ${error.message}`);
-      throw new InternalServerErrorException('Failed to save file');
-    }
-
-    // Build the API path for accessing the file
-    const relativePath = `${visibilityFolder}/${filename}`;
-
-    const accessPath = `/${this.configService.get('app.apiPrefix', { infer: true })}/v1/files/${relativePath}`;
+    // Build the public API access path
+    const relativePath = subPath
+      ? `${visibility}/${subPath}/${filename}`
+      : `${visibility}/${filename}`;
+    const apiPrefix = this.configService.get('app.apiPrefix', { infer: true });
+    const accessPath = `/${apiPrefix}/v1/files/${relativePath}`;
 
     return {
       file: await this.fileRepository.create({
         path: accessPath,
-        isPublic: body.isPublic || true,
+        isPublic: body.isPublic !== false,
         entityName: body.entityName,
         entityId: body.entityId,
         context: body.context,
         userId: userId || undefined,
-        type: file.mimetype,
-        size: file.size,
-        name: file.originalname,
+        type: finalMimeType,
+        size: finalSize,
+        name: finalOriginalName,
       }),
     };
   }
@@ -115,13 +125,12 @@ export class FilesLocalService {
     isPublic?: boolean,
     destination?: string,
   ): Promise<{ file: FileType }> {
-    // Find the existing file
     const existingFile = await this.fileRepository.findById(id);
     if (!existingFile) {
       throw new NotFoundException();
     }
 
-    // Delete the old physical file with dead-letter queue approach
+    // Delete old physical file with DLQ fallback
     try {
       this.deletePhysicalFile(existingFile.path);
     } catch (error) {
@@ -132,93 +141,82 @@ export class FilesLocalService {
       });
     }
 
-    // Determine if the file should be public or private (use existing setting if not specified)
+    if (!file.buffer) {
+      throw new InternalServerErrorException('File buffer is missing.');
+    }
+
+    const optimizationEnabled = this.configService.get(
+      'file.imageOptimizationEnabled',
+      { infer: true },
+    );
+
     const fileIsPublic =
-      isPublic !== undefined ? isPublic == true : existingFile.isPublic == true;
+      isPublic !== undefined ? isPublic === true : existingFile.isPublic === true;
 
-    // Extract the filename from the temp path or generate if using memory storage
-    let filename: string;
-    const tempFilePath: string | undefined = (file as any).path;
-    if (tempFilePath && typeof tempFilePath === 'string') {
-      const normalizedPath = tempFilePath.replace(/\\/g, '/');
-      filename = normalizedPath.split('/').pop() || tempFilePath;
-    } else {
-      const original = file.originalname || 'upload';
-      const ext = original.includes('.')
-        ? original.split('.').pop()?.toLowerCase()
-        : undefined;
-      const rand = Math.random().toString(36).slice(2);
-      filename = ext ? `${Date.now()}-${rand}.${ext}` : `${Date.now()}-${rand}`;
+    const original = file.originalname || 'upload';
+    const ext = original.includes('.')
+      ? original.split('.').pop()?.toLowerCase()
+      : undefined;
+    const rand = Math.random().toString(36).slice(2);
+    let filename = ext
+      ? `${Date.now()}-${rand}.${ext}`
+      : `${Date.now()}-${rand}`;
+
+    let finalBuffer = file.buffer;
+    let finalMimeType = file.mimetype;
+    let finalSize = file.size;
+
+    if (
+      optimizationEnabled &&
+      this.imageProcessingService.isImage(file.mimetype)
+    ) {
+      const processed = await this.imageProcessingService.processImage(
+        file.buffer,
+        file.mimetype,
+        file.originalname,
+      );
+      finalBuffer = processed.buffer;
+      finalMimeType = processed.mimeType;
+      finalSize = processed.size;
+      filename = this.imageProcessingService.getOptimizedFilename(filename);
     }
 
-    // Determine the final storage location
-    const baseFolder = './files';
-    const visibilityFolder = fileIsPublic == true ? 'public' : 'private';
+    // Preserve existing entity metadata for path
+    const subPath = buildStoragePath(existingFile.userId ?? undefined, {
+      entityName: existingFile.entityName ?? undefined,
+      entityId: existingFile.entityId ?? undefined,
+      context: existingFile.context ?? undefined,
+    });
 
-    // Build the destination folder path
-    let finalFolderPath = `${baseFolder}/${visibilityFolder}`;
-    if (destination) {
-      // Sanitize destination to prevent directory traversal
-      const sanitizedDestination = destination
-        .replace(/\.\.*/g, '')
-        .replace(/^\/+/, '');
-      finalFolderPath = `${finalFolderPath}/${sanitizedDestination}`;
-    }
+    const visibility = fileIsPublic ? 'public' : 'private';
+    const folder = destination
+      ? path.join('./files', visibility, subPath, destination.replace(/\.\.+/g, '').replace(/^\/+/, ''))
+      : path.join('./files', visibility, subPath);
 
-    // Create directory if it doesn't exist
-    fs.mkdirSync(finalFolderPath, { recursive: true });
+    fs.mkdirSync(folder, { recursive: true });
+    fs.writeFileSync(path.join(folder, filename), finalBuffer);
 
-    // Define the final file path
-    const finalFilePath = path.join(finalFolderPath, filename);
+    const relParts = [visibility, subPath, destination, filename]
+      .filter(Boolean)
+      .join('/');
+    const apiPrefix = this.configService.get('app.apiPrefix', { infer: true });
+    const accessPath = `/${apiPrefix}/v1/files/${relParts}`;
 
-    // Move the file from temp to final location or write buffer
-    try {
-      if (tempFilePath && typeof tempFilePath === 'string') {
-        fs.renameSync(tempFilePath, finalFilePath);
-        this.logger.log(`File moved from ${tempFilePath} to ${finalFilePath}`);
-      } else if ((file as any).buffer) {
-        fs.writeFileSync(finalFilePath, (file as any).buffer);
-        this.logger.log(`File written to ${finalFilePath} from memory buffer`);
-      } else {
-        throw new InternalServerErrorException(
-          'Failed to save file: no temp path or buffer provided',
-        );
-      }
-    } catch (error) {
-      this.logger.error(`Failed to move/write file: ${error.message}`);
-      throw new InternalServerErrorException('Failed to save file');
-    }
-
-    // Build the API path for accessing the file
-    const relativePath = destination
-      ? `${visibilityFolder}/${destination}/${filename}`
-      : `${visibilityFolder}/${filename}`;
-
-    const accessPath = `/${this.configService.get('app.apiPrefix', {
-      infer: true,
-    })}/v1/files/${relativePath}`;
-
-    // Update the file record
     const updatedFile = await this.fileRepository.update(id, {
       path: accessPath,
       isPublic: fileIsPublic,
-      type: file.mimetype,
-      size: file.size,
+      type: finalMimeType,
+      size: finalSize,
     });
 
     return { file: updatedFile };
   }
 
   async delete(id: string): Promise<void> {
-    // Find the file to delete
     const file = await this.fileRepository.findById(id);
     if (!file) {
       throw new NotFoundException(`File with id ${id} not found`);
     }
-
-    // The physical file delete is handled by the subscriber.
-
-    // Delete from database
     await this.fileRepository.delete(id);
   }
 
@@ -226,23 +224,16 @@ export class FilesLocalService {
     try {
       this.logger.log(`Starting deletion for file with path: ${fileUri}`);
 
-      // Handle both full URLs and relative paths
       let pathToProcess = fileUri;
 
-      // If it's a full URL, extract the pathname
       if (fileUri.startsWith('http')) {
         pathToProcess = new URL(fileUri).pathname;
       }
 
-      // Remove leading slash if present
       if (pathToProcess.startsWith('/')) {
         pathToProcess = pathToProcess.substring(1);
       }
 
-      this.logger.log(`Processing path: ${pathToProcess}`);
-
-      // The format should be: api/v1/files/public|private/filename
-      // or: api/v1/files/public|private/subfolder/filename
       const apiPrefix =
         this.configService.get('app.apiPrefix', { infer: true }) || 'api';
       const expectedPrefix = `${apiPrefix}/v1/files/`;
@@ -254,34 +245,15 @@ export class FilesLocalService {
         return;
       }
 
-      // Extract the relative path after the API prefix
       const relativePath = pathToProcess.substring(expectedPrefix.length);
-      this.logger.log(`Relative path: ${relativePath}`);
-
-      // The base path is './files'
-      const basePath = './files';
-
-      // Create the full path to the physical file
-      const filePath = path.join(basePath, relativePath);
+      const filePath = path.join('./files', relativePath);
       const normalizedFilePath = path.normalize(filePath);
 
-      this.logger.log(`Attempting to delete file at: ${normalizedFilePath}`);
-
-      // Check if file exists and delete it
       if (fs.existsSync(normalizedFilePath)) {
         fs.unlinkSync(normalizedFilePath);
         this.logger.log(`Successfully deleted file: ${normalizedFilePath}`);
       } else {
         this.logger.warn(`File not found at path: ${normalizedFilePath}`);
-
-        // Log directory contents for debugging
-        const dirPath = path.dirname(normalizedFilePath);
-        if (fs.existsSync(dirPath)) {
-          const files = fs.readdirSync(dirPath);
-          this.logger.log(`Directory ${dirPath} contains: ${files.join(', ')}`);
-        } else {
-          this.logger.warn(`Directory doesn't exist: ${dirPath}`);
-        }
       }
     } catch (error) {
       this.logger.error(
