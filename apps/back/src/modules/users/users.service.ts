@@ -2,6 +2,7 @@ import {
   HttpStatus,
   Injectable,
   UnprocessableEntityException,
+  NotFoundException,
 } from '@nestjs/common';
 import { CreateUserDto } from '@users/dto/create-user.dto';
 import { NullableType } from '@infra/utils/types/nullable.type';
@@ -13,6 +14,9 @@ import { FilesService } from '@storage/files/files.service';
 import { RoleEnum } from '@iam/roles/roles.enum';
 import { StatusEnum } from './statuses/statuses.enum';
 import { FileType } from '@storage/files/domain/file';
+import { ImageProcessingService } from '@storage/files/infrastructure/image-processing/image-processing.service';
+import { FileUploadDto } from '@storage/files/dto/file-upload.dto';
+import { Inject } from '@nestjs/common';
 import { Role } from '@iam/roles/domain/role';
 import { Status } from './statuses/domain/status';
 import { UpdateUserDto } from '@users/dto/update-user.dto';
@@ -32,6 +36,9 @@ export class UsersService {
     private readonly usersRepository: UserRepository,
     private readonly filesService: FilesService,
     private readonly configService: ConfigService<AllConfigType>,
+    @Inject('FILE_UPLOADER_SERVICE')
+    private readonly fileUploaderService: any, // Can be FilesLocalService or FilesS3Service
+    private readonly imageProcessingService: ImageProcessingService,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -163,6 +170,49 @@ export class UsersService {
     return this.resolvePhoto(user);
   }
 
+  async updateProfilePhoto(
+    userId: User['id'],
+    file: Express.Multer.File,
+  ): Promise<User> {
+    if (!this.imageProcessingService.isImage(file.mimetype)) {
+      throw new UnprocessableEntityException({
+        status: HttpStatus.UNPROCESSABLE_ENTITY,
+        errors: {
+          file: 'onlyImageAllowed',
+        },
+      });
+    }
+
+    // Find existing profile photo
+    const photos = await this.filesService.findWithFilters({
+      entityName: 'user',
+      entityId: String(userId),
+      context: 'profile',
+    });
+
+    // Delete existing photos if any
+    for (const photo of photos) {
+      await this.filesService.delete(photo.id);
+    }
+
+    // Upload new photo
+    const uploadDto: FileUploadDto = {
+      isPublic: true,
+      entityName: 'user',
+      entityId: String(userId),
+      context: 'profile',
+    };
+
+    await this.fileUploaderService.create(file, uploadDto, userId);
+
+    const user = await this.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
+  }
+
   findByIds(ids: User['id'][]): Promise<User[]> {
     return this.usersRepository.findByIds(ids);
   }
@@ -186,7 +236,9 @@ export class UsersService {
     return this.resolvePhoto(user);
   }
 
-  private async resolvePhoto(user: NullableType<User>): Promise<NullableType<User>> {
+  private async resolvePhoto(
+    user: NullableType<User>,
+  ): Promise<NullableType<User>> {
     if (!user) return null;
 
     // Resolve profile photo polymorphically via the file storage system

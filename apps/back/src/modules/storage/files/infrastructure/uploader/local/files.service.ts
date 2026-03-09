@@ -151,7 +151,9 @@ export class FilesLocalService {
     );
 
     const fileIsPublic =
-      isPublic !== undefined ? isPublic === true : existingFile.isPublic === true;
+      isPublic !== undefined
+        ? isPublic === true
+        : existingFile.isPublic === true;
 
     const original = file.originalname || 'upload';
     const ext = original.includes('.')
@@ -190,7 +192,12 @@ export class FilesLocalService {
 
     const visibility = fileIsPublic ? 'public' : 'private';
     const folder = destination
-      ? path.join('./files', visibility, subPath, destination.replace(/\.\.+/g, '').replace(/^\/+/, ''))
+      ? path.join(
+          './files',
+          visibility,
+          subPath,
+          destination.replace(/\.\.+/g, '').replace(/^\/+/, ''),
+        )
       : path.join('./files', visibility, subPath);
 
     fs.mkdirSync(folder, { recursive: true });

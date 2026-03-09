@@ -3,12 +3,18 @@ import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 
 function getI18nFiles(langCode: string) {
-  return ["dynamic-loader.ts"]
+  return ["dynamic-loader.ts"];
 }
 
 export default defineNuxtConfig({
   compatibilityDate: "2024-11-01",
-  extends: ["./modules/landing", "./modules/auth", "./modules/ui-app", "./modules/translations"],
+  extends: [
+    "./modules/landing",
+    "./modules/auth",
+    "./modules/ui-app",
+    "./modules/translations",
+    "./modules/error-tracker",
+  ],
   devtools: { enabled: true },
   ssr: false,
   // Configure error handling
@@ -44,7 +50,7 @@ export default defineNuxtConfig({
     "@nuxtjs/sitemap",
     "@nuxtjs/color-mode",
     "@nuxtjs/robots",
-    'vue-sonner/nuxt'
+    "vue-sonner/nuxt",
   ],
   css: ["~/assets/css/tailwind.css", "flag-icons/css/flag-icons.min.css"],
   vite: {
@@ -71,28 +77,52 @@ export default defineNuxtConfig({
             code: lang.code,
             name: lang.name,
             files: getI18nFiles(lang.code),
-            flagCode: lang.flagCode || lang.code
+            flagCode: lang.flagCode || lang.code,
           }));
 
         // Fallback to static if backend is unreachable during build
-        const localesToRegister = dynamicLocales.length > 0
-          ? dynamicLocales
-          : [
-              { code: "es", name: "Español", files: getI18nFiles("es"), flagCode: "es" },
-              { code: "en", name: "English", files: getI18nFiles("en"), flagCode: "gb" },
-            ];
+        const localesToRegister =
+          dynamicLocales.length > 0
+            ? dynamicLocales
+            : [
+                {
+                  code: "es",
+                  name: "Español",
+                  files: getI18nFiles("es"),
+                  flagCode: "es",
+                },
+                {
+                  code: "en",
+                  name: "English",
+                  files: getI18nFiles("en"),
+                  flagCode: "gb",
+                },
+              ];
 
         register({
           langDir: path.resolve(process.cwd(), "locales"),
           locales: localesToRegister,
         });
       } catch (error) {
-        console.warn("⚠️ Failed to fetch dynamic languages from backend. Falling back to default locales [es, en].", error);
+        console.warn(
+          "⚠️ Failed to fetch dynamic languages from backend. Falling back to default locales [es, en].",
+          error,
+        );
         register({
           langDir: path.resolve(process.cwd(), "locales"),
           locales: [
-            { code: "es", name: "Español", files: getI18nFiles("es"), flagCode: "es" },
-            { code: "en", name: "English", files: getI18nFiles("en"), flagCode: "gb" },
+            {
+              code: "es",
+              name: "Español",
+              files: getI18nFiles("es"),
+              flagCode: "es",
+            },
+            {
+              code: "en",
+              name: "English",
+              files: getI18nFiles("en"),
+              flagCode: "gb",
+            },
           ],
         });
       }

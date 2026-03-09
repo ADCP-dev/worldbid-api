@@ -12,11 +12,18 @@ import {
   HttpCode,
   SerializeOptions,
   Req,
+  UseInterceptors,
+  UploadedFile,
+  ParseFilePipe,
+  MaxFileSizeValidator,
+  FileTypeValidator,
 } from '@nestjs/common';
 import { CreateUserDto } from '@users/dto/create-user.dto';
 import { UpdateUserDto } from '@users/dto/update-user.dto';
 import {
   ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
   ApiCreatedResponse,
   ApiOkResponse,
   ApiParam,
@@ -25,6 +32,7 @@ import {
 import { Roles } from '@iam/roles/roles.decorator';
 import { RoleEnum } from '@iam/roles/roles.enum';
 import { AuthGuard } from '@nestjs/passport';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 import {
   InfinityPaginationResponse,
@@ -39,7 +47,6 @@ import { FindAllUserDto } from '@users/dto/find-all-user.dto';
 import { Request } from 'express';
 
 @ApiBearerAuth()
-@Roles(RoleEnum.admin)
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 @ApiTags('Users')
 @Controller({
@@ -55,10 +62,48 @@ export class UsersController {
   @SerializeOptions({
     groups: ['admin'],
   })
+  @Roles(RoleEnum.admin)
   @Post()
   @HttpCode(HttpStatus.CREATED)
   create(@Body() createProfileDto: CreateUserDto): Promise<User> {
     return this.usersService.create(createProfileDto);
+  }
+
+  @ApiOkResponse({
+    type: User,
+  })
+  @SerializeOptions({
+    groups: ['me'],
+  })
+  @Post('profile-photo')
+  @HttpCode(HttpStatus.OK)
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+      required: ['file'],
+    },
+  })
+  @UseInterceptors(FileInterceptor('file'))
+  uploadProfilePhoto(
+    @Req() request,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 1024 * 1024 * 5 }), // 5MB
+          new FileTypeValidator({ fileType: '.(png|jpg|jpeg|webp)$' }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+  ): Promise<User> {
+    return this.usersService.updateProfilePhoto(request.user.id, file);
   }
 
   @ApiOkResponse({
@@ -67,6 +112,7 @@ export class UsersController {
   @SerializeOptions({
     groups: ['admin'],
   })
+  @Roles(RoleEnum.admin)
   @Get()
   @HttpCode(HttpStatus.OK)
   findAllWithPagination(
@@ -83,6 +129,7 @@ export class UsersController {
   @SerializeOptions({
     groups: ['admin'],
   })
+  @Roles(RoleEnum.admin)
   @Get('all')
   @HttpCode(HttpStatus.OK)
   findAll(@Query() query: FindAllUserDto) {
@@ -95,6 +142,7 @@ export class UsersController {
   @SerializeOptions({
     groups: ['admin'],
   })
+  @Roles(RoleEnum.admin)
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   @ApiParam({
@@ -112,6 +160,7 @@ export class UsersController {
   @SerializeOptions({
     groups: ['admin'],
   })
+  @Roles(RoleEnum.admin)
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   @ApiParam({
@@ -126,6 +175,7 @@ export class UsersController {
     return this.usersService.update(id, updateProfileDto);
   }
 
+  @Roles(RoleEnum.admin)
   @Delete(':id')
   @ApiParam({
     name: 'id',

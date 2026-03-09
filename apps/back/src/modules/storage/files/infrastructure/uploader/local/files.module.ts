@@ -1,6 +1,4 @@
-import {
-  Module,
-} from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { FilesLocalController } from '@storage/files/infrastructure/uploader/local/files.controller';
 import { MulterModule } from '@nestjs/platform-express';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -48,6 +46,11 @@ const infrastructurePersistenceModule = FilePersistenceModule;
       useExisting: FilesLocalService,
     },
   ],
-  exports: [FilesLocalService, 'FILE_UPLOADER_SERVICE', MulterModule],
+  exports: [
+    FilesLocalService,
+    'FILE_UPLOADER_SERVICE',
+    MulterModule,
+    ImageProcessingService,
+  ],
 })
 export class FilesLocalModule {}

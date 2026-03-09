@@ -13,6 +13,8 @@ import validationOptions from '@infra/utils/validation-options';
 import { AllConfigType } from './config/config.type';
 import { ResolvePromisesInterceptor } from '@infra/utils/serializer.interceptor';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { ErrorTrackerService } from './modules/error-tracker/error-tracker.service';
+import { GlobalExceptionFilter } from './modules/error-tracker/filters/global-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -77,6 +79,29 @@ async function bootstrap() {
 
   const document = SwaggerModule.createDocument(app, options);
   SwaggerModule.setup('docs', app, document);
+
+  const errorTrackerService = app.get(ErrorTrackerService);
+  app.useGlobalFilters(new GlobalExceptionFilter(errorTrackerService));
+
+  process.on('unhandledRejection', (reason: unknown) => {
+    errorTrackerService
+      .logError({
+        message: reason instanceof Error ? reason.message : String(reason),
+        source: 'NestJS Process - unhandledRejection',
+        stack: reason instanceof Error ? reason.stack : undefined,
+      })
+      .catch(console.error);
+  });
+
+  process.on('uncaughtException', (error: Error) => {
+    errorTrackerService
+      .logError({
+        message: error.message,
+        source: 'NestJS Process - uncaughtException',
+        stack: error.stack,
+      })
+      .finally(() => process.exit(1));
+  });
 
   await app.listen(configService.getOrThrow('app.port', { infer: true }));
 }

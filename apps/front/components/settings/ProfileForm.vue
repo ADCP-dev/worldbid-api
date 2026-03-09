@@ -99,29 +99,18 @@ const uploadProfilePhoto = async (): Promise<void> => {
     const base = `${runtimeConfig.public.apiUrl}${runtimeConfig.public.apiPrefix}`
     const headers = { Authorization: `Bearer ${authStore.token}` }
 
-    // Delete the existing profile photo before uploading the new one
-    // (the file was uploaded with entityName='user', entityId=userId, context='profile')
-    if (authStore.user?.photo?.id) {
-      await fetch(`${base}/files/${authStore.user.photo.id}`, {
-        method: 'DELETE',
-        headers,
-      })
-    }
-
-    // Upload new photo with context='profile' for polymorphic resolution
     const formData = new FormData()
     formData.append('file', selectedPhotoFile.value)
-    formData.append('isPublic', 'true')
-    formData.append('entityName', 'user')
-    formData.append('entityId', String(authStore.user?.id ?? ''))
-    formData.append('context', 'profile')
 
-    const res = await fetch(`${base}/files/upload`, {
+    const res = await fetch(`${base}/users/profile-photo`, {
       method: 'POST',
       headers,
       body: formData,
     })
     if (!res.ok) throw new Error(await res.text())
+
+    // Update the user state to reflect the new photo
+    await authStore.getMe()
   } catch (err) {
     console.error('Profile photo upload failed:', err)
     toast.error(t('base.settings.profile.uploadFailed'))

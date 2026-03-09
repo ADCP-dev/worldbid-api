@@ -185,7 +185,9 @@ export class FilesLocalController {
   @UseGuards(AuthGuard('jwt'))
   @Post('optimize')
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Optimize an image and return it directly (no storage)' })
+  @ApiOperation({
+    summary: 'Optimize an image and return it directly (no storage)',
+  })
   @ApiBody({
     schema: {
       type: 'object',

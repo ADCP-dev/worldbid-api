@@ -33,6 +33,7 @@ import workerConfig from './config/worker.config';
 import { EmailQueueModule } from '@comms/email-queue/email-queue.module';
 import { ExtensionLoaderModule } from './core/extension-loader';
 import { TranslationsModule } from './modules/translations/translations.module';
+import { ErrorTrackerModule } from './modules/error-tracker/error-tracker.module';
 import { discoverExtensionConfigs } from './core/config-loader';
 
 const infrastructureDatabaseModule = TypeOrmModule.forRootAsync({
@@ -104,6 +105,7 @@ const infrastructureDatabaseModule = TypeOrmModule.forRootAsync({
     EmailQueueModule.register(),
     ExtensionLoaderModule.register(),
     TranslationsModule,
+    ErrorTrackerModule,
   ],
 })
 export class AppModule {}

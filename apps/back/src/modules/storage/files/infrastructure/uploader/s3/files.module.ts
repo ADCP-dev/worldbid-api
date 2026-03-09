@@ -49,6 +49,11 @@ const infrastructurePersistenceModule = FilePersistenceModule;
       useExisting: FilesS3Service,
     },
   ],
-  exports: [FilesS3Service, 'FILE_UPLOADER_SERVICE', MulterModule],
+  exports: [
+    FilesS3Service,
+    'FILE_UPLOADER_SERVICE',
+    MulterModule,
+    ImageProcessingService,
+  ],
 })
 export class FilesS3Module {}
