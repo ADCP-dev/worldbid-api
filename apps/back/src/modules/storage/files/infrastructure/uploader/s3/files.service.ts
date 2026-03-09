@@ -15,6 +15,7 @@ import { AllConfigType } from '@src/config/config.type';
 import { FileRepository } from '@storage/files/infrastructure/file.repository';
 import { FileType } from '@storage/files/domain/file';
 import { FileUploadDto } from '@storage/files/dto/file-upload.dto';
+import { FileCleanupErrorRepository } from '@storage/files/infrastructure/file-cleanup-error.repository';
 
 @Injectable()
 export class FilesS3Service {
@@ -23,6 +24,7 @@ export class FilesS3Service {
   constructor(
     private readonly fileRepository: FileRepository,
     private readonly configService: ConfigService<AllConfigType>,
+    private readonly cleanupErrorRepository: FileCleanupErrorRepository,
   ) {
     this.s3 = new S3Client({
       region: this.configService.get('file.awsS3Region', { infer: true }),
@@ -56,8 +58,9 @@ export class FilesS3Service {
       file: await this.fileRepository.create({
         path: file.key,
         isPublic: body.isPublic || true,
-        entity: body.entity,
+        entityName: body.entityName,
         entityId: body.entityId,
+        context: body.context,
         userId,
         type: file.mimetype,
         size: file.size,
@@ -76,8 +79,16 @@ export class FilesS3Service {
       throw new NotFoundException();
     }
 
-    // Delete old file from S3
-    await this.deleteS3Object(existingFile.path);
+    // Delete old file from S3 using dead-letter queue approach
+    try {
+      await this.deletePhysicalFile(existingFile.path);
+    } catch (error) {
+      await this.cleanupErrorRepository.save({
+        fileUri: existingFile.path,
+        driver: 's3',
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
+    }
 
     const fileIsPublic =
       isPublic !== undefined ? isPublic == true : existingFile.isPublic == true;
@@ -99,11 +110,12 @@ export class FilesS3Service {
       throw new NotFoundException();
     }
 
-    await this.deleteS3Object(file.path);
+    // We no longer manually delete the S3 object here.
+    // The FileEntity's @AfterRemove subscriber will handle deleting it if necessary.
     await this.fileRepository.delete(id);
   }
 
-  private async deleteS3Object(key: string): Promise<void> {
+  async deletePhysicalFile(key: string): Promise<void> {
     try {
       await this.s3.send(
         new DeleteObjectCommand({
@@ -115,6 +127,7 @@ export class FilesS3Service {
       );
     } catch (error) {
       console.error('Error deleting S3 object:', error);
+      throw error;
     }
   }
 

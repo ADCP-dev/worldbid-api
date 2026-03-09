@@ -8,8 +8,9 @@ export class FileMapper {
     domainEntity.path = raw.path;
     domainEntity.name = raw.name;
     domainEntity.isPublic = raw.isPublic;
-    domainEntity.entity = raw.entity;
+    domainEntity.entityName = raw.entityName;
     domainEntity.entityId = raw.entityId;
+    domainEntity.context = raw.context;
     domainEntity.userId = raw.userId;
     domainEntity.type = raw.type;
     domainEntity.size = raw.size;
@@ -22,8 +23,9 @@ export class FileMapper {
     persistenceEntity.path = domainEntity.path;
     persistenceEntity.name = domainEntity.name;
     persistenceEntity.isPublic = domainEntity.isPublic;
-    persistenceEntity.entity = domainEntity.entity;
+    persistenceEntity.entityName = domainEntity.entityName;
     persistenceEntity.entityId = domainEntity.entityId;
+    persistenceEntity.context = domainEntity.context;
     persistenceEntity.userId = domainEntity.userId;
     persistenceEntity.type = domainEntity.type;
     persistenceEntity.size = domainEntity.size;

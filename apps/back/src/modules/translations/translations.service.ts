@@ -278,7 +278,10 @@ export class TranslationsService {
       .createQueryBuilder('translation')
       .leftJoinAndSelect('translation.lang', 'lang')
       // Important to support both with and without section (if section is null)
-      .where("COALESCE(REPLACE(translation.section, ':', '.'), '') || CASE WHEN translation.section IS NULL THEN '' ELSE '.' END || translation.key = :dotPath", { dotPath })
+      .where(
+        "COALESCE(REPLACE(translation.section, ':', '.'), '') || CASE WHEN translation.section IS NULL THEN '' ELSE '.' END || translation.key = :dotPath",
+        { dotPath },
+      )
       .andWhere('translation.app = :app', { app })
       .andWhere('translation.entityName IS NULL')
       .andWhere('translation.entityId IS NULL')

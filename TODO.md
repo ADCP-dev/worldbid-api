@@ -1,5 +1,12 @@
 Acabar comprobar el i18n, comprobar el zod locale y comprobar la funcionalidad de las generadores de modulos
 
+- [] Probar la generación de modulos relaciones etc.
+- [] Mejorar el modulo de archivos (subscriber de eliminar archivos al eliminar el recurso, etc) (mirar gemini)
+- [] Control de errores de backend y frontend (mirar gemini)
+- [] Modulo de CMS (mirar gemini)
+
+
+---
 
 - [x] Dejar organizado el proyecto
   - [x] Backend unir en carpetas modulos
@@ -12,23 +19,9 @@ Acabar comprobar el i18n, comprobar el zod locale y comprobar la funcionalidad d
 
 ---
 
-- [] Quitar apartados de config
-- [x] Sistema de traducciones decente
-- [] Traducir la app a español
-- [] Traducir la app a ingles
-- [] En las traducciones, tabla con paginación de api rest, con busqueda y filtro como los demás + utilizar componente de tabla
-- [] Añadir traducciones y quitarlas desde el frontend
-- [] Switcher de idioma selector con banderas
-- [] Función toggle de solo ver los tags usados, solo en desarrollo. Mostrar los nombres del token entero y al pasar el ratón mostrar el valor traducido (en el idioma en el que esta)
-- [] Añadir a los docs de traducciones:
-  - [] Como funciona
-  - [] Como traducir
-  - [] Como quitar traducciones
-  - [] Como añadir traducciones (comando, escribir en el archivo, via ui)
-
+- Unir los modulos base en un uno en el front
 - en las traducciones, añadir un sidebar derecho donde muestre todos los tokens de la página, con un buscador y un toggle para hacer highlight de todos los de la página, al hacer hover a un token del sidebar también se hace highlight en la página. Al hacer click mostraría el modal de edición
-
-Probar que todo funcione y pensar como funciona el sync en despliegue, solo mostrar el boton flotante en dev
+- Probar que todo funcione y pensar como funciona el sync en despliegue, solo mostrar el boton flotante en dev
 
 ---
 

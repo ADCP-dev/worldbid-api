@@ -76,7 +76,7 @@ export class FileType {
     required: false,
   })
   @Allow()
-  entity?: string;
+  entityName?: string;
 
   @ApiProperty({
     type: String,
@@ -86,6 +86,15 @@ export class FileType {
   })
   @Allow()
   entityId?: string;
+
+  @ApiProperty({
+    type: String,
+    example: 'blog-post',
+    description: 'Context or category for the file',
+    required: false,
+  })
+  @Allow()
+  context?: string;
 
   @ApiProperty({
     type: Number,

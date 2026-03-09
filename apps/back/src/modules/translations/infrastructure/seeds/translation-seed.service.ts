@@ -80,9 +80,7 @@ export class TranslationSeedService {
       const stat = await fs.stat(fullPath);
 
       if (stat.isDirectory()) {
-        const subPrefix = relativePrefix
-          ? `${relativePrefix}.${entry}`
-          : entry;
+        const subPrefix = relativePrefix ? `${relativePrefix}.${entry}` : entry;
         const sub = await this.collectJsonFiles(fullPath, subPrefix);
         results.push(...sub);
       } else if (entry.endsWith('.json')) {

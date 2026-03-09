@@ -14,6 +14,7 @@ import { FileRepository } from '@storage/files/infrastructure/file.repository';
 import { AllConfigType } from '@src/config/config.type';
 import { FileType } from '@storage/files/domain/file';
 import { FileUploadDto } from '@storage/files/dto/file-upload.dto';
+import { FileCleanupErrorRepository } from '@storage/files/infrastructure/file-cleanup-error.repository';
 
 @Injectable()
 export class FilesLocalService {
@@ -22,6 +23,7 @@ export class FilesLocalService {
   constructor(
     private readonly configService: ConfigService<AllConfigType>,
     private readonly fileRepository: FileRepository,
+    private readonly cleanupErrorRepository: FileCleanupErrorRepository,
   ) {}
 
   async create(
@@ -96,8 +98,9 @@ export class FilesLocalService {
       file: await this.fileRepository.create({
         path: accessPath,
         isPublic: body.isPublic || true,
-        entity: body.entity,
+        entityName: body.entityName,
         entityId: body.entityId,
+        context: body.context,
         userId: userId || undefined,
         type: file.mimetype,
         size: file.size,
@@ -118,8 +121,16 @@ export class FilesLocalService {
       throw new NotFoundException();
     }
 
-    // Delete the old physical file
-    await this.deletePhysicalFile(existingFile);
+    // Delete the old physical file with dead-letter queue approach
+    try {
+      this.deletePhysicalFile(existingFile.path);
+    } catch (error) {
+      await this.cleanupErrorRepository.save({
+        fileUri: existingFile.path,
+        driver: 'local',
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
+    }
 
     // Determine if the file should be public or private (use existing setting if not specified)
     const fileIsPublic =
@@ -205,23 +216,22 @@ export class FilesLocalService {
       throw new NotFoundException(`File with id ${id} not found`);
     }
 
-    // Delete the physical file
-    await this.deletePhysicalFile(file);
+    // The physical file delete is handled by the subscriber.
 
     // Delete from database
     await this.fileRepository.delete(id);
   }
 
-  private deletePhysicalFile(file: FileType): void {
+  public deletePhysicalFile(fileUri: string): void {
     try {
-      this.logger.log(`Starting deletion for file with path: ${file.path}`);
+      this.logger.log(`Starting deletion for file with path: ${fileUri}`);
 
       // Handle both full URLs and relative paths
-      let pathToProcess = file.path;
+      let pathToProcess = fileUri;
 
       // If it's a full URL, extract the pathname
-      if (file.path.startsWith('http')) {
-        pathToProcess = new URL(file.path).pathname;
+      if (fileUri.startsWith('http')) {
+        pathToProcess = new URL(fileUri).pathname;
       }
 
       // Remove leading slash if present
@@ -278,7 +288,7 @@ export class FilesLocalService {
         `Failed to delete physical file: ${error.message}`,
         error.stack,
       );
-      // Don't throw, so database operations can still continue
+      throw error;
     }
   }
 }

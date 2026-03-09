@@ -211,14 +211,20 @@ export class TranslationsController {
   }
 
   @Get('exact-by-path')
-  @ApiOperation({ summary: 'Get exact translations by app and dot path (e.g. base.auth.signIn.emailLabel)' })
+  @ApiOperation({
+    summary:
+      'Get exact translations by app and dot path (e.g. base.auth.signIn.emailLabel)',
+  })
   @ApiQuery({ name: 'app', required: true })
   @ApiQuery({ name: 'dotPath', required: true })
   getExactTranslationGroupByDotPath(
     @Query('app') app: string,
     @Query('dotPath') dotPath: string,
   ) {
-    return this.translationsService.getExactTranslationGroupByDotPath(app, dotPath);
+    return this.translationsService.getExactTranslationGroupByDotPath(
+      app,
+      dotPath,
+    );
   }
 
   // --- Dynamic Fetch ---

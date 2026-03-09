@@ -13,6 +13,7 @@ import { FilesS3Service } from '@storage/files/infrastructure/uploader/s3/files.
 import { FilePersistenceModule } from '@storage/files/infrastructure/persistence.module';
 import { AllConfigType } from '@src/config/config.type';
 import { FilesService } from '@storage/files/files.service';
+import { FileS3Subscriber } from '@storage/files/infrastructure/subscribers/file-s3.subscriber';
 
 const infrastructurePersistenceModule = FilePersistenceModule;
 
@@ -79,6 +80,7 @@ const infrastructurePersistenceModule = FilePersistenceModule;
   providers: [
     FilesS3Service,
     FilesService,
+    FileS3Subscriber,
     {
       provide: 'FILE_UPLOADER_SERVICE',
       useExisting: FilesS3Service,

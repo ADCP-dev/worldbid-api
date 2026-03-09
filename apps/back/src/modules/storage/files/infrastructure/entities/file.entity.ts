@@ -17,10 +17,13 @@ export class FileEntity extends EntityRelationalHelper {
   isPublic: boolean;
 
   @Column({ nullable: true })
-  entity?: string;
+  entityName?: string;
 
   @Column({ nullable: true })
   entityId?: string;
+
+  @Column({ nullable: true })
+  context?: string;
 
   @ManyToOne(() => UserEntity)
   user?: UserEntity | null;

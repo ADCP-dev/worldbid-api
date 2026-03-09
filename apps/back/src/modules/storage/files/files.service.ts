@@ -18,9 +18,11 @@ export class FilesService {
   }
 
   async findWithFilters(filters: FileFilterDto): Promise<FileType[]> {
-    // Validate that if entityId is provided, entity must also be provided
-    if (filters.entityId !== undefined && filters.entity === undefined) {
-      throw new Error('Entity parameter is required when entityId is provided');
+    // Validate that if entityId is provided, entityName must also be provided
+    if (filters.entityId !== undefined && filters.entityName === undefined) {
+      throw new Error(
+        'EntityName parameter is required when entityId is provided',
+      );
     }
 
     return this.fileRepository.findWithFilters(filters);

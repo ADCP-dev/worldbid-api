@@ -12,6 +12,7 @@ import { FilesLocalService } from '@storage/files/infrastructure/uploader/local/
 import { FilePersistenceModule } from '@storage/files/infrastructure/persistence.module';
 import { AllConfigType } from '@src/config/config.type';
 import { FilesService } from '@storage/files/files.service';
+import { FileLocalSubscriber } from '@storage/files/infrastructure/subscribers/file-local.subscriber';
 import * as fs from 'fs';
 
 const infrastructurePersistenceModule = FilePersistenceModule;
@@ -71,6 +72,7 @@ const infrastructurePersistenceModule = FilePersistenceModule;
     ConfigService,
     FilesLocalService,
     FilesService,
+    FileLocalSubscriber,
     {
       provide: 'FILE_UPLOADER_SERVICE',
       useExisting: FilesLocalService,

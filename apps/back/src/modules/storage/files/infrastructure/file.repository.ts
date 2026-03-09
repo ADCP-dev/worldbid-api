@@ -43,22 +43,27 @@ export class FileRepository {
   }
 
   async findWithFilters(filters: FileFilterDto): Promise<FileType[]> {
+    const { entityName, entityId, context, userId, type } = filters;
     const where: any = {};
 
-    if (filters.entity !== undefined) {
-      where.entity = filters.entity;
+    if (entityName !== undefined) {
+      where.entityName = entityName;
     }
 
-    if (filters.entityId !== undefined) {
-      where.entityId = filters.entityId;
+    if (entityId !== undefined) {
+      where.entityId = entityId;
     }
 
-    if (filters.userId !== undefined) {
-      where.userId = filters.userId;
+    if (context !== undefined) {
+      where.context = context;
     }
 
-    if (filters.type !== undefined) {
-      where.type = filters.type;
+    if (userId !== undefined) {
+      where.userId = userId;
+    }
+
+    if (type !== undefined) {
+      where.type = type;
     }
 
     const entities = await this.fileRepository.find({ where });
@@ -87,6 +92,9 @@ export class FileRepository {
   }
 
   async delete(id: FileType['id']): Promise<void> {
-    await this.fileRepository.delete(id);
+    const entity = await this.fileRepository.findOne({ where: { id } });
+    if (entity) {
+      await this.fileRepository.remove(entity);
+    }
   }
 }

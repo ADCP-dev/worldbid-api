@@ -7,6 +7,8 @@ import { FileConfig, FileDriver } from '@storage/files/config/file-config.type';
 import { FilesLocalModule } from '@storage/files/infrastructure/uploader/local/files.module';
 import { FilesS3Module } from '@storage/files/infrastructure/uploader/s3/files.module';
 import { FilesS3PresignedModule } from '@storage/files/infrastructure/uploader/s3-presigned/files.module';
+import { FileCleanupCronService } from '@storage/files/infrastructure/cron/file-cleanup.cron';
+import { IsEntityTableConstraint } from '@infra/utils/validators/is-entity-table.validator';
 
 @Module({})
 export class FilesModule {
@@ -23,7 +25,11 @@ export class FilesModule {
     return {
       module: FilesModule,
       imports: [FilePersistenceModule, uploaderModule],
-      providers: [FilesService],
+      providers: [
+        FilesService,
+        FileCleanupCronService,
+        IsEntityTableConstraint,
+      ],
       exports: [FilesService, FilePersistenceModule, uploaderModule],
     };
   }

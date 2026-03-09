@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsBoolean, IsOptional, IsString } from 'class-validator';
 import { Transform } from 'class-transformer';
+import { IsEntityTable } from '@infra/utils/validators/is-entity-table.validator';
 
 export class FileUploadDto {
   @ApiProperty({
@@ -26,7 +27,8 @@ export class FileUploadDto {
   })
   @IsString()
   @IsOptional()
-  entity?: string;
+  @IsEntityTable()
+  entityName?: string;
 
   @ApiProperty({
     type: String,
@@ -36,4 +38,13 @@ export class FileUploadDto {
   @IsString()
   @IsOptional()
   entityId?: string;
+
+  @ApiProperty({
+    type: String,
+    description: 'Context or category for the file',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  context?: string;
 }

@@ -98,7 +98,7 @@ const uploadProfilePhoto = async (): Promise<string | null> => {
     const formData = new FormData()
     formData.append('file', selectedPhotoFile.value)
     formData.append('isPublic', 'true')
-    formData.append('entity', 'user')
+    formData.append('entityName', 'user')
     formData.append('entityId', String(authStore.user?.id ?? ''))
 
     const runtimeConfig = useRuntimeConfig()
