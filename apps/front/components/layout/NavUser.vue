@@ -6,31 +6,41 @@ import {
   User,
 } from 'lucide-vue-next'
 
-defineProps<{
+const props = defineProps<{
   user: {
     name: string
     email: string
-    avatar: string
+    avatar?: string
   }
 }>()
 
 const { logout } = useAuthStore()
 const localePath = useLocalePath()
 
-const closeDrawer = () => {
-  if (typeof document !== 'undefined') {
-    const el = document.getElementById('main-drawer') as HTMLInputElement
-    if (el) el.checked = false
-  }
-}
+const initials = computed(() => {
+  return (props.user.name || '')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(w => w[0].toUpperCase())
+    .join('')
+})
+
+// const closeDrawer = () => {
+//   if (typeof document !== 'undefined') {
+//     const el = document.getElementById('main-drawer') as HTMLInputElement
+//     if (el) el.checked = false
+//   }
+// }
 </script>
 
 <template>
   <div class="dropdown dropdown-top is-drawer-close:dropdown-right w-full">
     <div tabindex="0" role="button" class="btn btn-ghost py-2 hover:bg-base-200 w-full justify-start is-drawer-close:justify-center is-drawer-close:px-0 h-auto">
       <div class="avatar">
-        <div class="w-8 rounded-lg">
-          <img :src="user.avatar" :alt="user.name" />
+        <div class="w-8 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden">
+          <img v-if="user.avatar" :src="user.avatar" :alt="user.name" class="object-cover w-full h-full" />
+          <span v-else class="text-xs font-bold text-primary">{{ initials }}</span>
         </div>
       </div>
       <div class="flex flex-col items-start ml-2 text-left truncate flex-1 is-drawer-close:hidden">
@@ -42,8 +52,9 @@ const closeDrawer = () => {
       <li class="menu-title text-base-content opacity-100 p-2">
          <div class="flex items-center gap-2">
             <div class="avatar">
-              <div class="w-8 rounded-lg">
-                <img :src="user.avatar" :alt="user.name" />
+              <div class="w-8 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden">
+                <img v-if="user.avatar" :src="user.avatar" :alt="user.name" class="object-cover w-full h-full" />
+                <span v-else class="text-xs font-bold text-primary">{{ initials }}</span>
               </div>
             </div>
             <div class="flex flex-col items-start text-left truncate w-full">
@@ -54,7 +65,7 @@ const closeDrawer = () => {
       </li>
       <div class="divider my-0"></div>
       <li>
-        <NuxtLink :to="localePath('/app/settings/profile')" @click="closeDrawer">
+        <NuxtLink :to="localePath('/app/settings/profile')">
           <User class="w-4 h-4" /> {{ $t('base.nav.account') }}
         </NuxtLink>
       </li>

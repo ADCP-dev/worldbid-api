@@ -160,38 +160,44 @@ export class UsersService {
 
   async findById(id: User['id']): Promise<NullableType<User>> {
     const user = await this.usersRepository.findById(id);
-    if (!user) return null;
-
-    // Resolve profile photo polymorphically via the file storage system
-    const photos = await this.filesService.findWithFilters({
-      entityName: 'user',
-      entityId: String(id),
-      context: 'profile',
-    });
-    user.photo = photos[0] ?? null;
-
-    return user;
+    return this.resolvePhoto(user);
   }
 
   findByIds(ids: User['id'][]): Promise<User[]> {
     return this.usersRepository.findByIds(ids);
   }
 
-  findByEmail(email: User['email']): Promise<NullableType<User>> {
-    return this.usersRepository.findByEmail(email);
+  async findByEmail(email: User['email']): Promise<NullableType<User>> {
+    const user = await this.usersRepository.findByEmail(email);
+    return this.resolvePhoto(user);
   }
 
-  findBySocialIdAndProvider({
+  async findBySocialIdAndProvider({
     socialId,
     provider,
   }: {
     socialId: User['socialId'];
     provider: User['provider'];
   }): Promise<NullableType<User>> {
-    return this.usersRepository.findBySocialIdAndProvider({
+    const user = await this.usersRepository.findBySocialIdAndProvider({
       socialId,
       provider,
     });
+    return this.resolvePhoto(user);
+  }
+
+  private async resolvePhoto(user: NullableType<User>): Promise<NullableType<User>> {
+    if (!user) return null;
+
+    // Resolve profile photo polymorphically via the file storage system
+    const photos = await this.filesService.findWithFilters({
+      entityName: 'user',
+      entityId: String(user.id),
+      context: 'profile',
+    });
+    user.photo = photos[0] ?? null;
+
+    return user;
   }
 
   async update(
