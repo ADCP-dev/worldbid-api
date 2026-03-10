@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, h, resolveComponent } from 'vue';
-import { useUsers } from '~/composables/useUsers';
-import { useI18n } from 'vue-i18n';
-import { toast } from 'vue-sonner';
+import { ref, computed, h, resolveComponent } from "vue";
+import { useUsers } from "~/composables/useUsers";
+import { useI18n } from "vue-i18n";
+import { toast } from "vue-sonner";
 import {
   UserIcon,
   KeyIcon,
@@ -10,14 +10,14 @@ import {
   Trash2Icon,
   ShieldIcon,
   PlusIcon,
-  EllipsisVerticalIcon
-} from 'lucide-vue-next';
+  EllipsisVerticalIcon,
+} from "lucide-vue-next";
 
-import DataTable from '@/modules/ui-app/components/data-table/DataTable.vue';
-import UserFormDialog from '~/components/users/UserFormDialog.vue';
-import UserPasswordDialog from '~/components/users/UserPasswordDialog.vue';
-import UserRoleDialog from '~/components/users/UserRoleDialog.vue';
-import TableActionMenu from '~/components/ui/TableActionMenu.vue';
+import DataTable from "@/modules/base/ui-app/components/data-table/DataTable.vue";
+import UserFormDialog from "~/components/users/UserFormDialog.vue";
+import UserPasswordDialog from "~/components/users/UserPasswordDialog.vue";
+import UserRoleDialog from "~/components/users/UserRoleDialog.vue";
+import TableActionMenu from "~/components/ui/TableActionMenu.vue";
 
 const { deleteUser } = useUsers();
 const { t } = useI18n();
@@ -54,14 +54,14 @@ const handleChangeRole = (user: any) => {
 };
 
 const handleDelete = async (user: any) => {
-  if (confirm(t('base.users.messages.deleteConfirm', { email: user.email }))) {
+  if (confirm(t("base.users.messages.deleteConfirm", { email: user.email }))) {
     try {
       await deleteUser(user.id);
-      toast.success(t('base.users.messages.deleteSuccess'));
+      toast.success(t("base.users.messages.deleteSuccess"));
       refreshTable();
     } catch (error: any) {
       console.error(error);
-      toast.error(t('base.users.messages.deleteError'));
+      toast.error(t("base.users.messages.deleteError"));
     }
   }
 };
@@ -69,119 +69,173 @@ const handleDelete = async (user: any) => {
 const columns = computed(() => [
   {
     accessorKey: "id",
-    headerName: t('base.users.table.ID'),
-    header: t('base.users.table.ID'),
-    filterType: "number"
+    headerName: t("base.users.table.ID"),
+    header: t("base.users.table.ID"),
+    filterType: "number",
   },
   {
     accessorKey: "firstName",
-    headerName: t('base.users.table.firstName'),
-    header: t('base.users.table.firstName'),
-    filterType: "string"
+    headerName: t("base.users.table.firstName"),
+    header: t("base.users.table.firstName"),
+    filterType: "string",
   },
   {
     accessorKey: "lastName",
-    headerName: t('base.users.table.lastName'),
-    header: t('base.users.table.lastName'),
-    filterType: "string"
+    headerName: t("base.users.table.lastName"),
+    header: t("base.users.table.lastName"),
+    filterType: "string",
   },
   {
     accessorKey: "email",
-    headerName: t('base.users.table.email'),
-    header: t('base.users.table.email'),
-    filterType: "string"
+    headerName: t("base.users.table.email"),
+    header: t("base.users.table.email"),
+    filterType: "string",
   },
   {
     accessorKey: "role.id",
     id: "role.id",
-    headerName: t('base.users.table.role'),
-    header: t('base.users.table.role'),
+    headerName: t("base.users.table.role"),
+    header: t("base.users.table.role"),
     enableSorting: false,
     filterType: "select",
     options: [
-      { value: '', label: t('base.users.table.roles.all') },
-      { value: '1', label: t('base.users.table.roles.admin') },
-      { value: '2', label: t('base.users.table.roles.user') }
+      { value: "", label: t("base.users.table.roles.all") },
+      { value: "1", label: t("base.users.table.roles.admin") },
+      { value: "2", label: t("base.users.table.roles.user") },
     ],
     cell: ({ row }: any) => {
       const user = row.original;
-      return h('div', { class: 'badge badge-outline' }, user.role?.name || 'User');
-    }
+      return h(
+        "div",
+        { class: "badge badge-outline" },
+        user.role?.name || "User",
+      );
+    },
   },
   {
     accessorKey: "status.id",
     id: "status.id",
-    headerName: t('base.users.table.status'),
-    header: t('base.users.table.status'),
+    headerName: t("base.users.table.status"),
+    header: t("base.users.table.status"),
     enableSorting: false,
     filterType: "select",
     options: [
-      { value: '', label: t('base.users.table.statuses.all') },
-      { value: '1', label: t('base.users.table.statuses.active') },
-      { value: '2', label: t('base.users.table.statuses.inactive') }
+      { value: "", label: t("base.users.table.statuses.all") },
+      { value: "1", label: t("base.users.table.statuses.active") },
+      { value: "2", label: t("base.users.table.statuses.inactive") },
     ],
     cell: ({ row }: any) => {
       const user = row.original;
-      const statusName = user.status?.name || 'Activo';
-      const badgeClass = statusName === 'Activo' ? 'badge-success text-white' : 'badge-neutral';
-      return h('div', { class: ['badge', badgeClass] }, statusName);
-    }
+      const statusName = user.status?.name || "Activo";
+      const badgeClass =
+        statusName === "Activo" ? "badge-success text-white" : "badge-neutral";
+      return h("div", { class: ["badge", badgeClass] }, statusName);
+    },
   },
   {
     id: "actions",
-    headerName: t('base.users.table.actions'),
-    header: t('base.users.table.actions'),
+    headerName: t("base.users.table.actions"),
+    header: t("base.users.table.actions"),
     enableSorting: false,
     cell: ({ row }: any) => {
       const user = row.original;
-      return h(TableActionMenu, {}, {
-        trigger: () => h('button', { class: 'btn btn-ghost btn-xs btn-square' }, [
-          h(EllipsisVerticalIcon, { class: 'w-4 h-4' })
-        ]),
-        default: ({ close }: { close: () => void }) => [
-          h('li', {}, [
-            h('button', { onClick: () => { close(); handleEdit(user); } }, [
-              h(EditIcon, { class: 'w-4 h-4' }), t('base.users.actions.edit')
-            ])
-          ]),
-          h('li', {}, [
-            h('button', { onClick: () => { close(); handleChangeRole(user); } }, [
-              h(ShieldIcon, { class: 'w-4 h-4' }), t('base.users.actions.changeRole')
-            ])
-          ]),
-          h('li', {}, [
-            h('button', { onClick: () => { close(); handleChangePassword(user); } }, [
-              h(KeyIcon, { class: 'w-4 h-4' }), t('base.users.actions.changePassword')
-            ])
-          ]),
-          h('li', { class: 'border-t border-base-200 mt-1 pt-1' }, [
-            h('button', { class: 'text-error', onClick: () => { close(); handleDelete(user); } }, [
-              h(Trash2Icon, { class: 'w-4 h-4' }), t('base.users.actions.delete')
-            ])
-          ])
-        ]
-      });
-    }
-  }
+      return h(
+        TableActionMenu,
+        {},
+        {
+          trigger: () =>
+            h("button", { class: "btn btn-ghost btn-xs btn-square" }, [
+              h(EllipsisVerticalIcon, { class: "w-4 h-4" }),
+            ]),
+          default: ({ close }: { close: () => void }) => [
+            h("li", {}, [
+              h(
+                "button",
+                {
+                  onClick: () => {
+                    close();
+                    handleEdit(user);
+                  },
+                },
+                [
+                  h(EditIcon, { class: "w-4 h-4" }),
+                  t("base.users.actions.edit"),
+                ],
+              ),
+            ]),
+            h("li", {}, [
+              h(
+                "button",
+                {
+                  onClick: () => {
+                    close();
+                    handleChangeRole(user);
+                  },
+                },
+                [
+                  h(ShieldIcon, { class: "w-4 h-4" }),
+                  t("base.users.actions.changeRole"),
+                ],
+              ),
+            ]),
+            h("li", {}, [
+              h(
+                "button",
+                {
+                  onClick: () => {
+                    close();
+                    handleChangePassword(user);
+                  },
+                },
+                [
+                  h(KeyIcon, { class: "w-4 h-4" }),
+                  t("base.users.actions.changePassword"),
+                ],
+              ),
+            ]),
+            h("li", { class: "border-t border-base-200 mt-1 pt-1" }, [
+              h(
+                "button",
+                {
+                  class: "text-error",
+                  onClick: () => {
+                    close();
+                    handleDelete(user);
+                  },
+                },
+                [
+                  h(Trash2Icon, { class: "w-4 h-4" }),
+                  t("base.users.actions.delete"),
+                ],
+              ),
+            ]),
+          ],
+        },
+      );
+    },
+  },
 ]);
-
 </script>
 
 <template>
   <div class="p-1 md:p-6">
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+    <div
+      class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4"
+    >
       <div>
         <h1 class="text-2xl font-bold flex items-center gap-2">
           <UserIcon class="w-6 h-6 text-primary" />
-          {{ $t('base.users.title') }}
+          {{ $t("base.users.title") }}
         </h1>
-        <p class="text-base-content/70 mt-1">{{ $t('base.users.description') }}</p>
+        <p class="text-base-content/70 mt-1">
+          {{ $t("base.users.description") }}
+        </p>
       </div>
 
       <div class="flex gap-2">
         <button class="btn btn-primary" @click="handleCreate">
           <PlusIcon class="w-4 h-4 mr-2" />
-          {{ $t('base.users.actions.create') }}
+          {{ $t("base.users.actions.create") }}
         </button>
       </div>
     </div>

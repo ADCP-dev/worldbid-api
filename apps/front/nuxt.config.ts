@@ -8,13 +8,7 @@ function getI18nFiles(langCode: string) {
 
 export default defineNuxtConfig({
   compatibilityDate: "2024-11-01",
-  extends: [
-    "./modules/landing",
-    "./modules/auth",
-    "./modules/ui-app",
-    "./modules/translations",
-    "./modules/error-tracker",
-  ],
+  extends: ["./modules/landing", "./modules/base"],
   devtools: { enabled: true },
   ssr: false,
   // Configure error handling

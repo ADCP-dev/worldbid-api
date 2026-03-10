@@ -2,7 +2,7 @@ Acabar comprobar el i18n, comprobar el zod locale y comprobar la funcionalidad d
 
 - [] Probar la generación de modulos relaciones etc.
 - [x] Mejorar el modulo de archivos (subscriber de eliminar archivos al eliminar el recurso, etc) (mirar gemini)
-- [] Control de errores de backend y frontend (mirar gemini)
+- [x] Control de errores de backend y frontend (mirar gemini)
 - [] Modulo de CMS (mirar gemini)
 
 

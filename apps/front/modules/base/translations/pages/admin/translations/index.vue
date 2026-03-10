@@ -1,22 +1,23 @@
 <script setup lang="ts">
-import { useTranslations } from '../../../composables/useTranslations';
-import { ref, onMounted, computed, h } from 'vue';
-import DataTable from '@/modules/ui-app/components/data-table/DataTable.vue';
-import TranslationAccordionCell from '~/modules/translations/components/TranslationAccordionCell.vue';
-import AddTranslationDialog from '~/modules/translations/components/AddTranslationDialog.vue';
-import DeleteButton from '@/modules/ui-app/components/data-table/buttons/DeleteButton.vue';
-import { toast } from 'vue-sonner';
-import { BotIcon, LayersIcon, PanelTopIcon } from 'lucide-vue-next';
-import { useI18n } from 'vue-i18n';
+import { useTranslations } from "../../../composables/useTranslations";
+import { ref, onMounted, computed, h } from "vue";
+import DataTable from "@/modules/base/ui-app/components/data-table/DataTable.vue";
+import TranslationAccordionCell from "~/modules/base/translations/components/TranslationAccordionCell.vue";
+import AddTranslationDialog from "~/modules/base/translations/components/AddTranslationDialog.vue";
+import DeleteButton from "@/modules/base/ui-app/components/data-table/buttons/DeleteButton.vue";
+import { toast } from "vue-sonner";
+import { BotIcon, LayersIcon, PanelTopIcon } from "lucide-vue-next";
+import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();
 
-const { getLangs, deleteTranslation, generateJson, bulkTranslate } = useTranslations();
+const { getLangs, deleteTranslation, generateJson, bulkTranslate } =
+  useTranslations();
 
 const langs = ref<any[]>([]);
-const activeLangs = computed(() => langs.value.filter(l => l.isActive));
+const activeLangs = computed(() => langs.value.filter((l) => l.isActive));
 // We will use Tabs to switch between Apps. Default is 'front'.
-const currentAppTab = ref('front');
+const currentAppTab = ref("front");
 
 // Dynamic endpoints based on current tab. We append &app=front/back so the server filters it.
 const endpointFront = computed(() => `translations?app=front`);
@@ -42,20 +43,20 @@ const refreshTables = () => {
 const columns = computed(() => [
   {
     accessorKey: "section",
-    headerName: t('base.translations.section'),
-    header: t('base.translations.section'),
-    filterType: "string"
+    headerName: t("base.translations.section"),
+    header: t("base.translations.section"),
+    filterType: "string",
   },
   {
     accessorKey: "key",
-    headerName: t('base.translations.key'),
-    header: t('base.translations.key'),
-    filterType: "string"
+    headerName: t("base.translations.key"),
+    header: t("base.translations.key"),
+    filterType: "string",
   },
   {
     id: "content",
-    headerName: t('base.translations.translations'),
-    header: t('base.translations.translations'),
+    headerName: t("base.translations.translations"),
+    header: t("base.translations.translations"),
     enableSorting: false,
     cell: ({ row }: any) => {
       const group = row.original;
@@ -64,45 +65,47 @@ const columns = computed(() => [
         langs: activeLangs.value,
         appContext: currentAppTab.value,
         onUpdate: (payload: any) => {
-           // Re-fetch trigger
-           refreshTables();
-        }
+          // Re-fetch trigger
+          refreshTables();
+        },
       });
-    }
+    },
   },
   {
     id: "actions",
-    headerName: t('base.translations.actions'),
-    header: t('base.translations.actions'),
+    headerName: t("base.translations.actions"),
+    header: t("base.translations.actions"),
     enableSorting: false,
     cell: ({ row }: any) => {
       const group = row.original;
       return h(DeleteButton, {
         onClick: async () => {
-          if (confirm(t('base.translations.confirmDelete'))) {
-             try {
-               await Promise.all(group.translations.map((t: any) => deleteTranslation(t.id)));
-               refreshTables();
-               toast.success(t('base.translations.toast.deleted'));
-             } catch (error) {
-               console.error(error);
-               toast.error(t('base.translations.toast.deleteFailed'));
-             }
+          if (confirm(t("base.translations.confirmDelete"))) {
+            try {
+              await Promise.all(
+                group.translations.map((t: any) => deleteTranslation(t.id)),
+              );
+              refreshTables();
+              toast.success(t("base.translations.toast.deleted"));
+            } catch (error) {
+              console.error(error);
+              toast.error(t("base.translations.toast.deleteFailed"));
+            }
           }
-        }
+        },
       });
-    }
-  }
+    },
+  },
 ]);
 
 const handleGenerate = async () => {
   isGenerating.value = true;
   try {
     await generateJson();
-    toast.success(t('base.translations.toast.generated'));
+    toast.success(t("base.translations.toast.generated"));
   } catch (error) {
     console.error(error);
-    toast.error(t('base.translations.toast.generateFailed'));
+    toast.error(t("base.translations.toast.generateFailed"));
   } finally {
     isGenerating.value = false;
   }
@@ -112,11 +115,14 @@ const handleBulkTranslate = async () => {
   isBulkTranslating.value = true;
   try {
     const result = await bulkTranslate(currentAppTab.value);
-    toast.success(result.message || t('base.translations.toast.bulkComplete'));
+    toast.success(result.message || t("base.translations.toast.bulkComplete"));
     refreshTables();
   } catch (error: any) {
     console.error(error);
-    toast.error(t('base.translations.toast.bulkFailed') + `: ${error.message || 'Unknown error'}`);
+    toast.error(
+      t("base.translations.toast.bulkFailed") +
+        `: ${error.message || "Unknown error"}`,
+    );
   } finally {
     isBulkTranslating.value = false;
   }
@@ -129,20 +135,38 @@ onMounted(async () => {
 
 <template>
   <div class="p-1 md:p-6">
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-      <h1 class="text-2xl font-bold">{{ $t('base.translations.title') }}</h1>
+    <div
+      class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4"
+    >
+      <h1 class="text-2xl font-bold">{{ $t("base.translations.title") }}</h1>
       <div class="flex flex-wrap gap-2">
-        <button class="btn btn-outline" @click="handleBulkTranslate" :disabled="isBulkTranslating">
+        <button
+          class="btn btn-outline"
+          @click="handleBulkTranslate"
+          :disabled="isBulkTranslating"
+        >
           <BotIcon class="w-4 h-4 mr-2" />
-          {{ isBulkTranslating ? $t('base.translations.bulkTranslatingMsg') : $t('base.translations.autoTranslateBtn') }}
+          {{
+            isBulkTranslating
+              ? $t("base.translations.bulkTranslatingMsg")
+              : $t("base.translations.autoTranslateBtn")
+          }}
         </button>
         <AddTranslationDialog
           :appContext="currentAppTab"
           :langs="activeLangs"
           @created="refreshTables"
         />
-        <button class="btn btn-outline" @click="handleGenerate" :disabled="isGenerating">
-          {{ isGenerating ? $t('base.translations.generatingMsg') : $t('base.translations.generateJsonBtn') }}
+        <button
+          class="btn btn-outline"
+          @click="handleGenerate"
+          :disabled="isGenerating"
+        >
+          {{
+            isGenerating
+              ? $t("base.translations.generatingMsg")
+              : $t("base.translations.generateJsonBtn")
+          }}
         </button>
       </div>
     </div>
@@ -156,7 +180,7 @@ onMounted(async () => {
         @click="currentAppTab = 'front'"
       >
         <PanelTopIcon class="w-4 h-4 mr-2" />
-        {{ $t('base.translations.frontAppTab') }}
+        {{ $t("base.translations.frontAppTab") }}
       </a>
       <a
         role="tab"
@@ -165,7 +189,7 @@ onMounted(async () => {
         @click="currentAppTab = 'back'"
       >
         <LayersIcon class="w-4 h-4 mr-2" />
-        {{ $t('base.translations.backAppTab') }}
+        {{ $t("base.translations.backAppTab") }}
       </a>
     </div>
 
