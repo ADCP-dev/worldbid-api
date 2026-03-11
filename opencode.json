@@ -1,0 +1,10 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "vectorize": {
+      "type": "local",
+      "command": ["npx", "tsx", "mcp-engine/src/server.ts"],
+      "enabled": true
+    }
+  }
+}

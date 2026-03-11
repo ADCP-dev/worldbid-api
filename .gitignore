@@ -39,3 +39,6 @@ yarn-error.log*
 
 # MCP Vector Search index directory
 .mcp-vector-search/
+
+# MCP Engine - Qdrant data
+mcp-engine/qdrant_data/
