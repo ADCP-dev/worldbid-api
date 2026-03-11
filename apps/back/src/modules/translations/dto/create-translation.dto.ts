@@ -17,10 +17,23 @@ export class CreateTranslationDto {
   @IsNotEmpty()
   content: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    required: false,
+    description:
+      'Language code (e.g., "es", "en"). Use this instead of langId for easier usage.',
+  })
+  @IsString()
+  @IsOptional()
+  langCode?: string;
+
+  @ApiProperty({
+    required: false,
+    description:
+      'Language ID (number). Use langCode instead for better compatibility.',
+  })
   @IsNumber()
-  @IsNotEmpty()
-  langId: number;
+  @IsOptional()
+  langId?: number;
 
   @ApiProperty({ required: false })
   @IsString()

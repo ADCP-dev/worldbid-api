@@ -3,7 +3,10 @@ Acabar comprobar el i18n, comprobar el zod locale y comprobar la funcionalidad d
 - [] Probar la generación de modulos relaciones etc.
 - [x] Mejorar el modulo de archivos (subscriber de eliminar archivos al eliminar el recurso, etc) (mirar gemini)
 - [x] Control de errores de backend y frontend (mirar gemini)
-- [] Modulo de CMS (mirar gemini)
+- [x] Modulo de CMS (mirar gemini)
+  - IA con CMS
+  - Probar que todo funcione correctamente
+  - No funciona la creación de blogs que debería hacer? 1. Al darle a crear, se crearía un borrador. 2. Las imagenes subidas se relacionarían con el blog. 4. Los textos deben subirse en la tabla de traducciones con el entityName y entityId del blog para luego mostrarlos en el editor. 5. Si ya hay imagenes subidas para ese blog, estarán disponibles en el editor de los otros idiomas, para reutilizarlas. 6. Se podrá utilizar la IA para traducir todos los inputs del blog. 7. Habrá un botón de preview 8. En el mismo editor aparecerá un botón de publicar o despublicar. A parte de guardar los cambios.
 
 
 ---

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { LangEntity } from './infrastructure/entities/lang.entity';
@@ -61,11 +65,65 @@ export class TranslationsService {
   async createTranslation(
     createTranslationDto: CreateTranslationDto,
   ): Promise<TranslationEntity> {
-    const { langId, ...rest } = createTranslationDto;
-    const lang = await this.findOneLang(langId);
+    const {
+      langId,
+      langCode,
+      key,
+      entityName,
+      entityId,
+      content,
+      section,
+      app,
+    } = createTranslationDto;
 
+    let lang: LangEntity;
+
+    if (langCode) {
+      // Find language by code
+      const foundLang = await this.langRepository.findOne({
+        where: { code: langCode },
+      });
+      if (!foundLang) {
+        throw new NotFoundException(
+          `Language with code "${langCode}" not found`,
+        );
+      }
+      lang = foundLang;
+    } else if (langId) {
+      // Find language by ID (backwards compatibility)
+      lang = await this.findOneLang(langId);
+    } else {
+      throw new BadRequestException(
+        'Either langCode or langId must be provided',
+      );
+    }
+
+    // Check if translation already exists
+    const existingTranslation = await this.translationRepository.findOne({
+      where: {
+        lang: { id: lang.id },
+        key,
+        entityName,
+        entityId,
+      },
+    });
+
+    if (existingTranslation) {
+      // Update existing translation
+      existingTranslation.content = content;
+      existingTranslation.section = section || existingTranslation.section;
+      existingTranslation.app = app || existingTranslation.app;
+      return this.translationRepository.save(existingTranslation);
+    }
+
+    // Create new translation
     const translation = this.translationRepository.create({
-      ...rest,
+      key,
+      content,
+      section,
+      app,
+      entityName,
+      entityId,
       lang,
     });
     return this.translationRepository.save(translation);
@@ -467,7 +525,7 @@ export class TranslationsService {
     entityName: string,
     entityId: string,
     langCode: string,
-  ): Promise<Record<string, string>> {
+  ): Promise<Record<string, { value: string }>> {
     const lang = await this.langRepository.findOne({
       where: { code: langCode },
     });
@@ -483,7 +541,7 @@ export class TranslationsService {
 
     const result = {};
     for (const t of translations) {
-      result[t.key] = t.content;
+      result[t.key] = { value: t.content };
     }
     return result;
   }

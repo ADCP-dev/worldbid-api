@@ -8,7 +8,7 @@ function getI18nFiles(langCode: string) {
 
 export default defineNuxtConfig({
   compatibilityDate: "2024-11-01",
-  extends: ["./modules/landing", "./modules/base"],
+  extends: ["./modules/landing", "./modules/base", "./modules/cms"],
   devtools: { enabled: true },
   ssr: false,
   // Configure error handling
@@ -130,5 +130,18 @@ export default defineNuxtConfig({
     },
     defaultLocale: "es",
     lazy: true,
+  },
+
+  routeRules: {
+    "/app/cms/**": { ssr: false },
+    "/[lang]/page/**": { ssr: true },
+    "/[lang]/pages": { ssr: true },
+    "/[lang]/blog": { swr: 3600 },
+    "/[lang]/blog/**": { swr: 3600 },
+  },
+
+  sitemap: {
+    sources: ["/api/sitemap/blog", "/api/sitemap/cms-pages"],
+    strictNuxtAppPaths: true,
   },
 });

@@ -1,0 +1,56 @@
+{
+    "title": "Gestor de Contenidos",
+    "pages": {
+      "title": "Páginas",
+      "description": "Gestiona las páginas del sitio web",
+      "create": "Crear Página",
+      "edit": "Editar Página",
+      "slug": "Slug",
+      "route": "Ruta",
+      "template": "Plantilla",
+      "order": "Orden",
+      "published": "Publicada",
+      "draft": "Borrador"
+    },
+    "blog": {
+      "title": "Blog",
+      "description": "Gestiona las entradas del blog",
+      "posts": {
+        "title": "Entradas",
+        "create": "Crear Entrada",
+        "edit": "Editar Entrada",
+        "slug": "Slug",
+        "tags": "Etiquetas",
+        "author": "Autor",
+        "published": "Publicada",
+        "content": "Contenido",
+        "excerpt": "Extracto",
+        "featuredImage": "Imagen Destacada",
+        "category": "Categoría",
+        "actions": "Acciones"
+      },
+      "categories": {
+        "title": "Categorías",
+        "create": "Crear Categoría",
+        "name": "Nombre",
+        "description": "Descripción"
+      }
+    },
+    "categories": {
+      "title": "Categorías",
+      "description": "Gestiona las categorías del blog"
+    },
+    "seo": {
+      "title": "SEO",
+      "metaTitle": "Título Meta",
+      "metaDescription": "Descripción Meta",
+      "metaKeywords": "Palabras Clave",
+      "ogImage": "Imagen OG",
+      "canonicalUrl": "URL Canónica"
+    },
+    "preview": "Vista Previa",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "confirmDelete": "¿Estás seguro de que quieres eliminar esto?"
+}
