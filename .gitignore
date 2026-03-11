@@ -42,3 +42,6 @@ yarn-error.log*
 
 # MCP Engine - Qdrant data
 mcp-engine/qdrant_data/
+
+# MCP metadata
+.mcp-index-meta.json

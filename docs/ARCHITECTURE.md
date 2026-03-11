@@ -44,14 +44,14 @@ src/
 │   ├── mailer/          # Nodemailer wrapper (MailerService)
 │   └── utils/            # Shared utilities (types, transformers, validators)
 │
-├── modules/              # Módulos base de la plantilla (solo desarrollo)
+├── modules/              # Boilerplate base modules (development only)
 │   ├── iam/              # Identity & Access Management
 │   ├── users/            # User CRUD
 │   ├── billing/           # Stripe integration
 │   ├── storage/          # File upload
 │   └── communications/   # Mail, home
 │
-├── extensions/           # Módulos dinámicos (generables)
+├── extensions/           # Dynamic modules (generatable)
 │
 └── custom/              # Código específico del cliente
 ```
@@ -60,10 +60,10 @@ src/
 
 Located in `.env`:
 
-| Value         | Behavior                                |
-| ------------- | --------------------------------------- |
-| `development` | Permite elegir destino (custom/modules) |
-| `client`      | Solo genera en `custom/`                |
+| Value         | Behavior                                     |
+| ------------- | -------------------------------------------- |
+| `development` | Allows choosing destination (custom/modules) |
+| `client`      | Only generates in `custom/`                  |
 
 See **[GENERATORS.md](./GENERATORS.md)** for more details.
 

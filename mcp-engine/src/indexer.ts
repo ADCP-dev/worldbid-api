@@ -5,9 +5,7 @@ import OpenAI from "openai";
 import type { IndexerOptions } from "./types.js";
 import dotenv from "dotenv";
 
-const possibleEnvPaths = [
-  path.join(process.cwd(), ".env.local"),
-];
+const possibleEnvPaths = [path.join(process.cwd(), ".env.local")];
 
 for (const envPath of possibleEnvPaths) {
   if (fs.existsSync(envPath)) {
@@ -194,6 +192,20 @@ export class CodeIndexer {
     console.log(
       `\n✅ Indexación completa: ${processed} archivos, ${totalChunks} chunks`,
     );
+
+    const metaFilePath = path.join(this.projectPath, ".mcp-index-meta.json");
+    fs.writeFileSync(
+      metaFilePath,
+      JSON.stringify(
+        {
+          lastIndexed: new Date().toISOString(),
+          totalFiles: processed,
+        },
+        null,
+        2,
+      ),
+    );
+    console.log(`💾 Metadata guardada en ${metaFilePath}`);
   }
 
   async delete(): Promise<void> {
@@ -202,6 +214,12 @@ export class CodeIndexer {
     try {
       await this.qdrant.deleteCollection(this.collectionName);
       console.log("✅ Colección eliminada");
+
+      const metaFilePath = path.join(this.projectPath, ".mcp-index-meta.json");
+      if (fs.existsSync(metaFilePath)) {
+        fs.unlinkSync(metaFilePath);
+        console.log("✅ Metadata eliminada");
+      }
     } catch (error) {
       console.log("⚠️  La colección no existía");
     }

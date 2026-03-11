@@ -1,78 +1,71 @@
 # Foundation Monorepo
 
-Monorepo gestionado con **Turborepo** que contiene el frontend (**Nuxt 3**) y el backend (**NestJS**) del proyecto Foundation.
-
-## � Documentación
-
-Toda la documentación técnica está en `docs/`:
-
-| Documento | Contenido |
-|---|---|
-| [ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Estructura del proyecto, carpetas `src/`, alias TypeScript |
-| [BACKEND-RESOURCES.md](./docs/BACKEND-RESOURCES.md) | Crear módulos CRUD, migraciones, seeds, anatomía de módulos |
-| [AUTHORIZATION.md](./docs/AUTHORIZATION.md) | Decoradores de auth, guards, RBAC backend y frontend |
-| [FRONTEND-LAYERS.md](./docs/FRONTEND-LAYERS.md) | Nuxt layers, middleware, auth store, API calls, componentes UI |
-| [EMAIL-SYSTEM.md](./docs/EMAIL-SYSTEM.md) | MailService, templates Maizzle, cola BullMQ, configuración SMTP |
-| [GENERATORS.md](./docs/GENERATORS.md) | Comandos Hygen, crear recursos, añadir propiedades |
-| [EXTENSIONS-SYSTEM.md](./docs/EXTENSIONS-SYSTEM.md) | Sistema de extensiones dinámicas |
+A **Turborepo** monorepo containing the Foundation project's frontend (**Nuxt 3**) and backend (**NestJS**).
 
 ---
 
-## 🛠️ Instalación
-
-Desde la **raíz** del monorepo:
+## 🚀 Quick Start
 
 ```bash
+# Install dependencies
 pnpm install
+
+# run individually
+cd apps/front && pnpm dev   # Frontend: http://localhost:3000
+cd apps/back && pnpm dev    # Backend: http://localhost:3001
 ```
 
 ---
 
-## 🚀 Ejecución en Local
+## 📚 Documentation
 
-```bash
-# Ambas apps a la vez (desde la raíz)
-pnpm dev
+All technical documentation is in `docs/`:
 
-# Solo frontend
-cd apps/front && pnpm dev
-
-# Solo backend
-cd apps/back && pnpm dev
-```
-
-Servicios:
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:3001
-- **Swagger**: http://localhost:3001/docs
+| Document                                                  | Topics                                                    |
+| --------------------------------------------------------- | --------------------------------------------------------- |
+| [ARCHITECTURE.md](./docs/ARCHITECTURE.md)                 | Project structure, `src/` directories, TypeScript aliases |
+| [BACKEND-RESOURCES.md](./docs/BACKEND-RESOURCES.md)       | CRUD modules, migrations, seeds, module anatomy           |
+| [AUTHORIZATION.md](./docs/AUTHORIZATION.md)               | Auth decorators, guards, RBAC                             |
+| [API-KEYS.md](./docs/API-KEYS.md)                         | Permanent API keys, `@ApiKeyAuth`, security               |
+| [WEBHOOKS.md](./docs/WEBHOOKS.md)                         | Webhook events, payloads, signatures, retries             |
+| [FRONTEND-LAYERS.md](./docs/FRONTEND-LAYERS.md)           | Nuxt layers, middleware, auth store, UI components        |
+| [EMAIL-SYSTEM.md](./docs/EMAIL-SYSTEM.md)                 | MailService, Maizzle templates, BullMQ queue              |
+| [GENERATORS.md](./docs/GENERATORS.md)                     | Hygen CLI, creating resources, adding properties          |
+| [EXTENSIONS-SYSTEM.md](./docs/EXTENSIONS-SYSTEM.md)       | Dynamic extension modules                                 |
+| [TRANSLATIONS.md](./docs/TRANSLATIONS.md)                 | i18n system, translation keys, AI translation             |
+| [MCP-VECTOR-SEARCH.md](./docs/MCP-VECTOR-SEARCH.md)       | Semantic code search for AI assistants                    |
+| [ERROR-LOGGING.md](./docs/ERROR-LOGGING.md)               | Error tracking, deduplication, dashboard                  |
+| [STORAGE-ARCHITECTURE.md](./docs/STORAGE-ARCHITECTURE.md) | File storage, polymorphic relationships                   |
 
 ---
 
 ## 🐳 Docker
 
-Levanta todo el stack (Frontend, Backend, PostgreSQL, Redis, Mailpit):
+Start the full stack (Frontend, Backend, PostgreSQL, Redis, Mailpit):
 
 ```bash
 docker-compose up --build
 ```
 
-| Servicio | URL |
-|---|---|
-| Frontend | http://localhost:3000 |
-| Backend API | http://localhost:3001 |
-| Mailpit (emails) | http://localhost:8025 |
-| Redis | puerto 6379 |
+| Service     | URL                        |
+| ----------- | -------------------------- |
+| Frontend    | http://localhost:3000      |
+| Backend API | http://localhost:3001      |
+| Swagger     | http://localhost:3001/docs |
+| Mailpit     | http://localhost:8025      |
+| Redis       | port 6379                  |
 
 ---
 
-## 📦 Estructura del Monorepo
+## 📦 Monorepo Structure
 
 ```
 foundation/
 ├── apps/
 │   ├── front/          # Nuxt 3 SPA
 │   └── back/           # NestJS API + PostgreSQL + TypeORM
-├── docs/               # Documentación técnica
+├── docs/               # Technical documentation
+├── mcp-engine/         # MCP Vector Search engine
 └── docker-compose.yml
 ```
 
@@ -80,16 +73,17 @@ foundation/
 
 ```
 src/
-├── config/             # Config global (app, worker)
-├── core/               # Extension loader
-├── i18n/               # Traducciones JSON
+├── config/             # Global config (app, worker)
+├── core/               # Extension loader, seed loader
+├── i18n/               # JSON translation files
 ├── infrastructure/     # Database, mailer, utils
 └── modules/
-    ├── iam/            # Auth, roles, session, API keys
-    ├── users/          # Usuarios y estados
+    ├── iam/            # Auth, roles, sessions, API keys
+    ├── users/          # Users & statuses
     ├── communications/ # Mail, email-queue, home
-    ├── billing/        # Stripe
-    ├── storage/        # Archivos (local / S3)
+    ├── billing/        # Stripe integration
+    ├── storage/        # Files (local / S3)
+    ├── error-tracker/  # Error logging
     └── social/
 ```
 
@@ -97,38 +91,77 @@ src/
 
 ```
 modules/
-├── auth/               # Login, registro, recuperación de contraseña
+├── auth/               # Login, register, password recovery
 ├── ui-app/             # DataTable, Form components, sidebar
-└── <feature>/          # Módulos por funcionalidad
+└── <feature>/          # Feature-specific modules
 ```
 
 ---
 
-## ⚙️ Variables de Entorno
+## ⚙️ Environment Variables
 
-Copia `apps/back/.env.example` → `apps/back/.env`. Variables clave:
+Copy `apps/back/.env.example` → `apps/back/.env`. Key variables:
 
-| Variable | Descripción |
-|---|---|
-| `DATABASE_URL` | Conexión a PostgreSQL |
-| `AUTH_JWT_SECRET` | Secreto JWT |
-| `MAIL_HOST`, `MAIL_PORT` | Servidor SMTP |
-| `FILE_DRIVER` | `local` o `s3` |
-| `REDIS_URL` | Requerido para la cola de emails |
-| `STRIPE_SECRET_KEY` | Integración Stripe |
+| Variable                    | Description                  |
+| --------------------------- | ---------------------------- |
+| `DATABASE_URL`              | PostgreSQL connection string |
+| `AUTH_JWT_SECRET`           | JWT signing secret           |
+| `AUTH_JWT_TOKEN_EXPIRES_IN` | e.g., `15m`                  |
+| `AUTH_REFRESH_SECRET`       | Refresh token secret         |
+| `MAIL_HOST`, `MAIL_PORT`    | SMTP configuration           |
+| `FILE_DRIVER`               | `local` or `s3`              |
+| `REDIS_URL`                 | Required for email queue     |
+| `STRIPE_SECRET_KEY`         | Stripe integration           |
 
 ---
 
-## 🧰 Comandos útiles (desde `apps/back`)
+## 🤖 AI-Assisted Development (MCP Vector Search)
+
+This project includes an **MCP Vector Search** system for semantic code search. When using AI assistants (like OpenCode), the AI can search your codebase by meaning instead of using shell commands.
+
+### Setup
 
 ```bash
-pnpm generate:resource      # Crea un módulo CRUD completo
-pnpm add:property           # Añade una propiedad a un recurso
-pnpm migration:generate     # Genera migración desde los cambios en entidades
-pnpm migration:run          # Ejecuta migraciones pendientes
-pnpm seed:run               # Ejecuta seeders (roles, usuarios iniciales)
+# 1. Start Qdrant (vector database)
+cd mcp-engine && docker-compose up -d
+
+# 2. Add your OpenRouter API key to .env.local
+echo "OPENROUTER_API_KEY=your_key" > .env.local
+
+# 3. Index your project
+npx tsx mcp-engine/src/cli.ts index
+```
+
+### Usage
+
+The AI will automatically use these tools:
+
+- `buscar_codigo` - Semantic code search
+- `stats_index` - View index statistics
+- `necesita_reindex` - Check if code is up to date
+
+### Configuration
+
+The project already includes `opencode.json` and `AGENTS.md` configured for AI assistants to use the MCP search.
+
+See [MCP-VECTOR-SEARCH.md](./docs/MCP-VECTOR-SEARCH.md) for detailed setup instructions.
+
+---
+
+## 🧰 Useful Commands
+
+From `apps/back`:
+
+```bash
+pnpm generate:resource      # Create a full CRUD module
+pnpm generate:extension     # Create an extension module
+pnpm add:property           # Add a property to a resource
+pnpm migration:generate     # Generate migration from entity changes
+pnpm migration:run          # Run pending migrations
+pnpm migration:revert       # Revert last migration
+pnpm seed:run               # Run seeders (roles, initial users)
 ```
 
 ---
 
-Desarrollado con ❤️ por el equipo de Foundation.
+Built with ❤️ by the Foundation team.
