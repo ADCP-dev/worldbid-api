@@ -6,7 +6,7 @@ definePageMeta({
 
 const { t, locale, locales } = useI18n();
 const router = useRouter();
-const { createPost, loading, error } = useCmsBlogPosts();
+const { createPost, saveAllTranslations, loading, error } = useCmsBlogPosts();
 
 const activeTab = ref("content");
 const currentLang = ref(locale.value || "es");
@@ -42,9 +42,14 @@ const handleSubmit = async () => {
     const post = await createPost({
       ...form.value,
       tags,
+      isPublished: false,
     });
 
-    createdPostId.value = post.id;
+    await saveAllTranslations(
+      post.id,
+      currentLang.value,
+      translationForm.value,
+    );
 
     router.push(`/app/cms/blog/posts/${post.id}/edit`);
   } catch (e) {

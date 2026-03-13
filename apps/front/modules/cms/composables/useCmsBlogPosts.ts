@@ -229,6 +229,29 @@ export function useCmsBlogPosts() {
     }
   };
 
+  const fetchMediaByEntity = async (entityName: string, entityId: string) => {
+    try {
+      const params = new URLSearchParams();
+      params.append("entityName", entityName);
+      params.append("entityId", entityId);
+      return await fetchWrapper.get(`${baseUrl}/cms/media?${params}`);
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const saveAllTranslations = async (
+    entityId: string,
+    lang: string,
+    data: { title: string; content: string; excerpt: string },
+  ) => {
+    await Promise.all([
+      saveTranslation(entityId, lang, "title", data.title),
+      saveTranslation(entityId, lang, "content", data.content),
+      saveTranslation(entityId, lang, "excerpt", data.excerpt),
+    ]);
+  };
+
   return {
     posts,
     currentPost,
@@ -243,7 +266,9 @@ export function useCmsBlogPosts() {
     fetchPreview,
     fetchTranslations,
     saveTranslation,
+    saveAllTranslations,
     fetchSeo,
     updateSeo,
+    fetchMediaByEntity,
   };
 }

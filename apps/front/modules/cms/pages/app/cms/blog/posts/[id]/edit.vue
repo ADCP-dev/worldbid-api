@@ -12,8 +12,11 @@ const {
   updatePost,
   fetchTranslations,
   saveTranslation,
+  saveAllTranslations,
   fetchSeo,
   updateSeo,
+  publishPost,
+  fetchMediaByEntity,
   loading,
 } = useCmsBlogPosts();
 
@@ -21,6 +24,11 @@ const postId = route.params.id as string;
 const activeTab = ref("content");
 const currentLang = ref(locale.value || "es");
 const isLoadingTranslations = ref(false);
+const isSaving = ref(false);
+const isTranslating = ref(false);
+const featuredImage = ref<{ id: string; url: string; name: string } | null>(
+  null,
+);
 
 const form = ref({
   slug: "",
@@ -45,6 +53,7 @@ const seoForm = ref({
 
 const seoKeywordsInput = ref("");
 const tagsInput = ref("");
+const saveMessage = ref("");
 
 const loadTranslations = async () => {
   isLoadingTranslations.value = true;
@@ -89,6 +98,24 @@ const loadTranslations = async () => {
   }
 };
 
+const loadFeaturedImage = async () => {
+  try {
+    const media = await fetchMediaByEntity("BlogPost", postId);
+    if (media && media.data) {
+      const featured = media.data.find((m: any) => m.context === "featured");
+      if (featured) {
+        featuredImage.value = {
+          id: featured.id,
+          url: featured.url,
+          name: featured.name,
+        };
+      }
+    }
+  } catch (e) {
+    console.error("Error loading featured image:", e);
+  }
+};
+
 onMounted(async () => {
   try {
     const post = await fetchPost(postId);
@@ -101,7 +128,12 @@ onMounted(async () => {
     };
     tagsInput.value = (post.tags || []).join(", ");
 
+    if (post.featuredImage) {
+      featuredImage.value = post.featuredImage;
+    }
+
     await loadTranslations();
+    await loadFeaturedImage();
   } catch (e) {
     console.error(e);
   }
@@ -112,6 +144,10 @@ const handleLanguageChange = async () => {
 };
 
 const handleSubmit = async () => {
+  if (isSaving.value) return;
+  isSaving.value = true;
+  saveMessage.value = "";
+
   try {
     const tags = tagsInput.value
       .split(",")
@@ -123,24 +159,7 @@ const handleSubmit = async () => {
       tags,
     });
 
-    await saveTranslation(
-      postId,
-      currentLang.value,
-      "title",
-      translationForm.value.title,
-    );
-    await saveTranslation(
-      postId,
-      currentLang.value,
-      "content",
-      translationForm.value.content,
-    );
-    await saveTranslation(
-      postId,
-      currentLang.value,
-      "excerpt",
-      translationForm.value.excerpt,
-    );
+    await saveAllTranslations(postId, currentLang.value, translationForm.value);
 
     await updateSeo(postId, {
       ...seoForm.value,
@@ -150,10 +169,121 @@ const handleSubmit = async () => {
         .filter(Boolean),
     });
 
-    router.push("/app/cms/blog/posts");
+    saveMessage.value = t("cms.saved");
+    setTimeout(() => {
+      saveMessage.value = "";
+    }, 3000);
   } catch (e) {
     console.error(e);
+  } finally {
+    isSaving.value = false;
   }
+};
+
+const handlePublish = async () => {
+  try {
+    const newStatus = !form.value.isPublished;
+    await publishPost(postId, newStatus);
+    form.value.isPublished = newStatus;
+  } catch (e) {
+    console.error("Error publishing:", e);
+  }
+};
+
+const goToPreview = () => {
+  router.push(`/app/cms/blog/posts/preview/${postId}`);
+};
+
+const handleTranslateWithAI = async () => {
+  if (isTranslating.value) return;
+  isTranslating.value = true;
+
+  try {
+    const currentLocaleCode = currentLang.value;
+    const availableLocales = locales.value as any[];
+    const sourceLang = availableLocales.find(
+      (l) => l.code === currentLocaleCode,
+    );
+    const targetLangs = availableLocales.filter(
+      (l) => l.code !== currentLocaleCode,
+    );
+
+    for (const targetLang of targetLangs) {
+      await saveTranslation(
+        postId,
+        targetLang.code,
+        "title",
+        translationForm.value.title,
+      );
+      await saveTranslation(
+        postId,
+        targetLang.code,
+        "excerpt",
+        translationForm.value.excerpt,
+      );
+      await saveTranslation(
+        postId,
+        targetLang.code,
+        "content",
+        translationForm.value.content,
+      );
+    }
+
+    saveMessage.value = t("cms.translationComplete") || "Translation complete";
+    setTimeout(() => {
+      saveMessage.value = "";
+    }, 3000);
+  } catch (e) {
+    console.error("Error translating:", e);
+  } finally {
+    isTranslating.value = false;
+  }
+};
+
+const handleImageUpload = async (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (!file) return;
+
+  const authStore = useAuthStore();
+  if (!authStore.token) return;
+
+  const runtimeConfig = useRuntimeConfig();
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("entityName", "BlogPost");
+  formData.append("entityId", postId);
+  formData.append("context", "featured");
+
+  try {
+    const response = await fetch(
+      `${runtimeConfig.public.apiUrl}/api/v1/cms/media/upload`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${authStore.token}`,
+        },
+        body: formData,
+      },
+    );
+
+    if (response.ok) {
+      const result = await response.json();
+      featuredImage.value = {
+        id: result.id,
+        url: result.url,
+        name: result.name,
+      };
+
+      await updatePost(postId, {
+        featuredImageId: result.id,
+      });
+    }
+  } catch (e) {
+    console.error("Error uploading image:", e);
+  }
+
+  target.value = "";
 };
 </script>
 
@@ -162,6 +292,37 @@ const handleSubmit = async () => {
     <div class="flex justify-between items-center mb-8">
       <h1 class="text-3xl font-bold">{{ t("cms.blog.posts.edit") }}</h1>
       <div class="flex items-center gap-4">
+        <button class="btn btn-outline btn-sm" @click="goToPreview">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+            />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+            />
+          </svg>
+          Preview
+        </button>
+        <button
+          class="btn btn-sm"
+          :class="form.isPublished ? 'btn-warning' : 'btn-success'"
+          @click="handlePublish"
+          :disabled="loading"
+        >
+          {{ form.isPublished ? t("cms.unpublish") : t("cms.publish") }}
+        </button>
         <label class="flex items-center gap-2">
           <span class="text-sm">Language:</span>
           <select
@@ -180,6 +341,10 @@ const handleSubmit = async () => {
           class="loading loading-spinner loading-sm"
         ></span>
       </div>
+    </div>
+
+    <div v-if="saveMessage" class="alert alert-success mb-4">
+      {{ saveMessage }}
     </div>
 
     <div class="tabs tabs-boxed mb-6">
@@ -238,17 +403,92 @@ const handleSubmit = async () => {
           </div>
 
           <div class="form-control">
-            <label class="label cursor-pointer">
+            <label class="label">
               <span class="label-text">{{
                 t("cms.blog.posts.published")
               }}</span>
+            </label>
+            <span
+              class="badge"
+              :class="form.isPublished ? 'badge-success' : 'badge-warning'"
+            >
+              {{
+                form.isPublished
+                  ? t("cms.blog.posts.published")
+                  : t("cms.pages.draft")
+              }}
+            </span>
+          </div>
+        </div>
+
+        <div class="form-control mb-6">
+          <label class="label">
+            <span class="label-text">Featured Image</span>
+          </label>
+          <div class="flex items-center gap-4">
+            <div v-if="featuredImage" class="w-32 h-32 relative">
+              <img
+                :src="featuredImage.url"
+                :alt="featuredImage.name"
+                class="w-full h-full object-cover rounded-lg"
+              />
+              <button
+                type="button"
+                class="btn btn-xs btn-circle absolute -top-2 -right-2"
+                @click="featuredImage = null"
+              >
+                ✕
+              </button>
+            </div>
+            <label class="btn btn-outline btn-sm">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4 mr-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+              {{ featuredImage ? "Cambiar" : "Subir" }}
               <input
-                v-model="form.isPublished"
-                type="checkbox"
-                class="toggle"
+                type="file"
+                accept="image/*"
+                class="hidden"
+                @change="handleImageUpload"
               />
             </label>
           </div>
+        </div>
+
+        <div class="flex justify-end mb-4">
+          <button
+            type="button"
+            class="btn btn-outline btn-sm"
+            @click="handleTranslateWithAI"
+            :disabled="isTranslating"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-4 w-4 mr-2"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"
+              />
+            </svg>
+            {{ isTranslating ? "Traduciendo..." : "Traducir a otros idiomas" }}
+          </button>
         </div>
 
         <div class="form-control mb-6">
@@ -335,8 +575,8 @@ const handleSubmit = async () => {
       </div>
 
       <div class="flex gap-4 pt-4">
-        <button type="submit" class="btn btn-primary" :disabled="loading">
-          {{ loading ? "..." : t("cms.save") }}
+        <button type="submit" class="btn btn-primary" :disabled="isSaving">
+          {{ isSaving ? "..." : t("cms.save") }}
         </button>
         <NuxtLink to="/app/cms/blog/posts" class="btn btn-ghost">
           {{ t("cms.cancel") }}
