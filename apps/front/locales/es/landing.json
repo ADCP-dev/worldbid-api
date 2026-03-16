@@ -1,6 +1,6 @@
 {
   "hero": {
-    "description": "Foundation es un monorepo premium con NuxtJS, NestJS, Shadcn, Redis, Postgres y LangChain. Incluye Auth (Google), Stripe, Blog, Newsletter y más. La estructura definitiva para escalar tu negocio.",
+    "description": "Foundation es un monorepo premium con NuxtJS, NestJS, DaisyUI, Redis, Postgres y LangChain. Incluye Auth (Google), Stripe, Blog, Newsletter y más. La estructura definitiva para escalar tu negocio.",
     "start": "Empieza Gratis",
     "title": {
       "suffix": "para tu siguiente gran aplicación",
@@ -106,7 +106,7 @@
       },
       "barChart3": {
         "title": "Dashboard Premium",
-        "description": "Interfaz de administración completa construida con Shadcn UI para el control total de tu plataforma."
+        "description": "Interfaz de administración completa construida con DaisyUI para el control total de tu plataforma."
       }
     },
     "title": {

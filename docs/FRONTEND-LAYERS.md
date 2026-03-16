@@ -228,7 +228,7 @@ Available icons come from `lucide-vue-next`. See the [Lucide icon list](https://
 
 ---
 
-## UI Components (shadcn-vue + Custom)
+## UI Components (DaisyUI + Custom)
 
 Located in `apps/front/modules/ui-app/components/`.
 

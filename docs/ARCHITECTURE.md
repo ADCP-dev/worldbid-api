@@ -86,7 +86,7 @@ Defined in `tsconfig.json`. Use these instead of long relative paths:
 
 ## Frontend (`apps/front`)
 
-Built with **Nuxt 3 + Vue 3 + shadcn-vue + Pinia + TanStack Query**.
+Built with **Nuxt 3 + Vue 3 + DaisyUI + Pinia + TanStack Query**.
 
 ### Layer System
 

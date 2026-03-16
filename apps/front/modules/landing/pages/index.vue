@@ -11,7 +11,7 @@ useHead({
     meta: [
         {
             name: 'description',
-            content: 'A comprehensive base app featuring NuxtJS, NestJS, Shadcn, Redis, Postgres, and LangChain integration. Handles security, auth, payments, AI data, and more.',
+            content: 'A comprehensive base app featuring NuxtJS, NestJS, DaisyUI, Redis, Postgres, and LangChain integration. Handles security, auth, payments, AI data, and more.',
         },
     ],
 })
