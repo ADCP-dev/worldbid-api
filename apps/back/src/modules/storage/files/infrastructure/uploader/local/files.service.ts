@@ -7,6 +7,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { randomStringGenerator } from '@nestjs/common/utils/random-string-generator.util';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -57,7 +58,7 @@ export class FilesLocalService {
     const ext = original.includes('.')
       ? original.split('.').pop()?.toLowerCase()
       : undefined;
-    const rand = Math.random().toString(36).slice(2);
+    const rand = randomStringGenerator();
     let filename = ext
       ? `${Date.now()}-${rand}.${ext}`
       : `${Date.now()}-${rand}`;
@@ -159,7 +160,7 @@ export class FilesLocalService {
     const ext = original.includes('.')
       ? original.split('.').pop()?.toLowerCase()
       : undefined;
-    const rand = Math.random().toString(36).slice(2);
+    const rand = randomStringGenerator();
     let filename = ext
       ? `${Date.now()}-${rand}.${ext}`
       : `${Date.now()}-${rand}`;
