@@ -95,6 +95,7 @@ function getProjectFiles(): string[] {
     ".output",
     ".data",
     "mcp-engine",
+    "public",
   ];
   const VALID_EXTENSIONS = [
     ".ts",
@@ -186,9 +187,22 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     try {
       const embedding = await openai.embeddings.create({
-        model: "openai/text-embedding-3-small",
+        model: "qwen/qwen3-embedding-8b",
         input: query,
       });
+
+      console.error(
+        `[DEBUG] Embedding received: ${JSON.stringify({ hasData: !!embedding.data, length: embedding.data?.length })}`,
+      );
+
+      if (!embedding.data || embedding.data.length === 0) {
+        return {
+          content: [
+            { type: "text", text: "Error: No se pudo generar embedding" },
+          ],
+          isError: true,
+        };
+      }
 
       const results = await qdrant.search(collectionName, {
         vector: embedding.data[0].embedding,
@@ -216,6 +230,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       setCachedResult(query, response);
       return { content: [{ type: "text", text: response }] };
     } catch (error) {
+      console.error(`[ERROR] Buscar error:`, error);
       return {
         content: [{ type: "text", text: `Error al buscar: ${error}` }],
         isError: true,
@@ -235,7 +250,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           limit: 10000,
           with_payload: true,
         })) as any;
-        for (const point of scroll.result) {
+        const points = scroll.points || [];
+        for (const point of points) {
           if (point.payload?.filePath) {
             uniqueFiles.add(point.payload.filePath);
           }
@@ -275,7 +291,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           limit: 10000,
           with_payload: true,
         })) as any;
-        for (const point of scroll.result) {
+        const points = scroll.points || [];
+        for (const point of points) {
           if (point.payload?.filePath) {
             indexedPaths.add(point.payload.filePath);
           }

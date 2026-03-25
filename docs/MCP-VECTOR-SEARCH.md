@@ -91,6 +91,14 @@ AI has direct tools to search your indexed code:
 | **server.ts**     | MCP server for OpenCode      |
 | **opencode.json** | MCP configuration in project |
 
+### Embedding Model
+
+| Model                     | Dimensions | Provider   |
+| ------------------------- | ---------- | ---------- |
+| `qwen/qwen3-embedding-8b` | 4096       | OpenRouter |
+
+Uses Qwen3-Embedding-8B for high-quality semantic representations.
+
 ---
 
 ## Getting Started
@@ -132,17 +140,19 @@ npx tsx mcp-engine/src/cli.ts index
 
 This will index all `.ts`, `.vue`, `.js`, `.json`, `.md` files in the project.
 
+**Ignored directories**: `node_modules`, `.git`, `.nuxt`, `dist`, `.turbo`, `.output`, `.data`, `mcp-engine`, `public`
+
 ---
 
 ## CLI Commands
 
-### Index project
+### Index project (incremental)
 
 ```bash
 npx tsx mcp-engine/src/cli.ts index
 ```
 
-Creates or updates the index for the current project. Collection name is automatically generated from the folder name.
+Creates or updates the index for the current project. **Only indexes new or modified files** - files that haven't changed since the last indexing are skipped automatically.
 
 ### Re-index from scratch
 
@@ -150,7 +160,7 @@ Creates or updates the index for the current project. Collection name is automat
 npx tsx mcp-engine/src/cli.ts index --force
 ```
 
-Deletes and recreates the collection. Useful if the index is corrupted.
+Deletes and recreates the collection. Useful if the index is corrupted or you want a fresh start.
 
 ### Dry-run (preview)
 
@@ -175,6 +185,29 @@ npx tsx mcp-engine/src/cli.ts list
 ```
 
 Shows all collections in Qdrant and how many vectors each has.
+
+### Export embeddings
+
+```bash
+npx tsx mcp-engine/src/cli.ts export
+npx tsx mcp-engine/src/cli.ts export ./backup.json
+```
+
+Exports the current collection to a JSON file. Useful for:
+
+- **Backup**: Save your indexed vectors
+- **Transfer**: Move embeddings between projects
+- **Cost savings**: Generate once, reuse many times
+
+### Import embeddings
+
+```bash
+npx tsx mcp-engine/src/cli.ts import ./backup.json
+```
+
+Imports embeddings from a JSON file. Creates a new collection with the imported data.
+
+**Use case**: Index project A (pays once), export to JSON, import into project B (no API costs).
 
 ---
 
@@ -345,8 +378,10 @@ The project already has the `opencode.json` file configured:
 
 | Operation                  | Approximate Cost |
 | -------------------------- | ---------------- |
-| Index project (~500 files) | $0.05 - $0.10    |
+| Index project (~500 files) | $0.10 - $0.20    |
 | Each search                | $0.0001          |
+
+> **Note**: Uses `qwen/qwen3-embedding-8b` model via OpenRouter. First index costs ~$0.10-0.20, subsequent incremental updates cost much less.
 
 ### Qdrant (Docker)
 
@@ -357,6 +392,22 @@ No additional cost (local Docker).
 - **Search cache** reduces costs: repeated searches within the same session are instant
 - **Vectors persist** in Qdrant: you don't need to re-index every time
 - **Each project** has its own collection in Qdrant: total isolation
+- **Incremental indexing** saves costs: only changed files are re-indexed
+
+### Cost-Saving Tip: Export & Import
+
+Since embeddings are expensive to generate but cheap to store/transfer:
+
+```bash
+# Project A: Index once (pay)
+npx tsx mcp-engine/src/cli.ts index --force
+
+# Project A: Export
+npx tsx mcp-engine/src/cli.ts export ./my-project-embeddings.json
+
+# Project B: Import (free, no API calls)
+npx tsx mcp-engine/src/cli.ts import ./my-project-embeddings.json
+```
 
 ---
 

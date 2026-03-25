@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import { QdrantClient } from "@qdrant/js-client-rest";
 import OpenAI from "openai";
 import type { IndexerOptions } from "./types.js";
@@ -23,6 +24,8 @@ const IGNORE_DIRS = [
   ".output",
   ".data",
   "mcp-engine",
+  "public",
+  ".opencode",
 ];
 const VALID_EXTENSIONS = [".ts", ".vue", ".js", ".tsx", ".jsx", ".json", ".md"];
 
@@ -96,7 +99,55 @@ export class CodeIndexer {
   }
 
   private generateStableId(relativePath: string, chunkIndex: number): string {
-    return crypto.randomUUID();
+    const hash = crypto
+      .createHash("sha256")
+      .update(`${relativePath}:${chunkIndex}`)
+      .digest("hex");
+    return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-${hash.slice(12, 16)}-${hash.slice(16, 20)}-${hash.slice(20, 32)}`;
+  }
+
+  private async getIndexedFilePaths(): Promise<Map<string, string[]>> {
+    const fileChunks = new Map<string, string[]>();
+    let offset: string | undefined = undefined;
+
+    do {
+      const scroll = (await this.qdrant.scroll(this.collectionName, {
+        limit: 1000,
+        with_payload: true,
+        offset,
+      })) as any;
+
+      const points = scroll.points || [];
+      for (const point of points) {
+        const filePath = point.payload?.filePath;
+        if (filePath) {
+          if (!fileChunks.has(filePath)) {
+            fileChunks.set(filePath, []);
+          }
+          fileChunks.get(filePath)!.push(point.id);
+        }
+      }
+
+      offset = scroll.next_page_offset;
+    } while (offset);
+
+    return fileChunks;
+  }
+
+  private async deletePoints(ids: string[]): Promise<void> {
+    if (ids.length === 0) return;
+
+    const batches: string[][] = [];
+    for (let i = 0; i < ids.length; i += 100) {
+      batches.push(ids.slice(i, i + 100));
+    }
+
+    for (const batch of batches) {
+      await this.qdrant.delete(this.collectionName, {
+        wait: true,
+        points: batch,
+      });
+    }
   }
 
   async ensureCollection(
@@ -112,7 +163,7 @@ export class CodeIndexer {
     if (!exists) {
       console.log("✅ Creando nueva colección...");
       await this.qdrant.createCollection(this.collectionName, {
-        vectors: { size: 1536, distance: "Cosine" },
+        vectors: { size: 4096, distance: "Cosine" },
       });
     }
   }
@@ -123,7 +174,6 @@ export class CodeIndexer {
     console.log(`🚀 Indexando proyecto: ${this.collectionName}`);
     console.log(`📁 Ruta: ${this.projectPath}`);
 
-    // Check if collection exists
     let collectionExists = false;
     try {
       await this.qdrant.getCollection(this.collectionName);
@@ -132,7 +182,37 @@ export class CodeIndexer {
       collectionExists = false;
     }
 
-    await this.ensureCollection(collectionExists, forceReindex);
+    if (forceReindex && collectionExists) {
+      console.log("🗑️  Eliminando colección existente...");
+      await this.qdrant.deleteCollection(this.collectionName);
+      collectionExists = false;
+    }
+
+    if (!collectionExists) {
+      console.log("✅ Creando nueva colección...");
+      await this.qdrant.createCollection(this.collectionName, {
+        vectors: { size: 4096, distance: "Cosine" },
+      });
+    }
+
+    const metaFilePath = path.join(this.projectPath, ".mcp-index-meta.json");
+    let lastIndexed: Date | null = null;
+    let existingFileChunks = new Map<string, string[]>();
+
+    if (!forceReindex && fs.existsSync(metaFilePath)) {
+      try {
+        const meta = JSON.parse(fs.readFileSync(metaFilePath, "utf-8"));
+        if (meta.lastIndexed) {
+          lastIndexed = new Date(meta.lastIndexed);
+        }
+      } catch {}
+
+      if (lastIndexed) {
+        console.log(`📅 Última indexación: ${lastIndexed.toISOString()}`);
+        existingFileChunks = await this.getIndexedFilePaths();
+        console.log(`📂 Archivos ya indexados: ${existingFileChunks.size}`);
+      }
+    }
 
     const files = this.getFiles(this.projectPath);
     console.log(`📄 ${files.length} archivos encontrados`);
@@ -145,61 +225,162 @@ export class CodeIndexer {
       return;
     }
 
-    let processed = 0;
-    let totalChunks = 0;
+    const startTime = Date.now();
+    const CONCURRENCY = 15;
+    const QDRANT_BATCH_SIZE = 200;
+
+    const filesToProcess: Array<{
+      file: string;
+      relativePath: string;
+      mtime: Date;
+    }> = [];
+    const filesToRemove: Array<{ relativePath: string; chunkIds: string[] }> =
+      [];
 
     for (const file of files) {
-      const content = fs.readFileSync(file, "utf-8");
-      const chunks = this.chunkIfNeeded(content);
       const relativePath = file
         .replace(this.projectPath, "")
         .replace(/^[/\\]/, "");
+      const stats = fs.statSync(file);
+
+      if (lastIndexed && existingFileChunks.has(relativePath)) {
+        if (stats.mtime <= lastIndexed) {
+          continue;
+        }
+        filesToRemove.push({
+          relativePath,
+          chunkIds: existingFileChunks.get(relativePath)!,
+        });
+      }
+      filesToProcess.push({ file, relativePath, mtime: stats.mtime });
+    }
+
+    if (filesToRemove.length > 0) {
+      console.log(
+        `🗑️  Eliminando ${filesToRemove.length} archivos modificados...`,
+      );
+      for (const { chunkIds } of filesToRemove) {
+        await this.deletePoints(chunkIds);
+      }
+    }
+
+    const allChunks: Array<{
+      relativePath: string;
+      chunkIndex: number;
+      content: string;
+    }> = [];
+
+    for (const { file, relativePath } of filesToProcess) {
+      const content = fs.readFileSync(file, "utf-8");
+      const chunks = this.chunkIfNeeded(content);
 
       for (let i = 0; i < chunks.length; i++) {
         const chunk = chunks[i];
-        if (!chunk.trim()) continue;
-
-        const embedding = await this.openai.embeddings.create({
-          model: "openai/text-embedding-3-small",
-          input: chunk,
-        });
-
-        const stableId = this.generateStableId(relativePath, i);
-
-        await this.qdrant.upsert(this.collectionName, {
-          wait: true,
-          points: [
-            {
-              id: stableId,
-              vector: embedding.data[0].embedding,
-              payload: {
-                filePath: relativePath,
-                codeSnippet: chunk,
-              },
-            },
-          ],
-        });
-
-        totalChunks++;
-      }
-
-      processed++;
-      if (processed % 50 === 0) {
-        console.log(`⏳ Procesados: ${processed}/${files.length} archivos`);
+        if (chunk.trim()) {
+          allChunks.push({ relativePath, chunkIndex: i, content: chunk });
+        }
       }
     }
 
     console.log(
-      `\n✅ Indexación completa: ${processed} archivos, ${totalChunks} chunks`,
+      `📝 ${allChunks.length} chunks a procesar (concurrencia: ${CONCURRENCY})`,
     );
 
-    const metaFilePath = path.join(this.projectPath, ".mcp-index-meta.json");
+    if (allChunks.length === 0) {
+      console.log("✅ No hay cambios que procesar");
+      return;
+    }
+
+    const points: Array<{
+      id: string;
+      vector: number[];
+      payload: { filePath: string; codeSnippet: string };
+    }> = [];
+    let processedChunks = 0;
+    let errors = 0;
+
+    const processChunk = async (
+      chunk: (typeof allChunks)[number],
+    ): Promise<{
+      id: string;
+      vector: number[];
+      payload: { filePath: string; codeSnippet: string };
+    } | null> => {
+      try {
+        const embedding = await this.openai.embeddings.create({
+          model: "qwen/qwen3-embedding-8b",
+          input: chunk.content,
+        });
+
+        if (!embedding.data || embedding.data.length === 0) {
+          return null;
+        }
+
+        return {
+          id: this.generateStableId(chunk.relativePath, chunk.chunkIndex),
+          vector: embedding.data[0].embedding as number[],
+          payload: {
+            filePath: chunk.relativePath,
+            codeSnippet: chunk.content,
+          },
+        };
+      } catch (error) {
+        errors++;
+        if (errors <= 5) {
+          console.error(
+            `⚠️  Error ${chunk.relativePath}: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+        return null;
+      }
+    };
+
+    for (let i = 0; i < allChunks.length; i += CONCURRENCY) {
+      const wave = allChunks.slice(i, i + CONCURRENCY);
+      const results = await Promise.all(wave.map(processChunk));
+
+      for (const result of results) {
+        if (result) {
+          points.push(result);
+        }
+      }
+      processedChunks += wave.length;
+
+      if (points.length >= QDRANT_BATCH_SIZE) {
+        await this.qdrant.upsert(this.collectionName, {
+          wait: true,
+          points: [...points],
+        });
+        points.length = 0;
+      }
+
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      const rate = (
+        processedChunks / Math.max(1, (Date.now() - startTime) / 1000)
+      ).toFixed(1);
+      console.log(
+        `⏳ ${processedChunks}/${allChunks.length} chunks (${elapsed}s, ~${rate}/s)`,
+      );
+    }
+
+    if (points.length > 0) {
+      await this.qdrant.upsert(this.collectionName, {
+        wait: true,
+        points: [...points],
+      });
+    }
+
+    const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
+    console.log(
+      `\n✅ Indexación completa: ${processedChunks} chunks en ${totalTime}s (${errors} errores)`,
+    );
+
     fs.writeFileSync(
       metaFilePath,
       JSON.stringify(
         {
           lastIndexed: new Date().toISOString(),
-          totalFiles: processed,
+          totalChunks: processedChunks,
         },
         null,
         2,
@@ -234,5 +415,118 @@ export class CodeIndexer {
       const info = await this.qdrant.getCollection(col.name);
       console.log(`  • ${col.name} - ${info.points_count} vectores`);
     }
+  }
+
+  async export(outputPath?: string): Promise<void> {
+    console.log(`📤 Exportando colección: ${this.collectionName}`);
+
+    const exportFilePath =
+      outputPath ||
+      path.join(this.projectPath, `${this.collectionName}-embeddings.json`);
+
+    let offset: string | undefined = undefined;
+    const allPoints: any[] = [];
+    let totalPoints = 0;
+
+    do {
+      const scroll = (await this.qdrant.scroll(this.collectionName, {
+        limit: 1000,
+        with_payload: true,
+        with_vector: true,
+        offset,
+      })) as any;
+
+      const points = scroll.points || [];
+      allPoints.push(...points);
+      totalPoints += points.length;
+      offset = scroll.next_page_offset;
+
+      console.log(`📥 Procesados ${totalPoints} puntos...`);
+    } while (offset);
+
+    const exportData = {
+      collectionName: this.collectionName,
+      exportedAt: new Date().toISOString(),
+      vectorSize: 4096,
+      pointsCount: totalPoints,
+      points: allPoints.map((p) => ({
+        id: p.id,
+        vector: p.vector,
+        payload: p.payload,
+      })),
+    };
+
+    fs.writeFileSync(exportFilePath, JSON.stringify(exportData));
+
+    const fileSize = (fs.statSync(exportFilePath).size / 1024 / 1024).toFixed(
+      2,
+    );
+    console.log(`\n✅ Exportación completa: ${totalPoints} puntos exportados`);
+    console.log(`📁 Archivo: ${exportFilePath} (${fileSize} MB)`);
+  }
+
+  async import(inputPath: string): Promise<void> {
+    console.log(`📥 Importando desde: ${inputPath}`);
+
+    if (!fs.existsSync(inputPath)) {
+      console.error(`❌ Archivo no encontrado: ${inputPath}`);
+      return;
+    }
+
+    const importData = JSON.parse(fs.readFileSync(inputPath, "utf-8"));
+
+    if (!importData.points || !Array.isArray(importData.points)) {
+      console.error("❌ Formato de archivo inválido");
+      return;
+    }
+
+    const pointsToImport = importData.points;
+    console.log(`📦 Puntos a importar: ${pointsToImport.length}`);
+
+    const collectionExists = await this.qdrant
+      .getCollection(this.collectionName)
+      .then(() => true)
+      .catch(() => false);
+
+    if (collectionExists) {
+      console.log("⚠️  La colección ya existe. Eliminando...");
+      await this.qdrant.deleteCollection(this.collectionName);
+    }
+
+    console.log("✅ Creando colección...");
+    await this.qdrant.createCollection(this.collectionName, {
+      vectors: { size: importData.vectorSize || 4096, distance: "Cosine" },
+    });
+
+    const QDRANT_BATCH_SIZE = 200;
+    let imported = 0;
+
+    for (let i = 0; i < pointsToImport.length; i += QDRANT_BATCH_SIZE) {
+      const batch = pointsToImport.slice(i, i + QDRANT_BATCH_SIZE);
+
+      await this.qdrant.upsert(this.collectionName, {
+        wait: true,
+        points: batch,
+      });
+
+      imported += batch.length;
+      console.log(`📥 Importados ${imported}/${pointsToImport.length}...`);
+    }
+
+    const metaFilePath = path.join(this.projectPath, ".mcp-index-meta.json");
+    fs.writeFileSync(
+      metaFilePath,
+      JSON.stringify(
+        {
+          lastIndexed: new Date().toISOString(),
+          totalChunks: pointsToImport.length,
+        },
+        null,
+        2,
+      ),
+    );
+
+    console.log(`\n✅ Importación completa: ${imported} puntos`);
+    console.log(`💾 Metadata guardada en ${metaFilePath}`);
   }
 }

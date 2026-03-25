@@ -1,7 +1,13 @@
 import { CodeIndexer } from "./indexer.js";
 
 const args = process.argv.slice(2);
-const command = args[0] as "index" | "delete" | "list" | undefined;
+const command = args[0] as
+  | "index"
+  | "delete"
+  | "list"
+  | "export"
+  | "import"
+  | undefined;
 const options = {
   forceReindex: args.includes("--force"),
   dryRun: args.includes("--dry-run"),
@@ -42,18 +48,38 @@ switch (command) {
     await indexer.list();
     break;
 
+  case "export":
+    const exportPath = args[1];
+    await indexer.export(exportPath);
+    break;
+
+  case "import":
+    const importPath = args[1];
+    if (!importPath) {
+      console.error("❌ Especifica la ruta del archivo: index import <ruta>");
+    } else {
+      await indexer.import(importPath);
+    }
+    break;
+
   default:
     console.log(`
-🔧 MCP Engine CLI
+ 🔧 MCP Engine CLI
 
-Usage:
-  npm run mcp -- index          Indexar el proyecto actual
-  npm run mcp -- index --force  Re-indexar desde cero (borra y crea)
-  npm run mcp -- index --dry-run Ver qué se indexaría sin hacerlo
-  npm run mcp -- delete         Eliminar índice del proyecto actual
-  npm run mcp -- list           Listar todas las colecciones
+ Usage:
+   npx tsx mcp-engine/src/cli.ts index          Indexar proyecto (incremental)
+   npx tsx mcp-engine/src/cli.ts index --force  Re-indexar desde cero
+   npx tsx mcp-engine/src/cli.ts index --dry-run Ver qué se indexaría
+   npx tsx mcp-engine/src/cli.ts delete         Eliminar índice
+   npx tsx mcp-engine/src/cli.ts list          Listar colecciones
+   npx tsx mcp-engine/src/cli.ts export        Exportar a archivo JSON
+   npx tsx mcp-engine/src/cli.ts export <path> Exportar a ruta específica
+   npx tsx mcp-engine/src/cli.ts import <path> Importar desde archivo JSON
 
-El nombre de la colección se genera automáticamente desde el nombre de la carpeta.
+Ejemplos:
+   npx tsx mcp-engine/src/cli.ts export
+   npx tsx mcp-engine/src/cli.ts export ./backup-embeddings.json
+   npx tsx mcp-engine/src/cli.ts import ./backup-embeddings.json
 `);
     break;
 }
