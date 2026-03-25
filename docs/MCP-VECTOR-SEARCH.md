@@ -11,45 +11,23 @@
 - [OpenCode Integration](#opencode-integration)
 - [Usage Examples](#usage-examples)
 - [Costs](#costs)
+- [Engram System](#engram-system)
 
 ---
 
 ## What is it?
 
-**MCP Vector Search** is a semantic search system that allows AI to find relevant code in your project without running commands like `grep`, `find`, or `cat`.
+**MCP Vector Search** es un sistema de búsqueda semántica que permite a la IA encontrar código relevante en tu proyecto sin ejecutar comandos como `grep`, `find` o `cat`.
 
-Instead of searching by exact keywords, the system:
+El sistema convierte tu código en **engrams** - representaciones vectoriales de conocimiento semántico - y las almacena en **Qdrant** (base de datos vectorial).
 
-1. Converts your code into **embedding vectors** (numeric representations of meaning)
-2. Stores them in **Qdrant** (vector database)
-3. Allows AI to search by **meaning**, not exact text
+### Concepto de Engram
 
----
+Un **engram** es una unidad de conocimiento codificada:
 
-## Why use it?
-
-### The old way problem
-
-When coding with AI, to find code the AI would run commands like:
-
-```bash
-grep -r "login" src/
-find src -name "*.ts" | xargs cat
-```
-
-This has problems:
-
-- **Slow**: Each command takes time and tokens
-- **Inaccurate**: If you don't know the exact path, AI hallucinates paths
-- **Expensive**: Wastes context/tokens reading unnecessary files
-
-### The MCP solution
-
-AI has direct tools to search your indexed code:
-
-- **Semantic search**: "find the authentication logic" → finds relevant code
-- **Instant**: No need to run commands
-- **Precise**: Returns contextualized code snippets
+- Cada chunk de código → embedding de 4096 dims → **engram**
+- Los engrams incluyen metadatos ricos: imports, exports, framework, keywords
+- La búsqueda semántica = recuperación de engrams por similitud
 
 ---
 
@@ -60,23 +38,35 @@ AI has direct tools to search your indexed code:
 │                        Your Project                         │
 │                     ( source code )                         │
 └─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
+                               │
+                               ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                    MCP Engine (CLI)                         │
 │  ┌───────────────┐    ┌──────────────┐    ┌─────────────┐  │
 │  │   indexer.ts  │───▶│    Qdrant    │◀───│  server.ts  │  │
-│  │ (index code)  │    │   (vectors)  │    │ (MCP server)│  │
+│  │ (engram index)│    │   (vectors)  │    │ (MCP server)│  │
 │  └───────────────┘    └──────────────┘    └─────────────┘  │
+│           │                                      │          │
+│  ┌────────┴────────┐                            │          │
+│  │   parser/       │                            │          │
+│  │ typescript.ts   │                            │          │
+│  │ markdown.ts     │                            │          │
+│  └─────────────────┘                            │          │
+│           │                                      │          │
+│  ┌────────┴────────┐                            │          │
+│  │   search/       │                            │          │
+│  │ hybrid.ts       │◀──────────────────────────┘          │
+│  │ bm25.ts         │   (uses hybrid search)               │
+│  └─────────────────┘                                      │
 └─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
+                               │
+                               ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                      OpenCode                               │
 │              ( AI client with tools )                       │
 │                                                             │
 │   Available tools:                                          │
-│   • buscar_codigo     - Semantic search                     │
+│   • buscar_codigo     - Hybrid semantic + BM25 search       │
 │   • stats_index       - Index statistics                    │
 │   • necesita_reindex  - Detect outdated files               │
 └─────────────────────────────────────────────────────────────┘
@@ -84,20 +74,85 @@ AI has direct tools to search your indexed code:
 
 ### Components
 
-| Component         | Purpose                      |
-| ----------------- | ---------------------------- |
-| **Qdrant**        | Vector database (Docker)     |
-| **indexer.ts**    | Indexes project code         |
-| **server.ts**     | MCP server for OpenCode      |
-| **opencode.json** | MCP configuration in project |
+| Component         | Purpose                                         |
+| ----------------- | ----------------------------------------------- |
+| **Qdrant**        | Vector database (Docker)                        |
+| **indexer.ts**    | Creates engrams from code                       |
+| **parser/**       | Extracts metadata (imports, exports, framework) |
+| **search/**       | Hybrid search (vector + BM25)                   |
+| **server.ts**     | MCP server for OpenCode                         |
+| **opencode.json** | MCP configuration in project                    |
 
-### Embedding Model
+### Engram Payload Structure
 
-| Model                     | Dimensions | Provider   |
-| ------------------------- | ---------- | ---------- |
-| `qwen/qwen3-embedding-8b` | 4096       | OpenRouter |
+```typescript
+interface EngramPayload {
+  id: string;
+  filePath: string; // Relative path
+  fileName: string; // "auth.service.ts"
+  lineStart: number; // 45
+  lineEnd: number; // 194
+  chunkIndex: number; // 0, 1, 2...
+  totalChunks: number; // 3
+  codeSnippet: string; // Code with header
+  header: string; // "// auth.service.ts:45-194"
+  language: string; // "typescript"
+  imports: string[]; // ["@users/users.service", "@nestjs/config"]
+  exports: string[]; // ["AuthService", "validateLogin"]
+  docComment: string | null;
+  framework: string | null; // "nestjs", "vue", etc.
+  keywords: string[]; // Significant identifiers
+}
+```
 
-Uses Qwen3-Embedding-8B for high-quality semantic representations.
+---
+
+## Engram System
+
+### Chunking Strategy
+
+Files are split into engrams of max 150 lines with context headers:
+
+```
+// auth.service.ts:45-194
+
+async validateLogin(loginDto: AuthEmailLoginDto): Promise<LoginResponseDto> {
+  const user = await this.usersService.findByEmail(loginDto.email);
+  // ...
+}
+```
+
+- Small files (≤400 lines): Single engram
+- Large files: Multiple engrams of 150 lines each
+- Each engram includes `fileName:lineStart-lineEnd` header
+
+### Metadata Extraction
+
+**TypeScript/Vue files:**
+
+- Imports: `import { X } from '...'`
+- Named exports: classes, interfaces, types, functions, const
+- Framework detection: NestJS (@Injectable, @Module), Vue (defineComponent, @Component)
+- Doc comments: JSDoc leading comments
+- Keywords: identifiers (camelCase, PascalCase) filtered by stop words
+
+**Markdown files:**
+
+- Frontmatter title
+- First heading
+- Doc framework detection
+- Keywords from headings and code blocks
+
+### Hybrid Search
+
+Combines vector similarity with BM25 keyword matching:
+
+```
+score = α × vector_similarity + (1-α) × normalized_BM25
+```
+
+- `α = 0.7` (default): 70% vector, 30% BM25
+- Adjustable via `alpha` parameter in `buscar_codigo`
 
 ---
 
@@ -193,11 +248,7 @@ npx tsx mcp-engine/src/cli.ts export
 npx tsx mcp-engine/src/cli.ts export ./backup.json
 ```
 
-Exports the current collection to a JSON file. Useful for:
-
-- **Backup**: Save your indexed vectors
-- **Transfer**: Move embeddings between projects
-- **Cost savings**: Generate once, reuse many times
+Exports the current collection to a JSON file. Useful for backup, transfer, and cost savings.
 
 ### Import embeddings
 
@@ -207,8 +258,6 @@ npx tsx mcp-engine/src/cli.ts import ./backup.json
 
 Imports embeddings from a JSON file. Creates a new collection with the imported data.
 
-**Use case**: Index project A (pays once), export to JSON, import into project B (no API costs).
-
 ---
 
 ## MCP Tools
@@ -217,12 +266,16 @@ When using OpenCode with this project, you have 3 tools available:
 
 ### 1. buscar_codigo
 
-**Purpose**: Semantic code search
+**Purpose**: Hybrid semantic + keyword search
 
 **Input**:
 
 - `query`: Natural language search
 - `limit`: Number of results (max 5, default 3)
+- `fileTypes`: Filter by extensions (e.g., `[".ts", ".vue"]`)
+- `frameworks`: Filter by framework (e.g., `["nestjs", "vue"]`)
+- `minScore`: Minimum relevance score (0-1, default: 0.3)
+- `alpha`: Vector weight vs BM25 weight (0-1, default: 0.7)
 
 **Example**:
 
@@ -233,7 +286,9 @@ Find the JWT authentication logic in the project
 **Response**:
 
 ````
-📄 **apps\back\src\modules\iam\auth\auth.service.ts**
+📄 **apps\back\src\modules\iam\auth\auth.service.ts** auth.service.ts:45-194 [score: 94.2%]
+  [exports: AuthService, validateLogin | framework: nestjs]
+
 ```typescript
 async validateLogin(loginDto: AuthEmailLoginDto): Promise<LoginResponseDto> {
   const user = await this.usersService.findByEmail(loginDto.email);
@@ -261,10 +316,11 @@ Is my code up to date?
 
 📊 **Index Statistics**
 
-- **Total vectors**: 748
-- **Unique files indexed**: 439
-- **Files in project**: 440
-- **Last indexed**: 2026-03-11T10:30:00.000Z
+- **Engrams totales**: 1247
+- **Archivos únicos indexados**: 439
+- **Archivos en proyecto**: 440
+- **Última indexación**: 2026-03-11T10:30:00.000Z
+- **Hybrid search**: Activo
 
 ```
 
@@ -352,17 +408,25 @@ The project already has the `opencode.json` file configured:
 
 **AI uses tool**: `buscar_codigo` with query "users service"
 
-**Result**: Returns relevant code from the users service
+**Result**: Returns relevant engrams from the users service with framework and export info
 
-### Example 2: Check if code is up to date
+### Example 2: Filter by framework
+
+**User**: Find Vue components only
+
+**AI uses tool**: `buscar_codigo` with query "form input" and `frameworks: ["vue"]`
+
+**Result**: Only returns engrams from Vue files
+
+### Example 3: Check if code is up to date
 
 **User**: Do you have the code indexed?
 
 **AI uses tool**: `stats_index`
 
-**Result**: Shows number of vectors, files, last indexing
+**Result**: Shows number of engrams, files, last indexing, and hybrid search status
 
-### Example 3: Before making big changes
+### Example 4: Before making big changes
 
 **User**: I'm going to refactor the authentication
 
@@ -393,6 +457,7 @@ No additional cost (local Docker).
 - **Vectors persist** in Qdrant: you don't need to re-index every time
 - **Each project** has its own collection in Qdrant: total isolation
 - **Incremental indexing** saves costs: only changed files are re-indexed
+- **Hybrid search** uses more compute but provides better results for keyword-based queries
 
 ### Cost-Saving Tip: Export & Import
 
@@ -408,6 +473,24 @@ npx tsx mcp-engine/src/cli.ts export ./my-project-embeddings.json
 # Project B: Import (free, no API calls)
 npx tsx mcp-engine/src/cli.ts import ./my-project-embeddings.json
 ```
+
+---
+
+## Testing
+
+Run tests with Vitest:
+
+```bash
+cd mcp-engine
+npm run test        # Watch mode
+npm run test:run    # Single run
+```
+
+Test files:
+
+- `src/__tests__/indexer.test.ts` - Engram segmentation tests
+- `src/__tests__/parser.test.ts` - Metadata extraction tests
+- `src/__tests__/search.test.ts` - BM25 search tests
 
 ---
 

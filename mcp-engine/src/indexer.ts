@@ -3,7 +3,13 @@ import path from "path";
 import crypto from "crypto";
 import { QdrantClient } from "@qdrant/js-client-rest";
 import OpenAI from "openai";
-import type { IndexerOptions } from "./types.js";
+import type {
+  IndexerOptions,
+  EngramContent,
+  EngramPayload,
+  EngramMetadata,
+} from "./types.js";
+import { parseTypeScript, parseMarkdown } from "./parser/index.js";
 import dotenv from "dotenv";
 
 const possibleEnvPaths = [path.join(process.cwd(), ".env.local")];
@@ -27,6 +33,7 @@ const IGNORE_DIRS = [
   "public",
   ".opencode",
 ];
+
 const VALID_EXTENSIONS = [".ts", ".vue", ".js", ".tsx", ".jsx", ".json", ".md"];
 
 export class CodeIndexer {
@@ -85,17 +92,45 @@ export class CodeIndexer {
     return files;
   }
 
-  private chunkIfNeeded(content: string): string[] {
+  private segmentIntoEngrams(
+    content: string,
+    relativePath: string,
+  ): EngramContent[] {
     const lines = content.split("\n");
+    const fileName = path.basename(relativePath);
+
     if (lines.length <= 400) {
-      return [content];
+      return [
+        {
+          content: `// ${relativePath}\n${content}`,
+          lineStart: 1,
+          lineEnd: lines.length,
+          header: `// ${fileName}:1-${lines.length}`,
+          chunkIndex: 0,
+          totalChunks: 1,
+        },
+      ];
     }
 
-    const chunks: string[] = [];
+    const engrams: EngramContent[] = [];
     for (let i = 0; i < lines.length; i += 150) {
-      chunks.push(lines.slice(i, i + 150).join("\n"));
+      const chunkLines = lines.slice(i, i + 150);
+      const lineStart = i + 1;
+      const lineEnd = i + chunkLines.length;
+
+      engrams.push({
+        content: `// ${fileName}:${lineStart}-${lineEnd}\n${chunkLines.join("\n")}`,
+        lineStart,
+        lineEnd,
+        header: `// ${fileName}:${lineStart}-${lineEnd}`,
+        chunkIndex: engrams.length,
+        totalChunks: 0,
+      });
     }
-    return chunks;
+
+    engrams.forEach((e) => (e.totalChunks = engrams.length));
+
+    return engrams;
   }
 
   private generateStableId(relativePath: string, chunkIndex: number): string {
@@ -226,8 +261,9 @@ export class CodeIndexer {
     }
 
     const startTime = Date.now();
-    const CONCURRENCY = 15;
-    const QDRANT_BATCH_SIZE = 200;
+    const CONCURRENCY = 5;
+    const QDRANT_BATCH_SIZE = 100;
+    const BATCH_DELAY_MS = 500;
 
     const filesToProcess: Array<{
       file: string;
@@ -264,29 +300,40 @@ export class CodeIndexer {
       }
     }
 
-    const allChunks: Array<{
+    const allEngrams: Array<{
       relativePath: string;
       chunkIndex: number;
-      content: string;
+      content: EngramContent;
+      metadata: EngramMetadata;
     }> = [];
 
     for (const { file, relativePath } of filesToProcess) {
       const content = fs.readFileSync(file, "utf-8");
-      const chunks = this.chunkIfNeeded(content);
+      const engramContents = this.segmentIntoEngrams(content, relativePath);
+      const ext = path.extname(file);
+      const metadata =
+        ext === ".md"
+          ? parseMarkdown(content, relativePath)
+          : parseTypeScript(content, relativePath);
 
-      for (let i = 0; i < chunks.length; i++) {
-        const chunk = chunks[i];
-        if (chunk.trim()) {
-          allChunks.push({ relativePath, chunkIndex: i, content: chunk });
+      for (let i = 0; i < engramContents.length; i++) {
+        const engram = engramContents[i];
+        if (engram.content.trim()) {
+          allEngrams.push({
+            relativePath,
+            chunkIndex: i,
+            content: engram,
+            metadata,
+          });
         }
       }
     }
 
     console.log(
-      `📝 ${allChunks.length} chunks a procesar (concurrencia: ${CONCURRENCY})`,
+      `📝 ${allEngrams.length} engrams a procesar (concurrencia: ${CONCURRENCY})`,
     );
 
-    if (allChunks.length === 0) {
+    if (allEngrams.length === 0) {
       console.log("✅ No hay cambios que procesar");
       return;
     }
@@ -294,22 +341,22 @@ export class CodeIndexer {
     const points: Array<{
       id: string;
       vector: number[];
-      payload: { filePath: string; codeSnippet: string };
+      payload: EngramPayload;
     }> = [];
-    let processedChunks = 0;
+    let processedEngrams = 0;
     let errors = 0;
 
-    const processChunk = async (
-      chunk: (typeof allChunks)[number],
+    const processEngram = async (
+      engram: (typeof allEngrams)[number],
     ): Promise<{
       id: string;
       vector: number[];
-      payload: { filePath: string; codeSnippet: string };
+      payload: EngramPayload;
     } | null> => {
       try {
         const embedding = await this.openai.embeddings.create({
           model: "qwen/qwen3-embedding-8b",
-          input: chunk.content,
+          input: engram.content.content,
         });
 
         if (!embedding.data || embedding.data.length === 0) {
@@ -317,34 +364,47 @@ export class CodeIndexer {
         }
 
         return {
-          id: this.generateStableId(chunk.relativePath, chunk.chunkIndex),
+          id: this.generateStableId(engram.relativePath, engram.chunkIndex),
           vector: embedding.data[0].embedding as number[],
           payload: {
-            filePath: chunk.relativePath,
-            codeSnippet: chunk.content,
+            id: this.generateStableId(engram.relativePath, engram.chunkIndex),
+            filePath: engram.relativePath,
+            fileName: path.basename(engram.relativePath),
+            lineStart: engram.content.lineStart,
+            lineEnd: engram.content.lineEnd,
+            chunkIndex: engram.content.chunkIndex,
+            totalChunks: engram.content.totalChunks,
+            codeSnippet: engram.content.content,
+            header: engram.content.header,
+            language: engram.metadata.language,
+            imports: engram.metadata.imports,
+            exports: engram.metadata.exports,
+            docComment: engram.metadata.docComment,
+            framework: engram.metadata.framework,
+            keywords: engram.metadata.keywords,
           },
         };
       } catch (error) {
         errors++;
         if (errors <= 5) {
           console.error(
-            `⚠️  Error ${chunk.relativePath}: ${error instanceof Error ? error.message : String(error)}`,
+            `⚠️  Error ${engram.relativePath}: ${error instanceof Error ? error.message : String(error)}`,
           );
         }
         return null;
       }
     };
 
-    for (let i = 0; i < allChunks.length; i += CONCURRENCY) {
-      const wave = allChunks.slice(i, i + CONCURRENCY);
-      const results = await Promise.all(wave.map(processChunk));
+    for (let i = 0; i < allEngrams.length; i += CONCURRENCY) {
+      const wave = allEngrams.slice(i, i + CONCURRENCY);
+      const results = await Promise.all(wave.map(processEngram));
 
       for (const result of results) {
         if (result) {
           points.push(result);
         }
       }
-      processedChunks += wave.length;
+      processedEngrams += wave.length;
 
       if (points.length >= QDRANT_BATCH_SIZE) {
         await this.qdrant.upsert(this.collectionName, {
@@ -352,14 +412,16 @@ export class CodeIndexer {
           points: [...points],
         });
         points.length = 0;
+        // Small delay between batches to let Qdrant breathe
+        await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS));
       }
 
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
       const rate = (
-        processedChunks / Math.max(1, (Date.now() - startTime) / 1000)
+        processedEngrams / Math.max(1, (Date.now() - startTime) / 1000)
       ).toFixed(1);
       console.log(
-        `⏳ ${processedChunks}/${allChunks.length} chunks (${elapsed}s, ~${rate}/s)`,
+        `⏳ ${processedEngrams}/${allEngrams.length} engrams (${elapsed}s, ~${rate}/s)`,
       );
     }
 
@@ -372,7 +434,7 @@ export class CodeIndexer {
 
     const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
     console.log(
-      `\n✅ Indexación completa: ${processedChunks} chunks en ${totalTime}s (${errors} errores)`,
+      `\n✅ Indexación completa: ${processedEngrams} engrams en ${totalTime}s (${errors} errores)`,
     );
 
     fs.writeFileSync(
@@ -380,7 +442,7 @@ export class CodeIndexer {
       JSON.stringify(
         {
           lastIndexed: new Date().toISOString(),
-          totalChunks: processedChunks,
+          totalEngrams: processedEngrams,
         },
         null,
         2,
@@ -498,11 +560,11 @@ export class CodeIndexer {
       vectors: { size: importData.vectorSize || 4096, distance: "Cosine" },
     });
 
-    const QDRANT_BATCH_SIZE = 200;
+    const IMPORT_BATCH_SIZE = 100;
     let imported = 0;
 
-    for (let i = 0; i < pointsToImport.length; i += QDRANT_BATCH_SIZE) {
-      const batch = pointsToImport.slice(i, i + QDRANT_BATCH_SIZE);
+    for (let i = 0; i < pointsToImport.length; i += IMPORT_BATCH_SIZE) {
+      const batch = pointsToImport.slice(i, i + IMPORT_BATCH_SIZE);
 
       await this.qdrant.upsert(this.collectionName, {
         wait: true,
@@ -519,7 +581,7 @@ export class CodeIndexer {
       JSON.stringify(
         {
           lastIndexed: new Date().toISOString(),
-          totalChunks: pointsToImport.length,
+          totalEngrams: pointsToImport.length,
         },
         null,
         2,
