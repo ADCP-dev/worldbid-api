@@ -54,6 +54,7 @@ export class EmailQueueModule {
       imports,
       providers,
       exports,
+      global: true,
     };
   }
 }

@@ -5,6 +5,7 @@ import {
   IsUUID,
   IsArray,
   IsObject,
+  IsEnum,
 } from 'class-validator';
 
 export class UpdateSeoDto {
@@ -48,4 +49,9 @@ export class UpdateSeoDto {
   @IsOptional()
   @IsObject()
   customJsonLd?: Record<string, any>;
+
+  @ApiPropertyOptional({ enum: ['WebPage', 'Article', 'WebSite'] })
+  @IsOptional()
+  @IsEnum(['WebPage', 'Article', 'WebSite'])
+  type?: 'WebPage' | 'Article' | 'WebSite';
 }

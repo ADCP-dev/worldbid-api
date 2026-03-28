@@ -201,32 +201,44 @@ const handleTranslateWithAI = async () => {
   try {
     const currentLocaleCode = currentLang.value;
     const availableLocales = locales.value as any[];
-    const sourceLang = availableLocales.find(
-      (l) => l.code === currentLocaleCode,
-    );
     const targetLangs = availableLocales.filter(
-      (l) => l.code !== currentLocaleCode,
+      (l: any) => l.code !== currentLocaleCode,
     );
 
+    const authStore = useAuthStore();
+    const runtimeConfig = useRuntimeConfig();
+    const base = runtimeConfig.public.apiUrl;
+
     for (const targetLang of targetLangs) {
-      await saveTranslation(
-        postId,
-        targetLang.code,
-        "title",
-        translationForm.value.title,
-      );
-      await saveTranslation(
-        postId,
-        targetLang.code,
-        "excerpt",
-        translationForm.value.excerpt,
-      );
-      await saveTranslation(
-        postId,
-        targetLang.code,
-        "content",
-        translationForm.value.content,
-      );
+      // Translate each field using AI
+      const fields = ["title", "excerpt", "content"];
+      for (const field of fields) {
+        const sourceText =
+          translationForm.value[field as keyof typeof translationForm.value];
+        if (!sourceText) continue;
+
+        const response = await fetch(
+          `${base}/api/v1/translations/translate-entity`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${authStore.token}`,
+            },
+            body: JSON.stringify({
+              entityName: "BlogPost",
+              entityId: postId,
+              field,
+              sourceLang: currentLocaleCode,
+              targetLang: targetLang.code,
+            }),
+          },
+        );
+
+        if (!response.ok) {
+          console.error(`Failed to translate ${field} to ${targetLang.code}`);
+        }
+      }
     }
 
     saveMessage.value = t("cms.translationComplete") || "Translation complete";

@@ -15,7 +15,7 @@ export class SitemapController {
     return this.sitemapService.getBlogUrls();
   }
 
-  @Get('cms-pages')
+  @Get('pages')
   async getPageUrls() {
     return this.sitemapService.getPageUrls();
   }

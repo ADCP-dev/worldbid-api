@@ -32,29 +32,67 @@ Built with **NestJS + TypeORM + PostgreSQL**.
 
 ```
 src/
-├── main.ts               # App bootstrap
-├── app.module.ts         # Root module (registers all modules)
+├── main.ts                       # App bootstrap
+├── app.module.ts                 # Root module (2 imports: InfrastructureModule + FoundationModule)
 │
-├── config/               # Global env config (app, worker)
-├── core/                 # Extension loader, seed loader
-├── i18n/                 # Translation JSON files
+├── config/                       # Global env config (app, worker)
+├── core/                         # Core infrastructure
+│   ├── infrastructure.module.ts  # DB, Config, i18n, static files, scheduler
+│   ├── foundation.module.ts      # All feature modules (what makes this app an app)
+│   ├── extension-loader.ts       # Extension auto-discovery
+│   ├── seed-loader.ts           # Extension seed auto-discovery
+│   └── config-loader.ts         # Extension config auto-discovery
 │
-├── infrastructure/
-│   ├── database/         # TypeORM config, migrations, seeds
-│   ├── mailer/          # Nodemailer wrapper (MailerService)
-│   └── utils/            # Shared utilities (types, transformers, validators)
+├── infrastructure/               # Cross-cutting concerns
+│   ├── database/                # TypeORM config, migrations, seeds
+│   ├── mailer/                  # Nodemailer wrapper (MailerService)
+│   └── utils/                   # Shared utilities
 │
-├── modules/              # Boilerplate base modules (development only)
-│   ├── iam/              # Identity & Access Management
-│   ├── users/            # User CRUD
-│   ├── billing/           # Stripe integration
-│   ├── storage/          # File upload
-│   └── communications/   # Mail, home
+├── modules/                     # Feature modules
+│   ├── iam/                     # Identity & Access Management
+│   │   ├── iam.module.ts       # Groups: Auth + Session + ApiKeys + Social
+│   │   ├── auth/               # JWT + API Key authentication
+│   │   ├── auth-facebook/       # Facebook OAuth
+│   │   ├── auth-google/         # Google OAuth
+│   │   ├── auth-apple/          # Apple OAuth
+│   │   ├── session/            # Session management
+│   │   ├── roles/              # Roles + Guard + Decorator
+│   │   └── api-keys/           # API Keys authentication
+│   ├── users/                   # User CRUD + Status
+│   ├── communications/          # Communications
+│   │   ├── comms.module.ts     # Groups: Mail + Home
+│   │   ├── mail/               # Email templates and sending
+│   │   ├── email-queue/        # Bull queue for async emails
+│   │   └── home/               # Home controller
+│   ├── storage/                 # File storage
+│   │   ├── storage.module.ts   # Groups: FilesModule
+│   │   └── files/             # Files with local/S3/S3-presigned drivers
+│   ├── billing/                 # Billing
+│   │   └── billing.module.ts   # Groups: StripeModule
+│   │       └── stripe/        # Stripe integration
+│   ├── translations/           # Database i18n
+│   └── error-tracker/         # Error tracking
 │
-├── extensions/           # Dynamic modules (generatable)
+├── extensions/                   # Dynamic extensions (auto-discovery)
+│   └── .gitkeep                # Drop-in features — copy folder, works
 │
-└── custom/              # Código específico del cliente
+└── i18n/                        # JSON translation files
 ```
+
+### AppModule — Minimal Template
+
+```typescript
+// app.module.ts — 15 líneas, 2 imports
+@Module({
+  imports: [
+    InfrastructureModule, // DB, Config, i18n, static files, scheduler
+    FoundationModule, // All feature modules
+  ],
+})
+export class AppModule {}
+```
+
+**Principio**: `app.module.ts` es el template. Para agregar/quitar features, editás `FoundationModule`, no `app.module.ts`.
 
 ### APP_MODE Variable
 
@@ -86,7 +124,7 @@ Defined in `tsconfig.json`. Use these instead of long relative paths:
 
 ## Frontend (`apps/front`)
 
-Built with **Nuxt 3 + Vue 3 + shadcn-vue + Pinia + TanStack Query**.
+Built with **Nuxt 3 + Vue 3 + DaisyUI + Pinia + TanStack Query**.
 
 ### Layer System
 

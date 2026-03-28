@@ -1,16 +1,24 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PageEntity } from './infrastructure/entities/page.entity';
 import { CreatePageDto } from './dto/create-page.dto';
 import { UpdatePageDto } from './dto/update-page.dto';
 import { FindAllPageDto } from './dto/find-all-page.dto';
+import { TranslationsService } from '@src/modules/translations/translations.service';
+import { SeoService } from '../seo/seo.service';
+import { FilesService } from '@storage/files/files.service';
 
 @Injectable()
 export class PagesService {
+  private readonly logger = new Logger(PagesService.name);
+
   constructor(
     @InjectRepository(PageEntity)
     private readonly pageRepository: Repository<PageEntity>,
+    private readonly translationsService: TranslationsService,
+    private readonly seoService: SeoService,
+    private readonly filesService: FilesService,
   ) {}
 
   async create(createPageDto: CreatePageDto): Promise<PageEntity> {
@@ -19,12 +27,12 @@ export class PagesService {
   }
 
   async findAll(query: FindAllPageDto) {
-    const { page = 1, limit = 10, published } = query;
+    const { page = 1, limit = 10, isPublished } = query;
     const skip = (page - 1) * limit;
 
     const where: any = {};
-    if (published !== undefined) {
-      where.isPublished = published;
+    if (isPublished !== undefined) {
+      where.isPublished = isPublished;
     }
 
     const [data, total] = await this.pageRepository.findAndCount({
@@ -35,8 +43,24 @@ export class PagesService {
       relations: ['featuredImage', 'author'],
     });
 
+    // Fetch translations for page titles (default lang: es)
+    const pagesWithTitles = await Promise.all(
+      data.map(async (pageEntity) => {
+        const translations =
+          await this.translationsService.getTranslationsForEntity(
+            'Page',
+            pageEntity.id,
+            'es',
+          );
+        return {
+          ...pageEntity,
+          title: translations['title']?.value || pageEntity.slug,
+        };
+      }),
+    );
+
     return {
-      data,
+      data: pagesWithTitles,
       meta: {
         page,
         limit,
@@ -120,8 +144,87 @@ export class PagesService {
     }
   }
 
+  async reorderPages(
+    pageIds: string[],
+    parentId: string | null,
+  ): Promise<void> {
+    await Promise.all(
+      pageIds.map((id, index) =>
+        this.pageRepository.update(id, {
+          order: index,
+          parentId: parentId,
+        }),
+      ),
+    );
+  }
+
+  async getPreview(
+    id: string,
+    lang: string,
+  ): Promise<{
+    id: string;
+    slug: string;
+    title: string;
+    content: string;
+    excerpt: string;
+    seo: {
+      metaTitle: string;
+      metaDescription: string;
+      ogImage: string;
+      customJsonLd: Record<string, any>;
+    };
+  }> {
+    const page = await this.findById(id);
+
+    // Get translations for this page and lang
+    const translations =
+      await this.translationsService.getTranslationsForEntity(
+        'Page',
+        page.id,
+        lang,
+      );
+
+    const seo = await this.seoService.findByPageId(id, lang);
+
+    return {
+      id: page.id,
+      slug: page.slug,
+      title: translations['title']?.value || '',
+      content: translations['content']?.value || '',
+      excerpt: translations['excerpt']?.value || '',
+      seo: {
+        metaTitle: seo?.metaTitle || '',
+        metaDescription: seo?.metaDescription || '',
+        ogImage: seo?.ogImage
+          ? `${process.env.APP_URL}/${seo.ogImage.path}`
+          : '',
+        customJsonLd: seo?.customJsonLd || {},
+      },
+    };
+  }
+
   async remove(id: string): Promise<void> {
     const page = await this.findById(id);
+
+    // Cascade delete: remove associated files
+    try {
+      const files = await this.filesService.findWithFilters({
+        entityName: 'Page',
+        entityId: id,
+      });
+
+      for (const file of files) {
+        try {
+          await this.filesService.delete(file.id);
+          this.logger.log(`Deleted file ${file.id} for Page ${id}`);
+        } catch (error) {
+          this.logger.error(`Failed to delete file ${file.id}:`, error);
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Error finding files for Page ${id}:`, error);
+    }
+
     await this.pageRepository.remove(page);
   }
 }

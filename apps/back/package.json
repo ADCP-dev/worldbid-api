@@ -155,7 +155,19 @@
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^@ext/(.*)$": "<rootDir>/../src/extensions/$1",
+      "^@iam/(.*)$": "<rootDir>/../src/modules/iam/$1",
+      "^@users/(.*)$": "<rootDir>/../src/modules/users/$1",
+      "^@comms/(.*)$": "<rootDir>/../src/modules/communications/$1",
+      "^@billing/(.*)$": "<rootDir>/../src/modules/billing/$1",
+      "^@storage/(.*)$": "<rootDir>/../src/modules/storage/$1",
+      "^@social/(.*)$": "<rootDir>/../src/modules/social/$1",
+      "^@infra/(.*)$": "<rootDir>/../src/infrastructure/$1",
+      "^@src/(.*)$": "<rootDir>/$1",
+      "^@core/(.*)$": "<rootDir>/../src/core/$1"
+    }
   },
   "engines": {
     "node": ">=16.0.0",

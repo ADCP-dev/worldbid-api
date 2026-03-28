@@ -1,11 +1,22 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  ValidateIf,
+} from 'class-validator';
 
 export class CreateTranslationDto {
-  @ApiProperty()
+  @ApiProperty({
+    required: false,
+    description:
+      'Section/namespace for the translation. Optional for dynamic translations (when entityName/entityId are provided).',
+  })
+  @ValidateIf((o) => !o.entityName || !o.entityId)
   @IsString()
   @IsNotEmpty()
-  section: string;
+  section?: string;
 
   @ApiProperty()
   @IsString()

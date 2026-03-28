@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
+import { In, IsNull, Repository } from 'typeorm';
 import { LangEntity } from './infrastructure/entities/lang.entity';
 import { TranslationEntity } from './infrastructure/entities/translation.entity';
 import { CreateLangDto } from './dto/create-lang.dto';
@@ -111,7 +111,8 @@ export class TranslationsService {
     if (existingTranslation) {
       // Update existing translation
       existingTranslation.content = content;
-      existingTranslation.section = section || existingTranslation.section;
+      existingTranslation.section =
+        section || existingTranslation.section || 'dynamic';
       existingTranslation.app = app || existingTranslation.app;
       return this.translationRepository.save(existingTranslation);
     }
@@ -120,7 +121,7 @@ export class TranslationsService {
     const translation = this.translationRepository.create({
       key,
       content,
-      section,
+      section: section || 'dynamic',
       app,
       entityName,
       entityId,
@@ -392,6 +393,32 @@ export class TranslationsService {
   // Generation
   async generateJsonFiles(): Promise<{ message: string }> {
     const langs = await this.langRepository.find({ where: { isActive: true } });
+    const langIds = langs.map((lang) => lang.id);
+
+    const allTranslations = await this.translationRepository.find({
+      where: {
+        lang: { id: In(langIds) },
+        entityName: IsNull(),
+        entityId: IsNull(),
+      },
+      relations: ['lang'],
+    });
+
+    // Group translations by language ID for O(1) lookup during iteration
+    const translationsByLangId = allTranslations.reduce(
+      (acc, t) => {
+        const langId = t.lang?.id;
+        if (langId) {
+          if (!acc[langId]) {
+            acc[langId] = [];
+          }
+          acc[langId].push(t);
+        }
+        return acc;
+      },
+      {} as Record<number, TranslationEntity[]>,
+    );
+
     const cwd = process.cwd();
     // Support execution from root or apps/back
     const isBackContext =
@@ -406,13 +433,7 @@ export class TranslationsService {
     );
 
     for (const lang of langs) {
-      const translations = await this.translationRepository.find({
-        where: {
-          lang: { id: lang.id },
-          entityName: IsNull(),
-          entityId: IsNull(),
-        },
-      });
+      const translations = translationsByLangId[lang.id] || [];
 
       // Group by App -> "subFolder/topLevelSection" -> RestOfKey
       // Key format: "subFolder|topLevelSection" to distinguish folder vs section

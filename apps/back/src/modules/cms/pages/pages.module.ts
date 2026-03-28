@@ -3,9 +3,17 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { PagesController } from './pages.controller';
 import { PagesService } from './pages.service';
 import { PageEntity } from './infrastructure/entities/page.entity';
+import { SeoModule } from '../seo/seo.module';
+import { TranslationsModule } from '@src/modules/translations/translations.module';
+import { FilesModule } from '@storage/files/files.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([PageEntity])],
+  imports: [
+    TypeOrmModule.forFeature([PageEntity]),
+    SeoModule,
+    TranslationsModule,
+    FilesModule,
+  ],
   controllers: [PagesController],
   providers: [PagesService],
   exports: [PagesService],

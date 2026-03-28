@@ -1,5 +1,5 @@
-import type { NavMenu, NavMenuItems } from "~/types/nav";
-import { useI18n } from "vue-i18n";
+import type { NavMenu, NavMenuItems } from '~/types/nav';
+import { useI18n } from 'vue-i18n';
 
 export function useNavMenu() {
   const authStore = useAuthStore();
@@ -9,17 +9,17 @@ export function useNavMenu() {
 
   const navMenu = computed<NavMenu[]>(() => {
     const baseGeneral: NavMenu = {
-      heading: t("base.nav.general"),
+      heading: t('base.nav.general'),
       items: [
         {
-          title: t("base.nav.home"),
-          icon: "House",
-          link: localePath("/app"),
+          title: t('base.nav.home'),
+          icon: 'House',
+          link: localePath('/app'),
         },
         {
-          title: t("base.nav.settings"),
-          icon: "Settings",
-          link: localePath("/app/settings/profile"),
+          title: t('base.nav.settings'),
+          icon: 'Settings',
+          link: localePath('/app/settings/profile'),
         },
       ],
     };
@@ -28,29 +28,34 @@ export function useNavMenu() {
 
     if (authStore.isAdmin) {
       menu.push({
-        heading: t("base.nav.admin"),
+        heading: t('base.nav.admin'),
         items: [
           {
-            title: t("base.nav.users"),
-            icon: "Users",
-            link: localePath("/app/users"),
+            title: t('base.nav.users'),
+            icon: 'Users',
+            link: localePath('/app/users'),
           },
         ],
       });
     }
 
     // Dynamic menu items from modules
-    const dynamicItems = useState<NavMenu[]>("nav:menuItems", () => []);
+    const dynamicItems = useState<NavMenu[]>('nav:menuItems', () => []);
 
     // Merge base items with dynamic items and translate
     dynamicItems.value.forEach((item) => {
       menu.push({
         ...item,
-        heading: item.heading ? t(item.heading) : undefined,
-        items: item.items.map(subItem => ({
-          ...subItem,
-          title: t(subItem.title),
-        }))
+        heading: item.heading ? t(item.heading) : '',
+        items: item.items.map((subItem) => {
+          if ('title' in subItem) {
+            return {
+              ...subItem,
+              title: t(subItem.title),
+            };
+          }
+          return subItem;
+        }),
       });
     });
 

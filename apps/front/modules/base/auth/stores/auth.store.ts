@@ -1,5 +1,5 @@
-import { defineStore } from "pinia";
-import { fetchWrapper } from "@/helpers/fetch-wrapper";
+import { defineStore } from 'pinia';
+import { fetchWrapper } from '@/helpers/fetch-wrapper';
 
 // Helper function to get base URL
 const getBaseUrl = () => {
@@ -28,7 +28,7 @@ interface AuthState {
   refreshTokenTimeout: any;
 }
 
-export const useAuthStore = defineStore("auth", {
+export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
     token: null,
     refreshToken: null,
@@ -44,14 +44,14 @@ export const useAuthStore = defineStore("auth", {
     },
     isAdmin: (state) => {
       const role = state.user?.role?.name || [];
-      return role === "admin";
+      return role === 'admin';
     },
     isCustomer: (state) => {
       const role = state.user?.role?.name || [];
-      return role === "customer";
+      return role === 'customer';
     },
     fullName: (state) => {
-      if (!state.user) return "";
+      if (!state.user) return '';
       return `${state.user.firstName} ${state.user.lastName}`.trim();
     },
   },
@@ -69,7 +69,7 @@ export const useAuthStore = defineStore("auth", {
 
         return { success: true };
       } catch (error: any) {
-        let errorMessage = error.message || "Login failed";
+        let errorMessage = error.message || 'Login failed';
         let errorCode = undefined;
 
         if (error.data?.errors) {
@@ -94,7 +94,7 @@ export const useAuthStore = defineStore("auth", {
       } catch (error: any) {
         return {
           success: false,
-          error: error.message || "Registration failed",
+          error: error.message || 'Registration failed',
         };
       }
     },
@@ -109,7 +109,7 @@ export const useAuthStore = defineStore("auth", {
       } catch (error: any) {
         return {
           success: false,
-          error: error.message || "Email confirmation failed",
+          error: error.message || 'Email confirmation failed',
         };
       }
     },
@@ -125,7 +125,7 @@ export const useAuthStore = defineStore("auth", {
       } catch (error: any) {
         return {
           success: false,
-          error: error.message || "Failed to resend confirmation",
+          error: error.message || 'Failed to resend confirmation',
         };
       }
     },
@@ -140,7 +140,7 @@ export const useAuthStore = defineStore("auth", {
       } catch (error: any) {
         return {
           success: false,
-          error: error.message || "Failed to send reset email",
+          error: error.message || 'Failed to send reset email',
         };
       }
     },
@@ -153,10 +153,11 @@ export const useAuthStore = defineStore("auth", {
           password,
         });
         return { success: true, data: response };
-      } catch (error) {
+      } catch (error: unknown) {
         return {
           success: false,
-          error: error.message || "Password reset failed",
+          error:
+            error instanceof Error ? error.message : 'Password reset failed',
         };
       }
     },
@@ -167,24 +168,26 @@ export const useAuthStore = defineStore("auth", {
         const response = await fetchWrapper.get(`${baseUrl}/me`);
         this.user = response;
         return { success: true, data: response };
-      } catch (error) {
+      } catch (error: unknown) {
         return {
           success: false,
-          error: error.message || "Failed to get user data",
+          error:
+            error instanceof Error ? error.message : 'Failed to get user data',
         };
       }
     },
 
-    async updateProfile(userData) {
+    async updateProfile(userData: Record<string, unknown>) {
       try {
         const baseUrl = getBaseUrl();
         const response = await fetchWrapper.patch(`${baseUrl}/me`, userData);
         this.user = response;
         return { success: true, data: response };
-      } catch (error) {
+      } catch (error: unknown) {
         return {
           success: false,
-          error: error.message || "Failed to update profile",
+          error:
+            error instanceof Error ? error.message : 'Failed to update profile',
         };
       }
     },
@@ -195,10 +198,11 @@ export const useAuthStore = defineStore("auth", {
         await fetchWrapper.delete(`${baseUrl}/me`);
         this.logout();
         return { success: true };
-      } catch (error) {
+      } catch (error: unknown) {
         return {
           success: false,
-          error: error.message || "Failed to delete account",
+          error:
+            error instanceof Error ? error.message : 'Failed to delete account',
         };
       }
     },
@@ -211,27 +215,27 @@ export const useAuthStore = defineStore("auth", {
             refreshToken: this.refreshToken,
           });
         }
-      } catch (error) {
-        console.error("Logout error:", error);
+      } catch (error: unknown) {
+        console.error('Logout error:', error);
       } finally {
         this.clearAuthData();
-        await navigateTo("/login");
+        await navigateTo('/login');
       }
     },
 
     async refreshAccessToken() {
       try {
         if (!this.refreshToken) {
-          throw new Error("No refresh token available");
+          throw new Error('No refresh token available');
         }
 
         const baseUrl = getBaseUrl();
 
         // Send refresh token in Authorization header as per API docs
         const response = await fetch(`${baseUrl}/refresh`, {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
             Authorization: `Bearer ${this.refreshToken}`,
           },
         });
@@ -252,23 +256,31 @@ export const useAuthStore = defineStore("auth", {
 
         // Get user data
         const me = await this.getMe();
-        this.user = me.data;
+        if (me.success && me.data) {
+          this.user = me.data as User;
+        }
 
         // Start refresh token timer
         this.startRefreshTokenTimer();
 
         return { success: true, token: result.token };
-      } catch (error) {
-        console.error("Token refresh failed:", error);
+      } catch (error: unknown) {
+        console.error('Token refresh failed:', error);
         this.logout();
         return {
           success: false,
-          error: error.message || "Token refresh failed",
+          error:
+            error instanceof Error ? error.message : 'Token refresh failed',
         };
       }
     },
 
-    setAuthData(authData) {
+    setAuthData(authData: {
+      token: string;
+      refreshToken: string;
+      tokenExpires: number;
+      user: User | null;
+    }) {
       this.token = authData.token;
       this.refreshToken = authData.refreshToken;
       this.tokenExpires = authData.tokenExpires;

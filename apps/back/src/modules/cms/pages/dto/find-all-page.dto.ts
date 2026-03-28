@@ -17,9 +17,9 @@ export class FindAllPageDto {
   @Min(1)
   limit?: number = 10;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ name: 'isPublished', type: Boolean })
   @IsOptional()
   @IsBoolean()
   @Type(() => Boolean)
-  published?: boolean;
+  isPublished?: boolean;
 }

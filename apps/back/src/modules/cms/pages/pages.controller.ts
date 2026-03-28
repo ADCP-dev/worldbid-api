@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Body,
   Patch,
   Param,
@@ -71,12 +72,20 @@ export class PagesController {
   }
 
   @Get(':id/preview')
+  @ApiParam({ name: 'id', type: String })
+  preview(@Param('id') id: string, @Query('lang') lang: string = 'es') {
+    return this.pagesService.getPreview(id, lang);
+  }
+
+  @Put('reorder')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(RoleEnum.admin)
   @ApiBearerAuth()
-  @ApiParam({ name: 'id', type: String })
-  preview(@Param('id') id: string) {
-    return this.pagesService.findById(id);
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async reorderGlobal(
+    @Body() body: { pageIds: string[]; parentId: string | null },
+  ) {
+    return this.pagesService.reorderPages(body.pageIds, body.parentId);
   }
 
   @Patch(':id')

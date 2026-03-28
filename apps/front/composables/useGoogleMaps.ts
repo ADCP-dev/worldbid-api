@@ -1,56 +1,78 @@
-/* eslint-disable no-var */
-/* eslint-disable @typescript-eslint/no-unused-expressions */
+interface GoogleMapsConfig {
+  key: string;
+  v: string;
+}
+
 export function useGoogleMaps() {
-  const loadGoogleMapsApi = () => {
+  const loadGoogleMapsApi = (): Promise<void> => {
     return new Promise<void>((resolve, reject) => {
       // Check if API is already loaded
-      if (window.google?.maps) {
+      if (
+        typeof window !== 'undefined' &&
+        (window as unknown as { google?: { maps?: unknown } }).google?.maps
+      ) {
         resolve();
         return;
       }
 
-      ((g) => {
-        var h,
-          a,
-          k,
-          p = "The Google Maps JavaScript API",
-          c = "google",
-          l = "importLibrary",
-          q = "__ib__",
-          m = document,
-          b = window;
-        b = b[c] || (b[c] = {});
-        var d = b.maps || (b.maps = {}),
-          r = new Set(),
-          e = new URLSearchParams();
-        const u = () =>
-          h ||
-          (h = new Promise(async (f, n) => {
-            await (a = m.createElement("script"));
-            e.set("libraries", [...r] + "");
-            for (k in g)
-              e.set(
-                k.replace(/[A-Z]/g, (t) => "_" + t[0].toLowerCase()),
-                g[k],
-              );
-            e.set("callback", c + ".maps." + q);
-            a.src = `https://maps.${c}apis.com/maps/api/js?` + e;
-            d[q] = f;
-            a.onerror = () => (h = n(Error(p + " could not load.")));
-            a.nonce = m.querySelector("script[nonce]")?.nonce || "";
-            m.head.append(a);
-          }));
-        d[l]
-          ? console.warn(p + " only loads once. Ignoring:", g)
-          : (d[l] = (f, ...n) => r.add(f) && u().then(() => d[l](f, ...n)));
-      })({
-        key: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-        v: "weekly",
-      });
+      const config: GoogleMapsConfig = {
+        key:
+          (import.meta as { env: { VITE_GOOGLE_MAPS_API_KEY?: string } }).env
+            .VITE_GOOGLE_MAPS_API_KEY || '',
+        v: 'weekly',
+      };
+
+      const cb = '__ib__';
+      const libraries: Set<unknown> = new Set();
+
+      const script = document.createElement('script');
+      const params = new URLSearchParams();
+      params.set('libraries', [...libraries] + '');
+      params.set('callback', `google.maps.${cb}`);
+
+      for (const [k, v] of Object.entries(config)) {
+        const normalizedKey = k.replace(
+          /[A-Z]/g,
+          (t: string) => `_${t[0]?.toLowerCase() ?? t}`,
+        );
+        params.set(normalizedKey, v);
+      }
+
+      script.src =
+        `https://maps.${'google'}apis.com/maps/api/js?` + params.toString();
+      script.onerror = () =>
+        reject(new Error('Google Maps JavaScript API could not load.'));
+
+      const nonceScript = document.querySelector(
+        'script[nonce]',
+      ) as HTMLScriptElement | null;
+      if (nonceScript) {
+        const nonce = nonceScript.getAttribute('nonce');
+        if (nonce) {
+          script.setAttribute('nonce', nonce);
+        }
+      }
+
+      const win = window as unknown as Record<string, unknown>;
+      const callbackKey = `google.maps.${cb}`;
+      const existingCb = win[callbackKey];
+      if (typeof existingCb === 'function') {
+        console.warn(
+          'Google Maps JavaScript API only loads once. Ignoring:',
+          config,
+        );
+      } else {
+        win[callbackKey] = resolve;
+      }
+
+      document.head.appendChild(script);
 
       // Wait for the API to be loaded
       const checkGoogleMapsLoaded = setInterval(() => {
-        if (window.google?.maps) {
+        if (
+          typeof window !== 'undefined' &&
+          (window as unknown as { google?: { maps?: unknown } }).google?.maps
+        ) {
           clearInterval(checkGoogleMapsLoaded);
           resolve();
         }
@@ -59,7 +81,7 @@ export function useGoogleMaps() {
       // Timeout after 10 seconds
       setTimeout(() => {
         clearInterval(checkGoogleMapsLoaded);
-        reject(new Error("Google Maps API failed to load"));
+        reject(new Error('Google Maps API failed to load'));
       }, 10000);
     });
   };

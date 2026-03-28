@@ -43,6 +43,9 @@ export class PageEntity extends EntityRelationalHelper {
   @Column({ type: 'int', default: 0 })
   order: number;
 
+  @Column({ type: 'uuid', nullable: true })
+  parentId?: string | null;
+
   @Column({ type: 'boolean', default: false })
   isPublished: boolean;
 

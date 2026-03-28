@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { BlogCategoriesService } from './categories.service';
 import { CreateBlogCategoryDto } from './dto/create-category.dto';
+import { UpdateCategoryDto } from './dto/update-category.dto';
 import { ApiBearerAuth, ApiTags, ApiParam } from '@nestjs/swagger';
 import { Roles } from '@iam/roles/roles.decorator';
 import { RoleEnum } from '@iam/roles/roles.enum';
@@ -50,8 +51,11 @@ export class BlogCategoriesController {
   @Patch(':id')
   @Roles(RoleEnum.admin)
   @ApiParam({ name: 'id', type: String })
-  update(@Param('id') id: string, @Body() data: any) {
-    return this.categoriesService.update(id, data);
+  update(
+    @Param('id') id: string,
+    @Body() updateCategoryDto: UpdateCategoryDto,
+  ) {
+    return this.categoriesService.update(id, updateCategoryDto);
   }
 
   @Patch(':id/reorder')

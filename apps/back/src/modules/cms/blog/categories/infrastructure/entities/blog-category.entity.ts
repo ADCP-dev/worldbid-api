@@ -4,8 +4,11 @@ import {
   DeleteDateColumn,
   Entity,
   Index,
+  ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
+  JoinColumn,
 } from 'typeorm';
 import { EntityRelationalHelper } from '@infra/utils/relational-entity-helper';
 
@@ -20,8 +23,27 @@ export class BlogCategoryEntity extends EntityRelationalHelper {
   @Column({ type: String })
   slug: string;
 
+  @Column({ type: 'varchar', length: 100 })
+  name: string;
+
+  @Column({ type: 'text', nullable: true })
+  description: string | null;
+
   @Column({ type: 'int', default: 0 })
   order: number;
+
+  @Column({ type: 'uuid', nullable: true })
+  parentId: string | null;
+
+  @ManyToOne(() => BlogCategoryEntity, (category) => category.children, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'parentId' })
+  parent?: BlogCategoryEntity | null;
+
+  @OneToMany(() => BlogCategoryEntity, (category) => category.parent)
+  children?: BlogCategoryEntity[];
 
   @CreateDateColumn()
   createdAt: Date;

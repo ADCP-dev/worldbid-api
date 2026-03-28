@@ -6,6 +6,7 @@ const baseUrl = `${runtimeConfig.public.apiUrl}${runtimeConfig.public.apiPrefix}
 export interface CmsPage {
   id: string;
   slug: string;
+  title: string;
   route: string;
   template: string;
   order: number;
@@ -208,13 +209,41 @@ export function useCmsPages() {
       return await fetchWrapper.post(`${baseUrl}/translations`, {
         entityName: "Page",
         entityId,
-        langId: lang === "es" ? 1 : 2,
+        langCode: lang,
         key,
-        value,
+        content: value,
       });
     } catch (e) {
       console.error("Error saving translation:", e);
       throw e;
+    }
+  };
+
+  const saveAllTranslations = async (
+    entityId: string,
+    lang: string,
+    data: { title: string; content: string; excerpt: string },
+  ) => {
+    await Promise.all([
+      saveTranslation(entityId, lang, "title", data.title),
+      saveTranslation(entityId, lang, "content", data.content),
+      saveTranslation(entityId, lang, "excerpt", data.excerpt),
+    ]);
+  };
+
+  const reorderPages = async (pageIds: string[], parentId: string | null) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      await fetchWrapper.put(`${baseUrl}/cms/pages/reorder`, {
+        pageIds,
+        parentId,
+      });
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : "Error reordering pages";
+      throw e;
+    } finally {
+      loading.value = false;
     }
   };
 
@@ -233,5 +262,7 @@ export function useCmsPages() {
     updateSeo,
     fetchTranslations,
     saveTranslation,
+    saveAllTranslations,
+    reorderPages,
   };
 }

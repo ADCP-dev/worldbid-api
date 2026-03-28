@@ -120,6 +120,101 @@ Combos: ${JSON.stringify(combos)}`;
     }
   }
 
+  async translateEntity(
+    entityName: string,
+    entityId: string,
+    field: string,
+    targetLang: string,
+    sourceLang: string = 'es',
+  ): Promise<string> {
+    try {
+      const langs = await this.langRepository.find({
+        where: { isActive: true },
+      });
+
+      const sourceLangEntity = langs.find((l) => l.code === sourceLang);
+      const targetLangEntity = langs.find((l) => l.code === targetLang);
+
+      if (!sourceLangEntity) {
+        return `Error: Source language '${sourceLang}' not found`;
+      }
+      if (!targetLangEntity) {
+        return `Error: Target language '${targetLang}' not found`;
+      }
+
+      // Get source translation
+      const sourceTranslation = await this.translationRepository.findOne({
+        where: {
+          entityName,
+          entityId,
+          key: field,
+          lang: { id: sourceLangEntity.id },
+        },
+        relations: ['lang'],
+      });
+
+      if (!sourceTranslation) {
+        return `Error: No source translation found for ${entityName}.${field}`;
+      }
+
+      const sourceText = sourceTranslation.content;
+
+      // Check if target already exists
+      const existingTarget = await this.translationRepository.findOne({
+        where: {
+          entityName,
+          entityId,
+          key: field,
+          lang: { id: targetLangEntity.id },
+        },
+      });
+
+      // Translate using LLM
+      const llm = this.getLlm();
+      const prompt = `You are a professional software translator.
+Translate from ${sourceLang} to ${targetLang}.
+IMPORTANT RULES:
+1. Maintain technical acronyms correctly (e.g., in English "IA" must be translated as "AI").
+2. Content is for a software application interface; keep it concise and professional.
+3. Keep placeholders like {name}, {count}, %s, etc., exactly as they are.
+4. Return ONLY the translated text, no quotes or additional explanation.
+
+Text to translate:
+"${sourceText}"`;
+
+      const response = await llm.invoke(prompt);
+      const translatedText = response.content.toString().trim();
+
+      const now = new Date();
+
+      if (existingTarget) {
+        // Update existing translation
+        existingTarget.content = translatedText;
+        existingTarget.updatedAt = now;
+        await this.translationRepository.save(existingTarget);
+        return `Updated translation for ${entityName}.${field} (${targetLang})`;
+      } else {
+        // Create new translation
+        const newTranslation = this.translationRepository.create({
+          entityName,
+          entityId,
+          key: field,
+          content: translatedText,
+          lang: targetLangEntity,
+          app: 'front',
+          section: 'cms',
+          createdAt: now,
+          updatedAt: now,
+        });
+        await this.translationRepository.save(newTranslation);
+        return `Created translation for ${entityName}.${field} (${targetLang})`;
+      }
+    } catch (error) {
+      this.logger.error('translateEntity failed', error);
+      return `Error: ${(error as Error).message}`;
+    }
+  }
+
   private createCheckTranslateTool() {
     const llm = this.getLlm();
     return tool(

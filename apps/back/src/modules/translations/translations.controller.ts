@@ -195,6 +195,34 @@ export class TranslationsController {
     return { success: true, message: result };
   }
 
+  @ApiBearerAuth()
+  @Roles(RoleEnum.admin)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Post('translate-entity')
+  @ApiOperation({
+    summary: 'AI translate a dynamic CMS entity field to a target language',
+  })
+  async translateEntity(
+    @Body()
+    body: {
+      entityName: string;
+      entityId: string;
+      field: string;
+      sourceLang: string;
+      targetLang: string;
+    },
+  ) {
+    const { entityName, entityId, field, sourceLang, targetLang } = body;
+    const result = await this.translationAgentService.translateEntity(
+      entityName,
+      entityId,
+      field,
+      targetLang,
+      sourceLang,
+    );
+    return { success: true, message: result };
+  }
+
   // --- Exact Match Fetch ---
 
   @Get('exact')

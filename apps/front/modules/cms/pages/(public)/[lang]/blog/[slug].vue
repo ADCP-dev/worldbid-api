@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import CmsSeoMeta from "#cms/components/cms/CmsSeoMeta.vue";
+
 const route = useRoute();
 const config = useRuntimeConfig();
 const lang = computed(() => (route.params.lang as string) || "es");
@@ -29,110 +31,19 @@ const title = computed(
 const content = computed(
   () => translations.value?.content?.value || "",
 );
-const excerpt = computed(
-  () => translations.value?.excerpt?.value || seo.value?.metaDescription || "",
-);
-const ogImage = computed(
-  () => seo.value?.ogImage?.url || post.value?.featuredImage?.url || "",
-);
-const canonicalUrl = computed(
-  () => seo.value?.canonicalUrl || `${config.public.appUrl}/${lang.value}/blog/${slug.value}`,
-);
-const publishedAt = computed(() => post.value?.publishedAt ? new Date(post.value.publishedAt).toISOString() : null);
 
-const jsonLd = computed(() => ({
-  "@context": "https://schema.org",
-  "@type": "BlogPosting",
-  "headline": title.value,
-  "description": excerpt.value,
-  "image": ogImage.value,
-  "url": canonicalUrl.value,
-  "datePublished": publishedAt.value,
-  "inLanguage": lang.value,
-  "author": {
-    "@type": "Person",
-    "name": post.value?.author || config.public.appName || "Foundation"
-  },
-  "publisher": {
-    "@type": "Organization",
-    "name": config.public.appName || "Foundation"
-  }
+// Prepare SEO data for CmsSeoMeta component
+const seoData = computed(() => ({
+  metaTitle: seo.value?.metaTitle || title.value,
+  metaDescription: seo.value?.metaDescription || translations.value?.excerpt?.value || "",
+  ogImage: seo.value?.ogImage?.url || post.value?.featuredImage?.url || null,
+  customJsonLd: seo.value?.customJsonLd || null,
 }));
-
-useHead({
-  title: title.value,
-  meta: [
-    {
-      name: "description",
-      content: excerpt.value,
-    },
-    {
-      name: "keywords",
-      content: seo.value?.metaKeywords?.join(", "),
-    },
-    {
-      property: "og:title",
-      content: seo.value?.metaTitle || title.value,
-    },
-    {
-      property: "og:description",
-      content: excerpt.value,
-    },
-    {
-      property: "og:image",
-      content: ogImage.value,
-    },
-    {
-      property: "og:url",
-      content: canonicalUrl.value,
-    },
-    {
-      property: "og:type",
-      content: "article",
-    },
-    {
-      property: "article:publishedTime",
-      content: publishedAt.value,
-    },
-    {
-      property: "article:author",
-      content: post.value?.author || config.public.appName || "Foundation",
-    },
-    {
-      property: "og:locale",
-      content: lang.value === "es" ? "es_ES" : "en_US",
-    },
-    {
-      name: "twitter:card",
-      content: "summary_large_image",
-    },
-    {
-      name: "twitter:title",
-      content: seo.value?.metaTitle || title.value,
-    },
-    {
-      name: "twitter:description",
-      content: excerpt.value,
-    },
-    {
-      name: "twitter:image",
-      content: ogImage.value,
-    },
-  ],
-  link: [
-    { rel: "canonical", href: canonicalUrl.value },
-  ],
-  script: [
-    {
-      type: "application/ld+json",
-      children: jsonLd,
-    },
-  ],
-});
 </script>
 
 <template>
   <div class="container mx-auto py-12 max-w-4xl">
+    <CmsSeoMeta :seo="seoData" type="Article" />
     <article v-if="post">
       <header class="mb-8">
         <h1 class="text-4xl font-bold mb-4">{{ title }}</h1>

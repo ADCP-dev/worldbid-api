@@ -1,63 +1,72 @@
-export type SchemaType = 'WebSite' | 'Article' | 'Product' | 'Organization' | 'LocalBusiness' | 'BreadcrumbList'
+export type SchemaType =
+  | 'WebSite'
+  | 'Article'
+  | 'Product'
+  | 'Organization'
+  | 'LocalBusiness'
+  | 'BreadcrumbList';
 
 export interface BaseSeoOptions {
-  title?: string
-  description?: string
-  image?: string
-  url?: string
-  schemaType?: SchemaType
+  title?: string;
+  description?: string;
+  image?: string;
+  url?: string;
+  schemaType?: SchemaType;
 }
 
 export interface ArticleSchemaData {
-  headline: string
-  datePublished: string
-  dateModified?: string
-  authorName?: string
-  publisherName?: string
-  publisherLogo?: string
+  headline: string;
+  datePublished: string;
+  dateModified?: string;
+  authorName?: string;
+  publisherName?: string;
+  publisherLogo?: string;
 }
 
 export interface ProductSchemaData {
-  name: string
-  description?: string
-  image?: string
-  sku?: string
-  brand?: string
+  name: string;
+  description?: string;
+  image?: string;
+  sku?: string;
+  brand?: string;
   offers?: {
-    price: string | number
-    priceCurrency: string
-    availability?: 'https://schema.org/InStock' | 'https://schema.org/OutOfStock' | 'https://schema.org/PreOrder'
-  }
+    price: string | number;
+    priceCurrency: string;
+    availability?:
+      | 'https://schema.org/InStock'
+      | 'https://schema.org/OutOfStock'
+      | 'https://schema.org/PreOrder';
+  };
 }
 
 export interface OrganizationSchemaData {
-  name: string
-  url?: string
-  logo?: string
-  sameAs?: string[]
+  name: string;
+  url?: string;
+  logo?: string;
+  sameAs?: string[];
 }
 
 export interface LocalBusinessSchemaData extends OrganizationSchemaData {
   address?: {
-    streetAddress?: string
-    addressLocality?: string
-    addressRegion?: string
-    postalCode?: string
-    addressCountry?: string
-  }
-  telephone?: string
+    streetAddress?: string;
+    addressLocality?: string;
+    addressRegion?: string;
+    postalCode?: string;
+    addressCountry?: string;
+  };
+  telephone?: string;
   geo?: {
-    latitude: number
-    longitude: number
-  }
+    latitude: number;
+    longitude: number;
+  };
 }
 
 export interface BreadcrumbListSchemaData {
   itemListElement: {
-    position: number
-    name: string
-    item: string
-  }[]
+    position: number;
+    name: string;
+    item: string;
+  }[];
 }
 
 // Union type for schema data
@@ -66,20 +75,20 @@ export type SchemaData =
   | ProductSchemaData
   | OrganizationSchemaData
   | LocalBusinessSchemaData
-  | BreadcrumbListSchemaData
+  | BreadcrumbListSchemaData;
 
 export interface SeoOptions extends BaseSeoOptions {
-  schemaData?: SchemaData
+  schemaData?: SchemaData;
 }
 
 export function useSeo(options: SeoOptions = {}) {
-  const runtimeConfig = useRuntimeConfig()
-  const appName = runtimeConfig.public.appName as string
+  const runtimeConfig = useRuntimeConfig();
+  const appName = runtimeConfig.public.appName as string;
 
-  const title = options.title || appName
-  const description = options.description || `Welcome to ${appName}`
-  const image = options.image || '/og-image.png'
-  const url = options.url || ''
+  const title = options.title || appName;
+  const description = options.description || `Welcome to ${appName}`;
+  const image = options.image || '/og-image.png';
+  const url = options.url || '';
 
   // set meta tags
   useSeoMeta({
@@ -95,17 +104,17 @@ export function useSeo(options: SeoOptions = {}) {
     twitterTitle: title,
     twitterDescription: description,
     twitterImage: image,
-  })
+  });
 
   // Helper to generate schema
   const generateSchema = () => {
     const baseSchema: Record<string, any> = {
       '@context': 'https://schema.org',
-    }
+    };
 
     switch (options.schemaType) {
       case 'Article': {
-        const data = options.schemaData as ArticleSchemaData
+        const data = options.schemaData as ArticleSchemaData;
         return {
           ...baseSchema,
           '@type': 'Article',
@@ -125,10 +134,10 @@ export function useSeo(options: SeoOptions = {}) {
               url: data?.publisherLogo || '/logo.png',
             },
           },
-        }
+        };
       }
       case 'Product': {
-        const data = options.schemaData as ProductSchemaData
+        const data = options.schemaData as ProductSchemaData;
         return {
           ...baseSchema,
           '@type': 'Product',
@@ -145,13 +154,14 @@ export function useSeo(options: SeoOptions = {}) {
                 '@type': 'Offer',
                 price: data.offers.price,
                 priceCurrency: data.offers.priceCurrency,
-                availability: data.offers.availability || 'https://schema.org/InStock',
+                availability:
+                  data.offers.availability || 'https://schema.org/InStock',
               }
             : undefined,
-        }
+        };
       }
       case 'Organization': {
-        const data = options.schemaData as OrganizationSchemaData
+        const data = options.schemaData as OrganizationSchemaData;
         return {
           ...baseSchema,
           '@type': 'Organization',
@@ -159,10 +169,10 @@ export function useSeo(options: SeoOptions = {}) {
           url: data?.url || url,
           logo: data?.logo || '/logo.png',
           sameAs: data?.sameAs || [],
-        }
+        };
       }
       case 'LocalBusiness': {
-        const data = options.schemaData as LocalBusinessSchemaData
+        const data = options.schemaData as LocalBusinessSchemaData;
         return {
           ...baseSchema,
           '@type': 'LocalBusiness',
@@ -184,20 +194,21 @@ export function useSeo(options: SeoOptions = {}) {
               }
             : undefined,
           sameAs: data?.sameAs || [],
-        }
+        };
       }
       case 'BreadcrumbList': {
-        const data = options.schemaData as BreadcrumbListSchemaData
+        const data = options.schemaData as BreadcrumbListSchemaData;
         return {
           ...baseSchema,
           '@type': 'BreadcrumbList',
-          itemListElement: data?.itemListElement?.map((item) => ({
-            '@type': 'ListItem',
-            position: item.position,
-            name: item.name,
-            item: item.item,
-          })) || [],
-        }
+          itemListElement:
+            data?.itemListElement?.map((item) => ({
+              '@type': 'ListItem',
+              position: item.position,
+              name: item.name,
+              item: item.item,
+            })) || [],
+        };
       }
       case 'WebSite':
       default:
@@ -207,20 +218,20 @@ export function useSeo(options: SeoOptions = {}) {
           name: appName,
           description,
           url: url,
-        }
+        };
     }
-  }
+  };
 
-  const schema = generateSchema()
+  const schema = generateSchema();
 
   if (schema) {
     useHead({
       script: [
         {
           type: 'application/ld+json',
-          children: JSON.stringify(schema),
+          textContent: JSON.stringify(schema),
         },
       ],
-    })
+    });
   }
 }

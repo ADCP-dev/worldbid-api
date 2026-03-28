@@ -47,7 +47,7 @@ const localePath = useLocalePath();
           class="absolute -top-6 right-12 w-[90%] h-12 lg:h-[80%] bg-primary/50 blur-3xl rounded-full img-shadow-animation" />
 
         <img class="w-full md:w-[1200px] mx-auto rounded-lg relative rouded-lg leading-none flex items-center" :src="mode == 'light' ? 'hero-image-dark.png' : 'hero-image-dark.png'
-          " alt="dashboard using shadcn-vue">
+          " alt="dashboard using Foundation" />
 
         <!-- gradient effect img -->
         <div

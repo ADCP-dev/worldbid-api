@@ -9,7 +9,12 @@ import OpenAI from "openai";
 import path from "path";
 import fs from "fs";
 import dotenv from "dotenv";
-import crypto from "crypto";
+import {
+  hybridSearch,
+  createBM25Index,
+  type BM25Index,
+} from "./search/index.js";
+import type { EngramPayload, SearchOptions } from "./types.js";
 
 const possibleEnvPaths = [path.join(process.cwd(), ".env.local")];
 
@@ -41,11 +46,12 @@ const qdrant = new QdrantClient({
 });
 
 interface CacheEntry {
-  result: any;
+  result: string;
   timestamp: number;
 }
 
 const searchCache = new Map<string, CacheEntry>();
+let bm25Index: BM25Index | null = null;
 
 function normalizeQuery(query: string): string {
   return query.toLowerCase().trim().replace(/\s+/g, " ");
@@ -76,13 +82,13 @@ function setCachedResult(query: string, result: string): void {
   searchCache.set(normalized, { result, timestamp: Date.now() });
 }
 
-function getIndexMeta(): { lastIndexed: string | null; totalFiles: number } {
+function getIndexMeta(): { lastIndexed: string | null; totalEngrams: number } {
   try {
     if (fs.existsSync(metaFilePath)) {
       return JSON.parse(fs.readFileSync(metaFilePath, "utf-8"));
     }
   } catch {}
-  return { lastIndexed: null, totalFiles: 0 };
+  return { lastIndexed: null, totalEngrams: 0 };
 }
 
 function getProjectFiles(): string[] {
@@ -95,6 +101,8 @@ function getProjectFiles(): string[] {
     ".output",
     ".data",
     "mcp-engine",
+    "public",
+    ".opencode"
   ];
   const VALID_EXTENSIONS = [
     ".ts",
@@ -126,8 +134,30 @@ function getProjectFiles(): string[] {
   return getFiles(currentPath);
 }
 
+async function buildBM25Index(): Promise<BM25Index | null> {
+  try {
+    const scroll = (await qdrant.scroll(collectionName, {
+      limit: 10000,
+      with_payload: true,
+    })) as any;
+
+    const points = scroll.points || [];
+    if (points.length === 0) return null;
+
+    const engrams: EngramPayload[] = points
+      .map((p: any) => p.payload as EngramPayload)
+      .filter((p: EngramPayload) => p && p.keywords && p.keywords.length > 0);
+
+    if (engrams.length === 0) return null;
+
+    return createBM25Index(engrams);
+  } catch {
+    return null;
+  }
+}
+
 const server = new Server(
-  { name: `code-search-${collectionName}`, version: "1.0.0" },
+  { name: `code-search-${collectionName}`, version: "2.0.0" },
   { capabilities: { tools: {} } },
 );
 
@@ -135,7 +165,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
     {
       name: "buscar_codigo",
-      description: `Busca código en el proyecto "${collectionName}" usando búsqueda semántica. Útil para encontrar funciones, componentes, clases o lógica específica.`,
+      description: `Busca código en el proyecto "${collectionName}" usando búsqueda semántica híbrida (vector + BM25). Útil para encontrar funciones, componentes, clases o lógica específica.`,
       inputSchema: {
         type: "object",
         properties: {
@@ -148,6 +178,25 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
             type: "number",
             description: "Número de resultados (máximo 5)",
             default: 3,
+          },
+          fileTypes: {
+            type: "array",
+            items: { type: "string" },
+            description: "Filtrar por extensiones (ej: ['.ts', '.vue'])",
+          },
+          frameworks: {
+            type: "array",
+            items: { type: "string" },
+            description: "Filtrar por framework (ej: ['nestjs', 'vue'])",
+          },
+          minScore: {
+            type: "number",
+            description: "Score mínimo de relevancia (0-1, default: 0.3)",
+          },
+          alpha: {
+            type: "number",
+            description:
+              "Peso del search vectorial vs BM25 (0-1, default: 0.7)",
           },
         },
         required: ["query"],
@@ -185,15 +234,24 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     try {
-      const embedding = await openai.embeddings.create({
-        model: "openai/text-embedding-3-small",
-        input: query,
-      });
-
-      const results = await qdrant.search(collectionName, {
-        vector: embedding.data[0].embedding,
+      const searchOptions: SearchOptions = {
+        query,
         limit,
-        with_payload: true,
+        fileTypes: args?.fileTypes as string[] | undefined,
+        frameworks: args?.frameworks as string[] | undefined,
+        minScore: args?.minScore as number | undefined,
+        alpha: args?.alpha as number | undefined,
+      };
+
+      if (!bm25Index) {
+        bm25Index = await buildBM25Index();
+      }
+
+      const results = await hybridSearch(query, searchOptions, {
+        openai,
+        qdrant,
+        collectionName,
+        bm25Index: bm25Index || undefined,
       });
 
       if (results.length === 0) {
@@ -208,14 +266,29 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       const response = results
-        .map((r: any) => {
-          return `📄 **${r.payload.filePath}**\n\`\`\`\n${r.payload.codeSnippet}\n\`\`\``;
+        .map((r) => {
+          const scoreInfo =
+            r.combinedScore !== undefined
+              ? ` [score: ${(r.combinedScore * 100).toFixed(1)}%]`
+              : ` [score: ${(r.score * 100).toFixed(1)}%]`;
+          const locationInfo = `${r.payload.fileName}:${r.payload.lineStart}-${r.payload.lineEnd}`;
+          const metadataParts: string[] = [];
+          if (r.payload.exports?.length)
+            metadataParts.push(`exports: ${r.payload.exports.join(", ")}`);
+          if (r.payload.framework)
+            metadataParts.push(`framework: ${r.payload.framework}`);
+          const metaInfo =
+            metadataParts.length > 0
+              ? `\n  [${metadataParts.join(" | ")}]`
+              : "";
+          return `📄 **${r.payload.filePath}** ${locationInfo}${scoreInfo}${metaInfo}\n\`\`\`\n${r.payload.codeSnippet}\n\`\`\``;
         })
         .join("\n\n");
 
       setCachedResult(query, response);
       return { content: [{ type: "text", text: response }] };
     } catch (error) {
+      console.error(`[ERROR] Buscar error:`, error);
       return {
         content: [{ type: "text", text: `Error al buscar: ${error}` }],
         isError: true,
@@ -235,7 +308,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           limit: 10000,
           with_payload: true,
         })) as any;
-        for (const point of scroll.result) {
+        const points = scroll.points || [];
+        for (const point of points) {
           if (point.payload?.filePath) {
             uniqueFiles.add(point.payload.filePath);
           }
@@ -245,10 +319,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const stats = `
 📊 **Estadísticas del Índice**
 
-- **Vectores totales**: ${info.points_count}
+- **Engrams totales**: ${info.points_count}
 - **Archivos únicos indexados**: ${uniqueFiles.size}
 - **Archivos en proyecto**: ${files.length}
 - **Última indexación**: ${meta.lastIndexed || "Desconocida"}
+- **Hybrid search**: ${bm25Index ? "Activo" : "No cargado"}
 `;
 
       return { content: [{ type: "text", text: stats }] };
@@ -275,7 +350,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           limit: 10000,
           with_payload: true,
         })) as any;
-        for (const point of scroll.result) {
+        const points = scroll.points || [];
+        for (const point of points) {
           if (point.payload?.filePath) {
             indexedPaths.add(point.payload.filePath);
           }

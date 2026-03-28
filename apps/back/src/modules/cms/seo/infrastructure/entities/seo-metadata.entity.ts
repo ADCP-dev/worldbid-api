@@ -55,6 +55,9 @@ export class SeoMetadataEntity extends EntityRelationalHelper {
   @Column({ type: 'jsonb', nullable: true })
   customJsonLd: Record<string, any> | null;
 
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  type?: 'WebPage' | 'Article' | 'WebSite';
+
   @CreateDateColumn()
   createdAt: Date;
 
