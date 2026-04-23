@@ -1,11 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-
+import { plainToClass, plainToInstance } from 'class-transformer';
 import { Repository, In } from 'typeorm';
 import { UserEntity } from '@users/infrastructure/entities/user.entity';
 import { NullableType } from '@infra/utils/types/nullable.type';
 import { User } from '@users/domain/user';
-import { UserMapper } from '@users/infrastructure/mappers/user.mapper';
 import { IPaginationOptions } from '@infra/utils/types/pagination-options';
 import { buildWhereClause } from '@infra/utils/parse-filter';
 
@@ -19,11 +18,9 @@ export class UserRepository {
   async create(
     data: Omit<User, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>,
   ): Promise<User> {
-    const persistenceModel = UserMapper.toPersistence(data as User);
-    const newEntity = await this.usersRepository.save(
-      this.usersRepository.create(persistenceModel),
-    );
-    return UserMapper.toDomain(newEntity);
+    const entity = plainToInstance(UserEntity, data);
+    const newEntity = await this.usersRepository.save(entity);
+    return plainToClass(User, newEntity);
   }
 
   async findAllWithPagination({
@@ -33,19 +30,18 @@ export class UserRepository {
     paginationOptions: IPaginationOptions;
     filters?: Record<string, any>;
   }): Promise<User[]> {
-    // Build query options with pagination
     const queryOptions: any = {
       skip: (paginationOptions.page - 1) * paginationOptions.limit,
       take: paginationOptions.limit,
     };
-    // Add WHERE conditions if filters are provided
+
     if (filters && Object.keys(filters).length > 0) {
       queryOptions.where = buildWhereClause(filters);
     }
 
     const entities = await this.usersRepository.find(queryOptions);
 
-    return entities.map((entity) => UserMapper.toDomain(entity));
+    return entities.map((entity) => plainToClass(User, entity));
   }
 
   async findAll({
@@ -57,7 +53,7 @@ export class UserRepository {
       where: buildWhereClause(filters),
     });
 
-    return entities.map((entity) => UserMapper.toDomain(entity));
+    return entities.map((entity) => plainToClass(User, entity));
   }
 
   async findById(id: User['id']): Promise<NullableType<User>> {
@@ -65,7 +61,7 @@ export class UserRepository {
       where: { id: Number(id) },
     });
 
-    return entity ? UserMapper.toDomain(entity) : null;
+    return entity ? plainToClass(User, entity) : null;
   }
 
   async findByIds(ids: User['id'][]): Promise<User[]> {
@@ -73,7 +69,7 @@ export class UserRepository {
       where: { id: In(ids) },
     });
 
-    return entities.map((user) => UserMapper.toDomain(user));
+    return entities.map((user) => plainToClass(User, user));
   }
 
   async findByEmail(email: User['email']): Promise<NullableType<User>> {
@@ -83,7 +79,7 @@ export class UserRepository {
       where: { email },
     });
 
-    return entity ? UserMapper.toDomain(entity) : null;
+    return entity ? plainToClass(User, entity) : null;
   }
 
   async findBySocialIdAndProvider({
@@ -99,7 +95,7 @@ export class UserRepository {
       where: { socialId, provider },
     });
 
-    return entity ? UserMapper.toDomain(entity) : null;
+    return entity ? plainToClass(User, entity) : null;
   }
 
   async update(id: User['id'], payload: Partial<User>): Promise<User> {
@@ -111,16 +107,10 @@ export class UserRepository {
       throw new Error('User not found');
     }
 
-    const updatedEntity = await this.usersRepository.save(
-      this.usersRepository.create(
-        UserMapper.toPersistence({
-          ...UserMapper.toDomain(entity),
-          ...payload,
-        }),
-      ),
-    );
+    Object.assign(entity, payload);
+    const updatedEntity = await this.usersRepository.save(entity);
 
-    return UserMapper.toDomain(updatedEntity);
+    return plainToClass(User, updatedEntity);
   }
 
   async remove(id: User['id']): Promise<void> {

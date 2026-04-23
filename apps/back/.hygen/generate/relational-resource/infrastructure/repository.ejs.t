@@ -4,10 +4,10 @@ to: src/<%= destination %>/<%= h.inflection.transform(name, ['pluralize', 'under
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
+import { plainToClass } from 'class-transformer';
 import { <%= name %>Entity } from './entities/<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.entity';
 import { NullableType } from '@infra/utils/types/nullable.type';
 import { <%= name %> } from '../domain/<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>';
-import { <%= name %>Mapper } from './mappers/<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.mapper';
 import { IPaginationOptions } from '@infra/utils/types/pagination-options';
 import { buildWhereClause } from '@infra/utils/parse-filter';
 import { Create<%= name %>Dto } from '../dto/create-<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.dto';
@@ -21,13 +21,12 @@ export class <%= name %>Repository {
   ) {}
 
   async create(data: Create<%= name %>Dto): Promise<<%= name %>> {
-    const persistenceModel = <%= name %>Mapper.toPersistenceForCreate(data);
-    const newEntity = await this.<%= h.inflection.camelize(name, true) %>Repository.save(persistenceModel);
-    return <%= name %>Mapper.toDomain(newEntity);
+    const entity = plainToClass(<%= name %>Entity, data);
+    const newEntity = await this.<%= h.inflection.camelize(name, true) %>Repository.save(entity);
+    return plainToClass(<%= name %>, newEntity);
   }
 
   async update(id: <%= name %>['id'], data: Update<%= name %>Dto): Promise<<%= name %>> {
-    const persistenceModel = <%= name %>Mapper.toPersistenceForUpdate(data);
     const entity = await this.<%= h.inflection.camelize(name, true) %>Repository.findOne({
       where: { id },
     });
@@ -36,12 +35,10 @@ export class <%= name %>Repository {
       throw new Error('Record not found');
     }
 
-    const updatedEntity = await this.<%= h.inflection.camelize(name, true) %>Repository.save({
-      ...entity,
-      ...persistenceModel,
-    });
+    Object.assign(entity, data);
+    const updatedEntity = await this.<%= h.inflection.camelize(name, true) %>Repository.save(entity);
 
-    return <%= name %>Mapper.toDomain(updatedEntity);
+    return plainToClass(<%= name %>, updatedEntity);
   }
 
   async findAllWithPagination({
@@ -51,19 +48,18 @@ export class <%= name %>Repository {
     paginationOptions: IPaginationOptions;
     filters?: Record<string, any>;
   }): Promise<<%= name %>[]> {
-    // Build query options with pagination
     const queryOptions: any = {
       skip: (paginationOptions.page - 1) * paginationOptions.limit,
       take: paginationOptions.limit,
     };
-    // Add WHERE conditions if filters are provided
+
     if (filters && Object.keys(filters).length > 0) {
       queryOptions.where = buildWhereClause(filters);
     }
 
     const entities = await this.<%= h.inflection.camelize(name, true) %>Repository.find(queryOptions);
 
-    return entities.map((entity) => <%= name %>Mapper.toDomain(entity));
+    return entities.map((entity) => plainToClass(<%= name %>, entity));
   }
 
   async findAll({
@@ -75,7 +71,7 @@ export class <%= name %>Repository {
       where: buildWhereClause(filters),
     });
 
-    return entities.map((entity) => <%= name %>Mapper.toDomain(entity));
+    return entities.map((entity) => plainToClass(<%= name %>, entity));
   }
 
   async findById(id: <%= name %>['id']): Promise<NullableType<<%= name %>>> {
@@ -83,7 +79,7 @@ export class <%= name %>Repository {
       where: { id },
     });
 
-    return entity ? <%= name %>Mapper.toDomain(entity) : null;
+    return entity ? plainToClass(<%= name %>, entity) : null;
   }
 
   async findByIds(ids: <%= name %>['id'][]): Promise<<%= name %>[]> {
@@ -91,7 +87,7 @@ export class <%= name %>Repository {
       where: { id: In(ids) },
     });
 
-    return entities.map((entity) => <%= name %>Mapper.toDomain(entity));
+    return entities.map((entity) => plainToClass(<%= name %>, entity));
   }
 
   async remove(id: <%= name %>['id']): Promise<void> {

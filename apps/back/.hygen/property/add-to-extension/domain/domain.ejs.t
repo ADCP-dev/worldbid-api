@@ -6,7 +6,7 @@ after: export class <%= name %> {
 
 <% if (isAddToDto && kind === 'primitive') { -%>
 @ApiProperty({
-  type: () => 
+  type: () =>
     <% if (type === 'string' || type === 'text' || type === 'uuid' || type === 'enum') { -%>
       String,
     <% } else if (type === 'number' || type === 'decimal') { -%>
@@ -27,8 +27,11 @@ after: export class <%= name %> {
 <% } -%>
 
 <% if (kind === 'reference' || kind === 'duplication') { -%>
+@Expose()
+@Type(() => <%= type %>)
   <%= property %><% if (!isAddToDto || isOptional) { -%>?<% } -%>: <%= type %><% if (type === 'File') { -%>Type<% } -%><% if (referenceType === 'oneToMany' || referenceType === 'manyToMany') { -%>[]<% } -%> <% if (isNullable) { -%> | null<% } -%>;
 <% } else if (kind === 'primitive') { -%>
+@Expose()
   <% if (type === 'json' || type === 'jsonb') { -%>
   <%= property %><% if (!isAddToDto || isOptional) { -%>?<% } -%>: object <% if (isNullable) { -%> | null<% } -%>;
   <% } else if (type === 'array') { -%>

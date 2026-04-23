@@ -15,6 +15,7 @@ pnpm generate:extension
 ```
 
 This creates a full **Domain-Driven** NestJS module under the appropriate group. When prompted, enter:
+
 - **Resource name** (e.g. `product`) — generates `ProductModule`, `ProductController`, `ProductService`, `ProductEntity`, and DTOs.
 
 > The generator creates the folder inside `src/modules/<group>/` — you may need to move it to the correct group manually if the generator outputs to `src/<name>/` (the generators work on `src/` by default and may need updating — see [GENERATORS.md](./GENERATORS.md)).
@@ -27,21 +28,19 @@ src/modules/<group>/<resource>/
 ├── <resource>.controller.ts
 ├── <resource>.service.ts
 ├── domain/
-│   └── <resource>.ts          # Domain object (plain class, no TypeORM)
+│   └── <resource>.ts          # Domain object with @Expose() decorators
 ├── dto/
 │   ├── create-<resource>.dto.ts
 │   ├── update-<resource>.dto.ts
 │   └── find-all-<resource>.dto.ts
 └── infrastructure/
     ├── persistence.module.ts
-    ├── <resource>.repository.ts
-    ├── entities/
-    │   └── <resource>.entity.ts   # TypeORM entity
-    └── mappers/
-        └── <resource>.mapper.ts   # Maps Entity ↔ Domain
+    ├── <resource>.repository.ts  # Uses plainToClass() for Entity ↔ Domain
+    └── entities/
+        └── <resource>.entity.ts   # TypeORM entity
 ```
 
-**Domain architecture rule**: The service layer always works with the *Domain* object (a plain class), never directly with the TypeORM entity. The mapper translates between the two. This keeps business logic free from database concerns.
+**Domain architecture rule**: The service layer always works with the _Domain_ object (a plain class), never directly with the TypeORM entity. Transformation is handled by class-transformer's `plainToClass()` with `@Expose()` and `@Type()` decorators. This keeps business logic free from database concerns.
 
 ---
 
@@ -50,7 +49,7 @@ src/modules/<group>/<resource>/
 Open `src/app.module.ts` and import your module:
 
 ```typescript
-import { ProductModule } from '@modules/products/product.module';
+import { ProductModule } from "@modules/products/product.module";
 
 @Module({
   imports: [
@@ -74,6 +73,7 @@ pnpm add:extension-property
 ```
 
 This prompts for the resource name and property details (name, type, nullable) and updates:
+
 - The TypeORM entity
 - The domain object
 - `create-*.dto.ts` and `update-*.dto.ts`
@@ -86,6 +86,7 @@ After running, **always generate a migration** (step 4).
 ## 4. Database Migrations
 
 TypeORM migrations live in:
+
 ```
 src/infrastructure/database/migrations/
 ```
@@ -95,10 +96,10 @@ src/infrastructure/database/migrations/
 After editing an entity, run from `apps/back/`:
 
 ```bash
-pnpm migration:generate --name=AddProductPriceColumn
+pnpm migration:generate AddProductPriceColumn
 ```
 
-This compares your current entities against the live database and generates a migration file in `src/infrastructure/database/migrations/`.
+This compares your current entities against the live database and generates a migration file with timestamp in `src/infrastructure/database/migrations/<timestamp>-AddProductPriceColumn.ts`.
 
 **Always review the generated file before running it.**
 
@@ -125,7 +126,7 @@ pnpm migration:revert
 ### Migration File Anatomy
 
 ```typescript
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import { MigrationInterface, QueryRunner } from "typeorm";
 
 export class AddProductPriceColumn1715028537217 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -201,8 +202,8 @@ The **Service** always injects the abstract `ProductRepository`, not the concret
 DTOs use `class-validator` decorators:
 
 ```typescript
-import { IsString, IsEmail, IsOptional, IsEnum } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsString, IsEmail, IsOptional, IsEnum } from "class-validator";
+import { ApiProperty } from "@nestjs/swagger";
 
 export class CreateProductDto {
   @ApiProperty()
@@ -224,15 +225,15 @@ Validation is applied globally via the `ValidationPipe` in `main.ts`.
 
 Located in `src/infrastructure/utils/`:
 
-| File | Purpose |
-|---|---|
-| `types/nullable.type.ts` | `NullableType<T>` = `T \| null` |
-| `types/maybe.type.ts` | `MaybeType<T>` = `T \| undefined` |
-| `types/pagination-options.ts` | `IPaginationOptions` interface |
-| `infinity-pagination.ts` | `infinityPagination(data, options)` helper |
-| `dto/infinity-pagination-response.dto.ts` | Standardized paginated response DTO |
-| `parse-filter.ts` | `buildWhereClause()` for dynamic TypeORM filters |
-| `transformers/lower-case.transformer.ts` | Auto-lowercase column transformer |
-| `validate-config.ts` | Validates `class-validator` on config objects |
-| `serializer.interceptor.ts` | Excludes `@Exclude()` fields from responses |
-| `relational-entity-helper.ts` | Base entity class with TypeORM helpers |
+| File                                      | Purpose                                          |
+| ----------------------------------------- | ------------------------------------------------ |
+| `types/nullable.type.ts`                  | `NullableType<T>` = `T \| null`                  |
+| `types/maybe.type.ts`                     | `MaybeType<T>` = `T \| undefined`                |
+| `types/pagination-options.ts`             | `IPaginationOptions` interface                   |
+| `infinity-pagination.ts`                  | `infinityPagination(data, options)` helper       |
+| `dto/infinity-pagination-response.dto.ts` | Standardized paginated response DTO              |
+| `parse-filter.ts`                         | `buildWhereClause()` for dynamic TypeORM filters |
+| `transformers/lower-case.transformer.ts`  | Auto-lowercase column transformer                |
+| `validate-config.ts`                      | Validates `class-validator` on config objects    |
+| `serializer.interceptor.ts`               | Excludes `@Exclude()` fields from responses      |
+| `relational-entity-helper.ts`             | Base entity class with TypeORM helpers           |

@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FileEntity } from '@storage/files/infrastructure/entities/file.entity';
 import { In, Repository } from 'typeorm';
+import { plainToClass, plainToInstance } from 'class-transformer';
 
-import { FileMapper } from '@storage/files/infrastructure/mappers/file.mapper';
 import { FileType } from '@storage/files/domain/file';
 import { NullableType } from '@infra/utils/types/nullable.type';
 import { FileFilterDto } from '@storage/files/dto/file-filter.dto';
@@ -16,10 +16,9 @@ export class FileRepository {
   ) {}
 
   async create(data: Omit<FileType, 'id'>): Promise<FileType> {
-    const persistenceModel = FileMapper.toPersistence(data as FileType);
-    return this.fileRepository.save(
-      this.fileRepository.create(persistenceModel),
-    );
+    const entity = plainToInstance(FileEntity, data);
+    const newEntity = await this.fileRepository.save(entity);
+    return plainToClass(FileType, newEntity);
   }
 
   async findById(id: FileType['id']): Promise<NullableType<FileType>> {
@@ -29,7 +28,7 @@ export class FileRepository {
       },
     });
 
-    return entity ? FileMapper.toDomain(entity) : null;
+    return entity ? plainToClass(FileType, entity) : null;
   }
 
   async findByIds(ids: FileType['id'][]): Promise<FileType[]> {
@@ -39,7 +38,7 @@ export class FileRepository {
       },
     });
 
-    return entities.map((entity) => FileMapper.toDomain(entity));
+    return entities.map((entity) => plainToClass(FileType, entity));
   }
 
   async findWithFilters(filters: FileFilterDto): Promise<FileType[]> {
@@ -68,17 +67,14 @@ export class FileRepository {
 
     const entities = await this.fileRepository.find({ where });
 
-    return entities.map((entity) => FileMapper.toDomain(entity));
+    return entities.map((entity) => plainToClass(FileType, entity));
   }
 
   async update(
     id: FileType['id'],
     data: Partial<Omit<FileType, 'id'>>,
   ): Promise<FileType> {
-    await this.fileRepository.update(
-      id,
-      FileMapper.toPersistence(data as FileType),
-    );
+    await this.fileRepository.update(id, data);
 
     const updatedEntity = await this.fileRepository.findOne({
       where: { id },
@@ -88,7 +84,7 @@ export class FileRepository {
       throw new Error(`File with id ${id} not found`);
     }
 
-    return FileMapper.toDomain(updatedEntity);
+    return plainToClass(FileType, updatedEntity);
   }
 
   async delete(id: FileType['id']): Promise<void> {

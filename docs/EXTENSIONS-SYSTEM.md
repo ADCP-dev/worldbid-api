@@ -228,8 +228,8 @@ rm -rf src/extensions/shop
 # Just copy the folder
 cp -r project-a/src/extensions/shop project-b/src/extensions/shop
 # Run migrations if needed
-npm run migration:generate --name=AddShop
-npm run migration:run
+pnpm migration:generate AddShop
+pnpm migration:run
 ```
 
 ---

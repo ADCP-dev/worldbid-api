@@ -1,4 +1,4 @@
-import { Exclude, Expose } from 'class-transformer';
+import { Exclude, Expose, Type } from 'class-transformer';
 import { FileType } from '@storage/files/domain/file';
 import { Role } from '@iam/roles/domain/role';
 import { Status } from '../statuses/domain/status';
@@ -10,6 +10,7 @@ export class User {
   @ApiProperty({
     type: idType,
   })
+  @Expose()
   id: number | string;
 
   @ApiProperty({
@@ -40,12 +41,14 @@ export class User {
     type: String,
     example: 'John',
   })
+  @Expose()
   firstName: string | null;
 
   @ApiProperty({
     type: String,
     example: 'Doe',
   })
+  @Expose()
   lastName: string | null;
 
   @ApiProperty({
@@ -53,30 +56,40 @@ export class User {
     description: 'Profile photo, resolved via the polymorphic file system',
     required: false,
   })
+  @Type(() => FileType)
+  @Expose()
   photo?: FileType | null;
 
   @ApiProperty({
     type: () => Role,
   })
+  @Type(() => Role)
+  @Expose()
   role?: Role | null;
 
   @ApiProperty({
     type: () => Status,
   })
+  @Type(() => Status)
+  @Expose()
   status?: Status;
 
   @ApiProperty({
     type: String,
     example: '1234567890',
   })
+  @Expose()
   stripeCustomerId?: string | null;
 
   @ApiProperty()
+  @Expose()
   createdAt: Date;
 
   @ApiProperty()
+  @Expose()
   updatedAt: Date;
 
   @ApiProperty()
+  @Expose()
   deletedAt: Date;
 }

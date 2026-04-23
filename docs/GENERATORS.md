@@ -40,20 +40,20 @@ src/<destination>/<name>/
 ├── <name>.module.ts
 ├── <name>.controller.ts
 ├── <name>.service.ts
-├── domain/<name>.ts           # Domain object (no DB dependencies)
+├── domain/<name>.ts           # Domain object with @Expose() decorators
 ├── dto/
 │   ├── create-<name>.dto.ts
 │   ├── update-<name>.dto.ts
 │   └── find-all-<name>.dto.ts
 └── infrastructure/
     ├── persistence.module.ts
-    ├── <name>.repository.ts
+    ├── <name>.repository.ts  # Uses plainToClass() instead of mappers
     └── entities/<name>.entity.ts
-    └── mappers/<name>.mapper.ts
 ```
 
 - **Destination**: `custom/` (default) or `modules/` (development only)
 - In `client` mode, only `custom/` is allowed
+- **No mapper files** - transformation handled by class-transformer with `plainToClass()`
 
 ### `pnpm generate:extension`
 
@@ -65,10 +65,11 @@ Adds a new column to an existing resource. Prompts for:
 
 - **Resource name** (must already exist)
 - **Property name** (camelCase)
-- **Property type** (`string`, `number`, `boolean`, `Date`)
+- **Kind**: `primitive` or `reference` (relation to another entity)
+- **Property type** (`string`, `number`, `boolean`, `Date`, etc.)
 - **Is nullable?**
 
-Updates entity, domain object, DTOs, and mapper.
+Updates entity, domain object (with `@Expose()` and `@Type()` decorators), and DTOs.
 
 ### `pnpm add:extension-property`
 
@@ -78,7 +79,20 @@ Same as `add:property` but targets an extension resource.
 
 Creates an empty seed file in `src/infrastructure/database/seeds/`.
 
-### `pnpm migration:generate --name=MyMigration`
+### `pnpm migration:generate <name>`
+
+Generates a migration file with timestamp:
+
+```bash
+pnpm migration:generate AddUsersTable
+# → src/infrastructure/database/migrations/<timestamp>-AddUsersTable.ts
+```
+
+The script automatically:
+
+- Adds the timestamp prefix (e.g., `1776246056488-AddUsersTable.ts`)
+- Sets the class name and property correctly
+- Loads environment variables from `.env`
 
 See [BACKEND-RESOURCES.md](./BACKEND-RESOURCES.md#4-database-migrations) for full migration docs.
 

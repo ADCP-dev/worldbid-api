@@ -3,11 +3,10 @@ inject: true
 to: src/custom/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'dasherize']) %>/domain/<%= h.inflection.transform(name, ['underscore', 'dasherize']) %>.ts
 after: export class <%= name %> {
 ---
-
 <% if (kind === 'primitive') { -%>
 <% if (isAddToDto) { -%>
-@ApiProperty({
-  type: () => 
+  @ApiProperty({
+    type: () =>
     <% if (type === 'string' || type === 'text' || type === 'uuid' || type === 'enum') { -%>
       String,
     <% } else if (type === 'number' || type === 'decimal') { -%>
@@ -23,11 +22,13 @@ after: export class <%= name %> {
     <% } else { -%>
       String,
     <% } -%>
-  ,
-  nullable: <%= isNullable %>,
-})
+    ,
+    nullable: <%= isNullable %>,
+  })
+  @Expose()
+<% } else { -%>
+  @Expose()
 <% } -%>
-
 <% if (type === 'json' || type === 'jsonb') { -%>
   <%= property %><% if (!isAddToDto || isOptional) { -%>?<% } -%>: Record<string, any> <% if (isNullable) { -%> | null<% } -%>;
 <% } else if (type === 'array') { -%>
@@ -37,4 +38,14 @@ after: export class <%= name %> {
 <% } else { -%>
   <%= property %><% if (!isAddToDto || isOptional) { -%>?<% } -%>: <%= type %> <% if (isNullable) { -%> | null<% } -%>;
 <% } -%>
+<% } else if (kind === 'reference' || kind === 'duplication') { -%>
+<% if (isAddToDto) { -%>
+  @ApiProperty({
+    type: () => <%= type %>,
+    nullable: <%= isNullable %>,
+  })
+<% } -%>
+  @Expose()
+  @Type(() => <%= type %>)
+  <%= property %><% if (!isAddToDto || isOptional) { -%>?<% } -%>: <%= type %><% if (referenceType === 'oneToMany' || referenceType === 'manyToMany') { -%>[]<% } -%> <% if (isNullable) { -%> | null<% } -%>;
 <% } -%>

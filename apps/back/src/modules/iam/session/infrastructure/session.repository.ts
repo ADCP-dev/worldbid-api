@@ -1,12 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Not, Repository } from 'typeorm';
+import { plainToClass, plainToInstance } from 'class-transformer';
 import { SessionEntity } from '@iam/session/infrastructure/entities/session.entity';
 import { NullableType } from '@infra/utils/types/nullable.type';
 
 import { Session } from '@iam/session/domain/session';
-
-import { SessionMapper } from '@iam/session/infrastructure/mappers/session.mapper';
 import { User } from '@users/domain/user';
 
 @Injectable()
@@ -23,16 +22,15 @@ export class SessionRepository {
       },
     });
 
-    return entity ? SessionMapper.toDomain(entity) : null;
+    return entity ? plainToClass(Session, entity) : null;
   }
 
   async create(
     data: Omit<Session, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>,
   ): Promise<Session> {
-    const persistenceModel = SessionMapper.toPersistence(data as Session);
-    return this.sessionRepository.save(
-      this.sessionRepository.create(persistenceModel),
-    );
+    const entity = plainToInstance(SessionEntity, data);
+    const newEntity = await this.sessionRepository.save(entity);
+    return plainToClass(Session, newEntity);
   }
 
   async update(
@@ -49,16 +47,10 @@ export class SessionRepository {
       throw new Error('Session not found');
     }
 
-    const updatedEntity = await this.sessionRepository.save(
-      this.sessionRepository.create(
-        SessionMapper.toPersistence({
-          ...SessionMapper.toDomain(entity),
-          ...payload,
-        }),
-      ),
-    );
+    Object.assign(entity, payload);
+    const updatedEntity = await this.sessionRepository.save(entity);
 
-    return SessionMapper.toDomain(updatedEntity);
+    return plainToClass(Session, updatedEntity);
   }
 
   async deleteById(id: Session['id']): Promise<void> {

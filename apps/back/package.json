@@ -7,7 +7,7 @@
   "license": "MIT",
   "scripts": {
     "typeorm": "env-cmd ts-node --project tsconfig.json -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
-    "migration:generate": "node -e \"const name = process.env.npm_config_name || 'Migration'; process.exit(require('child_process').spawnSync('npm', ['run', 'typeorm', '--', '--dataSource=src/infrastructure/database/data-source.ts', 'migration:generate', `src/infrastructure/database/migrations/${name}`], {stdio: 'inherit', shell: true}).status)\"",
+    "migration:generate": "node scripts/migrate.js",
     "postmigration:generate": "npm run lint",
     "migration:create": "npm run typeorm -- migration:create",
     "migration:run": "npm run typeorm -- --dataSource=src/infrastructure/database/data-source.ts migration:run",
