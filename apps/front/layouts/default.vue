@@ -38,7 +38,7 @@ watch(() => route.fullPath, () => {
         </Transition>
       </div>
     </div>
-    <div class="drawer-side z-50 is-drawer-close:overflow-visible">
+    <div class="drawer-side z-50 h-screen overflow-hidden">
       <label for="main-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
       <AppSidebar />
     </div>

@@ -30,30 +30,34 @@ const user: {
 </script>
 
 <template>
-  <div class="is-drawer-close:w-16 is-drawer-open:w-72 border-r min-h-full bg-base-300 flex flex-col relative transition-all duration-300">
-    <label for="main-drawer" class="absolute -right-2 top-0 bottom-0 w-4 cursor-e-resize z-50 hover:bg-primary/10 transition-colors"></label>
+  <div
+    class="is-drawer-close:w-16 is-drawer-open:w-72 border-r h-screen bg-base-300 flex flex-col relative transition-all duration-300">
+    <label for="main-drawer"
+      class="absolute -right-2 top-0 bottom-0 w-4 cursor-e-resize z-50 hover:bg-primary/10 transition-colors"></label>
 
-    <div class="is-drawer-close:p-2 p-4 flex flex-col gap-4 w-full">
+    <div class="is-drawer-close:p-2 p-4 flex flex-col gap-4 w-full shrink-0">
       <div>
         <AppLogo />
       </div>
       <NavSearch />
     </div>
 
-    <div class="flex-1 overflow-x-hidden overflow-y-auto is-drawer-close:overflow-visible w-full is-drawer-close:px-0 px-2">
+    <div
+      class="flex-1 overflow-x-hidden overflow-y-auto is-drawer-close:overflow-visible w-full is-drawer-close:px-0 px-2 min-h-0">
       <ul class="menu w-full gap-1" v-for="(nav, indexGroup) in navMenu" :key="indexGroup">
         <li v-if="nav.heading" class="menu-title uppercase text-xs font-semibold py-2 is-drawer-close:hidden">
           {{ nav.heading }}
         </li>
         <component :is="resolveNavItemComponent(item)" v-for="(item, index) in nav.items" :key="index" :item="item" />
       </ul>
-
-      <ul class="menu w-full mt-auto">
-        <component :is="resolveNavItemComponent(item)" v-for="(item, index) in navMenuBottom" :key="index" :item="item" size="sm" />
-      </ul>
     </div>
 
-    <div class="mt-auto border-t w-full">
+    <ul class="menu w-full shrink-0 is-drawer-close:px-0 px-2">
+      <component :is="resolveNavItemComponent(item)" v-for="(item, index) in navMenuBottom" :key="index" :item="item"
+        size="sm" />
+    </ul>
+
+    <div class="border-t w-full shrink-0">
       <NavUser :user="user" />
     </div>
   </div>
