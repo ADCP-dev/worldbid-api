@@ -45,3 +45,17 @@ mcp-engine/mcp-engine/
 
 # MCP metadata
 .mcp-index-meta.json
+
+# Worktrees
+worktrees/
+
+# Graphify — commit graph.json (data for agents), ignore generated artifacts
+graphify-out/cache/
+graphify-out/manifest.json
+graphify-out/cost.json
+graphify-out/.graphify_python
+graphify-out/graph.html
+graphify-out/graph.svg
+graphify-out/wiki/
+graphify-out/__pycache__/
+graphify-out/.needs_update

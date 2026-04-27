@@ -1,0 +1,119 @@
+name: Feature PRD
+description: Product Requirements Document for a new feature, extension, or major change — optimised for AI agent processing
+title: "[FEATURE] "
+labels: ["feature", "prd"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🤖 AI AGENT CONTEXT
+        > This issue will be parsed by an AI agent via `spawn-worktree.js`.
+        > The body becomes `.instructions.md` in the worktree.
+        > Be precise, technical, and use exact module/convention names from `docs/TOOLS.md`.
+
+  - type: input
+    id: summary
+    attributes:
+      label: "One-Line Summary"
+      description: "What does this feature do, in exactly one sentence?"
+      placeholder: "Add QR-based campaign tracking with analytics dashboard"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: "Scope / Type"
+      options:
+        - "Core Module (src/modules/)"
+        - "Extension (src/extensions/ + modules/)"
+        - "Custom Logic (custom/)"
+        - "Infrastructure / DevOps"
+        - "Documentation"
+        - "Research"
+    validations:
+      required: true
+
+  - type: textarea
+    id: modules-affected
+    attributes:
+      label: "Modules / Extensions Affected"
+      description: |
+        Exact `id` values from their `.md` frontmatter in `docs/modules/` or `docs/extensions/`.
+      placeholder: |
+        - auth (module) — needed for user permissions
+        - storage (module) — needed for file uploads
+        - cms (extension) — optional integration
+    validations:
+      required: true
+
+  - type: textarea
+    id: new-dependencies
+    attributes:
+      label: "New Dependencies"
+      description: "npm packages, external APIs, or extensions required. The AI agent will research with Tavily/Context7 if needed."
+      placeholder: |
+        npm: qrcode, chart.js
+        API: Stripe Connect v2026
+        Extension: iam (auth required)
+    validations:
+      required: false
+
+  - type: textarea
+    id: external-research
+    attributes:
+      label: "External Research Needed"
+      description: "APIs or technologies the agent should research BEFORE implementing."
+      placeholder: |
+        - Stripe Connect: latest API version, breaking changes from 2025
+        - WebSocket scaling: best practices with NestJS + BullMQ 2026
+    validations:
+      required: false
+
+  - type: textarea
+    id: prd
+    attributes:
+      label: "Product Requirements Document"
+      description: |
+        Full PRD. Structure:
+        ## 1. Why This Exists
+        ## 2. Who Uses It
+        ## 3. What It Does
+        ## 4. Data Model (entities, tables)
+        ## 5. API Endpoints
+        ## 6. Frontend (pages, components)
+        ## 7. Dependencies
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: "Acceptance Criteria (AI Agent Checklist)"
+      description: |
+        Checklist the AI agent MUST complete. Include exact file paths, commands, and tests.
+      placeholder: |
+        - [ ] Create backend at `apps/back/src/extensions/<name>/`
+        - [ ] Create entities with table prefix `ext_<name>_`
+        - [ ] Run `pnpm migration:generate` and `pnpm migration:run`
+        - [ ] Create frontend layer at `apps/front/modules/<name>/`
+        - [ ] Register in `apps/front/nuxt.config.ts`
+        - [ ] Create `docs/extensions/<name>.md` with YAML frontmatter
+        - [ ] Run `pnpm docs:sync`
+        - [ ] All tests pass
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: "Additional Notes for the AI Agent"
+      description: "Gotchas, files NOT to touch, conventions, tribal knowledge."
+      placeholder: |
+        - Do NOT modify `app.module.ts` — extensions use auto-discovery
+        - Extension tables MUST use prefix `ext_<name>_<table>`
+        - Use `@ext/*` path alias for cross-extension imports
+    validations:
+      required: false

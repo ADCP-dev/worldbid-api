@@ -94,7 +94,7 @@ The script automatically:
 - Sets the class name and property correctly
 - Loads environment variables from `.env`
 
-See [BACKEND-RESOURCES.md](./BACKEND-RESOURCES.md#4-database-migrations) for full migration docs.
+See [database.md](./modules/database.md) for full migration docs.
 
 ---
 
