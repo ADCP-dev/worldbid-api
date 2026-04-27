@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { Check, ChevronDown, X } from "lucide-vue-next";
 
 const props = defineProps<{
   label?: string;
-  name?: string;
   options: Array<{ value: string | number; label: string }>;
   modelValue?: Array<string | number>;
   error?: string;
@@ -19,9 +18,16 @@ const emit = defineEmits<{
 
 const open = ref(false);
 const search = ref("");
-const inputRef = ref<HTMLInputElement | null>(null);
+const dropdownRef = ref<HTMLElement | null>(null);
 
 const selected = computed(() => props.modelValue ?? []);
+
+const selectedLabels = computed(() =>
+  selected.value.map((val) => {
+    const opt = props.options.find((o) => o.value === val);
+    return opt?.label || String(val);
+  })
+);
 
 const filteredOptions = computed(() =>
   props.options.filter((opt) =>
@@ -32,7 +38,7 @@ const filteredOptions = computed(() =>
 function toggleDropdown() {
   if (props.disabled) return;
   open.value = !open.value;
-  if (open.value) nextTick(() => inputRef.value?.focus());
+  if (open.value) search.value = "";
 }
 
 function closeDropdown() {
@@ -56,100 +62,126 @@ function isSelected(value: string | number) {
   return selected.value.includes(value);
 }
 
-function removeSelected(value: string | number) {
+function removeSelected(value: string | number, event?: Event) {
+  event?.stopPropagation();
   emit(
     "update:modelValue",
     selected.value.filter((v) => v !== value)
   );
 }
 
-function handleClickOutside(e: MouseEvent) {
-  if (!(e.target as HTMLElement).closest(".dropdown")) {
+function handleKeydown(e: KeyboardEvent) {
+  if (e.key === "Escape") {
     closeDropdown();
   }
 }
 
-watch(open, (val) => {
-  if (val) document.addEventListener("mousedown", handleClickOutside);
-  else document.removeEventListener("mousedown", handleClickOutside);
+function handleClickOutside(e: MouseEvent) {
+  if (dropdownRef.value && !dropdownRef.value.contains(e.target as Node)) {
+    closeDropdown();
+  }
+}
+
+onMounted(() => {
+  document.addEventListener("mousedown", handleClickOutside);
+  document.addEventListener("keydown", handleKeydown);
+});
+
+onUnmounted(() => {
+  document.removeEventListener("mousedown", handleClickOutside);
+  document.removeEventListener("keydown", handleKeydown);
 });
 </script>
 
 <template>
-  <div class="form-control w-full">
+  <div ref="dropdownRef" class="form-control w-full relative">
     <label v-if="label" class="label">
       <span class="label-text font-semibold">
         {{ label }}
       </span>
     </label>
 
-    <div class="dropdown w-full" :class="{ 'dropdown-open': open }">
-      <div
-        tabindex="0"
-        role="button"
-        class="select select-bordered w-full flex flex-wrap gap-1 h-auto min-h-[3rem] py-2 items-center justify-between"
-        :class="{ 'select-error': error, 'select-disabled cursor-not-allowed': disabled }"
-        @click="toggleDropdown"
-      >
-        <div class="flex flex-wrap gap-1 items-center">
-          <span
-            v-if="selected.length === 0"
-            class="opacity-50 text-sm"
-          >
-            {{ placeholder || "Selecciona opciones..." }}
+    <!-- Trigger -->
+    <button
+      type="button"
+      class="select select-bordered w-full flex flex-wrap gap-1 h-auto min-h-[3rem] py-2 px-3 items-center justify-between text-left"
+      :class="{ 'select-error': error, 'select-disabled cursor-not-allowed opacity-60': disabled }"
+      :disabled="disabled"
+      @click="toggleDropdown"
+    >
+      <div class="flex flex-wrap gap-1 items-center flex-1">
+        <span
+          v-if="selected.length === 0"
+          class="opacity-50 text-sm"
+        >
+          {{ placeholder || "Selecciona opciones..." }}
+        </span>
+        <div
+          v-for="(val, idx) in selected"
+          :key="val"
+          class="badge badge-primary gap-1 py-2.5 px-2"
+          @click.stop="removeSelected(val)"
+        >
+          <span class="max-w-[150px] truncate">
+            {{ selectedLabels[idx] }}
           </span>
-          <div
-            v-for="val in selected"
-            :key="val"
-            class="badge badge-primary gap-1 py-3"
-          >
-            <span class="max-w-[150px] truncate">
-              {{ options.find((opt) => opt.value === val)?.label || val }}
-            </span>
-            <X
-              class="w-3 h-3 cursor-pointer hover:text-error transition-colors"
-              @click.stop="removeSelected(val)"
-            />
-          </div>
-        </div>
-        <ChevronDown class="h-4 w-4 opacity-50 ml-auto" />
-      </div>
-
-      <div
-        v-if="open"
-        class="dropdown-content z-20 menu p-2 shadow-xl bg-base-100 rounded-box w-full border  mt-1"
-      >
-        <div class="p-1 mb-2">
-          <input
-            ref="inputRef"
-            v-model="search"
-            type="text"
-            class="input input-sm input-bordered w-full"
-            placeholder="Buscar..."
-            @click.stop
+          <X
+            class="w-3 h-3 cursor-pointer hover:text-error transition-colors"
           />
         </div>
-
-        <ul class="max-h-60 overflow-y-auto w-full">
-          <li v-for="opt in filteredOptions" :key="opt.value">
-            <button
-              type="button"
-              class="w-full flex items-center justify-between"
-              :class="{ 'active': isSelected(opt.value) }"
-              @click="toggleSelect(opt.value)"
-            >
-              <span class="truncate">{{ opt.label }}</span>
-              <Check v-if="isSelected(opt.value)" class="h-4 w-4" />
-            </button>
-          </li>
-
-          <li v-if="filteredOptions.length === 0" class="disabled italic p-2 text-center opacity-50 text-sm">
-            Sin resultados
-          </li>
-        </ul>
       </div>
+      <ChevronDown
+        class="h-4 w-4 opacity-50 ml-2 shrink-0 transition-transform"
+        :class="{ 'rotate-180': open }"
+      />
+    </button>
+
+    <!-- Dropdown Menu -->
+    <div
+      v-show="open"
+      class="absolute z-50 left-0 right-0 top-full mt-1 bg-base-100 rounded-box shadow-xl border p-2"
+    >
+      <!-- Search -->
+      <div class="p-1 mb-2">
+        <input
+          v-model="search"
+          type="text"
+          class="input input-sm input-bordered w-full"
+          placeholder="Buscar..."
+          @click.stop
+        />
+      </div>
+
+      <!-- Options -->
+      <ul class="max-h-60 overflow-y-auto">
+        <li
+          v-for="opt in filteredOptions"
+          :key="opt.value"
+        >
+          <button
+            type="button"
+            class="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-base-200 transition-colors"
+            :class="{ 'bg-primary/10 text-primary': isSelected(opt.value) }"
+            @click="toggleSelect(opt.value)"
+          >
+            <span class="truncate">{{ opt.label }}</span>
+            <Check
+              v-if="isSelected(opt.value)"
+              class="h-4 w-4 shrink-0 ml-2"
+            />
+          </button>
+        </li>
+
+        <li
+          v-if="filteredOptions.length === 0"
+          class="italic p-3 text-center opacity-50 text-sm"
+        >
+          Sin resultados
+        </li>
+      </ul>
     </div>
 
+    <!-- Description / Error -->
     <label v-if="description" class="label py-1">
       <span class="label-text-alt text-base-content/60">{{ description }}</span>
     </label>
@@ -161,12 +193,15 @@ watch(open, (val) => {
 </template>
 
 <style scoped>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease;
+/* Custom scrollbar for dropdown */
+ul::-webkit-scrollbar {
+  width: 6px;
 }
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
+ul::-webkit-scrollbar-track {
+  background: transparent;
+}
+ul::-webkit-scrollbar-thumb {
+  background: hsl(var(--bc) / 0.2);
+  border-radius: 3px;
 }
 </style>

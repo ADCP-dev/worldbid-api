@@ -110,7 +110,7 @@ const fetchData = async () => {
     const responseData = await fetchWrapper.get(`${baseURL}/${props.endpoint}${separator}${queryString}`);
     // fetchWrapper already parses JSON and returns the body directly
     internalData.value = responseData.data || [];
-    totalCount.value = responseData.total ?? 0;
+    totalCount.value = responseData.total ?? responseData.meta?.total ?? 0;
   } catch (error) {
     console.error('Failed to fetch table data:', error);
   } finally {

@@ -26,6 +26,7 @@ import { CreateLangDto } from './dto/create-lang.dto';
 import { UpdateLangDto } from './dto/update-lang.dto';
 import { CreateTranslationDto } from './dto/create-translation.dto';
 import { UpdateTranslationDto } from './dto/update-translation.dto';
+import { BatchTranslationDto } from './dto/batch-translation.dto';
 
 import { Request } from 'express';
 import { ConfigService } from '@nestjs/config';
@@ -87,6 +88,32 @@ export class TranslationsController {
     return this.translationsService.createTranslation(createTranslationDto);
   }
 
+  @ApiBearerAuth()
+  @Roles(RoleEnum.admin)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Post('dynamic/batch')
+  @ApiOperation({ summary: 'Batch upsert dynamic translations' })
+  async batchUpsertDynamic(@Body() batchDto: BatchTranslationDto) {
+    const { entityName, entityId, category, lang, translations } = batchDto;
+
+    const items = translations.map((t) => ({
+      langCode: lang,
+      key: t.key,
+      content: t.value,
+      section: t.section,
+      category,
+      entityName,
+      entityId,
+    }));
+
+    return this.translationsService.batchUpsertDynamic(items, {
+      entityName,
+      entityId,
+      category,
+      lang,
+    });
+  }
+
   @Get()
   @ApiOperation({ summary: 'List translations with filters and pagination' })
   @ApiQuery({ name: 'page', required: false })
@@ -118,6 +145,7 @@ export class TranslationsController {
         entityId: filter?.entityId,
         app,
         q: search,
+        category: filter?.category,
       },
       {
         page,

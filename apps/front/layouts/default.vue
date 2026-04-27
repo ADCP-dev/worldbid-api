@@ -34,7 +34,9 @@ watch(() => route.fullPath, () => {
       </Header>
       <div class="container mx-auto px-4 py-6 grow">
         <Transition name="fade" mode="out-in">
-          <slot />
+          <div>
+            <slot />
+          </div>
         </Transition>
       </div>
     </div>

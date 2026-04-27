@@ -13,10 +13,11 @@ import { EntityRelationalHelper } from '@infra/utils/relational-entity-helper';
 import { FileEntity } from '@storage/files/infrastructure/entities/file.entity';
 import { UserEntity } from '@users/infrastructure/entities/user.entity';
 
-export enum PageTemplate {
+export enum PageSection {
   LANDING = 'landing',
-  GENERIC = 'generic',
-  CONTACT = 'contact',
+  BLOG = 'blog',
+  DOCUMENTATION = 'documentation',
+  STORE = 'store',
 }
 
 @Entity({
@@ -28,17 +29,21 @@ export class PageEntity extends EntityRelationalHelper {
 
   @Index({ unique: true })
   @Column({ type: String })
+  name: string;
+
+  @Index()
+  @Column({ type: String })
   slug: string;
 
   @Column({ type: String, nullable: true })
   route: string;
 
   @Column({
-    type: String,
-    enum: PageTemplate,
-    default: PageTemplate.GENERIC,
+    type: 'enum',
+    enum: PageSection,
+    nullable: true,
   })
-  template: PageTemplate;
+  section?: PageSection | null;
 
   @Column({ type: 'int', default: 0 })
   order: number;

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { PageEntity } from './infrastructure/entities/page.entity';
 import { CreatePageDto } from './dto/create-page.dto';
 import { UpdatePageDto } from './dto/update-page.dto';
@@ -8,6 +8,8 @@ import { FindAllPageDto } from './dto/find-all-page.dto';
 import { TranslationsService } from '@src/modules/translations/translations.service';
 import { SeoService } from '../seo/seo.service';
 import { FilesService } from '@storage/files/files.service';
+import { slugify } from '@infra/utils/slugify';
+import { TranslationEntity } from '@src/modules/translations/infrastructure/entities/translation.entity';
 
 @Injectable()
 export class PagesService {
@@ -16,14 +18,76 @@ export class PagesService {
   constructor(
     @InjectRepository(PageEntity)
     private readonly pageRepository: Repository<PageEntity>,
+    @InjectRepository(TranslationEntity)
+    private readonly translationRepository: Repository<TranslationEntity>,
     private readonly translationsService: TranslationsService,
     private readonly seoService: SeoService,
     private readonly filesService: FilesService,
   ) {}
 
   async create(createPageDto: CreatePageDto): Promise<PageEntity> {
-    const page = this.pageRepository.create(createPageDto);
-    return this.pageRepository.save(page);
+    const { name, slug, ...rest } = createPageDto;
+
+    if (!name) {
+      throw new NotFoundException('Name is required');
+    }
+
+    const finalSlug = slug ?? slugify(name);
+
+    const page = this.pageRepository.create({
+      ...rest,
+      name,
+      slug: finalSlug,
+    });
+
+    const saved = await this.pageRepository.save(page);
+    (saved as any).translations = {};
+    return saved;
+  }
+
+  private async loadTranslationsForPages(
+    pages: PageEntity[],
+  ): Promise<Map<string, Record<string, Record<string, string>>>> {
+    if (pages.length === 0) {
+      return new Map();
+    }
+
+    const categories = pages.map((p) => `page.${p.name}`);
+    const translations = await this.translationRepository.find({
+      where: {
+        category: In(categories),
+      },
+      relations: ['lang'],
+    });
+
+    const result = new Map<string, Record<string, Record<string, string>>>();
+    for (const page of pages) {
+      result.set(page.id, {});
+    }
+
+    for (const t of translations) {
+      const langCode = t.lang?.code || 'es';
+      const matchingPage = pages.find((p) => `page.${p.name}` === t.category);
+      if (!matchingPage) continue;
+
+      const pageTranslations = result.get(matchingPage.id) || {};
+      if (!pageTranslations[langCode]) {
+        pageTranslations[langCode] = {};
+      }
+      pageTranslations[langCode][t.key] = t.content;
+      result.set(matchingPage.id, pageTranslations);
+    }
+
+    return result;
+  }
+
+  private attachTranslations(
+    page: PageEntity,
+    translationsMap: Map<string, Record<string, Record<string, string>>>,
+  ): PageEntity {
+    const translations = translationsMap.get(page.id) || {};
+    (page as any).translations = translations;
+    return page;
   }
 
   async findAll(query: FindAllPageDto) {
@@ -43,24 +107,13 @@ export class PagesService {
       relations: ['featuredImage', 'author'],
     });
 
-    // Fetch translations for page titles (default lang: es)
-    const pagesWithTitles = await Promise.all(
-      data.map(async (pageEntity) => {
-        const translations =
-          await this.translationsService.getTranslationsForEntity(
-            'Page',
-            pageEntity.id,
-            'es',
-          );
-        return {
-          ...pageEntity,
-          title: translations['title']?.value || pageEntity.slug,
-        };
-      }),
+    const translationsMap = await this.loadTranslationsForPages(data);
+    const dataWithTranslations = data.map((p) =>
+      this.attachTranslations(p, translationsMap),
     );
 
     return {
-      data: pagesWithTitles,
+      data: dataWithTranslations,
       meta: {
         page,
         limit,
@@ -81,8 +134,13 @@ export class PagesService {
       relations: ['featuredImage'],
     });
 
+    const translationsMap = await this.loadTranslationsForPages(data);
+    const dataWithTranslations = data.map((p) =>
+      this.attachTranslations(p, translationsMap),
+    );
+
     return {
-      data,
+      data: dataWithTranslations,
       meta: {
         page,
         limit,
@@ -100,7 +158,9 @@ export class PagesService {
     if (!page) {
       throw new NotFoundException(`Page with ID ${id} not found`);
     }
-    return page;
+
+    const translationsMap = await this.loadTranslationsForPages([page]);
+    return this.attachTranslations(page, translationsMap);
   }
 
   async findBySlug(slug: string): Promise<PageEntity> {
@@ -111,24 +171,56 @@ export class PagesService {
     if (!page) {
       throw new NotFoundException(`Page with slug ${slug} not found`);
     }
-    return page;
+
+    const translationsMap = await this.loadTranslationsForPages([page]);
+    return this.attachTranslations(page, translationsMap);
   }
 
   async findBySlugPublic(slug: string): Promise<PageEntity> {
-    const page = await this.pageRepository.findOne({
-      where: { slug, isPublished: true },
-      relations: ['featuredImage'],
+    // First try to find by translated slug in any page category
+    const translation = await this.translationRepository.findOne({
+      where: {
+        key: 'slug',
+        section: 'page',
+        content: slug,
+      },
+      relations: ['lang'],
     });
+
+    let page: PageEntity | null = null;
+
+    if (translation?.category) {
+      const pageName = translation.category.replace(/^page\./, '');
+      page = await this.pageRepository.findOne({
+        where: { name: pageName, isPublished: true },
+        relations: ['featuredImage'],
+      });
+    }
+
+    // Fallback to base slug
+    if (!page) {
+      page = await this.pageRepository.findOne({
+        where: { slug, isPublished: true },
+        relations: ['featuredImage'],
+      });
+    }
+
     if (!page) {
       throw new NotFoundException(`Published page with slug ${slug} not found`);
     }
-    return page;
+
+    const translationsMap = await this.loadTranslationsForPages([page]);
+    return this.attachTranslations(page, translationsMap);
   }
 
   async update(id: string, updatePageDto: UpdatePageDto): Promise<PageEntity> {
     const page = await this.findById(id);
     Object.assign(page, updatePageDto);
-    return this.pageRepository.save(page);
+    const saved = await this.pageRepository.save(page);
+
+    // Reload translations if name changed
+    const translationsMap = await this.loadTranslationsForPages([saved]);
+    return this.attachTranslations(saved, translationsMap);
   }
 
   async publish(id: string, isPublished: boolean): Promise<PageEntity> {
@@ -175,12 +267,12 @@ export class PagesService {
     };
   }> {
     const page = await this.findById(id);
+    const category = `page.${page.name}`;
 
     // Get translations for this page and lang
     const translations =
-      await this.translationsService.getTranslationsForEntity(
-        'Page',
-        page.id,
+      await this.translationsService.getTranslationsForCategory(
+        category,
         lang,
       );
 

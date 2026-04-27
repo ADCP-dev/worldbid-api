@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import FormInput from "@base/ui-app/components/form/FormInput.vue";
+import FormTextArea from "@base/ui-app/components/form/FormTextArea.vue";
+import { categorySchema } from "@cms/schemas/category.schema";
+import { toast } from "vue-sonner";
+
 definePageMeta({
   layout: "default",
   middleware: "auth",
@@ -19,50 +24,104 @@ const {
 
 const categoryId = route.params.id as string;
 const isDeleting = ref(false);
+const validationErrors = ref<Record<string, string>>({});
+const allOpen = ref(false);
 
-const form = ref({
-  name: "",
-  slug: "",
-  description: "",
-  parentId: null as string | null,
+const languages = [
+  { code: "es", label: "Español", flag: "🇪🇸" },
+  { code: "en", label: "English", flag: "🇬🇧" },
+];
+
+const translations = ref<Record<string, { name: string; description: string }>>({
+  es: { name: "", description: "" },
+  en: { name: "", description: "" },
 });
+
+const slug = ref("");
+const parentId = ref<string | null>(null);
+
+function kebabCase(str: string): string {
+  return str
+    .trim()
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/_/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+}
+
+// Auto-generate slug from Spanish name
+let slugManuallyEdited = false;
+watch(
+  () => translations.value.es.name,
+  (newVal) => {
+    if (!slugManuallyEdited || !slug.value) {
+      slug.value = kebabCase(newVal);
+    }
+  },
+);
 
 onMounted(async () => {
   try {
-    // Fetch all categories for parent selection
     await fetchCategories();
-
-    // Fetch the specific category
     const category = await fetchCategory(categoryId);
-    form.value = {
-      name: category.name || "",
-      slug: category.slug || "",
-      description: category.description || "",
-      parentId: category.parentId || null,
-    };
+    
+    translations.value.es.name = category.name || "";
+    translations.value.es.description = category.description || "";
+    slug.value = category.slug || "";
+    parentId.value = category.parentId || null;
+    
+    // TODO: Fetch translations for other languages when API supports it
   } catch (e) {
-    console.error(e);
+    // Silent error
   }
 });
 
+const toggleAll = () => {
+  allOpen.value = !allOpen.value;
+  const details = document.querySelectorAll('details[name="category-accordion"]');
+  details.forEach((detail) => {
+    if (allOpen.value) {
+      detail.setAttribute("open", "");
+    } else {
+      detail.removeAttribute("open");
+    }
+  });
+};
+
 const handleSubmit = async () => {
+  const dataToValidate = {
+    name: translations.value.es.name,
+    slug: slug.value,
+  };
+
+  const result = categorySchema.safeParse(dataToValidate);
+  if (!result.success) {
+    validationErrors.value = {};
+    result.error.errors.forEach((err) => {
+      validationErrors.value[err.path[0]] = err.message;
+    });
+    return;
+  }
+
   try {
     await updateCategory(categoryId, {
-      name: form.value.name,
-      slug: form.value.slug,
-      description: form.value.description || undefined,
-      parentId: form.value.parentId,
+      name: translations.value.es.name,
+      slug: slug.value,
+      description: translations.value.es.description || undefined,
+      parentId: parentId.value,
     });
+
+    toast.success("Categoría actualizada correctamente");
     router.push("/app/cms/blog/categories");
   } catch (e) {
-    console.error(e);
+    toast.error((e as any)?.message || "Error al guardar");
   }
 };
 
 const handleDelete = async () => {
   if (isDeleting.value) return;
-
-  const confirmed = confirm(t("cms.confirmDelete"));
+  const confirmed = confirm(t("pages.common.confirmDelete"));
   if (!confirmed) return;
 
   isDeleting.value = true;
@@ -70,12 +129,10 @@ const handleDelete = async () => {
     await deleteCategory(categoryId);
     router.push("/app/cms/blog/categories");
   } catch (e) {
-    console.error(e);
     isDeleting.value = false;
   }
 };
 
-// Filter out current category and its descendants from parent options
 const availableParents = computed(() => {
   const excludeIds = new Set<string>();
   const addDescendants = (id: string) => {
@@ -85,114 +142,106 @@ const availableParents = computed(() => {
       .forEach((c) => addDescendants(c.id));
   };
   addDescendants(categoryId);
-
   return categories.value.filter((c) => !excludeIds.has(c.id));
 });
 </script>
 
 <template>
-  <div class="container mx-auto py-8">
+  <div class="container mx-auto py-8 max-w-3xl">
+    <!-- Header -->
     <div class="flex justify-between items-center mb-8">
       <div class="flex items-center gap-4">
         <NuxtLink to="/app/cms/blog/categories" class="btn btn-ghost btn-sm">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M10 19l-7-7m0 0l7-7m-7 7h18"
-            />
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
         </NuxtLink>
-        <h1 class="text-3xl font-bold">{{ t("cms.blog.categories.edit") }}</h1>
+        <h1 class="text-3xl font-bold">{{ t("pages.blog.categories.edit") }}</h1>
       </div>
       <div class="flex items-center gap-4">
-        <button
-          class="btn btn-ghost text-error"
-          :disabled="isDeleting"
-          @click="handleDelete"
-        >
-          {{ isDeleting ? t("cms.deleting") + "..." : t("cms.delete") }}
+        <button type="button" class="btn btn-sm btn-outline" @click="toggleAll">
+          {{ allOpen ? 'Colapsar todo' : 'Expandir todo' }}
+        </button>
+        <button class="btn btn-ghost text-error" :disabled="isDeleting" @click="handleDelete">
+          {{ isDeleting ? t("pages.common.deleting") + "..." : t("pages.common.delete") }}
         </button>
         <NuxtLink to="/app/cms/blog/categories" class="btn btn-ghost">
-          {{ t("cms.cancel") }}
+          {{ t("pages.common.cancel") }}
         </NuxtLink>
       </div>
     </div>
 
-    <form @submit.prevent="handleSubmit" class="max-w-2xl space-y-6">
-      <div class="form-control">
-        <label class="label">
-          <span class="label-text">{{ t("cms.blog.categories.name") }}</span>
-        </label>
-        <input
-          v-model="form.name"
-          type="text"
-          class="input input-bordered"
-          required
-        />
-      </div>
+    <form @submit.prevent="handleSubmit" class="space-y-4">
+      <!-- Accordion per language -->
+      <div class="join join-vertical w-full">
+        <details
+          v-for="lang in languages"
+          :key="lang.code"
+          class="collapse collapse-arrow join-item border border-base-300 bg-base-100"
+          :open="lang.code === 'es'"
+        >
+          <summary class="collapse-title font-semibold">
+            <span class="mr-2">{{ lang.flag }}</span>
+            {{ lang.label }}
+            <span v-if="lang.code === 'es'" class="badge badge-sm badge-primary ml-2">Por defecto</span>
+          </summary>
+          <div class="collapse-content">
+            <div class="space-y-4 pt-2">
+              <!-- Name -->
+              <FormInput
+                v-model="translations[lang.code].name"
+                :label="t('pages.blog.categories.name')"
+                required
+                placeholder="en minúsculas, ej: mi-categoria"
+                :error="lang.code === 'es' ? validationErrors.name : undefined"
+              />
 
-      <div class="form-control">
-        <label class="label">
-          <span class="label-text">Slug</span>
-        </label>
-        <input
-          v-model="form.slug"
-          type="text"
-          class="input input-bordered"
-          required
-        />
-      </div>
+              <!-- Slug (only on default lang) -->
+              <FormInput
+                v-if="lang.code === 'es'"
+                v-model="slug"
+                label="Slug"
+                placeholder="Se genera en minúsculas desde el nombre"
+                required
+                :error="validationErrors.slug"
+                @focus="slugManuallyEdited = true"
+              />
+              <div v-else class="text-sm text-base-content/60 bg-base-200 p-3 rounded-lg">
+                <span class="font-medium">Slug:</span> {{ slug || '—' }}
+              </div>
 
-      <div class="form-control">
-        <label class="label">
-          <span class="label-text">{{
-            t("cms.blog.categories.description")
-          }}</span>
-        </label>
-        <textarea
-          v-model="form.description"
-          class="textarea textarea-bordered"
-          rows="3"
-        ></textarea>
-      </div>
+              <!-- Description -->
+              <FormTextArea
+                v-model="translations[lang.code].description"
+                :label="t('pages.blog.categories.description')"
+                :rows="3"
+              />
 
-      <div class="form-control">
-        <label class="label">
-          <span class="label-text">{{ t("cms.blog.categories.parent") }}</span>
-        </label>
-        <select v-model="form.parentId" class="select select-bordered">
-          <option :value="null">
-            -- {{ t("cms.blog.categories.noParent") }} --
-          </option>
-          <option v-for="cat in availableParents" :key="cat.id" :value="cat.id">
-            {{ cat.name }}
-          </option>
-        </select>
-        <label class="label">
-          <span class="label-text-alt">{{
-            t("cms.blog.categories.parentHint")
-          }}</span>
-        </label>
+              <!-- Parent (only on default lang) -->
+              <div v-if="lang.code === 'es'">
+                <label class="label-text font-semibold mb-1 block">{{ t("pages.blog.categories.parent") }}</label>
+                <select v-model="parentId" class="select select-bordered w-full">
+                  <option :value="null">-- {{ t("pages.blog.categories.noParent") }} --</option>
+                  <option v-for="cat in availableParents" :key="cat.id" :value="cat.id">
+                    {{ cat.name }}
+                  </option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </details>
       </div>
 
       <div v-if="error" class="alert alert-error">
         {{ error }}
       </div>
 
-      <div class="flex gap-4">
+      <div class="flex gap-4 pt-4">
         <button type="submit" class="btn btn-primary" :disabled="loading">
-          {{ loading ? t("cms.save") + "..." : t("cms.save") }}
+          {{ loading ? t("pages.common.save") + "..." : t("pages.common.save") }}
         </button>
         <NuxtLink to="/app/cms/blog/categories" class="btn btn-ghost">
-          {{ t("cms.cancel") }}
+          {{ t("pages.common.cancel") }}
         </NuxtLink>
       </div>
     </form>

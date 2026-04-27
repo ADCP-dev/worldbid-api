@@ -9,6 +9,7 @@ import { MailerModule } from '@infra/mailer/mailer.module';
 import { ExtensionLoaderModule } from '@core/extension-loader';
 import { TranslationsModule } from '@src/modules/translations/translations.module';
 import { ErrorTrackerModule } from '@src/modules/error-tracker/error-tracker.module';
+import { CmsModule } from '../modules/cms/cms.module';
 
 @Module({
   imports: [
@@ -19,6 +20,9 @@ import { ErrorTrackerModule } from '@src/modules/error-tracker/error-tracker.mod
     CommsModule,
     StorageModule,
     MailerModule,
+
+    // CMS
+    CmsModule,
 
     // Extensions (auto-discovery)
     ExtensionLoaderModule.register(),

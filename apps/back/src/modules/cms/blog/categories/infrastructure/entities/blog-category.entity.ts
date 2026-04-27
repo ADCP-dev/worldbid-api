@@ -4,13 +4,17 @@ import {
   DeleteDateColumn,
   Entity,
   Index,
+  JoinColumn,
+  JoinTable,
+  ManyToMany,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
-  JoinColumn,
 } from 'typeorm';
 import { EntityRelationalHelper } from '@infra/utils/relational-entity-helper';
+import { BlogPostEntity } from '../../../posts/infrastructure/entities/blog-post.entity';
+import { TagEntity } from '../../../posts/infrastructure/entities/post-tag.entity';
 
 @Entity({
   name: 'blog_category',
@@ -25,9 +29,6 @@ export class BlogCategoryEntity extends EntityRelationalHelper {
 
   @Column({ type: 'varchar', length: 100 })
   name: string;
-
-  @Column({ type: 'text', nullable: true })
-  description: string | null;
 
   @Column({ type: 'int', default: 0 })
   order: number;
@@ -44,6 +45,17 @@ export class BlogCategoryEntity extends EntityRelationalHelper {
 
   @OneToMany(() => BlogCategoryEntity, (category) => category.parent)
   children?: BlogCategoryEntity[];
+
+  @OneToMany(() => BlogPostEntity, (post: BlogPostEntity) => post.category)
+  posts: BlogPostEntity[];
+
+  @ManyToMany(() => TagEntity, { eager: true })
+  @JoinTable({
+    name: 'blog_category_tag',
+    joinColumn: { name: 'categoryId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'tagId', referencedColumnName: 'id' },
+  })
+  tags: TagEntity[];
 
   @CreateDateColumn()
   createdAt: Date;

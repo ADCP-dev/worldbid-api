@@ -12,6 +12,16 @@ import {
 import { EntityRelationalHelper } from '@infra/utils/relational-entity-helper';
 import { FileEntity } from '@storage/files/infrastructure/entities/file.entity';
 
+export interface RobotsPolicy {
+  index?: boolean;
+  follow?: boolean;
+  maxImagePreview?: 'none' | 'small' | 'large';
+  maxVideoPreview?: 'none' | 'small' | 'large' | number;
+  maxSnippet?: 'none' | number;
+  noArchive?: boolean;
+  noTranslate?: boolean;
+}
+
 @Entity({
   name: 'seo_metadata',
 })
@@ -57,6 +67,18 @@ export class SeoMetadataEntity extends EntityRelationalHelper {
 
   @Column({ type: 'varchar', length: 20, nullable: true })
   type?: 'WebPage' | 'Article' | 'WebSite';
+
+  @Column({ type: 'jsonb', nullable: true })
+  robotsPolicy: RobotsPolicy | null;
+
+  @Column({ type: 'boolean', default: true, nullable: true })
+  hreflangEnabled: boolean;
+
+  @Column({ type: 'simple-array', nullable: true })
+  hreflangAlternateLocales: string[] | null;
+
+  @Column({ type: 'jsonb', nullable: true })
+  hreflangCustomUrls: Record<string, string> | null;
 
   @CreateDateColumn()
   createdAt: Date;

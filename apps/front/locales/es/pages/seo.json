@@ -1,0 +1,12 @@
+{
+  "title": "SEO",
+  "metaTitle": "Título Meta",
+  "metaDescription": "Descripción Meta",
+  "metaKeywords": "Palabras Clave",
+  "ogImage": "Imagen OG",
+  "canonicalUrl": "URL Canónica",
+  "selectKeywords": "Selecciona palabras clave...",
+  "newKeyword": "Nueva palabra clave...",
+  "metaTitlePlaceholder": "Meta título",
+  "metaDescriptionPlaceholder": "Meta descripción"
+}

@@ -10,5 +10,6 @@
   "users": "Usuarios",
   "translations_heading": "Traducciones",
   "languages": "Idiomas",
-  "all_translations": "Traducciones"
+  "all_translations": "Traducciones",
+  "error_logs": "Registro de Errores"
 }
