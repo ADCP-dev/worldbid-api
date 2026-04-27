@@ -31,7 +31,7 @@ function parseFrontmatter(content) {
   const match = content.match(/^---\s*\n([\s\S]*?)\n---/);
   if (!match) return null;
 
-  const raw = match[1];
+  const raw = match[1].replace(/\r\n/g, "\n");
   const result = {};
 
   const lines = raw.split("\n");
