@@ -155,6 +155,8 @@ All skills are listed in the project's skill registry. Grouped by loading strate
 | `daisyui` | Using DaisyUI components | Tailwind CSS component library with themes |
 | `nestjs-best-practices` | Reviewing/refactoring | NestJS production-ready patterns |
 | `GitHub CLI` | GitHub operations | PRs, issues, workflows, releases via `gh` |
+| `tavily-cli` | Web search, research | Official Tavily CLI — real-time web search for LLMs |
+| `apify-scrape` | Web scraping, data extraction | Run Apify actors to scrape websites into structured Markdown |
 
 ### On-Demand (load manually)
 
@@ -184,20 +186,79 @@ All skills are listed in the project's skill registry. Grouped by loading strate
 
 ## 8. External Research
 
-| Tool | Purpose | When to Use |
-|------|---------|-------------|
-| **Tavily** (`tavily_*`) | Web search API — real-time information retrieval. Returns ranked, curated results from the web. | When you need up-to-date information, docs, or answers from the internet. |
-| **Apify** (`apify_*`) | Web scraping and data extraction platform. Runs actors (pre-built scrapers) for sites like documentation portals, social media, e-commerce. | When you need to scrape structured data from a specific website at scale. |
-| **Context7** (`context7_*`) | Documentation resolver with code examples. Resolves library IDs and queries documentation with code snippets. Two tools: `context7_resolve-library-id` and `context7_query-docs`. | When you need authoritative documentation or code examples for a specific library or framework. Use researchMode for deep investigation. |
+### Tavily CLI (`tavily-cli`)
+
+Official Tavily search CLI for real-time web search. Integrated as a project skill.
+
+**Skill file:** `.opencode/skills/tavily-cli/SKILL.md`
+**API Key:** `TAVILY_API_KEY` in `.env.local`
+
+**API Endpoint:** `POST https://api.tavily.com/search`
+**Auth:** `Authorization: Bearer <TAVILY_API_KEY>`
+
+| Parameter | Values | Default | Notes |
+|-----------|--------|---------|-------|
+| `query` | string | — | **Required.** Search query. |
+| `search_depth` | `basic` (1 credit), `advanced` (2 credits), `fast`, `ultra-fast` | `basic` | Use `advanced` for technical queries |
+| `topic` | `general`, `news`, `finance` | `general` | |
+| `max_results` | 0-20 | 5 | |
+| `include_answer` | `true`, `false`, `"basic"`, `"advanced"` | `false` | LLM-generated summary |
+| `time_range` | `day`, `week`, `month`, `year` | — | Filter by publish date |
+| `include_domains` | `["docs.stripe.com"]` | `[]` | Restrict to specific domains |
+| `exclude_domains` | `["reddit.com"]` | `[]` | Exclude noise domains |
+
+**Rules:**
+- Max 3 queries per task (API credits cost)
+- Save findings to `docs/research/<issue>--<topic>.md` with YAML frontmatter
+- Check Context7 first for library-specific docs (free)
+
+### Apify Scrape (`apify-scrape`)
+
+Run Apify Actors to scrape structured data from websites. Output saved to `docs/research/` for ingestion into the knowledge graph.
+
+**Skill file:** `.opencode/skills/apify-scrape/SKILL.md`
+**API Key:** `APIFY_API_KEY` in `.env.local`
+
+**API Endpoint:** `POST https://api.apify.com/v2/acts/{actorId}/runs`
+**Auth:** `Authorization: Bearer <APIFY_API_KEY>`
+
+| Actor | Purpose |
+|-------|---------|
+| `apify/website-content-crawler` | Scrape documentation sites, outputs Markdown + HTML |
+| `apify/web-scraper` | Generic web scraping with Cheerio/Playwright |
+
+**Workflow (async):**
+1. `POST /v2/acts/{actorId}/runs` — start actor run, get `runId` + `defaultDatasetId`
+2. `GET /v2/acts/{actorId}/runs/{runId}` — poll every 5s until `SUCCEEDED`
+3. `GET /v2/datasets/{defaultDatasetId}/items` — fetch structured results
+
+**Workflow (sync, ≤300s):**
+`POST /v2/acts/{actorId}/run-sync` — returns dataset items directly
+
+**Rules:**
+- Only use if Tavily is insufficient (Apify costs per compute unit)
+- Max 20 pages per scrape
+- Save output to `docs/research/<source-name>/<slug>.md`
+- After scraping, run `graphify ./docs --update` to integrate into the graph
+- Respect robots.txt
+
+### Context7 (`context7_*`)
+
+Documentation resolver with code examples. Already available as MCP tools.
+
+| Tool | Description |
+|------|-------------|
+| `context7_resolve-library-id` | Resolve a package name to a valid Context7 library ID |
+| `context7_query-docs` | Query documentation with code examples. Use `researchMode: true` for deep investigation |
 
 ### Decision Guide
 
-| Need | Tool |
-|------|------|
-| "How do I use library X?" | Context7 |
-| "What's the latest on topic Y?" | Tavily |
-| "Scrape all products from site Z" | Apify |
-| "Find docs + code examples for framework W" | Context7 + Tavily fallback |
+| Need | Tool | Cost |
+|------|------|------|
+| "How do I use `useFetch` in Nuxt 4?" | **Context7** | Free |
+| "Breaking changes in Stripe API 2026?" | **Tavily** | API credits |
+| "Full reference of OpenAI Assistants API" | **Apify** | Compute units |
+| "Find docs + code examples for framework W" | Context7 → Tavily fallback | |
 
 ---
 
