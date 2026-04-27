@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 const { execSync } = require("child_process");
-const { existsSync } = require("fs");
+const { existsSync, rmSync } = require("fs");
 const { resolve } = require("path");
 
 const worktreeName = process.argv[2];
@@ -26,7 +26,14 @@ console.log(`\n==> Cleaning up worktree: ${worktreeName}\n`);
 // [1/2] Remove worktree directory
 console.log("[1/2] Removing worktree...");
 if (existsSync(worktreePath)) {
-  run(`git worktree remove "${worktreePath}" --force`);
+  try {
+    run(`git worktree remove "${worktreePath}" --force`);
+  } catch { /* may leave files behind */ }
+  // Fallback: if directory still exists (node_modules, etc.), force-remove
+  if (existsSync(worktreePath)) {
+    try { rmSync(worktreePath, { recursive: true, force: true }); } catch {}
+    run("git worktree prune");
+  }
 } else {
   console.log("  Directory not found, pruning...");
   run("git worktree prune");
