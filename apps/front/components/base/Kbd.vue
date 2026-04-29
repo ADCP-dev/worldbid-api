@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { cva } from 'class-variance-authority'
+import clsx from 'clsx'
 import { computed } from 'vue'
 
 interface KbdProps {
@@ -12,22 +12,18 @@ const props = withDefaults(defineProps<KbdProps>(), {
   size: 'sm',
 })
 
-const kbdClass = computed(() => {
-  return cva(
-    'inline-flex items-center pointer-events-none min-w-5 h-5 select-none justify-center items-center gap-1 rounded border border-border bg-muted font-sans font-medium',
-    {
-      variants: {
-        size: {
-          xs: 'min-h-4 text-[10px] h-4 px-1',
-          sm: 'min-h-5 text-[11px] h-5 px-1',
-          md: 'min-h-6 text-[12px] h-6 px-1.5',
-        },
-      },
-    },
-  )({
-    size: props.size,
-  })
-})
+const sizeClasses: Record<KbdProps['size'], string> = {
+  xs: 'min-h-4 text-[10px] h-4 px-1',
+  sm: 'min-h-5 text-[11px] h-5 px-1',
+  md: 'min-h-6 text-[12px] h-6 px-1.5',
+}
+
+const kbdClass = computed(() =>
+  clsx(
+    'inline-flex items-center pointer-events-none min-w-5 h-5 select-none justify-center gap-1 rounded border border-border bg-muted font-sans font-medium',
+    sizeClasses[props.size],
+  ),
+)
 </script>
 
 <template>
