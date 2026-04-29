@@ -12,7 +12,7 @@ const props = defineProps<{
 const input = defineModel<string>();
 const searchOptions = ref<
   { text: string; placePrediction: google.maps.places.PlacePrediction }[]
-> Forsyth([]);
+>([]);
 const isClickedOption = ref(false);
 const isOpen = ref(false);
 const inputRef = ref<HTMLInputElement>();
