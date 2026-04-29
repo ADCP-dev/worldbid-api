@@ -218,7 +218,7 @@ def main():
             return
         print(f"Path ({len(path) - 1} hops):")
         for i, nid in enumerate(path):
-            prefix = "  " + ("└─ " if i == len(path) - 1 else "├─ ")
+            prefix = "  " + ("`- " if i == len(path) - 1 else "|- ")
             print(f"{prefix}{format_node(nid, nodes)}")
         return
 

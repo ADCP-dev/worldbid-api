@@ -195,6 +195,7 @@ Skills = workflows especializados y conocimiento de dominio. Se auto-detectan se
 | `tavily-cli` | Web search oficial Tavily | Búsqueda web externa, breaking changes |
 | `apify-scrape` | Apify actors pa web scraping | Scrapear documentación completa |
 | `graphify` | Knowledge graph builder | Análisis de arquitectura, dependencias |
+| `graph-query` | Query al knowledge graph (con imports @) | Preguntas de arquitectura, dependencias |
 | `GitHub CLI` | PRs, issues, workflows, releases | Operaciones GitHub |
 | `daisyui` | Componentes Tailwind con temas | UI rápida con Tailwind |
 | `find-skills` | Descubrir e instalar skills | Buscar skills disponibles |
@@ -784,10 +785,41 @@ Other agents may be in other worktrees. Coordinate via: Graphify docs, Engram me
 
 ## graphify
 
-This project has a graphify knowledge graph at graphify-out/.
+Knowledge graph del código en `graphify-out/graph.json`. Generado con AST (gratis, sin tokens).
+Post-procesado con `bin/enrich-graph.py` para resolver imports con alias `@` (back + front).
 
-Rules:
-- Before answering architecture or codebase questions, read graphify-out/GRAPH_REPORT.md for god nodes and community structure
-- If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
-- For cross-module "how does X relate to Y" questions, prefer `graphify query "<question>"`, `graphify path "<A>" "<B>"`, or `graphify explain "<concept>"` over grep — these traverse the graph's EXTRACTED + INFERRED edges instead of scanning files
-- After modifying code files in this session, run `graphify update .` to keep the graph current (AST-only, no API cost)
+### Cómo usarlo (agente)
+
+**NUNCA** uses `graphify query` (CLI built-in). Usá **siempre** `python bin/graph-query.py`:
+
+```bash
+# Explorar qué hay alrededor de un concepto (BFS)
+python bin/graph-query.py auth guard decorator --depth 2
+
+# Shortest path entre dos módulos
+python bin/graph-query.py AuthService FileEntity --mode path
+
+# Listar nodos que matchean
+python bin/graph-query.py email mail queue --mode explain
+
+# Stats del grafo
+python bin/graph-query.py --mode stats
+
+# Trazar cadena profunda (DFS)
+python bin/graph-query.py auth jwt strategy --mode dfs --depth 5
+```
+
+### Reconstruir el grafo (solo tras cambios grandes de código)
+
+```bash
+graphify .                           # AST extraction (gratis)
+python bin/enrich-graph.py           # Agrega imports @ (lee tsconfigs + nuxt.config)
+```
+
+**NO** reconstruir en cada query — solo cuando usuario pide "actualizá el grafo".
+
+### Limitaciones
+
+- **Front ↔ Back no linkeados**: `fetchWrapper.get('/users')` no apunta a `UsersController`
+- **Nuxt auto-imports**: componentes/composables auto-importados no generan edges
+- **Solo code**: no dependencias de paquetes npm

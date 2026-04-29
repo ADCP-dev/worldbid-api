@@ -48364,6 +48364,1056 @@
       "source_file": "C:\\proyectos\\foundation\\apps\\back\\src\\modules\\communications\\mail\\mail.module.ts",
       "source_location": "@@comms/email-queue/email-queue.module",
       "weight": 1.0
+    },
+    {
+      "source": "apps_front_components_interactivetranslationeditor_vue",
+      "target": "apps_front_modules_base_translations_composables_usetranslations_ts",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\components\\InteractiveTranslationEditor.vue",
+      "source_location": "@@/modules/base/translations/composables/useTranslations",
+      "weight": 1.0
+    },
+    {
+      "source": "interactivetranslationeditor_bulktranslate",
+      "target": "apps_front_modules_base_translations_composables_usetranslations_ts",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\components\\InteractiveTranslationEditor.vue",
+      "source_location": "@@/modules/base/translations/composables/useTranslations",
+      "weight": 1.0
+    },
+    {
+      "source": "interactivetranslationeditor_fetchlangs",
+      "target": "apps_front_modules_base_translations_composables_usetranslations_ts",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\components\\InteractiveTranslationEditor.vue",
+      "source_location": "@@/modules/base/translations/composables/useTranslations",
+      "weight": 1.0
+    },
+    {
+      "source": "interactivetranslationeditor_openeditor",
+      "target": "apps_front_modules_base_translations_composables_usetranslations_ts",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\components\\InteractiveTranslationEditor.vue",
+      "source_location": "@@/modules/base/translations/composables/useTranslations",
+      "weight": 1.0
+    },
+    {
+      "source": "interactivetranslationeditor_handlesaveall",
+      "target": "apps_front_modules_base_translations_composables_usetranslations_ts",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\components\\InteractiveTranslationEditor.vue",
+      "source_location": "@@/modules/base/translations/composables/useTranslations",
+      "weight": 1.0
+    },
+    {
+      "source": "interactivetranslationeditor_interceptclick",
+      "target": "apps_front_modules_base_translations_composables_usetranslations_ts",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\components\\InteractiveTranslationEditor.vue",
+      "source_location": "@@/modules/base/translations/composables/useTranslations",
+      "weight": 1.0
+    },
+    {
+      "source": "interactivetranslationeditor_handlemouseover",
+      "target": "apps_front_modules_base_translations_composables_usetranslations_ts",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\components\\InteractiveTranslationEditor.vue",
+      "source_location": "@@/modules/base/translations/composables/useTranslations",
+      "weight": 1.0
+    },
+    {
+      "source": "interactivetranslationeditor_handlemouseout",
+      "target": "apps_front_modules_base_translations_composables_usetranslations_ts",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\components\\InteractiveTranslationEditor.vue",
+      "source_location": "@@/modules/base/translations/composables/useTranslations",
+      "weight": 1.0
+    },
+    {
+      "source": "interactivetranslationeditor_handlescroll",
+      "target": "apps_front_modules_base_translations_composables_usetranslations_ts",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\components\\InteractiveTranslationEditor.vue",
+      "source_location": "@@/modules/base/translations/composables/useTranslations",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_components_custom_google_places_autocomplete_googleplacesautocomplete_vue",
+      "target": "apps_front_composables_usegooglemaps_ts",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\components\\custom\\google-places-autocomplete\\GooglePlacesAutocomplete.vue",
+      "source_location": "@@/composables/useGoogleMaps",
+      "weight": 1.0
+    },
+    {
+      "source": "googleplacesautocomplete_if",
+      "target": "apps_front_composables_usegooglemaps_ts",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\components\\custom\\google-places-autocomplete\\GooglePlacesAutocomplete.vue",
+      "source_location": "@@/composables/useGoogleMaps",
+      "weight": 1.0
+    },
+    {
+      "source": "index_fetchlangs",
+      "target": "apps_front_modules_base_ui_app_components_data_table_buttons_deletebutton_vue",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\translations\\pages\\admin\\translations\\langs\\index.vue",
+      "source_location": "@@/modules/base/ui-app/components/data-table/buttons/DeleteButton.vue",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_base_translations_pages_admin_translations_langs_index_vue",
+      "target": "apps_front_modules_base_ui_app_components_data_table_buttons_deletebutton_vue",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\translations\\pages\\admin\\translations\\langs\\index.vue",
+      "source_location": "@@/modules/base/ui-app/components/data-table/buttons/DeleteButton.vue",
+      "weight": 1.0
+    },
+    {
+      "source": "index_handlecreate",
+      "target": "apps_front_modules_base_ui_app_components_data_table_buttons_deletebutton_vue",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\translations\\pages\\admin\\translations\\langs\\index.vue",
+      "source_location": "@@/modules/base/ui-app/components/data-table/buttons/DeleteButton.vue",
+      "weight": 1.0
+    },
+    {
+      "source": "index_handletoggle",
+      "target": "apps_front_modules_base_ui_app_components_data_table_buttons_deletebutton_vue",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\translations\\pages\\admin\\translations\\langs\\index.vue",
+      "source_location": "@@/modules/base/ui-app/components/data-table/buttons/DeleteButton.vue",
+      "weight": 1.0
+    },
+    {
+      "source": "index_openeditdialog",
+      "target": "apps_front_modules_base_ui_app_components_data_table_buttons_deletebutton_vue",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\translations\\pages\\admin\\translations\\langs\\index.vue",
+      "source_location": "@@/modules/base/ui-app/components/data-table/buttons/DeleteButton.vue",
+      "weight": 1.0
+    },
+    {
+      "source": "index_handleeditsubmit",
+      "target": "apps_front_modules_base_ui_app_components_data_table_buttons_deletebutton_vue",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\translations\\pages\\admin\\translations\\langs\\index.vue",
+      "source_location": "@@/modules/base/ui-app/components/data-table/buttons/DeleteButton.vue",
+      "weight": 1.0
+    },
+    {
+      "source": "index_handledelete",
+      "target": "apps_front_modules_base_ui_app_components_data_table_buttons_deletebutton_vue",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\translations\\pages\\admin\\translations\\langs\\index.vue",
+      "source_location": "@@/modules/base/ui-app/components/data-table/buttons/DeleteButton.vue",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_base_ui_app_pages_app_components_data_table_demo_vue",
+      "target": "apps_front_modules_base_ui_app_components_data_table_datatable_vue",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\ui-app\\pages\\app\\components\\data-table-demo.vue",
+      "source_location": "@@/modules/base/ui-app/components/data-table/DataTable.vue",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_components_layout_appsidebar_vue",
+      "target": "apps_front_components_applogo_vue",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\components\\layout\\AppSidebar.vue",
+      "source_location": "@@/components/AppLogo.vue",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_layouts_default_vue",
+      "target": "apps_front_components_layout_appsidebar_vue",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\layouts\\default.vue",
+      "source_location": "@@/components/layout/AppSidebar.vue",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_layouts_default_vue",
+      "target": "apps_front_components_layout_header_vue",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\layouts\\default.vue",
+      "source_location": "@@/components/layout/Header.vue",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_base_translations_pages_admin_translations_index_vue",
+      "target": "apps_front_modules_base_ui_app_components_data_table_buttons_deletebutton_vue",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\translations\\pages\\admin\\translations\\index.vue",
+      "source_location": "@@/modules/base/ui-app/components/data-table/buttons/DeleteButton.vue",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_base_translations_pages_admin_translations_index_vue",
+      "target": "apps_front_modules_base_ui_app_components_data_table_datatable_vue",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\translations\\pages\\admin\\translations\\index.vue",
+      "source_location": "@@/modules/base/ui-app/components/data-table/DataTable.vue",
+      "weight": 1.0
+    },
+    {
+      "source": "index_refreshtables",
+      "target": "apps_front_modules_base_ui_app_components_data_table_buttons_deletebutton_vue",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\translations\\pages\\admin\\translations\\index.vue",
+      "source_location": "@@/modules/base/ui-app/components/data-table/buttons/DeleteButton.vue",
+      "weight": 1.0
+    },
+    {
+      "source": "index_refreshtables",
+      "target": "apps_front_modules_base_ui_app_components_data_table_datatable_vue",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\translations\\pages\\admin\\translations\\index.vue",
+      "source_location": "@@/modules/base/ui-app/components/data-table/DataTable.vue",
+      "weight": 1.0
+    },
+    {
+      "source": "index_handlegenerate",
+      "target": "apps_front_modules_base_ui_app_components_data_table_buttons_deletebutton_vue",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\translations\\pages\\admin\\translations\\index.vue",
+      "source_location": "@@/modules/base/ui-app/components/data-table/buttons/DeleteButton.vue",
+      "weight": 1.0
+    },
+    {
+      "source": "index_handlegenerate",
+      "target": "apps_front_modules_base_ui_app_components_data_table_datatable_vue",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\translations\\pages\\admin\\translations\\index.vue",
+      "source_location": "@@/modules/base/ui-app/components/data-table/DataTable.vue",
+      "weight": 1.0
+    },
+    {
+      "source": "index_handlebulktranslate",
+      "target": "apps_front_modules_base_ui_app_components_data_table_buttons_deletebutton_vue",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\translations\\pages\\admin\\translations\\index.vue",
+      "source_location": "@@/modules/base/ui-app/components/data-table/buttons/DeleteButton.vue",
+      "weight": 1.0
+    },
+    {
+      "source": "index_handlebulktranslate",
+      "target": "apps_front_modules_base_ui_app_components_data_table_datatable_vue",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\translations\\pages\\admin\\translations\\index.vue",
+      "source_location": "@@/modules/base/ui-app/components/data-table/DataTable.vue",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_pages_app_users_index_vue",
+      "target": "apps_front_modules_base_ui_app_components_data_table_datatable_vue",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\pages\\app\\users\\index.vue",
+      "source_location": "@@/modules/base/ui-app/components/data-table/DataTable.vue",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_base_error_tracker_composables_useerrors_ts",
+      "target": "error_tracker_controller_errortrackercontroller_clearallerrors",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\error-tracker\\composables\\useErrors.ts",
+      "source_location": "DELETE /:param/system/errors",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_base_error_tracker_composables_useerrors_ts",
+      "target": "error_tracker_controller_errortrackercontroller_deleteresolvederrors",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\error-tracker\\composables\\useErrors.ts",
+      "source_location": "DELETE /:param/system/errors/resolved",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_base_error_tracker_composables_useerrors_ts",
+      "target": "error_tracker_controller_errortrackercontroller_reporterror",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\error-tracker\\composables\\useErrors.ts",
+      "source_location": "POST /:param/system/errors",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_base_error_tracker_composables_useerrors_ts",
+      "target": "test_error_controller_testerrorcontroller_trigger500",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\error-tracker\\composables\\useErrors.ts",
+      "source_location": "GET /:param/system/test/error-500",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_base_error_tracker_composables_useerrors_ts",
+      "target": "error_tracker_controller_errortrackercontroller_getallerrors",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\error-tracker\\composables\\useErrors.ts",
+      "source_location": "GET /:param/system/errors",
+      "weight": 1.0
+    },
+    {
+      "source": "useerrors_useerrors",
+      "target": "error_tracker_controller_errortrackercontroller_clearallerrors",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\error-tracker\\composables\\useErrors.ts",
+      "source_location": "DELETE /:param/system/errors",
+      "weight": 1.0
+    },
+    {
+      "source": "useerrors_useerrors",
+      "target": "error_tracker_controller_errortrackercontroller_deleteresolvederrors",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\error-tracker\\composables\\useErrors.ts",
+      "source_location": "DELETE /:param/system/errors/resolved",
+      "weight": 1.0
+    },
+    {
+      "source": "useerrors_useerrors",
+      "target": "error_tracker_controller_errortrackercontroller_reporterror",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\error-tracker\\composables\\useErrors.ts",
+      "source_location": "POST /:param/system/errors",
+      "weight": 1.0
+    },
+    {
+      "source": "useerrors_useerrors",
+      "target": "test_error_controller_testerrorcontroller_trigger500",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\error-tracker\\composables\\useErrors.ts",
+      "source_location": "GET /:param/system/test/error-500",
+      "weight": 1.0
+    },
+    {
+      "source": "useerrors_useerrors",
+      "target": "error_tracker_controller_errortrackercontroller_getallerrors",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\error-tracker\\composables\\useErrors.ts",
+      "source_location": "GET /:param/system/errors",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_cms_composables_usecmscategories_ts",
+      "target": "categories_controller_blogcategoriescontroller_findall",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\composables\\useCmsCategories.ts",
+      "source_location": "GET /:param/cms/blog/categories",
+      "weight": 1.0
+    },
+    {
+      "source": "usecmscategories_usecmscategories",
+      "target": "categories_controller_blogcategoriescontroller_findall",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\composables\\useCmsCategories.ts",
+      "source_location": "GET /:param/cms/blog/categories",
+      "weight": 1.0
+    },
+    {
+      "source": "stripe_service_stripeservice",
+      "target": "stripe_controller_stripecontroller_getplans",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\services\\stripe.service.ts",
+      "source_location": "GET /:param/stripe/plans",
+      "weight": 1.0
+    },
+    {
+      "source": "stripe_service_stripeservice_constructor",
+      "target": "stripe_controller_stripecontroller_getplans",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\services\\stripe.service.ts",
+      "source_location": "GET /:param/stripe/plans",
+      "weight": 1.0
+    },
+    {
+      "source": "stripe_service_stripeservice_getplans",
+      "target": "stripe_controller_stripecontroller_getplans",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\services\\stripe.service.ts",
+      "source_location": "GET /:param/stripe/plans",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_cms_pages_public_lang_blog_slug_vue",
+      "target": "posts_controller_blogpostscontroller_findallpublic",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\pages\\(public)\\[lang]\\blog\\[slug].vue",
+      "source_location": "GET /cms/blog/posts/public/:param",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_cms_pages_public_lang_page_slug_vue",
+      "target": "pages_controller_pagescontroller_findallpublic",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\pages\\(public)\\[lang]\\page\\[slug].vue",
+      "source_location": "GET /cms/pages/public/:param",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_cms_pages_app_cms_blog_categories_index_vue",
+      "target": "categories_controller_blogcategoriescontroller_findall",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\pages\\app\\cms\\blog\\categories\\index.vue",
+      "source_location": "GET /app/cms/blog/categories/:param/edit",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_services_stripe_service_ts",
+      "target": "stripe_controller_stripecontroller_getplans",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\services\\stripe.service.ts",
+      "source_location": "GET /:param/stripe/plans",
+      "weight": 1.0
+    },
+    {
+      "source": "stripe_service_stripeservice_getbalance",
+      "target": "stripe_controller_stripecontroller_getplans",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\services\\stripe.service.ts",
+      "source_location": "GET /:param/stripe/plans",
+      "weight": 1.0
+    },
+    {
+      "source": "stripe_service_stripeservice_geturlmanagesubscription",
+      "target": "stripe_controller_stripecontroller_getplans",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\services\\stripe.service.ts",
+      "source_location": "GET /:param/stripe/plans",
+      "weight": 1.0
+    },
+    {
+      "source": "stripe_service_stripeservice_getheaders",
+      "target": "stripe_controller_stripecontroller_getplans",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\services\\stripe.service.ts",
+      "source_location": "GET /:param/stripe/plans",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_base_error_tracker_composables_useerrors_ts",
+      "target": "error_tracker_controller_errortrackercontroller_deleteerror",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\error-tracker\\composables\\useErrors.ts",
+      "source_location": "DELETE /${baseUrl}/system/errors/:param/resolve",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_base_error_tracker_composables_useerrors_ts",
+      "target": "error_tracker_controller_errortrackercontroller_markasresolved",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\error-tracker\\composables\\useErrors.ts",
+      "source_location": "PATCH /${baseUrl}/system/errors/:param/resolve",
+      "weight": 1.0
+    },
+    {
+      "source": "useerrors_useerrors",
+      "target": "error_tracker_controller_errortrackercontroller_deleteerror",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\error-tracker\\composables\\useErrors.ts",
+      "source_location": "DELETE /${baseUrl}/system/errors/:param/resolve",
+      "weight": 1.0
+    },
+    {
+      "source": "useerrors_useerrors",
+      "target": "error_tracker_controller_errortrackercontroller_markasresolved",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\error-tracker\\composables\\useErrors.ts",
+      "source_location": "PATCH /${baseUrl}/system/errors/:param/resolve",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_nuxt_config_ts",
+      "target": "translations_controller_translationscontroller_findalllangs",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\nuxt.config.ts",
+      "source_location": "GET /translations/langs",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_nuxt_config_ts",
+      "target": "translations_controller_translationscontroller_findalltranslations",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\nuxt.config.ts",
+      "source_location": "GET /translations/langs",
+      "weight": 1.0
+    },
+    {
+      "source": "nuxt_config_geti18nfiles",
+      "target": "translations_controller_translationscontroller_findalllangs",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\nuxt.config.ts",
+      "source_location": "GET /translations/langs",
+      "weight": 1.0
+    },
+    {
+      "source": "nuxt_config_geti18nfiles",
+      "target": "translations_controller_translationscontroller_findalltranslations",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\nuxt.config.ts",
+      "source_location": "GET /translations/langs",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_components_settings_profileform_vue",
+      "target": "users_controller_userscontroller_findallwithpagination",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\components\\settings\\ProfileForm.vue",
+      "source_location": "GET /${base}/users/profile-photo",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_composables_useusers_ts",
+      "target": "users_controller_userscontroller_create",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\composables\\useUsers.ts",
+      "source_location": "POST /users",
+      "weight": 1.0
+    },
+    {
+      "source": "useusers_useusers",
+      "target": "users_controller_userscontroller_create",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\composables\\useUsers.ts",
+      "source_location": "POST /users",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_base_translations_components_translationaccordioncell_vue",
+      "target": "translations_controller_translationscontroller_createtranslation",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\translations\\components\\TranslationAccordionCell.vue",
+      "source_location": "POST /translations/translate-row",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_base_translations_components_translationaccordioncell_vue",
+      "target": "translations_controller_translationscontroller_translaterow",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\translations\\components\\TranslationAccordionCell.vue",
+      "source_location": "POST /translations/translate-row",
+      "weight": 1.0
+    },
+    {
+      "source": "translationaccordioncell_if",
+      "target": "translations_controller_translationscontroller_createtranslation",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\translations\\components\\TranslationAccordionCell.vue",
+      "source_location": "POST /translations/translate-row",
+      "weight": 1.0
+    },
+    {
+      "source": "translationaccordioncell_if",
+      "target": "translations_controller_translationscontroller_translaterow",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\base\\translations\\components\\TranslationAccordionCell.vue",
+      "source_location": "POST /translations/translate-row",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_cms_composables_usecmsblogposts_ts",
+      "target": "translations_controller_translationscontroller_createtranslation",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\composables\\useCmsBlogPosts.ts",
+      "source_location": "POST /translations",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_cms_composables_usecmsblogposts_ts",
+      "target": "translations_controller_translationscontroller_findalltranslations",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\composables\\useCmsBlogPosts.ts",
+      "source_location": "GET /translations",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_cms_composables_usecmsblogposts_ts",
+      "target": "posts_controller_blogpostscontroller_create",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\composables\\useCmsBlogPosts.ts",
+      "source_location": "POST /cms/blog/posts",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_cms_composables_usecmsblogposts_ts",
+      "target": "posts_controller_blogpostscontroller_findall",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\composables\\useCmsBlogPosts.ts",
+      "source_location": "GET /cms/blog/posts",
+      "weight": 1.0
+    },
+    {
+      "source": "usecmsblogposts_usecmsblogposts",
+      "target": "translations_controller_translationscontroller_createtranslation",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\composables\\useCmsBlogPosts.ts",
+      "source_location": "POST /translations",
+      "weight": 1.0
+    },
+    {
+      "source": "usecmsblogposts_usecmsblogposts",
+      "target": "translations_controller_translationscontroller_findalltranslations",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\composables\\useCmsBlogPosts.ts",
+      "source_location": "GET /translations",
+      "weight": 1.0
+    },
+    {
+      "source": "usecmsblogposts_usecmsblogposts",
+      "target": "posts_controller_blogpostscontroller_create",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\composables\\useCmsBlogPosts.ts",
+      "source_location": "POST /cms/blog/posts",
+      "weight": 1.0
+    },
+    {
+      "source": "usecmsblogposts_usecmsblogposts",
+      "target": "posts_controller_blogpostscontroller_findall",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\composables\\useCmsBlogPosts.ts",
+      "source_location": "GET /cms/blog/posts",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_cms_composables_usecmscategories_ts",
+      "target": "categories_controller_blogcategoriescontroller_create",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\composables\\useCmsCategories.ts",
+      "source_location": "POST /cms/blog/categories",
+      "weight": 1.0
+    },
+    {
+      "source": "usecmscategories_usecmscategories",
+      "target": "categories_controller_blogcategoriescontroller_create",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\composables\\useCmsCategories.ts",
+      "source_location": "POST /cms/blog/categories",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_cms_composables_usecmspages_ts",
+      "target": "pages_controller_pagescontroller_update",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\composables\\useCmsPages.ts",
+      "source_location": "PATCH /cms/pages/:param/publish",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_cms_composables_usecmspages_ts",
+      "target": "pages_controller_pagescontroller_publish",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\composables\\useCmsPages.ts",
+      "source_location": "PATCH /cms/pages/:param/publish",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_cms_composables_usecmspages_ts",
+      "target": "translations_controller_translationscontroller_createtranslation",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\composables\\useCmsPages.ts",
+      "source_location": "POST /translations",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_cms_composables_usecmspages_ts",
+      "target": "pages_controller_pagescontroller_reorderglobal",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\composables\\useCmsPages.ts",
+      "source_location": "PUT /cms/pages/reorder",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_cms_composables_usecmspages_ts",
+      "target": "pages_controller_pagescontroller_create",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\composables\\useCmsPages.ts",
+      "source_location": "POST /cms/pages",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_cms_composables_usecmspages_ts",
+      "target": "translations_controller_translationscontroller_findalltranslations",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\composables\\useCmsPages.ts",
+      "source_location": "GET /translations",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_cms_composables_usecmspages_ts",
+      "target": "pages_controller_pagescontroller_findall",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\composables\\useCmsPages.ts",
+      "source_location": "GET /cms/pages",
+      "weight": 1.0
+    },
+    {
+      "source": "usecmspages_usecmspages",
+      "target": "pages_controller_pagescontroller_update",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\composables\\useCmsPages.ts",
+      "source_location": "PATCH /cms/pages/:param/publish",
+      "weight": 1.0
+    },
+    {
+      "source": "usecmspages_usecmspages",
+      "target": "pages_controller_pagescontroller_publish",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\composables\\useCmsPages.ts",
+      "source_location": "PATCH /cms/pages/:param/publish",
+      "weight": 1.0
+    },
+    {
+      "source": "usecmspages_usecmspages",
+      "target": "translations_controller_translationscontroller_createtranslation",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\composables\\useCmsPages.ts",
+      "source_location": "POST /translations",
+      "weight": 1.0
+    },
+    {
+      "source": "usecmspages_usecmspages",
+      "target": "pages_controller_pagescontroller_reorderglobal",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\composables\\useCmsPages.ts",
+      "source_location": "PUT /cms/pages/reorder",
+      "weight": 1.0
+    },
+    {
+      "source": "usecmspages_usecmspages",
+      "target": "pages_controller_pagescontroller_create",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\composables\\useCmsPages.ts",
+      "source_location": "POST /cms/pages",
+      "weight": 1.0
+    },
+    {
+      "source": "usecmspages_usecmspages",
+      "target": "translations_controller_translationscontroller_findalltranslations",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\composables\\useCmsPages.ts",
+      "source_location": "GET /translations",
+      "weight": 1.0
+    },
+    {
+      "source": "usecmspages_usecmspages",
+      "target": "pages_controller_pagescontroller_findall",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\composables\\useCmsPages.ts",
+      "source_location": "GET /cms/pages",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_cms_pages_public_lang_blog_slug_vue",
+      "target": "translations_controller_translationscontroller_findalltranslations",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\pages\\(public)\\[lang]\\blog\\[slug].vue",
+      "source_location": "GET /translations/dynamic/${lang.value}/BlogPost/${post.value",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_cms_pages_public_lang_blog_slug_vue",
+      "target": "posts_controller_blogpostscontroller_findall",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\pages\\(public)\\[lang]\\blog\\[slug].vue",
+      "source_location": "GET /cms/blog/posts/public/${slug.value}",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_cms_pages_public_lang_page_slug_vue",
+      "target": "translations_controller_translationscontroller_findalltranslations",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\pages\\(public)\\[lang]\\page\\[slug].vue",
+      "source_location": "GET /translations/dynamic/${lang.value}/Page/${page.value",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_cms_pages_public_lang_page_slug_vue",
+      "target": "pages_controller_pagescontroller_findall",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\pages\\(public)\\[lang]\\page\\[slug].vue",
+      "source_location": "GET /cms/pages/public/${slug.value}",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_cms_pages_app_cms_blog_posts_create_vue",
+      "target": "posts_controller_blogpostscontroller_findall",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\pages\\app\\cms\\blog\\posts\\create.vue",
+      "source_location": "GET /app/cms/blog/posts/${post.id}/edit",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_cms_pages_app_cms_blog_posts_index_vue",
+      "target": "posts_controller_blogpostscontroller_findall",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\pages\\app\\cms\\blog\\posts\\index.vue",
+      "source_location": "GET /app/cms/blog/posts/preview/:param",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_cms_pages_app_cms_blog_posts_preview_id_index_vue",
+      "target": "posts_controller_blogpostscontroller_findall",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\pages\\app\\cms\\blog\\posts\\preview\\[id]\\index.vue",
+      "source_location": "GET /app/cms/blog/posts/:param/edit",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_cms_pages_app_cms_blog_posts_preview_id_index_vue",
+      "target": "posts_controller_blogpostscontroller_findonepublic",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\pages\\app\\cms\\blog\\posts\\preview\\[id]\\index.vue",
+      "source_location": "GET /app/cms/blog/posts/:param/edit",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_cms_pages_app_cms_blog_posts_id_edit_vue",
+      "target": "translations_controller_translationscontroller_findalltranslations",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\pages\\app\\cms\\blog\\posts\\[id]\\edit.vue",
+      "source_location": "GET /${base}/translations/translate-entity",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_cms_pages_app_cms_blog_posts_id_edit_vue",
+      "target": "posts_controller_blogpostscontroller_findall",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\pages\\app\\cms\\blog\\posts\\[id]\\edit.vue",
+      "source_location": "GET /app/cms/blog/posts/preview/:param",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_cms_pages_app_cms_pages_create_vue",
+      "target": "pages_controller_pagescontroller_findall",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\pages\\app\\cms\\pages\\create.vue",
+      "source_location": "GET /app/cms/pages/${page.id}/edit",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_cms_pages_app_cms_pages_index_vue",
+      "target": "pages_controller_pagescontroller_findall",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\pages\\app\\cms\\pages\\index.vue",
+      "source_location": "GET /app/cms/pages/${page.id}/edit",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_front_modules_cms_pages_app_cms_pages_id_edit_vue",
+      "target": "translations_controller_translationscontroller_findalltranslations",
+      "relation": "calls_api",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\proyectos\\foundation\\apps\\front\\modules\\cms\\pages\\app\\cms\\pages\\[id]\\edit.vue",
+      "source_location": "GET /${base}/translations/translate-entity",
+      "weight": 1.0
     }
   ],
   "hyperedges": []
