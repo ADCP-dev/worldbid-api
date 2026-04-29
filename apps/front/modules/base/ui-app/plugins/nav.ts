@@ -34,6 +34,11 @@ export default defineNuxtPlugin(() => {
                 icon: "FileText",
                 link: localePath("/app/components/rich-editor-demo"),
               },
+              {
+                title: "Form Components",
+                icon: "LayoutList",
+                link: localePath("/app/components/form-components-demo"),
+              },
             ],
           },
         ],

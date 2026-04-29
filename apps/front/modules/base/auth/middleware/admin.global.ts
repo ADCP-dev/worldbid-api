@@ -1,4 +1,9 @@
 export default defineNuxtRouteMiddleware(async (to) => {
+  // Skip server-side execution — auth uses localStorage which is client-only
+  if (import.meta.server) {
+    return;
+  }
+
   // Only check app routes
   if (!to.path.startsWith("/app")) {
     return;

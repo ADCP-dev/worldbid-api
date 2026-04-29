@@ -61,40 +61,40 @@ describe('PagesController', () => {
       },
     };
 
-    it('should return preview data for valid page id', () => {
-      mockPagesService.getPreview.mockReturnValue(mockPreviewResponse);
+    it('should return preview data for valid page id', async () => {
+      mockPagesService.getPreview.mockResolvedValue(mockPreviewResponse);
 
-      const result = controller.preview('uuid-123', 'es');
+      const result = await controller.preview('uuid-123', 'es');
 
       expect(result).toEqual(mockPreviewResponse);
       expect(pagesService.getPreview).toHaveBeenCalledWith('uuid-123', 'es');
     });
 
-    it('should use default language es when lang not provided', () => {
-      mockPagesService.getPreview.mockReturnValue(mockPreviewResponse);
+    it('should use default language es when lang not provided', async () => {
+      mockPagesService.getPreview.mockResolvedValue(mockPreviewResponse);
 
-      controller.preview('uuid-123', undefined);
+      await controller.preview('uuid-123', undefined);
 
       expect(pagesService.getPreview).toHaveBeenCalledWith('uuid-123', 'es');
     });
 
-    it('should propagate NotFoundException from service', () => {
+    it('should propagate NotFoundException from service', async () => {
       mockPagesService.getPreview.mockRejectedValue(
         new NotFoundException('Page not found'),
       );
 
-      expect(() => controller.preview('non-existent', 'es')).rejects.toThrow(
+      await expect(controller.preview('non-existent', 'es')).rejects.toThrow(
         NotFoundException,
       );
     });
   });
 
   describe('GET /cms/pages/:id', () => {
-    it('should return page by id', () => {
+    it('should return page by id', async () => {
       const mockPage = { id: 'uuid-123', slug: 'test' };
-      mockPagesService.findById.mockReturnValue(mockPage);
+      mockPagesService.findById.mockResolvedValue(mockPage);
 
-      const result = controller.findOne('uuid-123');
+      const result = await controller.findOne('uuid-123');
 
       expect(result).toEqual(mockPage);
       expect(pagesService.findById).toHaveBeenCalledWith('uuid-123');

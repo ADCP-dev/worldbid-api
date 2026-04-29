@@ -15,7 +15,7 @@ export default defineNuxtPlugin(() => {
         heading: "System",
         items: [
           {
-            title: "Error Logs",
+            title: "base.nav.error_logs",
             icon: "Bug",
             link: localePath("/admin/errors"),
           },

@@ -1,30 +1,39 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsBoolean,
   IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
   Min,
-  IsArray,
 } from 'class-validator';
-import { PageTemplate } from '../infrastructure/entities/page.entity';
+import { PageSection } from '../infrastructure/entities/page.entity';
 
 export class CreatePageDto {
-  @ApiProperty({ example: 'home', type: String })
+  @ApiProperty({ example: 'about-us', type: String })
   @IsNotEmpty()
   @IsString()
-  slug: string;
+  @Matches(/^[a-z0-9-]+$/, { message: 'Must be kebab-case' })
+  name: string;
+
+  @ApiPropertyOptional({ example: 'home', type: String })
+  @IsOptional()
+  @IsNotEmpty()
+  @IsString()
+  @Matches(/^[a-z0-9-]+$/, { message: 'Must be kebab-case' })
+  slug?: string;
 
   @ApiPropertyOptional({ example: '/es/home', type: String })
   @IsOptional()
   @IsString()
   route?: string;
 
-  @ApiPropertyOptional({ enum: PageTemplate, default: PageTemplate.GENERIC })
+  @ApiPropertyOptional({ enum: PageSection, default: PageSection.BLOG })
   @IsOptional()
-  @IsEnum(PageTemplate)
-  template?: PageTemplate;
+  @IsEnum(PageSection)
+  section?: PageSection;
 
   @ApiPropertyOptional({ example: 0, type: Number })
   @IsOptional()
@@ -35,4 +44,14 @@ export class CreatePageDto {
   @IsOptional()
   @IsUUID()
   featuredImageId?: string;
+
+  @ApiPropertyOptional({ type: String })
+  @IsOptional()
+  @IsString()
+  author?: string;
+
+  @ApiPropertyOptional({ type: Boolean, default: false })
+  @IsOptional()
+  @IsBoolean()
+  isPublished?: boolean;
 }

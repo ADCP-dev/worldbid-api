@@ -6,7 +6,48 @@ import {
   IsArray,
   IsObject,
   IsEnum,
+  IsBoolean,
+  IsNumber,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class RobotsPolicyDto {
+  @ApiPropertyOptional({ type: Boolean, default: true })
+  @IsOptional()
+  @IsBoolean()
+  index?: boolean;
+
+  @ApiPropertyOptional({ type: Boolean, default: true })
+  @IsOptional()
+  @IsBoolean()
+  follow?: boolean;
+
+  @ApiPropertyOptional({ enum: ['none', 'small', 'large'] })
+  @IsOptional()
+  @IsString()
+  maxImagePreview?: 'none' | 'small' | 'large';
+
+  @ApiPropertyOptional({ enum: ['none', 'small', 'large'] })
+  @IsOptional()
+  @IsString()
+  maxVideoPreview?: 'none' | 'small' | 'large';
+
+  @ApiPropertyOptional({ type: Number })
+  @IsOptional()
+  @IsNumber()
+  maxSnippet?: 'none' | number;
+
+  @ApiPropertyOptional({ type: Boolean })
+  @IsOptional()
+  @IsBoolean()
+  noArchive?: boolean;
+
+  @ApiPropertyOptional({ type: Boolean })
+  @IsOptional()
+  @IsBoolean()
+  noTranslate?: boolean;
+}
 
 export class UpdateSeoDto {
   @ApiPropertyOptional({ example: 'My Page Title', type: String })
@@ -48,10 +89,33 @@ export class UpdateSeoDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsObject()
-  customJsonLd?: Record<string, any>;
+  customJsonLd?: Record<string, unknown>;
 
   @ApiPropertyOptional({ enum: ['WebPage', 'Article', 'WebSite'] })
   @IsOptional()
   @IsEnum(['WebPage', 'Article', 'WebSite'])
   type?: 'WebPage' | 'Article' | 'WebSite';
+
+  @ApiPropertyOptional({ type: RobotsPolicyDto })
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => RobotsPolicyDto)
+  robotsPolicy?: RobotsPolicyDto;
+
+  @ApiPropertyOptional({ type: Boolean, default: true })
+  @IsOptional()
+  @IsBoolean()
+  hreflangEnabled?: boolean;
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  hreflangAlternateLocales?: string[];
+
+  @ApiPropertyOptional({ type: Object })
+  @IsOptional()
+  @IsObject()
+  hreflangCustomUrls?: Record<string, string>;
 }

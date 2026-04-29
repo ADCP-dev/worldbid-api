@@ -1,597 +1,523 @@
 <script setup lang="ts">
+import { z } from "zod";
+import { blogPostSchema } from "@cms/schemas/blog-post.schema";
+import FormInput from "@base/ui-app/components/form/FormInput.vue";
+import FormSelect from "@base/ui-app/components/form/FormSelect.vue";
+import FormMultipleSelect from "@base/ui-app/components/form/FormMultipleSelect.vue";
+import RichEditorAdvanced from "@cms/components/cms/RichEditorAdvanced.vue";
+import CmsSeoCard, { type SeoCardModel } from "@cms/components/cms/CmsSeoCard.vue";
+import CmsEntityTranslationsTable from "@cms/components/cms/CmsEntityTranslationsTable.vue";
+import { toast } from "vue-sonner";
+
 definePageMeta({
   layout: "default",
   middleware: "auth",
 });
 
-const { t, locale, locales } = useI18n();
+const { locale, locales } = useI18n();
 const router = useRouter();
 const route = useRoute();
 const {
   fetchPost,
   updatePost,
-  fetchTranslations,
-  saveTranslation,
-  saveAllTranslations,
-  fetchSeo,
-  updateSeo,
-  publishPost,
-  fetchMediaByEntity,
+  deletePost,
   loading,
+  error,
+  saveTranslation,
 } = useCmsBlogPosts();
+const { tags: availableTags, fetchTags } = useCmsTags();
+const { categories, fetchCategories } = useCmsCategories();
 
 const postId = route.params.id as string;
-const activeTab = ref("content");
-const currentLang = ref(locale.value || "es");
-const isLoadingTranslations = ref(false);
-const isSaving = ref(false);
-const isTranslating = ref(false);
-const featuredImage = ref<{ id: string; url: string; name: string } | null>(
-  null,
-);
+
+const showPreviewModal = ref(false);
+const validationErrors = ref<Record<string, string>>({});
 
 const form = ref({
+  title: "",
   slug: "",
+  content: "",
   author: "",
   categoryId: "",
-  tags: [] as string[],
+  tagIds: [] as string[],
   isPublished: false,
+  featuredImageId: null as string | null,
 });
 
-const translationForm = ref({
-  title: "",
-  content: "",
-  excerpt: "",
-});
+const featuredImage = ref<{ id: string; url: string } | null>(null);
+const isUploadingCover = ref(false);
+const previewImage = ref<string | null>(null);
 
-const seoForm = ref({
+const seo = ref<SeoCardModel>({
   metaTitle: "",
   metaDescription: "",
-  metaKeywords: [] as string[],
+  metaKeywords: [],
   canonicalUrl: "",
+  ogImageId: null,
+  ogImageUrl: null,
+  type: "Article",
 });
 
-const seoKeywordsInput = ref("");
-const tagsInput = ref("");
-const saveMessage = ref("");
+const translations = ref<Record<string, Record<string, string>>>({});
+const isSavingTranslations = ref(false);
 
-const loadTranslations = async () => {
-  isLoadingTranslations.value = true;
-  try {
-    const translations = await fetchTranslations(postId, currentLang.value);
-    if (translations) {
-      translationForm.value = {
-        title: translations.title?.value || "",
-        content: translations.content?.value || "",
-        excerpt: translations.excerpt?.value || "",
-      };
-    } else {
-      translationForm.value = {
-        title: "",
-        content: "",
-        excerpt: "",
-      };
-    }
+const availableLangs = computed(() =>
+  (locales.value as Array<{ code: string; name: string }>).map((l) => l.code),
+);
 
-    const seo = await fetchSeo(postId, currentLang.value);
-    if (seo) {
-      seoForm.value = {
-        metaTitle: seo.metaTitle || "",
-        metaDescription: seo.metaDescription || "",
-        metaKeywords: seo.metaKeywords || [],
-        canonicalUrl: seo.canonicalUrl || "",
-      };
-      seoKeywordsInput.value = (seo.metaKeywords || []).join(", ");
-    } else {
-      seoForm.value = {
-        metaTitle: "",
-        metaDescription: "",
-        metaKeywords: [],
-        canonicalUrl: "",
-      };
-      seoKeywordsInput.value = "";
-    }
-  } catch (e) {
-    console.error("Error loading translations:", e);
-  } finally {
-    isLoadingTranslations.value = false;
-  }
-};
+const translationFields = ["title", "content", "slug"];
 
-const loadFeaturedImage = async () => {
-  try {
-    const media = await fetchMediaByEntity("BlogPost", postId);
-    if (media && media.data) {
-      const featured = media.data.find((m: any) => m.context === "featured");
-      if (featured) {
-        featuredImage.value = {
-          id: featured.id,
-          url: featured.url,
-          name: featured.name,
-        };
-      }
-    }
-  } catch (e) {
-    console.error("Error loading featured image:", e);
-  }
-};
+const tagOptions = computed(() =>
+  availableTags.value.map((tag) => ({
+    value: tag.id,
+    label: tag.name,
+  })),
+);
+
+const categoryOptions = computed(() =>
+  categories.value.map((cat) => ({
+    value: cat.id,
+    label: cat.name,
+  })),
+);
+
+function kebabCase(str: string): string {
+  return str
+    .trim()
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+}
 
 onMounted(async () => {
   try {
+    await Promise.all([fetchTags(), fetchCategories()]);
+
     const post = await fetchPost(postId);
     form.value = {
-      slug: post.slug,
+      title: (post as any).title || "",
+      slug: post.slug || "",
+      content: (post as any).content || "",
       author: post.author || "",
       categoryId: post.categoryId || "",
-      tags: post.tags || [],
-      isPublished: post.isPublished,
+      tagIds: post.tagIds || [],
+      isPublished: post.isPublished || false,
+      featuredImageId: post.featuredImage?.id || null,
     };
-    tagsInput.value = (post.tags || []).join(", ");
 
     if (post.featuredImage) {
-      featuredImage.value = post.featuredImage;
+      featuredImage.value = {
+        id: post.featuredImage.id,
+        url: post.featuredImage.url || `${useRuntimeConfig().public.apiUrl}${(post.featuredImage as any).path}`,
+      };
     }
 
-    await loadTranslations();
-    await loadFeaturedImage();
+    // Load translations
+    const transMap: Record<string, Record<string, string>> = {};
+    for (const lang of availableLangs.value) {
+      const langData = (post as any).translations?.[lang];
+      transMap[lang] = {
+        title: langData?.title || "",
+        content: langData?.content || "",
+        slug: langData?.slug || "",
+      };
+    }
+    translations.value = transMap;
+
+    // Load SEO data
+    const postSeo = (post as any).seo;
+    if (postSeo) {
+      seo.value = {
+        metaTitle: postSeo.metaTitle || "",
+        metaDescription: postSeo.metaDescription || "",
+        metaKeywords: postSeo.metaKeywords || [],
+        canonicalUrl: postSeo.canonicalUrl || "",
+        ogImageId: postSeo.ogImage?.id || null,
+        ogImageUrl: postSeo.ogImage?.url || null,
+        type: "Article",
+      };
+    }
   } catch (e) {
     console.error(e);
   }
 });
 
-const handleLanguageChange = async () => {
-  await loadTranslations();
-};
-
-const handleSubmit = async () => {
-  if (isSaving.value) return;
-  isSaving.value = true;
-  saveMessage.value = "";
-
-  try {
-    const tags = tagsInput.value
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean);
-
-    await updatePost(postId, {
-      ...form.value,
-      tags,
-    });
-
-    await saveAllTranslations(postId, currentLang.value, translationForm.value);
-
-    await updateSeo(postId, {
-      ...seoForm.value,
-      metaKeywords: seoKeywordsInput.value
-        .split(",")
-        .map((k) => k.trim())
-        .filter(Boolean),
-    });
-
-    saveMessage.value = t("cms.saved");
-    setTimeout(() => {
-      saveMessage.value = "";
-    }, 3000);
-  } catch (e) {
-    console.error(e);
-  } finally {
-    isSaving.value = false;
-  }
-};
-
-const handlePublish = async () => {
-  try {
-    const newStatus = !form.value.isPublished;
-    await publishPost(postId, newStatus);
-    form.value.isPublished = newStatus;
-  } catch (e) {
-    console.error("Error publishing:", e);
-  }
-};
-
-const goToPreview = () => {
-  router.push(`/app/cms/blog/posts/preview/${postId}`);
-};
-
-const handleTranslateWithAI = async () => {
-  if (isTranslating.value) return;
-  isTranslating.value = true;
-
-  try {
-    const currentLocaleCode = currentLang.value;
-    const availableLocales = locales.value as any[];
-    const targetLangs = availableLocales.filter(
-      (l: any) => l.code !== currentLocaleCode,
-    );
-
-    const authStore = useAuthStore();
-    const runtimeConfig = useRuntimeConfig();
-    const base = runtimeConfig.public.apiUrl;
-
-    for (const targetLang of targetLangs) {
-      // Translate each field using AI
-      const fields = ["title", "excerpt", "content"];
-      for (const field of fields) {
-        const sourceText =
-          translationForm.value[field as keyof typeof translationForm.value];
-        if (!sourceText) continue;
-
-        const response = await fetch(
-          `${base}/api/v1/translations/translate-entity`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${authStore.token}`,
-            },
-            body: JSON.stringify({
-              entityName: "BlogPost",
-              entityId: postId,
-              field,
-              sourceLang: currentLocaleCode,
-              targetLang: targetLang.code,
-            }),
-          },
-        );
-
-        if (!response.ok) {
-          console.error(`Failed to translate ${field} to ${targetLang.code}`);
-        }
-      }
-    }
-
-    saveMessage.value = t("cms.translationComplete") || "Translation complete";
-    setTimeout(() => {
-      saveMessage.value = "";
-    }, 3000);
-  } catch (e) {
-    console.error("Error translating:", e);
-  } finally {
-    isTranslating.value = false;
-  }
-};
-
-const handleImageUpload = async (event: Event) => {
+const handleCoverUpload = async (event: Event) => {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0];
   if (!file) return;
 
-  const authStore = useAuthStore();
-  if (!authStore.token) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    previewImage.value = e.target?.result as string;
+  };
+  reader.readAsDataURL(file);
 
-  const runtimeConfig = useRuntimeConfig();
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("entityName", "BlogPost");
-  formData.append("entityId", postId);
-  formData.append("context", "featured");
+  isUploadingCover.value = true;
 
   try {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const authStore = useAuthStore();
     const response = await fetch(
-      `${runtimeConfig.public.apiUrl}/api/v1/cms/media/upload`,
+      `${useRuntimeConfig().public.apiUrl}/api/v1/cms/blog/posts/${postId}/featured-image`,
       {
         method: "POST",
         headers: {
           Authorization: `Bearer ${authStore.token}`,
         },
         body: formData,
-      },
+      }
     );
 
-    if (response.ok) {
-      const result = await response.json();
-      featuredImage.value = {
-        id: result.id,
-        url: result.url,
-        name: result.name,
-      };
-
-      await updatePost(postId, {
-        featuredImageId: result.id,
-      });
+    if (!response.ok) {
+      throw new Error(`Upload failed: ${response.statusText}`);
     }
+
+    const result = await response.json();
+    featuredImage.value = {
+      id: result.id || result.featuredImage?.id,
+      url: result.url || result.featuredImage?.url,
+    };
+    previewImage.value = null;
   } catch (e) {
-    console.error("Error uploading image:", e);
+    console.error(e);
+  } finally {
+    isUploadingCover.value = false;
+    target.value = "";
+  }
+};
+
+const removeCover = () => {
+  featuredImage.value = null;
+  previewImage.value = null;
+  form.value.featuredImageId = null;
+};
+
+function mapValidationErrors(zodError: z.ZodError): Record<string, string> {
+  const errors: Record<string, string> = {};
+  for (const issue of zodError.issues) {
+    const field = issue.path[0] as string;
+    if (!errors[field]) errors[field] = issue.message;
+  }
+  return errors;
+}
+
+const handleSubmit = async () => {
+  const dataToValidate = {
+    title: form.value.title,
+    slug: form.value.slug,
+    content: form.value.content,
+    categoryId: form.value.categoryId,
+    tagIds: form.value.tagIds,
+    isPublished: form.value.isPublished,
+  };
+
+  const result = blogPostSchema.safeParse(dataToValidate);
+  if (!result.success) {
+    validationErrors.value = mapValidationErrors(result.error);
+    return;
   }
 
-  target.value = "";
+  validationErrors.value = {};
+
+  try {
+    await updatePost(postId, {
+      slug: form.value.slug,
+      author: form.value.author,
+      categoryId: form.value.categoryId,
+      tagIds: form.value.tagIds,
+      isPublished: form.value.isPublished,
+    });
+
+    toast.success("Post actualizado correctamente");
+    router.push("/app/cms/blog/posts");
+  } catch (e) {
+    toast.error((e as any)?.message || "Error al guardar");
+  }
+};
+
+const handleDelete = async () => {
+  if (!confirm("¿Estás seguro de eliminar esta entrada?")) return;
+  try {
+    await deletePost(postId);
+    router.push("/app/cms/blog/posts");
+  } catch (e) {
+    console.error(e);
+  }
+};
+
+const handleSaveTranslations = async (
+  newTranslations: Record<string, Record<string, string>>,
+) => {
+  isSavingTranslations.value = true;
+  try {
+    for (const [lang, fields] of Object.entries(newTranslations)) {
+      for (const [key, value] of Object.entries(fields)) {
+        if (value.trim()) {
+          await saveTranslation(postId, lang, key, value);
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Error saving translations:", e);
+  } finally {
+    isSavingTranslations.value = false;
+  }
 };
 </script>
 
 <template>
-  <div class="container mx-auto py-8 max-w-5xl">
+  <div class="container mx-auto py-8 max-w-7xl">
+    <!-- Header -->
     <div class="flex justify-between items-center mb-8">
-      <h1 class="text-3xl font-bold">{{ t("cms.blog.posts.edit") }}</h1>
       <div class="flex items-center gap-4">
-        <button class="btn btn-outline btn-sm" @click="goToPreview">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-            />
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-            />
+        <NuxtLink to="/app/cms/blog/posts" class="btn btn-ghost btn-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-          Preview
-        </button>
-        <button
-          class="btn btn-sm"
-          :class="form.isPublished ? 'btn-warning' : 'btn-success'"
-          @click="handlePublish"
-          :disabled="loading"
-        >
-          {{ form.isPublished ? t("cms.unpublish") : t("cms.publish") }}
-        </button>
-        <label class="flex items-center gap-2">
-          <span class="text-sm">Language:</span>
-          <select
-            v-model="currentLang"
-            @change="handleLanguageChange"
-            class="select select-bordered select-sm"
-            :disabled="isLoadingTranslations"
-          >
-            <option v-for="loc in locales" :key="loc.code" :value="loc.code">
-              {{ loc.name }}
-            </option>
-          </select>
-        </label>
-        <span
-          v-if="isLoadingTranslations"
-          class="loading loading-spinner loading-sm"
-        ></span>
+        </NuxtLink>
+        <h1 class="text-3xl font-bold">Editar post</h1>
       </div>
-    </div>
-
-    <div v-if="saveMessage" class="alert alert-success mb-4">
-      {{ saveMessage }}
-    </div>
-
-    <div class="tabs tabs-boxed mb-6">
-      <a
-        class="tab"
-        :class="{ 'tab-active': activeTab === 'content' }"
-        @click="activeTab = 'content'"
-      >
-        {{ t("cms.blog.posts.content") }}
-      </a>
-      <a
-        class="tab"
-        :class="{ 'tab-active': activeTab === 'seo' }"
-        @click="activeTab = 'seo'"
-      >
-        {{ t("cms.seo.title") }}
-      </a>
+      <div class="flex items-center gap-3">
+        <button type="button" class="btn btn-error btn-outline" @click="handleDelete">
+          Eliminar
+        </button>
+        <button type="submit" class="btn btn-primary" :disabled="loading" @click="handleSubmit">
+          {{ loading ? "..." : "Guardar" }}
+        </button>
+      </div>
     </div>
 
     <form @submit.prevent="handleSubmit" class="space-y-6">
-      <div v-show="activeTab === 'content'">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text">{{ t("cms.blog.posts.slug") }}</span>
-            </label>
-            <input
+      <!-- Title + Slug -->
+      <div class="card bg-base-100 shadow-sm border">
+        <div class="card-body">
+          <h3 class="card-title text-lg border-b pb-2 mb-4">
+            Título
+          </h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <FormInput
+              v-model="form.title"
+              label="Título"
+              required
+              placeholder="escribe en minúsculas, ej: mi-post"
+            />
+            <FormInput
               v-model="form.slug"
-              type="text"
-              class="input input-bordered"
+              label="Slug"
               required
             />
           </div>
-
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text">{{ t("cms.blog.posts.author") }}</span>
-            </label>
-            <input
-              v-model="form.author"
-              type="text"
-              class="input input-bordered"
-            />
-          </div>
-
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text">{{ t("cms.blog.posts.tags") }}</span>
-            </label>
-            <input
-              v-model="tagsInput"
-              type="text"
-              class="input input-bordered"
-              placeholder="tag1, tag2, tag3"
-            />
-          </div>
-
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text">{{
-                t("cms.blog.posts.published")
-              }}</span>
-            </label>
-            <span
-              class="badge"
-              :class="form.isPublished ? 'badge-success' : 'badge-warning'"
-            >
-              {{
-                form.isPublished
-                  ? t("cms.blog.posts.published")
-                  : t("cms.pages.draft")
-              }}
-            </span>
-          </div>
         </div>
+      </div>
 
-        <div class="form-control mb-6">
-          <label class="label">
-            <span class="label-text">Featured Image</span>
-          </label>
-          <div class="flex items-center gap-4">
-            <div v-if="featuredImage" class="w-32 h-32 relative">
-              <img
-                :src="featuredImage.url"
-                :alt="featuredImage.name"
-                class="w-full h-full object-cover rounded-lg"
-              />
+      <!-- Cover Image -->
+      <div class="card bg-base-100 shadow-sm border">
+        <div class="card-body">
+          <h3 class="card-title text-lg border-b pb-2 mb-4">
+            Imagen destacada
+          </h3>
+          <div
+            class="relative mb-3 rounded-lg overflow-hidden border-2 border-dashed border-base-300 bg-base-200"
+            :class="featuredImage ? 'border-solid border-base-300' : 'h-48 flex items-center justify-center'"
+          >
+            <img
+              v-if="featuredImage || previewImage"
+              :src="previewImage || featuredImage?.url"
+              class="w-full h-48 object-cover"
+              alt="Cover"
+            />
+            <div v-else class="text-center p-4">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-2 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span class="text-base-content/60 text-sm">Selecciona una imagen de portada</span>
+            </div>
+            <button
+              v-if="featuredImage || previewImage"
+              type="button"
+              class="absolute top-2 right-2 btn btn-xs btn-error btn-circle"
+              @click="removeCover"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <input
+            type="file"
+            accept="image/*"
+            class="file-input file-input-bordered w-full file-input-sm"
+            :disabled="isUploadingCover"
+            @change="handleCoverUpload"
+          />
+          <span v-if="isUploadingCover" class="text-sm text-base-content/60 mt-1 block">
+            Subiendo...
+          </span>
+        </div>
+      </div>
+
+      <!-- Content + Details -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Content -->
+        <div class="card bg-base-100 shadow-sm border lg:col-span-2">
+          <div class="card-body">
+            <div class="flex items-center justify-between border-b pb-2 mb-4">
+              <h3 class="card-title text-lg">
+                Contenido
+              </h3>
               <button
                 type="button"
-                class="btn btn-xs btn-circle absolute -top-2 -right-2"
-                @click="featuredImage = null"
+                class="btn btn-sm btn-outline"
+                @click="showPreviewModal = true"
               >
-                ✕
+                Vista previa
               </button>
             </div>
-            <label class="btn btn-outline btn-sm">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-4 w-4 mr-2"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-              {{ featuredImage ? "Cambiar" : "Subir" }}
-              <input
-                type="file"
-                accept="image/*"
-                class="hidden"
-                @change="handleImageUpload"
-              />
-            </label>
+            <RichEditorAdvanced
+              v-model="form.content"
+              entity-name="BlogPost"
+              :entity-id="postId"
+              class="min-h-[500px]"
+            />
           </div>
         </div>
 
-        <div class="flex justify-end mb-4">
-          <button
-            type="button"
-            class="btn btn-outline btn-sm"
-            @click="handleTranslateWithAI"
-            :disabled="isTranslating"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-4 w-4 mr-2"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"
+        <!-- Details -->
+        <div class="card bg-base-100 shadow-sm border lg:col-span-1">
+          <div class="card-body">
+            <h3 class="card-title text-lg border-b pb-2 mb-4">
+              Detalles
+            </h3>
+            <div class="grid grid-cols-1 gap-4">
+              <FormSelect
+                v-model="form.categoryId"
+                label="Categoría"
+                :options="categoryOptions"
+                placeholder="Seleccionar categoría"
               />
-            </svg>
-            {{ isTranslating ? "Traduciendo..." : "Traducir a otros idiomas" }}
-          </button>
+              <FormMultipleSelect
+                v-model="form.tagIds"
+                label="Etiquetas"
+                :options="tagOptions"
+                placeholder="Seleccionar etiquetas"
+              />
+              <FormInput
+                v-model="form.author"
+                label="Autor"
+                placeholder="Nombre del autor"
+              />
+              <div class="form-control">
+                <label class="label cursor-pointer justify-start gap-3">
+                  <input
+                    type="checkbox"
+                    class="toggle toggle-primary"
+                    v-model="form.isPublished"
+                  />
+                  <span class="label-text">{{ form.isPublished ? "Publicado" : "Borrador" }}</span>
+                </label>
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
 
-        <div class="form-control mb-6">
-          <label class="label">
-            <span class="label-text">Título</span>
-          </label>
-          <input
-            v-model="translationForm.title"
-            type="text"
-            class="input input-bordered"
-          />
+      <!-- Preview Modal -->
+      <div
+        v-if="showPreviewModal"
+        class="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-2"
+        @click.self="showPreviewModal = false"
+      >
+        <div class="bg-base-100 w-full h-full flex flex-col rounded-lg overflow-hidden">
+          <div class="flex justify-between items-center p-4 border-b">
+            <h3 class="text-xl font-bold">
+              Vista previa
+            </h3>
+            <button
+              type="button"
+              class="btn btn-sm btn-ghost"
+              @click="showPreviewModal = false"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div class="flex-1 flex overflow-hidden">
+            <div class="w-1/2 border-r overflow-hidden flex flex-col">
+              <div class="bg-base-200 px-3 py-2 text-xs font-semibold text-base-content/60 uppercase tracking-wider">
+                Fuente
+              </div>
+              <div class="flex-1 overflow-y-auto p-2">
+                <RichEditorAdvanced
+                  v-model="form.content"
+                  entity-name="BlogPost"
+                  :entity-id="postId"
+                  class="min-h-full"
+                />
+              </div>
+            </div>
+            <div class="w-1/2 overflow-hidden flex flex-col bg-base-200">
+              <div class="bg-base-200 px-3 py-2 text-xs font-semibold text-base-content/60 uppercase tracking-wider">
+                Renderizado
+              </div>
+              <div class="flex-1 overflow-y-auto p-2">
+                <div class="prose max-w-none bg-base-100 p-6 rounded-lg shadow-sm min-h-full">
+                  <div v-if="form.title" class="mb-6">
+                    <h1 class="text-3xl font-bold mb-4">{{ form.title }}</h1>
+                  </div>
+                  <div v-if="form.content" v-html="form.content"></div>
+                  <p v-else class="text-base-content/40 italic">El contenido aparecerá aquí...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="flex justify-end gap-2 px-4 py-2 border-t bg-base-100">
+            <button type="button" class="btn btn-sm btn-ghost" @click="showPreviewModal = false">
+              Cerrar
+            </button>
+          </div>
         </div>
+      </div>
 
-        <div class="form-control mb-6">
-          <label class="label">
-            <span class="label-text">{{ t("cms.blog.posts.excerpt") }}</span>
-          </label>
-          <textarea
-            v-model="translationForm.excerpt"
-            class="textarea textarea-bordered"
-            rows="2"
-          ></textarea>
-        </div>
+      <!-- SEO Card -->
+      <CmsSeoCard
+        v-model="seo"
+        entity-type="BlogPost"
+        :entity-id="postId"
+      />
 
-        <div class="form-control mb-6">
-          <label class="label">
-            <span class="label-text">{{ t("cms.blog.posts.content") }}</span>
-          </label>
-          <RichEditorAdvanced
-            v-model="translationForm.content"
-            entity-name="BlogPost"
-            :entity-id="postId"
-            class="min-h-[400px]"
+      <!-- Translations Table -->
+      <div class="card bg-base-100 shadow-sm border">
+        <div class="card-body">
+          <h3 class="card-title text-lg border-b pb-2 mb-4">
+            Traducciones
+          </h3>
+          <CmsEntityTranslationsTable
+            :endpoint="`translations?filter[entityName]=BlogPost&filter[entityId]=${postId}`"
+            table-name="blog-post-translations-table"
           />
         </div>
       </div>
 
-      <div v-show="activeTab === 'seo'" class="space-y-6">
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text">{{ t("cms.seo.metaTitle") }}</span>
-          </label>
-          <input
-            v-model="seoForm.metaTitle"
-            type="text"
-            class="input input-bordered"
-          />
-        </div>
-
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text">{{ t("cms.seo.metaDescription") }}</span>
-          </label>
-          <textarea
-            v-model="seoForm.metaDescription"
-            class="textarea textarea-bordered"
-            rows="3"
-          ></textarea>
-        </div>
-
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text">{{ t("cms.seo.metaKeywords") }}</span>
-          </label>
-          <input
-            v-model="seoKeywordsInput"
-            type="text"
-            class="input input-bordered"
-            placeholder="keyword1, keyword2, keyword3"
-          />
-        </div>
-
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text">{{ t("cms.seo.canonicalUrl") }}</span>
-          </label>
-          <input
-            v-model="seoForm.canonicalUrl"
-            type="text"
-            class="input input-bordered"
-            placeholder="https://example.com/blog/post"
-          />
-        </div>
+      <div v-if="error" class="alert alert-error">
+        {{ error }}
       </div>
 
-      <div class="flex gap-4 pt-4">
-        <button type="submit" class="btn btn-primary" :disabled="isSaving">
-          {{ isSaving ? "..." : t("cms.save") }}
+      <!-- Save / Cancel buttons -->
+      <div class="flex gap-4">
+        <button
+          type="submit"
+          class="btn btn-primary"
+          :disabled="loading"
+        >
+          {{ loading ? "..." : "Guardar" }}
         </button>
         <NuxtLink to="/app/cms/blog/posts" class="btn btn-ghost">
-          {{ t("cms.cancel") }}
+          Cancelar
         </NuxtLink>
       </div>
     </form>

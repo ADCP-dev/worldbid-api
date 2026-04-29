@@ -10,12 +10,21 @@ import {
   Query,
   HttpStatus,
   HttpCode,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { BlogPostsService } from './posts.service';
 import { CreateBlogPostDto } from './dto/create-post.dto';
 import { UpdateBlogPostDto } from './dto/update-post.dto';
 import { FindAllBlogPostDto } from './dto/find-all-post.dto';
-import { ApiBearerAuth, ApiTags, ApiParam } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiTags,
+  ApiParam,
+  ApiConsumes,
+  ApiBody,
+} from '@nestjs/swagger';
 import { Roles } from '@iam/roles/roles.decorator';
 import { RoleEnum } from '@iam/roles/roles.enum';
 import { AuthGuard } from '@nestjs/passport';
@@ -55,6 +64,16 @@ export class BlogPostsController {
     return this.blogPostsService.findAllPublished(lang, page, limit);
   }
 
+  @Get('public/category/:categoryId')
+  @HttpCode(HttpStatus.OK)
+  findByCategory(
+    @Param('categoryId') categoryId: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    return this.blogPostsService.findByCategory(categoryId, page, limit);
+  }
+
   @Get('public/:slug')
   @HttpCode(HttpStatus.OK)
   findOnePublic(@Param('slug') slug: string) {
@@ -75,8 +94,48 @@ export class BlogPostsController {
   @Roles(RoleEnum.admin)
   @ApiBearerAuth()
   @ApiParam({ name: 'id', type: String })
-  preview(@Param('id') id: string) {
-    return this.blogPostsService.findById(id);
+  async preview(@Param('id') id: string) {
+    const post = await this.blogPostsService.findById(id);
+    return {
+      id: post.id,
+      slug: post.slug,
+      title: (post as any).title || post.slug,
+      content: (post as any).content || '',
+      featuredImage: post.featuredImage
+        ? {
+            id: post.featuredImage.id,
+            url: post.featuredImage.path,
+          }
+        : null,
+      isPublished: post.isPublished,
+      publishedAt: post.publishedAt,
+      tags: post.tags,
+      category: post.category,
+    };
+  }
+
+  @Post(':id/featured-image')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RoleEnum.admin)
+  @ApiBearerAuth()
+  @ApiParam({ name: 'id', type: String })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+      },
+      required: ['file'],
+    },
+  })
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(FileInterceptor('file'))
+  uploadFeaturedImage(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.blogPostsService.uploadFeaturedImage(id, file);
   }
 
   @Patch(':id')

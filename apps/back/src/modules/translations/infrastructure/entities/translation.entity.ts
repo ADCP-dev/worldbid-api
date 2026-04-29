@@ -48,6 +48,10 @@ export class TranslationEntity extends EntityRelationalHelper {
   @Column({ nullable: true })
   entityId?: string;
 
+  @Index()
+  @Column({ nullable: true })
+  category?: string;
+
   @CreateDateColumn()
   createdAt: Date;
 

@@ -52,6 +52,10 @@ class EnvironmentVariablesValidator {
   @IsOptional()
   BUNNY_CDN_URL: string;
 
+  @IsUrl({ require_tld: false })
+  @IsOptional()
+  CDN_BASE_URL: string;
+
   @IsString()
   @IsOptional()
   OPENROUTER_API_KEY: string;
@@ -79,6 +83,7 @@ export default registerAs<AppConfig>('app', () => {
     fallbackLanguage: process.env.APP_FALLBACK_LANGUAGE || 'en',
     headerLanguage: process.env.APP_HEADER_LANGUAGE || 'x-custom-lang',
     bunnyCdnUrl: process.env.BUNNY_CDN_URL,
+    cdnBaseUrl: process.env.CDN_BASE_URL ?? process.env.BUNNY_CDN_URL,
     openRouterApiKey: process.env.OPENROUTER_API_KEY,
     translationModel: process.env.TRANSLATION_MODEL || 'openrouter/free',
   };

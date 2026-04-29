@@ -60,4 +60,9 @@ export class CreateTranslationDto {
   @IsString()
   @IsOptional()
   entityId?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  category?: string;
 }

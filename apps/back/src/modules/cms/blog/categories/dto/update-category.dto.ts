@@ -1,6 +1,6 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  IsEnum,
+  IsArray,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -22,10 +22,10 @@ export class UpdateCategoryDto {
   @MaxLength(100)
   name?: string;
 
-  @ApiPropertyOptional({ example: 'Posts about technology', type: String })
+  @ApiPropertyOptional({ example: 'Category description', type: String })
   @IsOptional()
   @IsString()
-  description?: string | null;
+  description?: string;
 
   @ApiPropertyOptional({ example: 0, type: Number })
   @IsOptional()
@@ -36,4 +36,10 @@ export class UpdateCategoryDto {
   @IsOptional()
   @IsUUID()
   parentId?: string | null;
+
+  @ApiPropertyOptional({ example: ['uuid1', 'uuid2'], type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tagIds?: string[];
 }

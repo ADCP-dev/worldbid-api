@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  Query,
   HttpStatus,
   HttpCode,
 } from '@nestjs/common';
@@ -32,20 +33,23 @@ export class BlogCategoriesController {
   @Post()
   @Roles(RoleEnum.admin)
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() createCategoryDto: CreateBlogCategoryDto) {
-    return this.categoriesService.create(createCategoryDto);
+  create(
+    @Body() createCategoryDto: CreateBlogCategoryDto,
+    @Query('lang') lang: string = 'es',
+  ) {
+    return this.categoriesService.create(createCategoryDto, lang);
   }
 
   @Get()
-  findAll() {
-    return this.categoriesService.findAll();
+  findAll(@Query('lang') lang: string = 'es') {
+    return this.categoriesService.findAll(lang);
   }
 
   @Get(':id')
   @Roles(RoleEnum.admin)
   @ApiParam({ name: 'id', type: String })
-  findOne(@Param('id') id: string) {
-    return this.categoriesService.findById(id);
+  findOne(@Param('id') id: string, @Query('lang') lang: string = 'es') {
+    return this.categoriesService.findById(id, lang);
   }
 
   @Patch(':id')
@@ -54,8 +58,9 @@ export class BlogCategoriesController {
   update(
     @Param('id') id: string,
     @Body() updateCategoryDto: UpdateCategoryDto,
+    @Query('lang') lang: string = 'es',
   ) {
-    return this.categoriesService.update(id, updateCategoryDto);
+    return this.categoriesService.update(id, updateCategoryDto, lang);
   }
 
   @Patch(':id/reorder')

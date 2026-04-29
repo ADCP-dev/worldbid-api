@@ -47,7 +47,7 @@ export function useNavMenu() {
       menu.push({
         ...item,
         heading: item.heading ? t(item.heading) : '',
-        items: item.items.map((subItem) => {
+        items: item.items.map((subItem: NavMenuItems[number]) => {
           if ('title' in subItem) {
             return {
               ...subItem,
