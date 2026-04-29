@@ -1,84 +1,104 @@
 <script setup lang="ts">
+import { z } from "zod";
+import { pageSchema } from "@cms/schemas/page.schema";
+import FormTextArea from "@base/ui-app/components/form/FormTextArea.vue";
+import CmsSeoCard, { type SeoCardModel } from "@cms/components/cms/CmsSeoCard.vue";
+import CmsEntityTranslationsTable from "@cms/components/cms/CmsEntityTranslationsTable.vue";
+import { toast } from "vue-sonner";
+
 definePageMeta({
   layout: "default",
   middleware: "auth",
 });
 
-const { t, locale, locales } = useI18n();
+const { t } = useI18n();
 const router = useRouter();
 const route = useRoute();
-const {
-  fetchPage,
-  updatePage,
-  fetchSeo,
-  updateSeo,
-  fetchTranslations,
-  saveTranslation,
-  saveAllTranslations,
-  loading,
-} = useCmsPages();
+const { fetchPage, updatePage, deletePage, loading } = useCmsPages();
 
 const pageId = route.params.id as string;
-const activeTab = ref("content");
 
-// Language management
-const currentLang = ref(locale.value || "es");
-const availableLangs = ref(["es", "en"]);
-
-const form = ref({
-  slug: "",
-  route: "",
-  template: "generic",
-  order: 0,
-});
-
-const translationForm = ref({
-  title: "",
-  content: "",
-  excerpt: "",
-});
-
-const seoForm = ref({
+const seo = ref<SeoCardModel>({
   metaTitle: "",
   metaDescription: "",
-  metaKeywords: [] as string[],
+  metaKeywords: [],
   canonicalUrl: "",
-  ogImageUrl: "",
+  ogImageId: null,
+  ogImageUrl: null,
+  type: "WebPage",
 });
 
-const seoKeywordsInput = ref("");
+const form = ref({
+  name: "",
+  slug: "",
+  description: "",
+  section: "blog" as "landing" | "blog" | "documentation" | "store",
+  isPublished: false,
+});
+
+const validationErrors = ref<Record<string, string>>({});
+
+const sections = [
+  { value: "landing", label: "Landing" },
+  { value: "blog", label: "Blog" },
+  { value: "documentation", label: "Documentation" },
+  { value: "store", label: "Store" },
+];
+
+function kebabCase(str: string): string {
+  return str
+    .trim()
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/_/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+}
+
+function mapValidationErrors(zodError: z.ZodError): Record<string, string> {
+  const errors: Record<string, string> = {};
+  for (const issue of zodError.issues) {
+    const field = issue.path[0] as string;
+    if (!errors[field]) errors[field] = issue.message;
+  }
+  return errors;
+}
+
+let slugManuallyEdited = false;
+
+watch(
+  () => form.value.name,
+  (newName) => {
+    if (!slugManuallyEdited) {
+      form.value.slug = kebabCase(newName);
+    }
+  },
+);
 
 onMounted(async () => {
   try {
     const page = await fetchPage(pageId);
+
     form.value = {
+      name: page.name || "",
       slug: page.slug,
-      route: page.route || "",
-      template: page.template || "generic",
-      order: page.order || 0,
+      description: (page as any).description || "",
+      section: (page.section || "blog") as "landing" | "blog" | "documentation" | "store",
+      isPublished: page.isPublished || false,
     };
 
-    // Fetch translations for current language
-    const translations = await fetchTranslations(pageId, currentLang.value);
-    if (translations) {
-      translationForm.value = {
-        title: translations.title?.value || "",
-        content: translations.content?.value || "",
-        excerpt: translations.excerpt?.value || "",
+    // Load SEO data
+    const pageSeo = (page as any).seo;
+    if (pageSeo) {
+      seo.value = {
+        metaTitle: pageSeo.metaTitle || "",
+        metaDescription: pageSeo.metaDescription || "",
+        metaKeywords: pageSeo.metaKeywords || [],
+        canonicalUrl: pageSeo.canonicalUrl || "",
+        ogImageId: pageSeo.ogImage?.id || null,
+        ogImageUrl: pageSeo.ogImage?.url || null,
+        type: "WebPage",
       };
-    }
-
-    // Fetch SEO for current language
-    const seo = await fetchSeo(pageId, currentLang.value);
-    if (seo) {
-      seoForm.value = {
-        metaTitle: seo.metaTitle || "",
-        metaDescription: seo.metaDescription || "",
-        metaKeywords: seo.metaKeywords || [],
-        canonicalUrl: seo.canonicalUrl || "",
-        ogImageUrl: seo.ogImage?.url || "",
-      };
-      seoKeywordsInput.value = (seo.metaKeywords || []).join(", ");
     }
   } catch (e) {
     console.error(e);
@@ -86,131 +106,52 @@ onMounted(async () => {
 });
 
 const handleSubmit = async () => {
+  const dataToValidate = {
+    name: form.value.name,
+    slug: form.value.slug,
+    section: form.value.section,
+    isPublished: form.value.isPublished,
+  };
+
+  const result = pageSchema.safeParse(dataToValidate);
+  if (!result.success) {
+    validationErrors.value = mapValidationErrors(result.error);
+    return;
+  }
+
+  validationErrors.value = {};
+
   try {
-    // Update page basic data
     await updatePage(pageId, {
+      name: form.value.name,
       slug: form.value.slug,
-      route: form.value.route,
-      template: form.value.template,
-      order: form.value.order,
+      section: form.value.section,
+      isPublished: form.value.isPublished,
     });
 
-    // Save translations for current language
-    await saveAllTranslations(pageId, currentLang.value, translationForm.value);
+    toast.success("Página actualizada correctamente");
+    router.push("/app/cms/pages");
+  } catch (e) {
+    toast.error((e as any)?.message || "Error al guardar");
+  }
+};
 
-    // Save SEO
-    await updateSeo(
-      pageId,
-      {
-        metaTitle: seoForm.value.metaTitle,
-        metaDescription: seoForm.value.metaDescription,
-        metaKeywords: seoKeywordsInput.value
-          .split(",")
-          .map((k) => k.trim())
-          .filter(Boolean),
-        canonicalUrl: seoForm.value.canonicalUrl,
-      },
-      currentLang.value,
-    );
-
+const handleDelete = async () => {
+  if (!confirm("¿Estás seguro de eliminar esta página?")) return;
+  try {
+    await deletePage(pageId);
     router.push("/app/cms/pages");
   } catch (e) {
     console.error(e);
   }
 };
 
-const handleLangChange = async (lang: string) => {
-  currentLang.value = lang;
-
-  // Save current translations first
-  await saveAllTranslations(pageId, currentLang.value, translationForm.value);
-
-  // Fetch translations for new language
-  const translations = await fetchTranslations(pageId, lang);
-  if (translations) {
-    translationForm.value = {
-      title: translations.title?.value || "",
-      content: translations.content?.value || "",
-      excerpt: translations.excerpt?.value || "",
-    };
-  } else {
-    translationForm.value = {
-      title: "",
-      content: "",
-      excerpt: "",
-    };
-  }
-
-  // Fetch SEO for new language
-  const seo = await fetchSeo(pageId, lang);
-  if (seo) {
-    seoForm.value = {
-      metaTitle: seo.metaTitle || "",
-      metaDescription: seo.metaDescription || "",
-      metaKeywords: seo.metaKeywords || [],
-      canonicalUrl: seo.canonicalUrl || "",
-      ogImageUrl: seo.ogImage?.url || "",
-    };
-    seoKeywordsInput.value = (seo.metaKeywords || []).join(", ");
-  }
-};
-
-// Handle AI translate - calls backend endpoint for dynamic entity translation
-const handleTranslate = async ({
-  field,
-  targetLang,
-}: {
-  field: string;
-  targetLang: string;
-}) => {
-  try {
-    const runtimeConfig = useRuntimeConfig();
-    const base = runtimeConfig.public.apiUrl;
-    const authStore = useAuthStore();
-
-    const response = await fetch(
-      `${base}/api/v1/translations/translate-entity`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${authStore.token}`,
-        },
-        body: JSON.stringify({
-          entityName: "Page",
-          entityId: pageId,
-          field,
-          sourceLang: currentLang.value,
-          targetLang,
-        }),
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error(`Translation failed: ${response.statusText}`);
-    }
-
-    // Reload translations after successful translation
-    const newTranslations = await fetchTranslations(pageId, targetLang);
-    if (newTranslations && newTranslations[field]) {
-      translationForm.value[field as keyof typeof translationForm.value] =
-        newTranslations[field].value;
-    }
-  } catch (error) {
-    console.error("Error translating field:", error);
-  }
-};
-
-const templates = [
-  { value: "landing", label: "Landing" },
-  { value: "generic", label: "Generic" },
-  { value: "contact", label: "Contact" },
-];
 </script>
 
 <template>
-  <div class="container mx-auto py-8 max-w-5xl">
-    <div class="flex justify-between items-center mb-8">
+  <div class="container mx-auto py-8 max-w-7xl">
+    <!-- Header -->
+    <div class="flex justify-between items-start mb-8">
       <div class="flex items-center gap-4">
         <NuxtLink to="/app/cms/pages" class="btn btn-ghost btn-sm">
           <svg
@@ -228,237 +169,103 @@ const templates = [
             />
           </svg>
         </NuxtLink>
-        <h1 class="text-3xl font-bold">{{ t("cms.pages.edit") }}</h1>
+        <h1 class="text-3xl font-bold">Editar página</h1>
       </div>
-      <div class="flex items-center gap-4">
-        <label class="flex items-center gap-2">
-          <span class="text-sm">Language:</span>
-          <select
-            v-model="currentLang"
-            class="select select-bordered select-sm"
-            @change="handleLangChange(currentLang)"
-          >
-            <option v-for="loc in locales" :key="loc.code" :value="loc.code">
-              {{ loc.name }}
-            </option>
-          </select>
-        </label>
-        <NuxtLink to="/app/cms/pages" class="btn btn-ghost">
-          {{ t("cms.cancel") }}
-        </NuxtLink>
+      <div class="flex items-center gap-3">
+        <button type="button" class="btn btn-error btn-outline" @click="handleDelete">
+          Eliminar
+        </button>
+        <button type="submit" class="btn btn-primary" :disabled="loading" @click="handleSubmit">
+          {{ loading ? "..." : "Guardar" }}
+        </button>
       </div>
-    </div>
-
-    <div class="tabs tabs-boxed mb-6">
-      <a
-        class="tab"
-        :class="{ 'tab-active': activeTab === 'content' }"
-        @click="activeTab = 'content'"
-      >
-        {{ t("cms.pages.content") }}
-      </a>
-      <a
-        class="tab"
-        :class="{ 'tab-active': activeTab === 'settings' }"
-        @click="activeTab = 'settings'"
-      >
-        {{ t("cms.pages.settings") }}
-      </a>
-      <a
-        class="tab"
-        :class="{ 'tab-active': activeTab === 'seo' }"
-        @click="activeTab = 'seo'"
-      >
-        {{ t("cms.seo.title") }}
-      </a>
     </div>
 
     <form @submit.prevent="handleSubmit" class="space-y-6">
-      <div v-show="activeTab === 'content'" class="space-y-6">
-        <div class="form-control mb-6">
-          <label class="label">
-            <span class="label-text">{{ t("cms.pages.slug") }}</span>
-          </label>
-          <input
-            v-model="form.slug"
-            type="text"
-            class="input input-bordered"
-            required
-          />
-          <label class="label">
-            <span class="label-text-alt"
-              >URL: /{{ currentLang }}/page/{{ form.slug || "slug" }}</span
-            >
-          </label>
-        </div>
+      <!-- Name + Slug + Author Card -->
+      <div class="card bg-base-100 shadow-sm border">
+        <div class="card-body">
+          <h3 class="card-title text-lg border-b pb-2 mb-4">Nombre</h3>
 
-        <div class="form-control mb-6">
-          <label class="label">
-            <span class="label-text">Título</span>
-          </label>
-          <input
-            v-model="translationForm.title"
-            type="text"
-            class="input input-bordered"
-          />
-          <button
-            type="button"
-            class="btn btn-ghost btn-sm mt-2"
-            @click="
-              handleTranslate({
-                field: 'title',
-                targetLang: currentLang === 'es' ? 'en' : 'es',
-              })
-            "
-          >
-            Translate with AI
-          </button>
-        </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <FormInput
+              v-model="form.name"
+              label="Nombre"
+              required
+              placeholder="escribe en minúsculas, ej: mi-pagina"
+              :error="validationErrors.name"
+            />
 
-        <div class="form-control mb-6">
-          <label class="label">
-            <span class="label-text">{{ t("cms.pages.excerpt") }}</span>
-          </label>
-          <textarea
-            v-model="translationForm.excerpt"
-            class="textarea textarea-bordered"
-            rows="2"
-          ></textarea>
-          <button
-            type="button"
-            class="btn btn-ghost btn-sm mt-2"
-            @click="
-              handleTranslate({
-                field: 'excerpt',
-                targetLang: currentLang === 'es' ? 'en' : 'es',
-              })
-            "
-          >
-            Translate with AI
-          </button>
+            <FormInput
+              v-model="form.slug"
+              label="Slug"
+              required
+              :error="validationErrors.slug"
+              @blur="slugManuallyEdited = true"
+            />
+          </div>
         </div>
+      </div>
 
-        <div class="form-control mb-6">
-          <label class="label">
-            <span class="label-text">{{ t("cms.pages.content") }}</span>
-          </label>
-          <RichEditorAdvanced
-            v-model="translationForm.content"
-            entity-name="Page"
-            :entity-id="pageId"
-            class="min-h-[400px]"
+      <!-- Description Card -->
+      <div class="card bg-base-100 shadow-sm border">
+        <div class="card-body">
+          <h3 class="card-title text-lg border-b pb-2 mb-4">Descripción</h3>
+          <FormTextArea
+            v-model="form.description"
+            label="Descripción"
+            :rows="4"
           />
         </div>
       </div>
 
-      <div v-show="activeTab === 'settings'" class="space-y-6 max-w-xl">
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text">{{ t("cms.pages.route") }}</span>
-          </label>
-          <input
-            v-model="form.route"
-            type="text"
-            class="input input-bordered"
-            placeholder="/es/home"
-          />
-        </div>
+      <!-- Section + Status -->
+      <div class="card bg-base-100 shadow-sm border">
+        <div class="card-body">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <FormSelect
+              v-model="form.section"
+              label="Sección"
+              :options="sections"
+            />
 
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text">{{ t("cms.pages.template") }}</span>
-          </label>
-          <select v-model="form.template" class="select select-bordered">
-            <option
-              v-for="tpl in templates"
-              :key="tpl.value"
-              :value="tpl.value"
-            >
-              {{ tpl.label }}
-            </option>
-          </select>
+            <div class="form-control">
+              <label class="label cursor-pointer justify-start gap-3">
+                <input
+                  type="checkbox"
+                  class="toggle toggle-primary"
+                  v-model="form.isPublished"
+                />
+                <span class="label-text">{{ form.isPublished ? "Publicado" : "Borrador" }}</span>
+              </label>
+            </div>
+          </div>
         </div>
+      </div>
 
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text">{{ t("cms.pages.order") }}</span>
-          </label>
-          <input
-            v-model.number="form.order"
-            type="number"
-            class="input input-bordered"
-            min="0"
+      <!-- SEO Card -->
+      <CmsSeoCard v-model="seo" entity-type="Page" :entity-id="pageId" />
+
+      <!-- Translations Table -->
+      <div class="card bg-base-100 shadow-sm border">
+        <div class="card-body">
+          <h3 class="card-title text-lg border-b pb-2 mb-4">Traducciones</h3>
+          <CmsEntityTranslationsTable
+            :endpoint="`translations?filter[category]=page.${encodeURIComponent(form.name)}`"
+            table-name="page-translations-table"
           />
         </div>
       </div>
 
-      <div v-show="activeTab === 'seo'" class="space-y-6">
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text">{{ t("cms.seo.metaTitle") }}</span>
-          </label>
-          <input
-            v-model="seoForm.metaTitle"
-            type="text"
-            class="input input-bordered"
-          />
-        </div>
-
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text">{{ t("cms.seo.metaDescription") }}</span>
-          </label>
-          <textarea
-            v-model="seoForm.metaDescription"
-            class="textarea textarea-bordered"
-            rows="3"
-          ></textarea>
-        </div>
-
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text">{{ t("cms.seo.metaKeywords") }}</span>
-          </label>
-          <input
-            v-model="seoKeywordsInput"
-            type="text"
-            class="input input-bordered"
-            placeholder="keyword1, keyword2, keyword3"
-          />
-        </div>
-
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text">{{ t("cms.seo.canonicalUrl") }}</span>
-          </label>
-          <input
-            v-model="seoForm.canonicalUrl"
-            type="text"
-            class="input input-bordered"
-            placeholder="https://example.com/page"
-          />
-        </div>
-
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text">{{ t("cms.seo.ogImage") }}</span>
-          </label>
-          <input
-            v-model="seoForm.ogImageUrl"
-            type="text"
-            class="input input-bordered"
-            placeholder="https://example.com/image.jpg"
-          />
-        </div>
+      <div v-if="error" class="alert alert-error">
+        {{ error }}
       </div>
 
-      <div class="flex gap-4 pt-4">
+      <div class="flex gap-4">
         <button type="submit" class="btn btn-primary" :disabled="loading">
-          {{ loading ? "..." : t("cms.save") }}
+          {{ loading ? "..." : "Guardar" }}
         </button>
-        <NuxtLink to="/app/cms/pages" class="btn btn-ghost">
-          {{ t("cms.cancel") }}
-        </NuxtLink>
+        <NuxtLink to="/app/cms/pages" class="btn btn-ghost">Cancelar</NuxtLink>
       </div>
     </form>
   </div>

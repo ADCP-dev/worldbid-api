@@ -1,63 +1,118 @@
 <script setup lang="ts">
+import { z } from "zod";
+import { pageSchema } from "@cms/schemas/page.schema";
+import FormTextArea from "@base/ui-app/components/form/FormTextArea.vue";
+import CmsSeoCard, { type SeoCardModel } from "@cms/components/cms/CmsSeoCard.vue";
+import { toast } from "vue-sonner";
+
 definePageMeta({
   layout: "default",
   middleware: "auth",
 });
 
-const { t, locale, locales } = useI18n();
+const { t } = useI18n();
 const router = useRouter();
-const { createPage, saveAllTranslations, loading, error } = useCmsPages();
+const { createPage, loading, error } = useCmsPages();
 
-const activeTab = ref("content");
-const currentLang = ref(locale.value || "es");
 const isCreating = ref(false);
+const formError = ref<string | null>(null);
+const validationErrors = ref<Record<string, string>>({});
+let slugManuallyEdited = false;
 
 const form = ref({
+  name: "",
   slug: "",
-  route: "",
-  template: "generic",
-  order: 0,
+  description: "",
+  section: "blog" as "landing" | "blog" | "documentation" | "store",
+  isPublished: false,
 });
 
-const translationForm = ref({
-  title: "",
-  content: "",
-  excerpt: "",
-});
-
-const templates = [
+const sections = [
   { value: "landing", label: "Landing" },
-  { value: "generic", label: "Generic" },
-  { value: "contact", label: "Contact" },
+  { value: "blog", label: "Blog" },
+  { value: "documentation", label: "Documentation" },
+  { value: "store", label: "Store" },
 ];
+
+function kebabCase(str: string): string {
+  return str
+    .trim()
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/_/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+}
+
+function mapValidationErrors(zodError: z.ZodError): Record<string, string> {
+  const errors: Record<string, string> = {};
+  for (const issue of zodError.issues) {
+    const field = issue.path[0] as string;
+    if (!errors[field]) errors[field] = issue.message;
+  }
+  return errors;
+}
+
+watch(
+  () => form.value.name,
+  (newVal) => {
+    if (!slugManuallyEdited || !form.value.slug) {
+      form.value.slug = kebabCase(newVal);
+    }
+  },
+);
+
+const seo = ref<SeoCardModel>({
+  metaTitle: "",
+  metaDescription: "",
+  metaKeywords: [],
+  canonicalUrl: "",
+  ogImageId: null,
+  ogImageUrl: null,
+  type: "WebPage",
+});
 
 const handleSubmit = async () => {
   if (isCreating.value) return;
+
+  const dataToValidate = {
+    name: form.value.name,
+    slug: form.value.slug,
+    section: form.value.section,
+    isPublished: form.value.isPublished,
+  };
+
+  const result = pageSchema.safeParse(dataToValidate);
+  if (!result.success) {
+    validationErrors.value = mapValidationErrors(result.error);
+    return;
+  }
+
+  validationErrors.value = {};
   isCreating.value = true;
+  formError.value = null;
 
   try {
     const page = await createPage({
-      ...form.value,
-      isPublished: false,
+      name: form.value.name,
+      slug: form.value.slug,
+      section: form.value.section,
+      isPublished: form.value.isPublished,
     });
 
-    await saveAllTranslations(
-      page.id,
-      currentLang.value,
-      translationForm.value,
-    );
-
+    toast.success("Página creada correctamente");
     router.push(`/app/cms/pages/${page.id}/edit`);
   } catch (e) {
-    console.error(e);
+    toast.error((e as any)?.message || "Error al guardar");
     isCreating.value = false;
   }
 };
 </script>
 
 <template>
-  <div class="container mx-auto py-8 max-w-5xl">
-    <div class="flex justify-between items-center mb-8">
+  <div class="container mx-auto py-8 max-w-7xl">
+    <!-- Header -->
+    <div class="flex justify-between items-start mb-8">
       <div class="flex items-center gap-4">
         <NuxtLink to="/app/cms/pages" class="btn btn-ghost btn-sm">
           <svg
@@ -75,131 +130,74 @@ const handleSubmit = async () => {
             />
           </svg>
         </NuxtLink>
-        <h1 class="text-3xl font-bold">{{ t("cms.pages.create") }}</h1>
+        <h1 class="text-3xl font-bold">Crear página</h1>
       </div>
-      <div class="flex items-center gap-4">
-        <label class="flex items-center gap-2">
-          <span class="text-sm">Language:</span>
-          <select
-            v-model="currentLang"
-            class="select select-bordered select-sm"
-          >
-            <option v-for="loc in locales" :key="loc.code" :value="loc.code">
-              {{ loc.name }}
-            </option>
-          </select>
+      <div class="flex items-center gap-3">
+        <FormSelect
+          v-model="form.section"
+          label="Sección"
+          :options="sections"
+        />
+        <label class="label cursor-pointer gap-2 whitespace-nowrap">
+          <input
+            type="checkbox"
+            class="toggle toggle-primary toggle-sm"
+            v-model="form.isPublished"
+          />
+          <span class="label-text">{{ form.isPublished ? "Publicado" : "Borrador" }}</span>
         </label>
-        <NuxtLink to="/app/cms/pages" class="btn btn-ghost">
-          {{ t("cms.cancel") }}
-        </NuxtLink>
+        <NuxtLink to="/app/cms/pages" class="btn btn-ghost">Cancelar</NuxtLink>
       </div>
-    </div>
-
-    <div class="tabs tabs-boxed mb-6">
-      <a
-        class="tab"
-        :class="{ 'tab-active': activeTab === 'content' }"
-        @click="activeTab = 'content'"
-      >
-        {{ t("cms.pages.content") }}
-      </a>
-      <a
-        class="tab"
-        :class="{ 'tab-active': activeTab === 'settings' }"
-        @click="activeTab = 'settings'"
-      >
-        {{ t("cms.pages.settings") }}
-      </a>
     </div>
 
     <form @submit.prevent="handleSubmit" class="space-y-6">
-      <div v-show="activeTab === 'content'">
-        <div class="form-control mb-6">
-          <label class="label">
-            <span class="label-text">{{ t("cms.pages.slug") }}</span>
-          </label>
-          <input
-            v-model="form.slug"
-            type="text"
-            class="input input-bordered"
-            required
-          />
-        </div>
+      <!-- Name + Slug + Description Card -->
+      <div class="card bg-base-100 shadow-sm border">
+        <div class="card-body">
+          <h3 class="card-title text-lg border-b pb-2 mb-4">Nombre</h3>
 
-        <div class="form-control mb-6">
-          <label class="label">
-            <span class="label-text">Título</span>
-          </label>
-          <input
-            v-model="translationForm.title"
-            type="text"
-            class="input input-bordered"
-          />
-        </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <FormInput
+              v-model="form.name"
+              label="Nombre"
+              required
+              placeholder="escribe en minúsculas, ej: mi-pagina"
+              :error="validationErrors.name"
+            />
 
-        <div class="form-control mb-6">
-          <label class="label">
-            <span class="label-text">{{ t("cms.pages.excerpt") }}</span>
-          </label>
-          <textarea
-            v-model="translationForm.excerpt"
-            class="textarea textarea-bordered"
-            rows="2"
-          ></textarea>
-        </div>
+            <FormInput
+              v-model="form.slug"
+              label="Slug"
+              required
+              :error="validationErrors.slug"
+              @focus="slugManuallyEdited = true"
+            />
+          </div>
 
-        <div class="form-control mb-6">
-          <label class="label">
-            <span class="label-text">{{ t("cms.pages.content") }}</span>
-          </label>
-          <RichEditorAdvanced
-            v-model="translationForm.content"
-            entity-name="Page"
-            :entity-id="''"
-            class="min-h-[400px]"
+          <FormTextArea
+            v-model="form.description"
+            label="Descripción"
+            :rows="4"
+            class="mt-4"
           />
         </div>
       </div>
 
-      <div v-show="activeTab === 'settings'" class="space-y-6 max-w-xl">
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text">{{ t("cms.pages.route") }}</span>
-          </label>
-          <input
-            v-model="form.route"
-            type="text"
-            class="input input-bordered"
-            placeholder="/es/home"
-          />
-        </div>
+      <!-- SEO Card -->
+      <CmsSeoCard v-model="seo" entity-type="Page" />
 
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text">{{ t("cms.pages.template") }}</span>
-          </label>
-          <select v-model="form.template" class="select select-bordered">
-            <option
-              v-for="tpl in templates"
-              :key="tpl.value"
-              :value="tpl.value"
-            >
-              {{ tpl.label }}
-            </option>
-          </select>
+      <!-- Translations Table -->
+      <div class="card bg-base-100 shadow-sm border">
+        <div class="card-body">
+          <h3 class="card-title text-lg border-b pb-2 mb-4">Traducciones</h3>
+          <p class="text-sm text-base-content/60 mb-4">
+            Las traducciones se podrán gestionar después de guardar la página.
+          </p>
         </div>
+      </div>
 
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text">{{ t("cms.pages.order") }}</span>
-          </label>
-          <input
-            v-model.number="form.order"
-            type="number"
-            class="input input-bordered"
-            min="0"
-          />
-        </div>
+      <div v-if="formError" class="alert alert-error">
+        {{ formError }}
       </div>
 
       <div v-if="error" class="alert alert-error">
@@ -212,11 +210,9 @@ const handleSubmit = async () => {
           class="btn btn-primary"
           :disabled="loading || isCreating"
         >
-          {{ loading ? t("cms.save") + "..." : t("cms.save") }}
+          {{ loading ? "Guardando..." : "Guardar" }}
         </button>
-        <NuxtLink to="/app/cms/pages" class="btn btn-ghost">
-          {{ t("cms.cancel") }}
-        </NuxtLink>
+        <NuxtLink to="/app/cms/pages" class="btn btn-ghost">Cancelar</NuxtLink>
       </div>
     </form>
   </div>

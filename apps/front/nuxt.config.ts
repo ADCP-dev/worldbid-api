@@ -10,7 +10,7 @@ export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   extends: ['./modules/landing', './modules/base', './modules/cms'],
   devtools: { enabled: true },
-  ssr: false,
+  ssr: true,
 
   alias: {
     '@': '~/',
@@ -54,7 +54,7 @@ export default defineNuxtConfig({
     '@nuxtjs/robots',
     'vue-sonner/nuxt',
   ],
-  css: ['~/assets/css/tailwind.css', 'flag-icons/css/flag-icons.min.css'],
+  css: ['~/assets/css/tailwind.css'],
   vite: {
     // @ts-ignore - Incompatible vite/rollup plugin types in this environment
     plugins: [tailwindcss()],
@@ -148,6 +148,7 @@ export default defineNuxtConfig({
     },
   },
   i18n: {
+    vueI18n: './i18n.config.ts',
     detectBrowserLanguage: {
       useCookie: true,
       cookieKey: 'i18n_redirected',
@@ -157,14 +158,43 @@ export default defineNuxtConfig({
   },
 
   routeRules: {
-    '/app/cms/**': { ssr: false },
-    '/[lang]/page/**': { ssr: true },
-    '/[lang]/pages': { ssr: true },
-    '/[lang]/blog': { swr: 3600 },
-    '/[lang]/blog/**': { swr: 3600 },
+    // Admin/app routes - client-side only (auth uses localStorage, not available in SSR)
+    '/app/**': { ssr: false },
+    // Public CMS routes - prerender at build time
+    '/[lang]/page/**': { prerender: true },
+    '/[lang]/pages': { prerender: true },
+    '/[lang]/blog': { prerender: true },
+    '/[lang]/blog/**': { prerender: true },
+    '/[lang]/category/**': { prerender: true },
+    // Fallback: generate on demand if not prerendered
+    '/**': { prerender: false },
   },
 
   sitemap: {
     sources: ['/api/sitemap/blog', '/api/sitemap/cms-pages'],
+    urls: {
+      each: (entry) => {
+        const locales = ['es', 'en'];
+        return locales.map((lang) => ({
+          loc: entry.loc.replace(/^\//, `/${lang}/`),
+          hreflang: lang,
+        }));
+      },
+    },
+  },
+
+  // SSG Prerender configuration
+  nitro: {
+    prerender: {
+      crawlLinks: true,
+      routes: ['/', '/es', '/en'],
+    },
+  },
+
+  robots: {
+    UserAgent: '*',
+    Disallow: ['/app/cms/', '/api/'],
+    Allow: '/',
+    Sitemap: '/sitemap.xml',
   },
 });

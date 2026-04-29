@@ -1,11 +1,17 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
+import { In } from 'typeorm';
 import { BlogPostEntity } from './infrastructure/entities/blog-post.entity';
+import { TagEntity } from './infrastructure/entities/post-tag.entity';
 import { CreateBlogPostDto } from './dto/create-post.dto';
 import { UpdateBlogPostDto } from './dto/update-post.dto';
 import { FindAllBlogPostDto } from './dto/find-all-post.dto';
 import { FilesService } from '@storage/files/files.service';
+import { FileUploadDto } from '@storage/files/dto/file-upload.dto';
+import { ConfigService } from '@nestjs/config';
+import { AllConfigType } from '@src/config/config.type';
+import { TranslationEntity } from '@src/modules/translations/infrastructure/entities/translation.entity';
 
 @Injectable()
 export class BlogPostsService {
@@ -14,21 +20,91 @@ export class BlogPostsService {
   constructor(
     @InjectRepository(BlogPostEntity)
     private readonly blogPostRepository: Repository<BlogPostEntity>,
+    @InjectRepository(TagEntity)
+    private readonly tagRepository: Repository<TagEntity>,
+    @InjectRepository(TranslationEntity)
+    private readonly translationRepository: Repository<TranslationEntity>,
     private readonly filesService: FilesService,
+    @Inject('FILE_UPLOADER_SERVICE')
+    private readonly fileUploaderService: any,
+    private readonly configService: ConfigService<AllConfigType>,
   ) {}
 
-  async create(createPostDto: CreateBlogPostDto): Promise<BlogPostEntity> {
-    const post = this.blogPostRepository.create(createPostDto);
-    return this.blogPostRepository.save(post);
+  private async loadTranslationsForPosts(
+    posts: BlogPostEntity[],
+  ): Promise<Map<string, Record<string, Record<string, string>>>> {
+    if (posts.length === 0) {
+      return new Map();
+    }
+
+    const postIds = posts.map((p) => p.id);
+    const translations = await this.translationRepository.find({
+      where: {
+        entityName: 'BlogPost',
+        entityId: In(postIds),
+      },
+      relations: ['lang'],
+    });
+
+    const result = new Map<string, Record<string, Record<string, string>>>();
+    for (const post of posts) {
+      result.set(post.id, {});
+    }
+
+    for (const t of translations) {
+      const langCode = t.lang?.code || 'es';
+      const postTranslations = result.get(t.entityId!) || {};
+      if (!postTranslations[langCode]) {
+        postTranslations[langCode] = {};
+      }
+      postTranslations[langCode][t.key] = t.content;
+      result.set(t.entityId!, postTranslations);
+    }
+
+    return result;
   }
 
-  async findAll(query: FindAllBlogPostDto) {
-    const { page = 1, limit = 10, published } = query;
+  private attachTranslations(
+    post: BlogPostEntity,
+    translationsMap: Map<string, Record<string, Record<string, string>>>,
+  ): BlogPostEntity {
+    const translations = translationsMap.get(post.id) || {};
+    (post as any).translations = translations;
+    return post;
+  }
+
+  async create(createPostDto: CreateBlogPostDto): Promise<BlogPostEntity> {
+    const { categoryId, tagIds, ...postData } = createPostDto;
+
+    // Create post without relations first
+    const post = this.blogPostRepository.create(postData);
+
+    // Handle category
+    if (categoryId) {
+      post.categoryId = categoryId;
+    }
+
+    // Handle tags (upsert via tagIds)
+    if (tagIds && tagIds.length > 0) {
+      const tags = await this.tagRepository.findBy({ id: In(tagIds) });
+      post.tags = tags;
+    }
+
+    const saved = await this.blogPostRepository.save(post);
+    (saved as any).translations = {};
+    return saved;
+  }
+
+  async findAll(query: FindAllBlogPostDto & { categoryId?: string }) {
+    const { page = 1, limit = 10, published, categoryId } = query;
     const skip = (page - 1) * limit;
 
     const where: any = {};
     if (published !== undefined) {
       where.isPublished = published;
+    }
+    if (categoryId) {
+      where.categoryId = categoryId;
     }
 
     const [data, total] = await this.blogPostRepository.findAndCount({
@@ -36,11 +112,16 @@ export class BlogPostsService {
       order: { publishedAt: 'DESC', createdAt: 'DESC' },
       skip,
       take: limit,
-      relations: ['featuredImage', 'author'],
+      relations: ['featuredImage', 'author', 'category', 'tags'],
     });
 
+    const translationsMap = await this.loadTranslationsForPosts(data);
+    const dataWithTranslations = data.map((post) =>
+      this.attachTranslations(post, translationsMap),
+    );
+
     return {
-      data,
+      data: dataWithTranslations,
       meta: {
         page,
         limit,
@@ -58,11 +139,16 @@ export class BlogPostsService {
       order: { publishedAt: 'DESC', createdAt: 'DESC' },
       skip,
       take: limit,
-      relations: ['featuredImage', 'author'],
+      relations: ['featuredImage', 'author', 'category', 'tags'],
     });
 
+    const translationsMap = await this.loadTranslationsForPosts(data);
+    const dataWithTranslations = data.map((post) =>
+      this.attachTranslations(post, translationsMap),
+    );
+
     return {
-      data,
+      data: dataWithTranslations,
       meta: {
         page,
         limit,
@@ -75,44 +161,100 @@ export class BlogPostsService {
   async findById(id: string): Promise<BlogPostEntity> {
     const post = await this.blogPostRepository.findOne({
       where: { id },
-      relations: ['featuredImage', 'author'],
+      relations: ['featuredImage', 'author', 'category', 'tags'],
     });
     if (!post) {
       throw new NotFoundException(`Blog post with ID ${id} not found`);
     }
-    return post;
+
+    const translationsMap = await this.loadTranslationsForPosts([post]);
+    return this.attachTranslations(post, translationsMap);
   }
 
   async findBySlug(slug: string): Promise<BlogPostEntity> {
     const post = await this.blogPostRepository.findOne({
       where: { slug },
-      relations: ['featuredImage', 'author'],
+      relations: ['featuredImage', 'author', 'category', 'tags'],
     });
     if (!post) {
       throw new NotFoundException(`Blog post with slug ${slug} not found`);
     }
-    return post;
+
+    const translationsMap = await this.loadTranslationsForPosts([post]);
+    return this.attachTranslations(post, translationsMap);
   }
 
   async findBySlugPublic(slug: string): Promise<BlogPostEntity> {
-    const post = await this.blogPostRepository.findOne({
-      where: { slug, isPublished: true },
-      relations: ['featuredImage', 'author'],
+    // First try to find by translated slug
+    const translation = await this.translationRepository.findOne({
+      where: {
+        key: 'slug',
+        section: 'blog-post',
+        entityName: 'BlogPost',
+        content: slug,
+      },
+      relations: ['lang'],
     });
+
+    let post: BlogPostEntity | null = null;
+
+    if (translation?.entityId) {
+      post = await this.blogPostRepository.findOne({
+        where: { id: translation.entityId, isPublished: true },
+        relations: ['featuredImage', 'author', 'category', 'tags'],
+      });
+    }
+
+    // Fallback to base slug
+    if (!post) {
+      post = await this.blogPostRepository.findOne({
+        where: { slug, isPublished: true },
+        relations: ['featuredImage', 'author', 'category', 'tags'],
+      });
+    }
+
     if (!post) {
       throw new NotFoundException(
         `Published blog post with slug ${slug} not found`,
       );
     }
-    return post;
+
+    const translationsMap = await this.loadTranslationsForPosts([post]);
+    return this.attachTranslations(post, translationsMap);
+  }
+
+  /**
+   * Find posts by category - public endpoint
+   */
+  async findByCategory(categoryId: string, page = 1, limit = 10) {
+    return this.findAll({ page, limit, published: true, categoryId });
   }
 
   async update(
     id: string,
     updatePostDto: UpdateBlogPostDto,
   ): Promise<BlogPostEntity> {
+    const { categoryId, tagIds, ...postData } = updatePostDto;
     const post = await this.findById(id);
-    Object.assign(post, updatePostDto);
+
+    // Update basic fields
+    Object.assign(post, postData);
+
+    // Handle category
+    if (categoryId !== undefined) {
+      post.categoryId = categoryId;
+    }
+
+    // Handle tags (upsert via tagIds)
+    if (tagIds !== undefined) {
+      if (tagIds.length > 0) {
+        const tags = await this.tagRepository.findBy({ id: In(tagIds) });
+        post.tags = tags;
+      } else {
+        post.tags = [];
+      }
+    }
+
     return this.blogPostRepository.save(post);
   }
 
@@ -121,6 +263,35 @@ export class BlogPostsService {
     post.isPublished = isPublished;
     post.publishedAt = isPublished ? new Date() : null;
     return this.blogPostRepository.save(post);
+  }
+
+  async uploadFeaturedImage(
+    postId: string,
+    file: Express.Multer.File,
+  ): Promise<{ url: string; fileId: string }> {
+    const post = await this.findById(postId);
+
+    const uploadBody: FileUploadDto = {
+      entityName: 'BlogPost',
+      entityId: postId,
+      context: 'featured',
+      isPublic: true,
+    };
+
+    const result = await this.fileUploaderService.create(file, uploadBody);
+
+    // Associate uploaded file with the blog post
+    post.featuredImageId = result.file.id;
+    await this.blogPostRepository.save(post);
+
+    const cdnBaseUrl = this.configService.get('app.cdnBaseUrl', {
+      infer: true,
+    });
+    const url = cdnBaseUrl
+      ? `${cdnBaseUrl}/${result.file.path}`
+      : result.file.path;
+
+    return { url, fileId: result.file.id };
   }
 
   async remove(id: string): Promise<void> {

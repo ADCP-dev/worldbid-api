@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsArray,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -8,10 +9,10 @@ import {
 } from 'class-validator';
 
 export class CreateBlogCategoryDto {
-  @ApiProperty({ example: 'technology', type: String })
-  @IsNotEmpty()
+  @ApiPropertyOptional({ example: 'technology', type: String })
+  @IsOptional()
   @IsString()
-  slug: string;
+  slug?: string;
 
   @ApiProperty({ example: 'Technology', type: String })
   @IsNotEmpty()
@@ -19,7 +20,7 @@ export class CreateBlogCategoryDto {
   @MaxLength(100)
   name: string;
 
-  @ApiPropertyOptional({ example: 'Posts about technology', type: String })
+  @ApiPropertyOptional({ example: 'Category description', type: String })
   @IsOptional()
   @IsString()
   description?: string;
@@ -33,4 +34,10 @@ export class CreateBlogCategoryDto {
   @IsOptional()
   @IsString()
   parentId?: string;
+
+  @ApiPropertyOptional({ example: ['uuid1', 'uuid2'], type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tagIds?: string[];
 }

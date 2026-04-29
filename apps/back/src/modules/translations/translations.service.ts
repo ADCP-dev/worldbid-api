@@ -2,9 +2,10 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, IsNull, Repository } from 'typeorm';
+import { In, IsNull, Repository, QueryRunner } from 'typeorm';
 import { LangEntity } from './infrastructure/entities/lang.entity';
 import { TranslationEntity } from './infrastructure/entities/translation.entity';
 import { CreateLangDto } from './dto/create-lang.dto';
@@ -18,6 +19,8 @@ import * as path from 'path';
 
 @Injectable()
 export class TranslationsService {
+  private readonly logger = new Logger(TranslationsService.name);
+
   constructor(
     @InjectRepository(LangEntity)
     private readonly langRepository: Repository<LangEntity>,
@@ -74,6 +77,7 @@ export class TranslationsService {
       content,
       section,
       app,
+      category,
     } = createTranslationDto;
 
     let lang: LangEntity;
@@ -114,6 +118,9 @@ export class TranslationsService {
       existingTranslation.section =
         section || existingTranslation.section || 'dynamic';
       existingTranslation.app = app || existingTranslation.app;
+      if (category !== undefined) {
+        existingTranslation.category = category;
+      }
       return this.translationRepository.save(existingTranslation);
     }
 
@@ -125,6 +132,7 @@ export class TranslationsService {
       app,
       entityName,
       entityId,
+      category,
       lang,
     });
     return this.translationRepository.save(translation);
@@ -139,6 +147,7 @@ export class TranslationsService {
       entityId?: string;
       app?: string;
       q?: string;
+      category?: string;
     },
     paginationOptions: {
       page: number;
@@ -188,12 +197,19 @@ export class TranslationsService {
       groupQueryBuilder.andWhere('translation.entityId = :entityId', {
         entityId: filters.entityId,
       });
-    } else {
+    } else if (!filters.entityName) {
+      // Only restrict to NULL entityId when no entityName is provided
+      // This allows querying all translations for an entity type
       groupQueryBuilder.andWhere('translation.entityId IS NULL');
     }
     if (filters.app) {
       groupQueryBuilder.andWhere('translation.app = :app', {
         app: filters.app,
+      });
+    }
+    if (filters.category) {
+      groupQueryBuilder.andWhere('translation.category = :category', {
+        category: filters.category,
       });
     }
 
@@ -565,5 +581,121 @@ export class TranslationsService {
       result[t.key] = { value: t.content };
     }
     return result;
+  }
+
+  async getTranslationsForCategory(
+    category: string,
+    langCode: string,
+  ): Promise<Record<string, { value: string }>> {
+    const lang = await this.langRepository.findOne({
+      where: { code: langCode },
+    });
+    if (!lang) return {};
+
+    const translations = await this.translationRepository.find({
+      where: {
+        category,
+        lang: { id: lang.id },
+      },
+    });
+
+    const result = {};
+    for (const t of translations) {
+      result[t.key] = { value: t.content };
+    }
+    return result;
+  }
+
+  async batchUpsertDynamic(
+    items: Array<{
+      langCode: string;
+      key: string;
+      content: string;
+      section?: string;
+      category?: string;
+      entityName?: string;
+      entityId?: string;
+    }>,
+    options?: {
+      entityName?: string;
+      entityId?: string;
+      category?: string;
+      lang?: string;
+    },
+  ): Promise<TranslationEntity[]> {
+    if (items.length > 50) {
+      throw new BadRequestException('Batch size exceeds maximum of 50');
+    }
+
+    const langCode = options?.lang || items[0]?.langCode;
+    if (!langCode) {
+      throw new BadRequestException('Language code is required');
+    }
+
+    const lang = await this.langRepository.findOne({
+      where: { code: langCode },
+    });
+    if (!lang) {
+      throw new NotFoundException(`Language with code "${langCode}" not found`);
+    }
+
+    const entityName = options?.entityName;
+    const entityId = options?.entityId;
+    const category = options?.category;
+
+    if (!entityName && !entityId && !category) {
+      throw new BadRequestException(
+        'Either entityName+entityId or category is required',
+      );
+    }
+
+    const queryRunner = this.translationRepository.manager.connection.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // Collect all keys to delete existing translations for
+      const keys = [...new Set(items.map((item) => item.key))];
+
+      // Delete existing translations matching criteria for the given keys and lang
+      if (category) {
+        await queryRunner.manager.delete(TranslationEntity, {
+          category,
+          lang: { id: lang.id },
+          key: In(keys),
+        });
+      } else if (entityName && entityId) {
+        await queryRunner.manager.delete(TranslationEntity, {
+          entityName,
+          entityId,
+          lang: { id: lang.id },
+          key: In(keys),
+        });
+      }
+
+      // Insert all items
+      const translations = items.map((item) => {
+        const translation = new TranslationEntity();
+        translation.key = item.key;
+        translation.content = item.content;
+        translation.section = item.section || 'dynamic';
+        translation.app = item.section ? undefined : 'cms';
+        translation.entityName = entityName || item.entityName || undefined;
+        translation.entityId = entityId || item.entityId || undefined;
+        translation.category = category || item.category || undefined;
+        translation.lang = lang;
+        return translation;
+      });
+
+      const saved = await queryRunner.manager.save(translations);
+      await queryRunner.commitTransaction();
+      return saved;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      this.logger.error('Batch upsert failed:', error);
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 }

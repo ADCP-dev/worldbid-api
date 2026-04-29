@@ -8,10 +8,14 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
   JoinColumn,
+  ManyToMany,
+  JoinTable,
 } from 'typeorm';
 import { EntityRelationalHelper } from '@infra/utils/relational-entity-helper';
 import { FileEntity } from '@storage/files/infrastructure/entities/file.entity';
 import { UserEntity } from '@users/infrastructure/entities/user.entity';
+import { TagEntity } from './post-tag.entity';
+import { BlogCategoryEntity } from '../../../categories/infrastructure/entities/blog-category.entity';
 
 @Entity({
   name: 'blog_post',
@@ -20,12 +24,9 @@ export class BlogPostEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Index({ unique: true })
+  @Index()
   @Column({ type: String })
   slug: string;
-
-  @Column({ type: 'simple-array', nullable: true })
-  tags: string[];
 
   @Column({ type: 'boolean', default: false })
   isPublished: boolean;
@@ -46,6 +47,30 @@ export class BlogPostEntity extends EntityRelationalHelper {
 
   @Column({ type: 'int', nullable: true })
   authorId?: number | null;
+
+  @ManyToOne(
+    () => BlogCategoryEntity,
+    (category: BlogCategoryEntity) => category.posts,
+    {
+      nullable: true,
+      onDelete: 'SET NULL',
+    },
+  )
+  @JoinColumn({ name: 'categoryId' })
+  category?: BlogCategoryEntity | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  categoryId?: string | null;
+
+  @ManyToMany(() => TagEntity, (tag: TagEntity) => tag.posts, {
+    cascade: true,
+  })
+  @JoinTable({
+    name: 'blog_post_tag',
+    joinColumn: { name: 'postId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'tagId', referencedColumnName: 'id' },
+  })
+  tags: TagEntity[];
 
   @CreateDateColumn()
   createdAt: Date;

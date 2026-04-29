@@ -35,7 +35,7 @@ const infrastructureDatabaseModule = TypeOrmModule.forRootAsync({
 
     // Static files
     ServeStaticModule.forRoot({
-      rootPath: path.join(__dirname, '..', 'public'),
+      rootPath: path.join(process.cwd(), 'public'),
     }),
 
     // Configuration — global, loads all domain configs
@@ -66,7 +66,7 @@ const infrastructureDatabaseModule = TypeOrmModule.forRootAsync({
         fallbackLanguage: configService.getOrThrow('app.fallbackLanguage', {
           infer: true,
         }),
-        loaderOptions: { path: path.join(__dirname, '/i18n/'), watch: true },
+        loaderOptions: { path: path.join(__dirname, '..', 'i18n/'), watch: true },
       }),
       resolvers: [
         {

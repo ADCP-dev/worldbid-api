@@ -72,7 +72,7 @@ const tableWithHeader = ref(true);
 const fileInput = ref<HTMLInputElement | null>(null);
 
 const editor = useEditor({
-  content: props.modelValue || "<p>Empieza a escribir aquí...</p>",
+  content: props.modelValue || "",
   extensions: [
     StarterKit.configure({
       heading: {
@@ -106,7 +106,7 @@ const editor = useEditor({
   editorProps: {
     attributes: {
       class:
-        "prose prose-sm sm:prose-base lg:prose-lg m-4 focus:outline-none dark:prose-invert max-w-none min-h-[200px]",
+        "prose prose-sm sm:prose-base lg:prose-lg m-4 focus:outline-none dark:prose-invert max-w-none min-h-[350px]",
     },
     handleDrop: function (view, event, slice, moved) {
       if (

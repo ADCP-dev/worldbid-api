@@ -26,7 +26,8 @@ import { TranslationsModule } from '../../../modules/translations/translations.m
     }),
     TypeOrmModule.forRootAsync({
       useClass: TypeOrmConfigService,
-      dataSourceFactory: async (options: DataSourceOptions) => {
+      dataSourceFactory: async (options?: DataSourceOptions) => {
+        if (!options) throw new Error('DataSourceOptions is required');
         return new DataSource(options).initialize();
       },
     }),

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CmsSeoMeta from "#cms/components/cms/CmsSeoMeta.vue";
+import CmsSeoMeta from "@cms/components/cms/CmsSeoMeta.vue";
 
 const route = useRoute();
 const config = useRuntimeConfig();

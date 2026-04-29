@@ -1,110 +1,94 @@
 <script setup lang="ts">
-import SortablePageList from "#cms/components/cms/SortablePageList.vue";
+import { h, computed } from "vue";
+import DataTable from "@/modules/base/ui-app/components/data-table/DataTable.vue";
 
 definePageMeta({
   layout: "default",
   middleware: "auth",
 });
 
-const { t } = useI18n();
-const { pages, loading, fetchPages, publishPage, deletePage, reorderPages } =
-  useCmsPages();
+const router = useRouter();
 
-onMounted(() => {
-  fetchPages();
-});
+const columns = computed(() => [
+  {
+    accessorKey: "name",
+    headerName: "Nombre",
+    header: "Nombre",
+    filterType: "string",
+    cell: ({ row }: any) => {
+      const page = row.original;
+      return h("span", { class: "font-medium" }, page.name || page.title || "—");
+    },
+  },
+  {
+    accessorKey: "slug",
+    headerName: "Slug",
+    header: "Slug",
+    filterType: "string",
+    cell: ({ row }: any) => {
+      const page = row.original;
+      return h("span", { class: "font-mono text-sm" }, `/${page.slug}`);
+    },
+  },
+  {
+    accessorKey: "section",
+    headerName: "Sección",
+    header: "Sección",
+    filterType: "select",
+    options: [
+      { value: "", label: "Todos" },
+      { value: "landing", label: "Landing" },
+      { value: "blog", label: "Blog" },
+      { value: "documentation", label: "Documentation" },
+      { value: "store", label: "Store" },
+    ],
+    cell: ({ row }: any) => {
+      const page = row.original;
+      return h(
+        "span",
+        { class: "badge badge-ghost capitalize" },
+        page.section,
+      );
+    },
+  },
+  {
+    accessorKey: "isPublished",
+    headerName: "Publicado",
+    header: "Publicado",
+    filterType: "boolean",
+    cell: ({ row }: any) => {
+      const page = row.original;
+      const isPublished = page.isPublished;
+      return h(
+        "span",
+        {
+          class: ["badge", isPublished ? "badge-success" : "badge-warning"],
+        },
+        isPublished ? "Publicado" : "Borrador",
+      );
+    },
+  },
 
-const handlePublish = async (id: string, isPublished: boolean) => {
-  await publishPage(id, isPublished);
-};
-
-const handleDelete = async (id: string) => {
-  if (confirm(t("cms.confirmDelete"))) {
-    await deletePage(id);
-  }
-};
-
-const handleReorder = async (pageIds: string[], parentId: string | null) => {
-  try {
-    await reorderPages(pageIds, parentId);
-    await fetchPages();
-  } catch (e) {
-    console.error("Failed to reorder pages:", e);
-  }
-};
+]);
 </script>
 
 <template>
   <div class="container mx-auto py-8">
     <div class="flex justify-between items-center mb-8">
-      <h1 class="text-3xl font-bold">{{ t("cms.pages.title") }}</h1>
-      <NuxtLink to="/app/cms/pages/create" class="btn btn-primary">
-        {{ t("cms.pages.create") }}
-      </NuxtLink>
-    </div>
-
-    <div v-if="loading" class="flex justify-center py-8">
-      <span class="loading loading-spinner loading-lg"></span>
-    </div>
-
-    <div v-else>
-      <SortablePageList :pages="pages" @reorder="handleReorder" />
-
-      <!-- Fallback table for quick actions if needed -->
-      <div class="overflow-x-auto mt-8">
-        <table class="table table-sm">
-          <thead>
-            <tr>
-              <th>{{ t("cms.pages.slug") }}</th>
-              <th>{{ t("cms.pages.published") }}</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="page in pages" :key="page.id">
-              <td>/{{ page.slug }}</td>
-              <td>
-                <span
-                  class="badge"
-                  :class="page.isPublished ? 'badge-success' : 'badge-warning'"
-                >
-                  {{
-                    page.isPublished
-                      ? t("cms.pages.published")
-                      : t("cms.pages.draft")
-                  }}
-                </span>
-              </td>
-              <td>
-                <div class="flex gap-2">
-                  <button
-                    class="btn btn-sm btn-ghost"
-                    @click="handlePublish(page.id, !page.isPublished)"
-                  >
-                    {{
-                      page.isPublished
-                        ? t("cms.pages.draft")
-                        : t("cms.pages.published")
-                    }}
-                  </button>
-                  <NuxtLink
-                    :to="`/app/cms/pages/${page.id}/edit`"
-                    class="btn btn-sm btn-ghost"
-                  >
-                    Edit
-                  </NuxtLink>
-                  <button
-                    class="btn btn-sm btn-ghost text-error"
-                    @click="handleDelete(page.id)"
-                  >
-                    {{ t("cms.delete") }}
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <h1 class="text-3xl font-bold">Páginas</h1>
+      <div class="flex items-center gap-3">
+        <NuxtLink to="/app/cms/pages/create" class="btn btn-primary">
+          Crear página
+        </NuxtLink>
       </div>
     </div>
+
+    <DataTable
+      ref="tableRef"
+      :columns="columns"
+      endpoint="cms/pages"
+      tableName="cms-pages-table"
+      @row-click="(row: any) => router.push(`/app/cms/pages/${row.id}/edit`)"
+    />
   </div>
 </template>
