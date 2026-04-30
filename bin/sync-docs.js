@@ -379,6 +379,7 @@ function scanSkills() {
 
   const searchPaths = [
     path.join(ROOT, ".opencode", "skills"),
+    path.join(ROOT, ".agents", "skills"),
     path.join(os.homedir(), ".config", "opencode", "skills"),
     path.join(os.homedir(), ".agents", "skills"),
   ];
