@@ -414,6 +414,22 @@ pnpm migration:run                     # Ejecuta migraciones pendientes
 # ❌ NUNCA — no crear archivos SQL a mano ni escribir queries DDL inline
 ```
 
+**⚠️ Convención de Tablas en Extensiones:**
+
+Todas las entidades en `extensions/<name>/` DEBEN usar prefijo `ext_<name>_`:
+
+```typescript
+// ✅ CORRECTO — extensions/blog/
+@Entity('ext_blog_posts')
+export class BlogPostEntity {}
+
+// ❌ INCORRECTO — sin prefijo
+@Entity('posts')
+export class BlogPostEntity {}
+```
+
+Esto evita colisiones entre extensiones que podrían usar el mismo nombre de tabla.
+
 ### Frontend Task
 
 ```
