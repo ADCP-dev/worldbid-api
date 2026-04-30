@@ -26,7 +26,7 @@ export class PagesService {
   ) {}
 
   async create(createPageDto: CreatePageDto): Promise<PageEntity> {
-    const { name, slug, ...rest } = createPageDto;
+    const { name, slug, author, ...rest } = createPageDto;
 
     if (!name) {
       throw new NotFoundException('Name is required');
@@ -40,7 +40,7 @@ export class PagesService {
       slug: finalSlug,
     });
 
-    const saved = await this.pageRepository.save(page);
+    const saved = await this.pageRepository.save(page) as PageEntity;
     (saved as any).translations = {};
     return saved;
   }

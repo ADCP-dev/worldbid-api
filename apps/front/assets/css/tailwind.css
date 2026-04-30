@@ -62,3 +62,21 @@
 .input-bordered {
   border-color: color-mix(in oklab, var(--color-base-content) 20%, #0000);
 }
+
+.kanban-ghost {
+  @apply opacity-40 bg-base-300 rounded-lg;
+}
+.kanban-drag {
+  @apply opacity-80 rotate-1 shadow-xl;
+}
+
+/* Calendar grid */
+.calendar-cell {
+  @apply border border-base-300 p-1 cursor-pointer hover:bg-base-200 transition-colors;
+}
+.calendar-cell-other-month {
+  @apply bg-base-200/50 opacity-50;
+}
+.calendar-cell-today {
+  @apply ring-2 ring-primary ring-inset;
+}
