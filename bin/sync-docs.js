@@ -402,6 +402,7 @@ function scanSkills() {
         skills.push({
           name: fm.name,
           description: fm.description || entry.name,
+          path: skillPath,
         });
         seen.add(fm.name);
       } else {
@@ -409,6 +410,7 @@ function scanSkills() {
         skills.push({
           name: entry.name,
           description: entry.name,
+          path: skillPath,
         });
         seen.add(entry.name);
       }
@@ -581,6 +583,42 @@ function syncAgentsMd(skills, docs) {
   fs.writeFileSync(agentsPath, content, "utf-8");
 }
 
+// ─── OpenCode Config Generator ──────────────────────────────────────────────
+
+/**
+ * Generates .opencode/generated.json from scanned skills and docs.
+ * Written as a JSON file with metadata including source and timestamp.
+ */
+function generateOpenCodeConfig(skills, docs) {
+  const outPath = path.join(ROOT, ".opencode", "generated.json");
+
+  const skillsData = skills.map((s) => ({
+    name: s.name,
+    path: path.relative(ROOT, s.path).replace(/\\/g, "/"),
+    description: s.description || s.name,
+  }));
+
+  const docsData = docs.map((d) => {
+    const entry = { path: d.path };
+    if (d.id) entry.id = d.id;
+    if (d.name) entry.name = d.name;
+    if (d.type) entry.type = d.type;
+    return entry;
+  });
+
+  const config = {
+    $schema: "https://opencode.ai/config.json",
+    _generated: true,
+    _timestamp: new Date().toISOString(),
+    _source: "bin/sync-docs.js",
+    skills: skillsData,
+    docs: docsData,
+  };
+
+  fs.writeFileSync(outPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
+  console.log(`   ✓ OpenCode config: ${skillsData.length} skills, ${docsData.length} docs`);
+}
+
 // ─── Main ───────────────────────────────────────────────────────────────────
 
 function main() {
@@ -697,6 +735,10 @@ ${extensions.length > 0 ? extensions.map(e => `| [${e.fm.id}.md](./extensions/${
   const allSkills = scanSkills();
   const allDocs = scanRootDocs();
   syncAgentsMd(allSkills, allDocs);
+
+  // Generate .opencode/generated.json
+  console.log("\n📄 Generating .opencode/generated.json...");
+  generateOpenCodeConfig(allSkills, allDocs);
 
   console.log("\n✅ Done — all validations passed.");
   process.exit(0);

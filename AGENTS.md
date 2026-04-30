@@ -180,6 +180,9 @@ Skills = workflows especializados y conocimiento de dominio. Se auto-detectan se
 |----------|----------------|
 | Go tests, Bubbletea TUI testing | `go-testing` |
 | Crear nuevos skills de AI | `skill-creator` |
+| Backend resource creation | `backend-resource-generator` |
+| Form creation/editing | `vue-form-generator` |
+| Data tables/lists | `vue-data-table` |
 
 ### Skills Disponibles
 
@@ -189,7 +192,7 @@ Skills = workflows especializados y conocimiento de dominio. Se auto-detectan se
 |-------|-----------|---------------|
 | `apify-scrape` | Run Apify Actors to scrape websites and extract structured data. Use to deep-scrape documentation sites into local Markdown for the knowledge graph. Use when Tavily results are insufficient. | See description |
 | `backend-development` | Workflows y comandos para desarrollo backend en Foundation. Trigger: Cuando necesitas crear recursos, añadir propiedades, migraciones o seeders. | See description |
-| `backend-resource-generator` | Generate NestJS backend resources, properties, migrations and seeders. Use for creating CRUD modules, adding entity relationships, database migrations and seed data. Use proactively when users need to create backend entities, add properties/relationships, or manage database schema. Examples: - user: "Create a Product resource" → generate full resource with hygen - user: "Add a price field to Product" → use add:property with primitive type - user: "Product has many Categories" → use add:property with manyToMany reference - user: "Run pending migrations" → execute migration:run - user: "Create seed data for Roles" → create and edit seeder with idempotent pattern | See description |
+| `backend-resource-generator` | Generate NestJS backend resources, properties, migrations and seeders. Use for creating CRUD modules, adding entity relationships, database migrations and seed data. Use proactively when users need to create backend entities, add properties/relationships, or manage database schema. | See description |
 | `branch-pr` | PR creation workflow for Agent Teams Lite following the issue-first enforcement system. Trigger: When creating a pull request, opening a PR, or preparing changes for review. | See description |
 | `daisyui` | Tailwind CSS component library providing semantic class names for 50+ components with built-in themes, dark mode, and customization for rapid UI development. | See description |
 | `find-skills` | Helps users discover and install agent skills when they ask questions like "how do I do X", "find a skill for X", "is there a skill that can...", or express interest in extending capabilities. This skill should be used when the user is looking for functionality that might exist as an installable skill. | See description |
@@ -216,8 +219,8 @@ Skills = workflows especializados y conocimiento de dominio. Se auto-detectan se
 | `skill-registry` | Create or update the skill registry for the current project. Scans user skills and project conventions, writes .atl/skill-registry.md, and saves to engram if available. Trigger: When user says "update skills", "skill registry", "actualizar skills", "update registry", or after installing/removing skills. | See description |
 | `tavily-cli` | Web search, content extraction, crawling, and deep research via the Tavily CLI. Use this skill whenever the user wants to search the web, find articles, research a topic, look something up online, extract content from a URL, grab text from a webpage, crawl documentation, download a site's pages, discover URLs on a domain, or conduct in-depth research with citations. Also use when they say "fetch this page", "pull the content from", "get the page at https://", "find me articles about", or reference extracting data from external websites. This provides LLM-optimized web search, content extraction, site crawling, URL discovery, and AI-powered deep research — capabilities beyond what agents can do natively. Do NOT trigger for local file operations, git commands, deployments, or code editing tasks. | See description |
 | `typeorm` | typeorm | See description |
-| `vue-data-table` | Create paginated data tables with TanStack Vue Table and backend integration. Use for admin panels, list pages, CRUD interfaces. Use proactively when users need to display tabular data with filtering, sorting, pagination. Examples: - user: "Create a users table" → build table with columns, filters, actions - user: "Add pagination to my list" → implement DataTable with API integration - user: "Build an admin panel table" → create table with filters, sorting, action menus - user: "Table for products" → implement DataTable with select filters, cell renderers | See description |
-| `vue-form-generator` | Create Vue forms with Zod validation using base UI components. Use for CRUD forms, settings pages, profile editors. Use proactively when users need to create/edit forms with validation. Examples: - user: "Create a user form" → build form with Zod schema and base components - user: "Add validation to my form" → add Zod schema and error handling - user: "Build a settings page" → create form with switches, selects, inputs - user: "Form for creating products" → create form with all field types | See description |
+| `vue-data-table` | Create paginated data tables with TanStack Vue Table and backend integration. Use for admin panels, list pages, CRUD interfaces. | See description |
+| `vue-form-generator` | Create Vue forms with Zod validation using base UI components. Use for CRUD forms, settings pages, profile editors. | See description |
 
 <!-- skills-end -->
 
@@ -396,6 +399,18 @@ Docs en `docs/`. Docs pa contexto y teoría. Skills pa acción.
 
 ## 8. Quick Reference
 
+### ⚠️ Regla Obligatoria: Generadores
+
+BACKEND:
+  ✅ `pnpm generate:resource -- --name=X` — nuevo CRUD
+  ✅ `pnpm add:property -- --name=X ...` — nueva property
+  ❌ NUNCA escribir entity/service/controller/DTO a mano
+
+FRONTEND:
+  ✅ Cargar `vue-form-generator` — forms con Zod
+  ✅ Cargar `vue-data-table` — tablas con TanStack
+  ❌ NUNCA escribir forms/tables desde cero
+
 ### Backend Task
 
 ```
@@ -436,6 +451,25 @@ Esto evita colisiones entre extensiones que podrían usar el mismo nombre de tab
 1. Identificar: ¿Form (vue-form-generator) o Table (vue-data-table)?
 2. Cargar skill relevante
 3. Consultar docs/FRONTEND-LAYERS.md si necesario
+```
+
+**⚠️ Regla Obligatoria: Componentes UI Base**
+
+SIEMPRE usar componentes del módulo `@base/ui-app/` en `apps/front/modules/base/ui-app/components/`. NUNCA crear componentes UI personalizados si ya existe uno base.
+
+Componentes disponibles:
+- **Formularios:** `FormInput`, `FormTextArea`, `FormSelect`, `FormSearchSelect`, `FormMultipleSelect`, `FormDate`, `FormTime`, `FormPassword`, `FormSwitch`, `FormFile`, `FormMultipleFile`
+- **Tabla de datos:** `DataTable`, `DataTableComboboxFilter`, `DataTableColumnHeader`, `SortableHeader`, `EditButton`, `ViewButton`, `DeleteButton`
+- **Rich editor:** `RichEditor`
+- **Kanban**, **Calendar**
+
+```typescript
+// ✅ CORRECTO — usar componentes base
+import FormInput from '@base/ui-app/components/form/FormInput.vue'
+import DataTable from '@base/ui-app/components/data-table/DataTable.vue'
+
+// ❌ INCORRECTO — crear componentes custom cuando ya existe uno base
+// No crear CustomInput.vue si FormInput.vue ya cubre el caso
 ```
 
 ### Crear Nuevo Skill
@@ -480,6 +514,15 @@ foundation/
 6. **No build tras cambios**: Salvo que usuario pida
 7. **Delegación > Trabajo inline**: Leer/escribir código? Delegá
 8. **Migraciones**: NUNCA hardcode. Siempre `pnpm migration:generate` + `pnpm migration:run`
+
+9. **Generadores > Código manual**: NUNCA escribir CRUD, forms, o tables a mano.
+   - Backend: `pnpm generate:resource` pa nuevo resource. `pnpm add:property` pa nuevas propiedades.
+   - Frontend forms: Cargar skill `vue-form-generator`.
+   - Frontend tables: Cargar skill `vue-data-table`.
+   - Violación = PR rechazado.
+
+10. **Auto-load skills de generación**: Skills `backend-resource-generator`, `vue-form-generator`,
+    `vue-data-table` se cargan automáticamente según contexto. No esperar a que agente "recuerde".
 
 ---
 
