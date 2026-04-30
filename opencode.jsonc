@@ -49,6 +49,12 @@
       "type": "local",
       "command": ["npx", "-y", "@modelcontextprotocol/server-puppeteer"],
       "enabled": true
+    },
+    // Tavily — web search, extract, crawl (remote MCP)
+    "tavily": {
+      "type": "remote",
+      "url": "https://mcp.tavily.com/mcp/?tavilyApiKey={env:TAVILY_API_KEY}",
+      "enabled": true
     }
   },
   // ─── Plugins ────────────────────────────────────────────────────────────────

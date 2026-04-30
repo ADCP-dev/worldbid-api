@@ -75,7 +75,7 @@ Directo. Pasional. Desde CARIÑO. Alguien errado? (1) validá pregunta, (2) expl
 
 ## 3. MCPs (Model Context Protocols)
 
-Tres MCPs disponibles. Usarlos en vez de shell pa tareas específicas.
+Cuatro MCPs disponibles. Usarlos en vez de shell pa tareas específicas.
 
 ---
 
@@ -144,6 +144,27 @@ content:
 
 ## Relevant Files
 - path → [qué hace o qué cambió]
+```
+
+---
+
+### 🔍 Tavily Search (`tavily_*`)
+
+Web search, content extraction, crawling, y deep research. Para buscar info actualizada, extraer contenido de URLs, o investigar temas.
+
+| Tool | Qué hace |
+|------|----------|
+| `tavily_search` | Búsqueda web con resultados en tiempo real |
+| `tavily_extract` | Extraer contenido limpio de URLs |
+| `tavily_crawl` | Crawling profundo de sitios |
+| `tavily_map` | Mapa de URLs de un dominio |
+
+```
+# Buscar breaking changes
+Usa tavily_search para buscar "Nuxt 4 breaking changes 2025"
+
+# Extraer documentación
+Usa tavily_extract en https://docs.example.com/api-reference
 ```
 
 ---
