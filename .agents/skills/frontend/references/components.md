@@ -1,6 +1,6 @@
 # UI Components Reference
 
-> Auto-generated via `node scripts/generate-ui-components-list.js`
+> Auto-generated via `node bin/generate-ui-components-list.js`
 > Run the script to regenerate when components are added/removed.
 
 ## Form Components

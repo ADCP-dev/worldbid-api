@@ -190,7 +190,7 @@ All skills are listed in the project's skill registry. Grouped by loading strate
 
 Official Tavily search CLI for real-time web search. Integrated as a project skill.
 
-**Skill file:** `.opencode/skills/tavily-cli/SKILL.md`
+**Skill file:** `.agents/skills/tavily-cli/SKILL.md`
 **API Key:** `TAVILY_API_KEY` in `.env.local`
 
 **API Endpoint:** `POST https://api.tavily.com/search`
@@ -216,7 +216,7 @@ Official Tavily search CLI for real-time web search. Integrated as a project ski
 
 Run Apify Actors to scrape structured data from websites. Output saved to `docs/research/` for ingestion into the knowledge graph.
 
-**Skill file:** `.opencode/skills/apify-scrape/SKILL.md`
+**Skill file:** `.agents/skills/apify-scrape/SKILL.md`
 **API Key:** `APIFY_API_KEY` in `.env.local`
 
 **API Endpoint:** `POST https://api.apify.com/v2/acts/{actorId}/runs`

@@ -1,7 +1,7 @@
 ---
 name: frontend
 description: |-
-  Foundation frontend development — Nuxt 3 + Vue 3 + Tailwind + DaisyUI + TanStack. Use for ALL frontend work: forms, data tables, pages, components, and UI patterns.
+  Foundation frontend development — Nuxt 4 + Vue 3 + Tailwind + DaisyUI + TanStack. Use for ALL frontend work: forms, data tables, pages, components, and UI patterns.
 
   Use proactively when working on apps/front/, creating pages, forms, tables, or Vue components.
 
@@ -26,7 +26,7 @@ description: |-
 ## UI Components
 
 > See `references/components.md` for the complete component catalog.
-> Run `node scripts/generate-ui-components-list.js` to regenerate.
+> Run `node bin/generate-ui-components-list.js` to regenerate.
 
 All imports from `@base/ui-app/components/`. Key components:
 
@@ -62,7 +62,7 @@ function onSubmit() {
   const r = schema.safeParse(form.value);
   if (!r.success) {
     r.error.issues.forEach(
-      (i) => (errors.value[i.path[0] as string] = i.message)
+      (i) => (errors.value[i.path[0] as string] = i.message),
     );
     toast.error("Corregí errores");
     return;
@@ -73,7 +73,12 @@ function onSubmit() {
 
 <template>
   <form @submit.prevent="onSubmit" class="space-y-6">
-    <FormInput v-model="form.email" label="Email" :error="errors.email" required />
+    <FormInput
+      v-model="form.email"
+      label="Email"
+      :error="errors.email"
+      required
+    />
     <FormSelect
       v-model="form.role"
       label="Rol"
@@ -96,13 +101,25 @@ import DataTable from "@base/ui-app/components/data-table/DataTable.vue";
 const columns = computed(() => [
   { accessorKey: "id", headerName: "ID", filterType: "number" },
   { accessorKey: "email", headerName: "Email", filterType: "string" },
-  { accessorKey: "role.name", headerName: "Rol", filterType: "select",
-    options: [{ value: "admin", label: "Admin" }, { value: "user", label: "User" }] },
+  {
+    accessorKey: "role.name",
+    headerName: "Rol",
+    filterType: "select",
+    options: [
+      { value: "admin", label: "Admin" },
+      { value: "user", label: "User" },
+    ],
+  },
 ]);
 </script>
 
 <template>
-  <DataTable ref="tableRef" :columns="columns" endpoint="users" table-name="admin-users" />
+  <DataTable
+    ref="tableRef"
+    :columns="columns"
+    endpoint="users"
+    table-name="admin-users"
+  />
 </template>
 ```
 
@@ -129,6 +146,9 @@ definePageMeta({
 - `references/components.md` — Catálogo completo de componentes UI
 - `references/forms.md` — Patrones de formularios (Zod + componentes base)
 - `references/tables.md` — Patrones de DataTable (TanStack + acciones)
+- `references/nuxt.md` — Nuxt 4+ patterns (routes, server, composables)
+- `references/daisyui.md` — DaisyUI key classes reference
+- `references/design.md` — Frontend design patterns & aesthetics
 - `docs/FRONTEND-LAYERS.md` — Nuxt layers y estructura del frontend
 - `docs/TYPESCRIPT-GUIDELINES.md` — Reglas TypeScript del proyecto
 - `docs/modules/auth.md` — Auth (stores, guards, middlewares)

@@ -192,18 +192,16 @@ Skills = workflows especializados y conocimiento de dominio. Se auto-detectan se
 | `apify-scrape` | Run Apify Actors to scrape websites and extract structured data. Use to deep-scrape documentation sites into local Markdown for the knowledge graph. Use when Tavily results are insufficient. | See description |
 | `backend` | Foundation backend development — NestJS + TypeORM + Hygen generators. Use for ALL backend work: creating resources, adding properties, migrations, seeders, and NestJS patterns. Use proactively when working on apps/back/, creating CRUD modules, managing database schema, or writing NestJS code. Examples: - user: "Create a Product resource" → pnpm generate:resource -- --name=Product - user: "Add email field to User" → pnpm add:property -- --name=User --property=email --kind=primitive --type=string - user: "Run migrations" → pnpm migration:generate AddXxx + pnpm migration:run | See description |
 | `branch-pr` | PR creation workflow for Agent Teams Lite following the issue-first enforcement system. Trigger: When creating a pull request, opening a PR, or preparing changes for review. | See description |
-| `daisyui` | Tailwind CSS component library providing semantic class names for 50+ components with built-in themes, dark mode, and customization for rapid UI development. | See description |
 | `find-skills` | Helps users discover and install agent skills when they ask questions like "how do I do X", "find a skill for X", "is there a skill that can...", or express interest in extending capabilities. This skill should be used when the user is looking for functionality that might exist as an installable skill. | See description |
-| `frontend` | Foundation frontend development — Nuxt 3 + Vue 3 + Tailwind + DaisyUI + TanStack. Use for ALL frontend work: forms, data tables, pages, components, and UI patterns. Use proactively when working on apps/front/, creating pages, forms, tables, or Vue components. Examples: - user: "Create a user form" → use FormInput, FormSelect from @base/ui-app/ - user: "Build a data table" → use DataTable from @base/ui-app/ - user: "Add a new page" → create in pages/, use Nuxt routing | See description |
-| `frontend-design` | Create distinctive, production-grade frontend interfaces with high design quality. Use this skill when the user asks to build web components, pages, artifacts, posters, or applications (examples include websites, landing pages, dashboards, React components, HTML/CSS layouts, or when styling/beautifying any web UI). Generates creative, polished code and UI design that avoids generic AI aesthetics. | See description |
+| `frontend` | Foundation frontend development — Nuxt 4 + Vue 3 + Tailwind + DaisyUI + TanStack. Use for ALL frontend work: forms, data tables, pages, components, and UI patterns. Use proactively when working on apps/front/, creating pages, forms, tables, or Vue components. Examples: - user: "Create a user form" → use FormInput, FormSelect from @base/ui-app/ - user: "Build a data table" → use DataTable from @base/ui-app/ - user: "Add a new page" → create in pages/, use Nuxt routing | See description |
+| `GitHub CLI` | github-cli | See description |
 | `GitHub CLI` | github-cli | See description |
 | `go-testing` | Go testing patterns for Gentleman.Dots, including Bubbletea TUI testing. Trigger: When writing Go tests, using teatest, or adding test coverage. | See description |
-| `graph-query` | Query the Foundation knowledge graph (graphify-out/graph.json) for code architecture questions. Trigger: When user asks about architecture, dependencies, "how does X connect to Y", "show me the path", "graph query", "what depends on", or wants to explore the codebase structure. | See description |
-| `graphify` | any input (code, docs, papers, images) - knowledge graph - clustered communities - HTML + JSON + audit report | See description |
+| `graph-query` | Query the Foundation knowledge graph (graphify-out/graph.json) for code architecture questions. Also: build/rebuild the graph from source code. Trigger: When user asks about architecture, dependencies, "how does X connect to Y", "show me the path", "graph query", "what depends on", or wants to explore the codebase structure. | See description |
+| `graph-query` | Query the Foundation knowledge graph (graphify-out/graph.json) for code architecture questions. Also: build/rebuild the graph from source code. Trigger: When user asks about architecture, dependencies, "how does X connect to Y", "show me the path", "graph query", "what depends on", or wants to explore the codebase structure. | See description |
+| `graphify` | any input (code, docs, papers, images) → knowledge graph → clustered communities → HTML + JSON + audit report | See description |
 | `issue-creation` | Issue creation workflow for Agent Teams Lite following the issue-first enforcement system. Trigger: When creating a GitHub issue, reporting a bug, or requesting a feature. | See description |
 | `judgment-day` | Parallel adversarial review protocol that launches two independent blind judge sub-agents simultaneously to review the same target, synthesizes their findings, applies fixes, and re-judges until both pass or escalates after 2 iterations. Trigger: When user says "judgment day", "judgment-day", "review adversarial", "dual review", "doble review", "juzgar", "que lo juzguen". | See description |
-| `nestjs-best-practices` | NestJS best practices and architecture patterns for building production-ready applications. This skill should be used when writing, reviewing, or refactoring NestJS code to ensure proper patterns for modules, dependency injection, security, and performance. | See description |
-| `nuxt` | Use when working on Nuxt 4+ projects - provides server routes, file-based routing, middleware patterns, Nuxt-specific composables, and configuration with latest docs. Covers h3 v1 helpers (validation, WebSocket, SSE) and nitropack v2 patterns. Updated for Nuxt 4.3+. | See description |
 | `sdd-apply` | Implement tasks from the change, writing actual code following the specs and design. Trigger: When the orchestrator launches you to implement one or more tasks from a change. | See description |
 | `sdd-archive` | Sync delta specs to main specs and archive a completed change. Trigger: When the orchestrator launches you to archive a change after implementation and verification. | See description |
 | `sdd-design` | Create technical design document with architecture decisions and approach. Trigger: When the orchestrator launches you to write or update the technical design for a change. | See description |
@@ -217,7 +215,6 @@ Skills = workflows especializados y conocimiento de dominio. Se auto-detectan se
 | `skill-creator` | Creates new AI agent skills following the Agent Skills spec. Trigger: When user asks to create a new skill, add agent instructions, or document patterns for AI. | See description |
 | `skill-registry` | Create or update the skill registry for the current project. Scans user skills and project conventions, writes .atl/skill-registry.md, and saves to engram if available. Trigger: When user says "update skills", "skill registry", "actualizar skills", "update registry", or after installing/removing skills. | See description |
 | `tavily-cli` | Web search, content extraction, crawling, and deep research via the Tavily CLI. Use this skill whenever the user wants to search the web, find articles, research a topic, look something up online, extract content from a URL, grab text from a webpage, crawl documentation, download a site's pages, discover URLs on a domain, or conduct in-depth research with citations. Also use when they say "fetch this page", "pull the content from", "get the page at https://", "find me articles about", or reference extracting data from external websites. This provides LLM-optimized web search, content extraction, site crawling, URL discovery, and AI-powered deep research — capabilities beyond what agents can do natively. Do NOT trigger for local file operations, git commands, deployments, or code editing tasks. | See description |
-| `typeorm` | typeorm | See description |
 
 <!-- skills-end -->
 
@@ -473,7 +470,7 @@ import DataTable from '@base/ui-app/components/data-table/DataTable.vue'
 ```
 1. skill({ name: "skill-creator" })
 2. Seguir 6-step creation process
-3. Usar scaffold script en .opencode/skills/skill-creator/scripts/
+3. Usar scaffold script en .agents/skills/skill-creator/scripts/
 ```
 
 ---
@@ -486,7 +483,7 @@ foundation/
 │   ├── back/       # NestJS API (src/modules/, src/infrastructure/)
 │   └── front/      # Nuxt 3 SPA (modules/, layouts/, pages/)
 ├── docs/            # Documentación
-├── .opencode/skills/  # Skills del proyecto
+├── .agents/skills/    # Skills del proyecto
 └── graphify-out/    # Knowledge graph output
 ```
 

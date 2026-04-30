@@ -1,11 +1,11 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "plugin": [
-    ".opencode/plugins/graphify.js"
+    ".agents/plugins/graphify.js"
   ],
   "instructions": [
     "docs/ARCHITECTURE.md",
     "docs/TOOLS.md",
-    ".opencode/generated.json"
+    ".agents/generated.json"
   ]
 }

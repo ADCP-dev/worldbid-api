@@ -378,7 +378,7 @@ function scanSkills() {
   const seen = new Set();
 
   const searchPaths = [
-    path.join(ROOT, ".opencode", "skills"),
+    path.join(ROOT, ".agents", "skills"),
     path.join(ROOT, ".agents", "skills"),
     path.join(os.homedir(), ".config", "opencode", "skills"),
     path.join(os.homedir(), ".agents", "skills"),
@@ -587,11 +587,11 @@ function syncAgentsMd(skills, docs) {
 // ─── OpenCode Config Generator ──────────────────────────────────────────────
 
 /**
- * Generates .opencode/generated.json from scanned skills and docs.
+ * Generates .agents/generated.json from scanned skills and docs.
  * Written as a JSON file with metadata including source and timestamp.
  */
 function generateOpenCodeConfig(skills, docs) {
-  const outPath = path.join(ROOT, ".opencode", "generated.json");
+  const outPath = path.join(ROOT, ".agents", "generated.json");
 
   const skillsData = skills.map((s) => ({
     name: s.name,
@@ -737,8 +737,8 @@ ${extensions.length > 0 ? extensions.map(e => `| [${e.fm.id}.md](./extensions/${
   const allDocs = scanRootDocs();
   syncAgentsMd(allSkills, allDocs);
 
-  // Generate .opencode/generated.json
-  console.log("\n📄 Generating .opencode/generated.json...");
+  // Generate .agents/generated.json
+  console.log("\n📄 Generating .agents/generated.json...");
   generateOpenCodeConfig(allSkills, allDocs);
 
   console.log("\n✅ Done — all validations passed.");

@@ -12,15 +12,12 @@
 
 | Skill | Description | Path |
 |-------|-------------|------|
-| `backend-resource-generator` | CRUD NestJS, migrations, seeds with hygen | `.opencode/skills/backend-resource-generator/SKILL.md` |
-| `daisyui` | Tailwind CSS component library with themes | `.opencode/skills/daisyui/SKILL.md` |
-| `frontend-design` | Production-grade distinctive UI interfaces | `.opencode/skills/frontend-design/SKILL.md` |
-| `github-cli` | GitHub PR, issues, workflows management | `.opencode/skills/github-cli/SKILL.md` |
-| `nestjs-best-practices` | NestJS production-ready patterns | `.opencode/skills/nestjs-best-practices/SKILL.md` |
-| `nuxt` | Nuxt 4+ patterns (server routes, h3, nitropack) | `.opencode/skills/nuxt/SKILL.md` |
-| `typeorm` | TypeORM development guidelines | `.opencode/skills/typeorm/SKILL.md` |
-| `vue-data-table` | TanStack Vue Table + backend integration | `.opencode/skills/vue-data-table/SKILL.md` |
-| `vue-form-generator` | Vue forms with Zod validation | `.opencode/skills/vue-form-generator/SKILL.md` |
+| `apify-scrape` | Deep-scrape documentation sites | `.agents/skills/apify-scrape/SKILL.md` |
+| `github-cli` | GitHub PR, issues, workflows management | `.agents/skills/github-cli/SKILL.md` |
+| `graph-query` | Knowledge graph building + querying | `.agents/skills/graph/SKILL.md` |
+| `tavily-cli` | Web search, content extraction, crawling | `.agents/skills/tavily-cli/SKILL.md` |
+| `vue-data-table` | TanStack Vue Table + backend integration | `.agents/skills/frontend/references/tables.md` |
+| `vue-form-generator` | Vue forms with Zod validation | `.agents/skills/frontend/references/forms.md` |
 
 ### User-Level Skills (opencode)
 
@@ -98,5 +95,5 @@ When launching sub-agents, resolve skill paths once per session:
 ## Scan Sources
 
 - **User skills**: `~/.config/opencode/skills/*/SKILL.md`
-- **Project skills**: `.opencode/skills/*/SKILL.md`
+- **Project skills**: `.agents/skills/*/SKILL.md`
 - **Conventions**: `AGENTS.md` (index), `.cursorrules`, `CLAUDE.md`

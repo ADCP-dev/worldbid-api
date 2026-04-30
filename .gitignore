@@ -61,4 +61,4 @@ graphify-out/__pycache__/
 graphify-out/.needs_update
 
 # OpenCode generated config
-.opencode/generated.json
+.agents/generated.json

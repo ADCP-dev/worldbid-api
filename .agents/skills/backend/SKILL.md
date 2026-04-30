@@ -96,6 +96,8 @@ export class CreateUserDto {
 
 - `references/commands.md` — Todos los comandos Hygen detallados
 - `references/patterns.md` — Patrones NestJS (entity, repository, DTO, controller, module)
+- `references/typeorm.md` — TypeORM column/relation/query patterns
+- `references/best-practices.md` — NestJS best practices (40 rules)
 - `docs/modules/database.md` — Migraciones y TypeORM
 - `docs/TYPESCRIPT-GUIDELINES.md` — Reglas TypeScript del proyecto
 - `docs/ARCHITECTURE.md` — Dependencias entre módulos
