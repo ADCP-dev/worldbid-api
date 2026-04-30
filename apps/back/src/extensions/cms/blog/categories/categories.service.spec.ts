@@ -146,7 +146,9 @@ describe('BlogCategoriesService', () => {
       ];
       mockCategoryRepository.findOne.mockResolvedValue(null);
       mockCategoryRepository.create.mockReturnValue(created);
-      mockCategoryRepository.save.mockResolvedValueOnce(created).mockResolvedValueOnce({ ...created, tags });
+      mockCategoryRepository.save
+        .mockResolvedValueOnce(created)
+        .mockResolvedValueOnce({ ...created, tags });
       mockTagRepository.findBy.mockResolvedValue(tags);
 
       const result = await service.create(dto as any, 'es');

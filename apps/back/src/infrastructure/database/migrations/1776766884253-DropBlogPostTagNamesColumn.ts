@@ -1,7 +1,9 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 import { Logger } from '@nestjs/common';
 
-export class DropBlogPostTagNamesColumn1776766884253 implements MigrationInterface {
+export class DropBlogPostTagNamesColumn1776766884253
+  implements MigrationInterface
+{
   private readonly logger = new Logger(
     'DropBlogPostTagNamesColumn1776766884253',
   );
@@ -20,8 +22,6 @@ export class DropBlogPostTagNamesColumn1776766884253 implements MigrationInterfa
     await queryRunner.query(
       `ALTER TABLE "blog_post" ADD COLUMN IF NOT EXISTS "tagNames" text`,
     );
-    this.logger.log(
-      'Restored tagNames column on blog_post table (data lost)',
-    );
+    this.logger.log('Restored tagNames column on blog_post table (data lost)');
   }
 }

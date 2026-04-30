@@ -23,7 +23,7 @@ export interface RobotsPolicy {
 }
 
 @Entity({
-  name: 'seo_metadata',
+  name: 'ext_cms_seo_metadata',
 })
 export class SeoMetadataEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')

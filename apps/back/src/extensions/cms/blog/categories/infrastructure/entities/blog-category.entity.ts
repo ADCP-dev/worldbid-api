@@ -17,7 +17,7 @@ import { BlogPostEntity } from '../../../posts/infrastructure/entities/blog-post
 import { TagEntity } from '../../../posts/infrastructure/entities/post-tag.entity';
 
 @Entity({
-  name: 'blog_category',
+  name: 'ext_cms_blog_category',
 })
 export class BlogCategoryEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')
@@ -51,7 +51,7 @@ export class BlogCategoryEntity extends EntityRelationalHelper {
 
   @ManyToMany(() => TagEntity, { eager: true })
   @JoinTable({
-    name: 'blog_category_tag',
+    name: 'ext_cms_blog_category_tag',
     joinColumn: { name: 'categoryId', referencedColumnName: 'id' },
     inverseJoinColumn: { name: 'tagId', referencedColumnName: 'id' },
   })

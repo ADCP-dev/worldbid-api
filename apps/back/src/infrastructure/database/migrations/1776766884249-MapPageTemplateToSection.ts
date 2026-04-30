@@ -1,10 +1,10 @@
 import { MigrationInterface, QueryRunner, TableColumn } from 'typeorm';
 import { Logger } from '@nestjs/common';
 
-export class MapPageTemplateToSection1776766884249 implements MigrationInterface {
-  private readonly logger = new Logger(
-    'MapPageTemplateToSection1776766884249',
-  );
+export class MapPageTemplateToSection1776766884249
+  implements MigrationInterface
+{
+  private readonly logger = new Logger('MapPageTemplateToSection1776766884249');
   name = 'MapPageTemplateToSection1776766884249';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

@@ -1,9 +1,13 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 import { Logger } from '@nestjs/common';
 
-export class MigrateSeoMetadataToTranslations1776766884262 implements MigrationInterface {
+export class MigrateSeoMetadataToTranslations1776766884262
+  implements MigrationInterface
+{
   name = 'MigrateSeoMetadataToTranslations1776766884262';
-  private readonly logger = new Logger('MigrateSeoMetadataToTranslations1776766884262');
+  private readonly logger = new Logger(
+    'MigrateSeoMetadataToTranslations1776766884262',
+  );
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Find default language (es)
@@ -13,7 +17,9 @@ export class MigrateSeoMetadataToTranslations1776766884262 implements MigrationI
     const defaultLangId = langResult[0]?.id;
 
     if (!defaultLangId) {
-      this.logger.warn('No default language (es) found. Skipping SEO metadata migration.');
+      this.logger.warn(
+        'No default language (es) found. Skipping SEO metadata migration.',
+      );
       return;
     }
 
@@ -22,7 +28,9 @@ export class MigrateSeoMetadataToTranslations1776766884262 implements MigrationI
       `SELECT "id", "pageId", "lang", "metaTitle", "metaDescription" FROM "seo_metadata" WHERE "metaTitle" IS NOT NULL OR "metaDescription" IS NOT NULL`,
     );
 
-    this.logger.log(`Found ${seoRecords.length} SEO metadata records to migrate`);
+    this.logger.log(
+      `Found ${seoRecords.length} SEO metadata records to migrate`,
+    );
 
     let migrated = 0;
     for (const seo of seoRecords) {
@@ -58,7 +66,15 @@ export class MigrateSeoMetadataToTranslations1776766884262 implements MigrationI
             await queryRunner.query(
               `INSERT INTO "translation" ("langId", "section", "key", "content", "entityName", "entityId", "category", "createdAt", "updatedAt")
                VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())`,
-              [langId, 'blog-post', 'metaTitle', seo.metaTitle, 'BlogPost', seo.pageId, null],
+              [
+                langId,
+                'blog-post',
+                'metaTitle',
+                seo.metaTitle,
+                'BlogPost',
+                seo.pageId,
+                null,
+              ],
             );
             migrated++;
           }
@@ -72,7 +88,15 @@ export class MigrateSeoMetadataToTranslations1776766884262 implements MigrationI
             await queryRunner.query(
               `INSERT INTO "translation" ("langId", "section", "key", "content", "entityName", "entityId", "category", "createdAt", "updatedAt")
                VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())`,
-              [langId, 'blog-post', 'metaDescription', seo.metaDescription, 'BlogPost', seo.pageId, null],
+              [
+                langId,
+                'blog-post',
+                'metaDescription',
+                seo.metaDescription,
+                'BlogPost',
+                seo.pageId,
+                null,
+              ],
             );
             migrated++;
           }
@@ -89,7 +113,15 @@ export class MigrateSeoMetadataToTranslations1776766884262 implements MigrationI
             await queryRunner.query(
               `INSERT INTO "translation" ("langId", "section", "key", "content", "entityName", "entityId", "category", "createdAt", "updatedAt")
                VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())`,
-              [langId, 'page', 'metaTitle', seo.metaTitle, null, null, category],
+              [
+                langId,
+                'page',
+                'metaTitle',
+                seo.metaTitle,
+                null,
+                null,
+                category,
+              ],
             );
             migrated++;
           }
@@ -103,13 +135,23 @@ export class MigrateSeoMetadataToTranslations1776766884262 implements MigrationI
             await queryRunner.query(
               `INSERT INTO "translation" ("langId", "section", "key", "content", "entityName", "entityId", "category", "createdAt", "updatedAt")
                VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())`,
-              [langId, 'page', 'metaDescription', seo.metaDescription, null, null, category],
+              [
+                langId,
+                'page',
+                'metaDescription',
+                seo.metaDescription,
+                null,
+                null,
+                category,
+              ],
             );
             migrated++;
           }
         }
       } else {
-        this.logger.warn(`Could not determine entity type for pageId ${seo.pageId}`);
+        this.logger.warn(
+          `Could not determine entity type for pageId ${seo.pageId}`,
+        );
       }
     }
 

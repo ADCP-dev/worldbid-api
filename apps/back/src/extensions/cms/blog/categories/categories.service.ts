@@ -328,8 +328,13 @@ export class BlogCategoriesService {
   private async getTranslationsForCategories(
     ids: string[],
     lang: string,
-  ): Promise<Record<string, { name: string | null; description: string | null }>> {
-    const result: Record<string, { name: string | null; description: string | null }> = {};
+  ): Promise<
+    Record<string, { name: string | null; description: string | null }>
+  > {
+    const result: Record<
+      string,
+      { name: string | null; description: string | null }
+    > = {};
     for (const id of ids) {
       result[id] = await this.getTranslationsForCategory(id, lang);
     }

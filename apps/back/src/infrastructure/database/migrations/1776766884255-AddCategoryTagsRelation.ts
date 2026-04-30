@@ -1,6 +1,8 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddCategoryTagsRelation1776766884255 implements MigrationInterface {
+export class AddCategoryTagsRelation1776766884255
+  implements MigrationInterface
+{
   name = 'AddCategoryTagsRelation1776766884255';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

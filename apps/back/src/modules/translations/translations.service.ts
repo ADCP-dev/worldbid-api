@@ -649,7 +649,8 @@ export class TranslationsService {
       );
     }
 
-    const queryRunner = this.translationRepository.manager.connection.createQueryRunner();
+    const queryRunner =
+      this.translationRepository.manager.connection.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 

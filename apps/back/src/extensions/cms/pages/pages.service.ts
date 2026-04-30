@@ -271,10 +271,7 @@ export class PagesService {
 
     // Get translations for this page and lang
     const translations =
-      await this.translationsService.getTranslationsForCategory(
-        category,
-        lang,
-      );
+      await this.translationsService.getTranslationsForCategory(category, lang);
 
     const seo = await this.seoService.findByPageId(id, lang);
 

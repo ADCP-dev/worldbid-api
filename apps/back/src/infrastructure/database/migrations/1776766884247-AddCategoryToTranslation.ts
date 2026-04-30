@@ -1,6 +1,8 @@
 import { MigrationInterface, QueryRunner, TableColumn } from 'typeorm';
 
-export class AddCategoryToTranslation1776766884247 implements MigrationInterface {
+export class AddCategoryToTranslation1776766884247
+  implements MigrationInterface
+{
   name = 'AddCategoryToTranslation1776766884247';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

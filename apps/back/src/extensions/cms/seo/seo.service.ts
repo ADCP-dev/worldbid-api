@@ -29,10 +29,8 @@ export class SeoService {
     });
 
     // Resolve metaTitle and metaDescription from translations
-    const { metaTitle, metaDescription } = await this.resolveMetaFromTranslations(
-      pageId,
-      lang,
-    );
+    const { metaTitle, metaDescription } =
+      await this.resolveMetaFromTranslations(pageId, lang);
 
     if (seo) {
       if (metaTitle !== undefined) seo.metaTitle = metaTitle;
@@ -65,7 +63,10 @@ export class SeoService {
         lang,
       );
 
-    if (blogPostTranslations['metaTitle'] || blogPostTranslations['metaDescription']) {
+    if (
+      blogPostTranslations['metaTitle'] ||
+      blogPostTranslations['metaDescription']
+    ) {
       return {
         metaTitle: blogPostTranslations['metaTitle']?.value,
         metaDescription: blogPostTranslations['metaDescription']?.value,
@@ -86,7 +87,10 @@ export class SeoService {
           lang,
         );
 
-      if (pageTranslations['metaTitle'] || pageTranslations['metaDescription']) {
+      if (
+        pageTranslations['metaTitle'] ||
+        pageTranslations['metaDescription']
+      ) {
         return {
           metaTitle: pageTranslations['metaTitle']?.value,
           metaDescription: pageTranslations['metaDescription']?.value,

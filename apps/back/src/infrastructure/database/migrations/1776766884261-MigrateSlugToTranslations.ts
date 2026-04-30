@@ -1,9 +1,13 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 import { Logger } from '@nestjs/common';
 
-export class MigrateSlugToTranslations1776766884261 implements MigrationInterface {
+export class MigrateSlugToTranslations1776766884261
+  implements MigrationInterface
+{
   name = 'MigrateSlugToTranslations1776766884261';
-  private readonly logger = new Logger('MigrateSlugToTranslations1776766884261');
+  private readonly logger = new Logger(
+    'MigrateSlugToTranslations1776766884261',
+  );
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Find default language (es)
@@ -13,7 +17,9 @@ export class MigrateSlugToTranslations1776766884261 implements MigrationInterfac
     const defaultLangId = langResult[0]?.id;
 
     if (!defaultLangId) {
-      this.logger.warn('No default language (es) found. Skipping slug migration.');
+      this.logger.warn(
+        'No default language (es) found. Skipping slug migration.',
+      );
       return;
     }
 
@@ -22,7 +28,9 @@ export class MigrateSlugToTranslations1776766884261 implements MigrationInterfac
       `SELECT id, slug FROM "blog_post" WHERE slug IS NOT NULL AND slug != ''`,
     );
 
-    this.logger.log(`Found ${blogPosts.length} blog posts with slugs to migrate`);
+    this.logger.log(
+      `Found ${blogPosts.length} blog posts with slugs to migrate`,
+    );
 
     for (const post of blogPosts) {
       // Check if translation already exists to make idempotent
@@ -68,15 +76,7 @@ export class MigrateSlugToTranslations1776766884261 implements MigrationInterfac
         await queryRunner.query(
           `INSERT INTO "translation" ("langId", "section", "key", "content", "entityName", "entityId", "category", "createdAt", "updatedAt")
            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())`,
-          [
-            defaultLangId,
-            'page',
-            'slug',
-            page.slug,
-            null,
-            null,
-            category,
-          ],
+          [defaultLangId, 'page', 'slug', page.slug, null, null, category],
         );
       }
     }

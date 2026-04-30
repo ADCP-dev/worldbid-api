@@ -1,5 +1,8 @@
 import { Logger } from '@nestjs/common';
-import type { ExtensionManifest, ExtensionConflict } from './extension-manifest.types';
+import type {
+  ExtensionManifest,
+  ExtensionConflict,
+} from './extension-manifest.types';
 
 const logger = new Logger('ExtensionDependencyResolver');
 
@@ -82,9 +85,7 @@ export function resolveDependencies(
     .map((name) => manifests.get(name))
     .filter((m): m is ExtensionManifest => m !== undefined);
 
-  logger.log(
-    `Extension load order: ${ordered.map((m) => m.name).join(' → ')}`,
-  );
+  logger.log(`Extension load order: ${ordered.map((m) => m.name).join(' → ')}`);
 
   return { ordered, conflicts };
 }
@@ -92,10 +93,7 @@ export function resolveDependencies(
 /**
  * Simple DFS cycle detection to produce a readable chain.
  */
-function findCycle(
-  graph: Map<string, string[]>,
-  nodes: string[],
-): string {
+function findCycle(graph: Map<string, string[]>, nodes: string[]): string {
   const visited = new Set<string>();
   const stack = new Set<string>();
   const parent = new Map<string, string>();

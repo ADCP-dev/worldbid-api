@@ -88,6 +88,14 @@
       "sessions": 0,
       "memories": 0,
       "prompts": 4
+    },
+    {
+      "id": "1496216b",
+      "created_by": "YO",
+      "created_at": "2026-04-30T10:27:42Z",
+      "sessions": 0,
+      "memories": 1,
+      "prompts": 3
     }
   ]
 }

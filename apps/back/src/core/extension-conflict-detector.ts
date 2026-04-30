@@ -1,5 +1,8 @@
 import { Logger } from '@nestjs/common';
-import type { ExtensionManifest, ExtensionConflict } from './extension-manifest.types';
+import type {
+  ExtensionManifest,
+  ExtensionConflict,
+} from './extension-manifest.types';
 
 const logger = new Logger('ExtensionConflictDetector');
 

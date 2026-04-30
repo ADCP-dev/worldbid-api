@@ -26,7 +26,7 @@ export class PopulatePostTagSlug1776766884251 implements MigrationInterface {
     );
 
     for (const tag of tags) {
-      let baseSlug = this.slugify(tag.name);
+      const baseSlug = this.slugify(tag.name);
       let slug = baseSlug;
       let counter = 1;
 
@@ -37,10 +37,10 @@ export class PopulatePostTagSlug1776766884251 implements MigrationInterface {
 
       usedSlugs.add(slug);
 
-      await queryRunner.query(
-        `UPDATE "post_tag" SET slug = $1 WHERE id = $2`,
-        [slug, tag.id],
-      );
+      await queryRunner.query(`UPDATE "post_tag" SET slug = $1 WHERE id = $2`, [
+        slug,
+        tag.id,
+      ]);
     }
 
     this.logger.log(`Populated slugs for ${tags.length} tags`);

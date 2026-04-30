@@ -78,7 +78,9 @@ export class ExtensionLoaderModule {
       if (mod) {
         extensionModules.push(mod);
         loadedNames.add(dirEntry.name);
-        logger.log(`✅ Loaded extension: ${dirEntry.name} v${manifest.version}`);
+        logger.log(
+          `✅ Loaded extension: ${dirEntry.name} v${manifest.version}`,
+        );
       }
     }
 
@@ -129,7 +131,11 @@ export class ExtensionLoaderModule {
     const manifests = new Map<string, ExtensionManifest>();
 
     for (const dir of dirs) {
-      const manifestPath = path.join(extensionsDir, dir.name, 'extension.manifest');
+      const manifestPath = path.join(
+        extensionsDir,
+        dir.name,
+        'extension.manifest',
+      );
 
       try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports

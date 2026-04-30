@@ -15,7 +15,12 @@ import { TranslationEntity } from '@src/modules/translations/infrastructure/enti
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([BlogPostEntity, TagEntity, BlogCategoryEntity, TranslationEntity]),
+    TypeOrmModule.forFeature([
+      BlogPostEntity,
+      TagEntity,
+      BlogCategoryEntity,
+      TranslationEntity,
+    ]),
     FilesModule.register(),
     TranslationsModule,
   ],

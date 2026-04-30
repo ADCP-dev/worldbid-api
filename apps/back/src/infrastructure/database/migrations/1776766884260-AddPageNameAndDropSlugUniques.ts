@@ -1,9 +1,18 @@
-import { MigrationInterface, QueryRunner, TableColumn, TableIndex } from 'typeorm';
+import {
+  MigrationInterface,
+  QueryRunner,
+  TableColumn,
+  TableIndex,
+} from 'typeorm';
 import { Logger } from '@nestjs/common';
 
-export class AddPageNameAndDropSlugUniques1776766884260 implements MigrationInterface {
+export class AddPageNameAndDropSlugUniques1776766884260
+  implements MigrationInterface
+{
   name = 'AddPageNameAndDropSlugUniques1776766884260';
-  private readonly logger = new Logger('AddPageNameAndDropSlugUniques1776766884260');
+  private readonly logger = new Logger(
+    'AddPageNameAndDropSlugUniques1776766884260',
+  );
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // 1. Add name column to page table (nullable first for backfill)
@@ -104,6 +113,8 @@ export class AddPageNameAndDropSlugUniques1776766884260 implements MigrationInte
     await queryRunner.dropIndex('page', 'IDX_PAGE_NAME_UNIQUE');
     await queryRunner.dropColumn('page', 'name');
 
-    this.logger.log('Restored unique constraints on slugs and dropped page.name');
+    this.logger.log(
+      'Restored unique constraints on slugs and dropped page.name',
+    );
   }
 }

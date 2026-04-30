@@ -11,7 +11,7 @@ import {
 import { EntityRelationalHelper } from '@infra/utils/relational-entity-helper';
 import { BlogPostEntity } from './blog-post.entity';
 
-@Entity({ name: 'post_tag' })
+@Entity({ name: 'ext_cms_post_tag' })
 export class TagEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')
   id: string;

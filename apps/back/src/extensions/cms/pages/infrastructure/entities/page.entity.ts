@@ -21,7 +21,7 @@ export enum PageSection {
 }
 
 @Entity({
-  name: 'page',
+  name: 'ext_cms_page',
 })
 export class PageEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')

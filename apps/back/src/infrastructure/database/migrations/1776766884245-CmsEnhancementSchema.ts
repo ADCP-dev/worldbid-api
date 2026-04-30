@@ -1,4 +1,11 @@
-import { MigrationInterface, QueryRunner, Table, TableIndex, TableForeignKey, TableColumn } from 'typeorm';
+import {
+  MigrationInterface,
+  QueryRunner,
+  Table,
+  TableIndex,
+  TableForeignKey,
+  TableColumn,
+} from 'typeorm';
 
 export class CmsEnhancementSchema1776766884245 implements MigrationInterface {
   name = 'CmsEnhancementSchema1776766884245';
