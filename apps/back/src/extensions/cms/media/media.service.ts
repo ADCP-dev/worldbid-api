@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, FindOptionsWhere } from 'typeorm';
 import { FileEntity } from '@storage/files/infrastructure/entities/file.entity';
 
 @Injectable()
@@ -9,6 +9,23 @@ export class MediaService {
     @InjectRepository(FileEntity)
     private readonly fileRepository: Repository<FileEntity>,
   ) {}
+
+  async findByEntity(
+    entityName: string,
+    entityId: string,
+  ): Promise<FileEntity[]> {
+    const where: FindOptionsWhere<FileEntity> = {};
+
+    if (entityName) {
+      where.entityName = entityName;
+    }
+
+    if (entityId) {
+      where.entityId = entityId;
+    }
+
+    return this.fileRepository.find({ where });
+  }
 
   async createImage(
     file: Express.Multer.File,

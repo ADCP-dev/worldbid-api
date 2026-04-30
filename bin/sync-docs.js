@@ -11,6 +11,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const os = require("os");
 
 const ROOT = path.resolve(__dirname, "..");
 const DIRS = {
@@ -290,6 +291,296 @@ function researchList(researchDocs) {
     .join("\n");
 }
 
+// ─── Skill Frontmatter Parser (handles multi-line YAML) ─────────────────────
+
+/**
+ * Parses YAML frontmatter from SKILL.md files.
+ * Handles block scalar indicators (|, >, |-, >-, etc.) for multi-line values.
+ * Returns { name, description } or null if no frontmatter found.
+ */
+function parseSkillFrontmatter(content) {
+  const match = content.match(/^---\s*\n([\s\S]*?)\n---/);
+  if (!match) return null;
+
+  const raw = match[1].replace(/\r\n/g, "\n");
+  const result = {};
+  const lines = raw.split("\n");
+
+  let currentKey = null;
+  let currentValLines = [];
+  let inMultiline = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Check if this line starts a new key-value pair
+    const newKeyMatch = line.match(/^(\w+):\s*(.*)$/);
+    if (newKeyMatch) {
+      // Save previous multiline accumulation
+      if (currentKey && currentValLines.length > 0) {
+        result[currentKey] = currentValLines.join(" ").trim();
+      }
+
+      currentKey = newKeyMatch[1];
+      const val = newKeyMatch[2].trim();
+
+      // Detect block scalar indicators (|, >, |-, >-, |+, >+)
+      if (/^[|>][-+]?$/.test(val)) {
+        inMultiline = true;
+        currentValLines = [];
+        continue;
+      }
+
+      // Simple scalar value
+      if (val) {
+        const qMatch = val.match(/^"(.*)"$/);
+        result[currentKey] = qMatch ? qMatch[1] : val;
+        currentKey = null;
+        currentValLines = [];
+        inMultiline = false;
+        continue;
+      }
+
+      // Empty value → treat as multiline
+      inMultiline = true;
+      currentValLines = [];
+      continue;
+    }
+
+    // Continuation of multiline value (indented line)
+    if (inMultiline && currentKey) {
+      const trimmed = line.trim();
+      if (trimmed) {
+        currentValLines.push(trimmed);
+      }
+      continue;
+    }
+  }
+
+  // Save last accumulation
+  if (currentKey && currentValLines.length > 0) {
+    result[currentKey] = currentValLines.join(" ").trim();
+  }
+
+  return result;
+}
+
+// ─── Skill Scanning ─────────────────────────────────────────────────────────
+
+/**
+ * Scans for SKILL.md files in project, user config, and agents directories.
+ * Parses YAML frontmatter, filters out _shared.
+ * Project skills take precedence (dedup by name).
+ * Returns sorted array of { name, description }.
+ */
+function scanSkills() {
+  const skills = [];
+  const seen = new Set();
+
+  const searchPaths = [
+    path.join(ROOT, ".opencode", "skills"),
+    path.join(os.homedir(), ".config", "opencode", "skills"),
+    path.join(os.homedir(), ".agents", "skills"),
+  ];
+
+  for (const skillsDir of searchPaths) {
+    if (!fs.existsSync(skillsDir)) continue;
+
+    const dirs = fs.readdirSync(skillsDir, { withFileTypes: true });
+    for (const entry of dirs) {
+      if (!entry.isDirectory()) continue;
+      if (entry.name === "_shared") continue;
+      if (seen.has(entry.name)) continue; // first occurrence wins
+
+      const skillPath = path.join(skillsDir, entry.name, "SKILL.md");
+      if (!fs.existsSync(skillPath)) continue;
+
+      const content = fs.readFileSync(skillPath, "utf-8");
+      const fm = parseSkillFrontmatter(content);
+
+      if (fm && fm.name) {
+        skills.push({
+          name: fm.name,
+          description: fm.description || entry.name,
+        });
+        seen.add(fm.name);
+      } else {
+        // Fallback: use directory name
+        skills.push({
+          name: entry.name,
+          description: entry.name,
+        });
+        seen.add(entry.name);
+      }
+    }
+  }
+
+  skills.sort((a, b) => a.name.localeCompare(b.name));
+  return skills;
+}
+
+// ─── Root-level Doc Scanning ────────────────────────────────────────────────
+
+/**
+ * Scans docs/**\/*.md (excluding ARCHITECTURE.md and README.md).
+ * Walks recursively through all subdirectories.
+ * Parses YAML frontmatter for id, name, type.
+ * Returns array of { path, id, name, type }.
+ */
+function scanRootDocs() {
+  const docs = [];
+  const docsDir = path.join(ROOT, "docs");
+  if (!fs.existsSync(docsDir)) return docs;
+
+  function walkDir(dir, baseRel) {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.name === ".gitkeep") continue;
+      const fullPath = path.join(dir, entry.name);
+
+      if (entry.isDirectory()) {
+        walkDir(fullPath, path.join(baseRel, entry.name));
+      } else if (entry.isFile() && entry.name.endsWith(".md")) {
+        const relPath = path.join("docs", baseRel, entry.name)
+          .replace(/\\/g, "/");
+
+        // Skip ARCHITECTURE.md and README.md
+        if (relPath === "docs/ARCHITECTURE.md") continue;
+        if (entry.name.toLowerCase() === "readme.md") continue;
+
+        const content = fs.readFileSync(fullPath, "utf-8");
+        const fm = parseFrontmatter(content);
+
+        let type = "root";
+        if (baseRel.startsWith("modules")) type = "module";
+        else if (baseRel.startsWith("extensions")) type = "extension";
+        else if (baseRel.startsWith("custom")) type = "custom";
+        else if (baseRel.startsWith("research")) type = "research";
+
+        docs.push({
+          path: relPath,
+          id: fm ? fm.id || null : null,
+          name: fm ? fm.name || null : null,
+          type,
+        });
+      }
+    }
+  }
+
+  walkDir(docsDir, "");
+  return docs;
+}
+
+// ─── Table Generators ───────────────────────────────────────────────────────
+
+/**
+ * Generates markdown skills table from parsed SKILL.md data.
+ */
+function generateSkillsTable(skills) {
+  const rows = [
+    "| Skill | Propósito | Cuándo cargar |",
+    "|-------|-----------|---------------|",
+  ];
+  for (const s of skills) {
+    const desc = (s.description || s.name).replace(/\n/g, " ");
+    rows.push(`| \`${s.name}\` | ${desc} | See description |`);
+  }
+  return rows.join("\n");
+}
+
+/**
+ * Generates markdown docs table from scanned docs.
+ * Groups: modules first, then extensions, then root-level, then custom/research.
+ */
+function generateDocsTable(docs) {
+  const order = ["module", "extension", "root", "custom", "research"];
+  const grouped = {};
+
+  for (const doc of docs) {
+    if (!grouped[doc.type]) grouped[doc.type] = [];
+    grouped[doc.type].push(doc);
+  }
+
+  const rows = [
+    "| Documento | Contenido |",
+    "|-----------|-----------|",
+  ];
+
+  for (const type of order) {
+    const group = grouped[type] || [];
+    group.sort((a, b) => a.path.localeCompare(b.path));
+
+    for (const doc of group) {
+      const name = doc.name || doc.id || doc.path.split("/").pop().replace(".md", "");
+      rows.push(`| \`${doc.path}\` | ${name} |`);
+    }
+  }
+
+  return rows.join("\n");
+}
+
+// ─── AGENTS.md Sync ─────────────────────────────────────────────────────────
+
+/**
+ * Escapes special regex characters in a string.
+ */
+function escapeRegex(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Replaces content between <!-- skills-start --> / <!-- skills-end -->
+ * and <!-- docs-start --> / <!-- docs-end --> markers in AGENTS.md.
+ * Generates tables from scanned skills and docs data.
+ */
+function syncAgentsMd(skills, docs) {
+  const agentsPath = path.join(ROOT, "AGENTS.md");
+  if (!fs.existsSync(agentsPath)) {
+    console.warn("   ⚠ AGENTS.md not found, skipping sync");
+    return;
+  }
+
+  let content = fs.readFileSync(agentsPath, "utf-8");
+
+  // Replace skills section
+  const skillsStart = "<!-- skills-start -->";
+  const skillsEnd = "<!-- skills-end -->";
+  const skillsRegex = new RegExp(
+    `${escapeRegex(skillsStart)}\\s*[\\s\\S]*?\\s*${escapeRegex(skillsEnd)}`
+  );
+
+  if (skillsRegex.test(content)) {
+    const skillsTable = generateSkillsTable(skills);
+    content = content.replace(
+      skillsRegex,
+      `${skillsStart}\n\n${skillsTable}\n\n${skillsEnd}`
+    );
+    console.log(`   ✓ Skills table: ${skills.length} skills`);
+  } else {
+    console.warn("   ⚠ Skills markers not found in AGENTS.md, skipping");
+  }
+
+  // Replace docs section
+  const docsStart = "<!-- docs-start -->";
+  const docsEnd = "<!-- docs-end -->";
+  const docsRegex = new RegExp(
+    `${escapeRegex(docsStart)}\\s*[\\s\\S]*?\\s*${escapeRegex(docsEnd)}`
+  );
+
+  if (docsRegex.test(content)) {
+    const docsTable = generateDocsTable(docs);
+    content = content.replace(
+      docsRegex,
+      `${docsStart}\n\n${docsTable}\n\n${docsEnd}`
+    );
+    console.log(`   ✓ Docs table: ${docs.length} documents`);
+  } else {
+    console.warn("   ⚠ Docs markers not found in AGENTS.md, skipping");
+  }
+
+  fs.writeFileSync(agentsPath, content, "utf-8");
+}
+
 // ─── Main ───────────────────────────────────────────────────────────────────
 
 function main() {
@@ -400,6 +691,13 @@ ${extensions.length > 0 ? extensions.map(e => `| [${e.fm.id}.md](./extensions/${
   fs.writeFileSync(outPath, output, "utf-8");
 
   console.log(`   ✓ Written to ${path.relative(ROOT, outPath)}`);
+
+  // Sync AGENTS.md with skills and docs tables
+  console.log("\n📄 Syncing AGENTS.md skills and docs tables...");
+  const allSkills = scanSkills();
+  const allDocs = scanRootDocs();
+  syncAgentsMd(allSkills, allDocs);
+
   console.log("\n✅ Done — all validations passed.");
   process.exit(0);
 }

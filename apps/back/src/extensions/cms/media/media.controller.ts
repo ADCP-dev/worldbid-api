@@ -1,5 +1,6 @@
 import {
   Controller,
+  Get,
   Post,
   UseGuards,
   UseInterceptors,
@@ -7,6 +8,7 @@ import {
   HttpStatus,
   HttpCode,
   Body,
+  Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { MediaService } from './media.service';
@@ -31,6 +33,16 @@ export class MediaController {
     private readonly mediaService: MediaService,
     private readonly filesService: FilesLocalService,
   ) {}
+
+  @Get()
+  @Roles(RoleEnum.admin)
+  @HttpCode(HttpStatus.OK)
+  async getMediaFiles(
+    @Query('entityName') entityName: string,
+    @Query('entityId') entityId: string,
+  ) {
+    return this.mediaService.findByEntity(entityName, entityId);
+  }
 
   @Post('upload')
   @Roles(RoleEnum.admin)

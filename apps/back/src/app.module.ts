@@ -7,11 +7,8 @@ import { TestProductsModule } from './test-products/test-products.module';
 
 import { ProductsModule } from './products/products.module';
 
-import { ProductsModule } from './products/products.module';
-
 @Module({
   imports: [
-    ProductsModule,
     ProductsModule,
     TestProductsModule,
     // Infrastructure (DB, Config, i18n, static files, scheduler)

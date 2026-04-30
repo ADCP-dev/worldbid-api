@@ -183,22 +183,43 @@ Skills = workflows especializados y conocimiento de dominio. Se auto-detectan se
 
 ### Skills Disponibles
 
+<!-- skills-start -->
+
 | Skill | Propósito | Cuándo cargar |
 |-------|-----------|---------------|
-| `skill-creator` | Crear skills OpenCode | Usuario pide construir skill |
-| `backend-resource-generator` | CRUD NestJS, migraciones, seeds con hygen | Desarrollo backend |
-| `vue-form-generator` | Formularios Vue con validación Zod | Crear/editar formularios |
-| `vue-data-table` | Tablas paginadas TanStack | Datos tabulares |
-| `nuxt` | Patrones Nuxt 4+ (server routes, h3, nitropack) | Trabajo con Nuxt |
-| `frontend-design` | UI production-grade distintiva | Componentes/páginas web |
-| `nestjs-best-practices` | Patrones NestJS production-ready | Revisar/refactorizar backend |
-| `tavily-cli` | Web search oficial Tavily | Búsqueda web externa, breaking changes |
-| `apify-scrape` | Apify actors pa web scraping | Scrapear documentación completa |
-| `graphify` | Knowledge graph builder | Análisis de arquitectura, dependencias |
-| `graph-query` | Query al knowledge graph (con imports @) | Preguntas de arquitectura, dependencias |
-| `GitHub CLI` | PRs, issues, workflows, releases | Operaciones GitHub |
-| `daisyui` | Componentes Tailwind con temas | UI rápida con Tailwind |
-| `find-skills` | Descubrir e instalar skills | Buscar skills disponibles |
+| `apify-scrape` | Run Apify Actors to scrape websites and extract structured data. Use to deep-scrape documentation sites into local Markdown for the knowledge graph. Use when Tavily results are insufficient. | See description |
+| `backend-development` | Workflows y comandos para desarrollo backend en Foundation. Trigger: Cuando necesitas crear recursos, añadir propiedades, migraciones o seeders. | See description |
+| `backend-resource-generator` | Generate NestJS backend resources, properties, migrations and seeders. Use for creating CRUD modules, adding entity relationships, database migrations and seed data. Use proactively when users need to create backend entities, add properties/relationships, or manage database schema. Examples: - user: "Create a Product resource" → generate full resource with hygen - user: "Add a price field to Product" → use add:property with primitive type - user: "Product has many Categories" → use add:property with manyToMany reference - user: "Run pending migrations" → execute migration:run - user: "Create seed data for Roles" → create and edit seeder with idempotent pattern | See description |
+| `branch-pr` | PR creation workflow for Agent Teams Lite following the issue-first enforcement system. Trigger: When creating a pull request, opening a PR, or preparing changes for review. | See description |
+| `daisyui` | Tailwind CSS component library providing semantic class names for 50+ components with built-in themes, dark mode, and customization for rapid UI development. | See description |
+| `find-skills` | Helps users discover and install agent skills when they ask questions like "how do I do X", "find a skill for X", "is there a skill that can...", or express interest in extending capabilities. This skill should be used when the user is looking for functionality that might exist as an installable skill. | See description |
+| `frontend-design` | Create distinctive, production-grade frontend interfaces with high design quality. Use this skill when the user asks to build web components, pages, artifacts, posters, or applications (examples include websites, landing pages, dashboards, React components, HTML/CSS layouts, or when styling/beautifying any web UI). Generates creative, polished code and UI design that avoids generic AI aesthetics. | See description |
+| `GitHub CLI` | github-cli | See description |
+| `go-testing` | Go testing patterns for Gentleman.Dots, including Bubbletea TUI testing. Trigger: When writing Go tests, using teatest, or adding test coverage. | See description |
+| `graph-query` | Query the Foundation knowledge graph (graphify-out/graph.json) for code architecture questions. Trigger: When user asks about architecture, dependencies, "how does X connect to Y", "show me the path", "graph query", "what depends on", or wants to explore the codebase structure. | See description |
+| `graphify` | any input (code, docs, papers, images) - knowledge graph - clustered communities - HTML + JSON + audit report | See description |
+| `issue-creation` | Issue creation workflow for Agent Teams Lite following the issue-first enforcement system. Trigger: When creating a GitHub issue, reporting a bug, or requesting a feature. | See description |
+| `judgment-day` | Parallel adversarial review protocol that launches two independent blind judge sub-agents simultaneously to review the same target, synthesizes their findings, applies fixes, and re-judges until both pass or escalates after 2 iterations. Trigger: When user says "judgment day", "judgment-day", "review adversarial", "dual review", "doble review", "juzgar", "que lo juzguen". | See description |
+| `nestjs-best-practices` | NestJS best practices and architecture patterns for building production-ready applications. This skill should be used when writing, reviewing, or refactoring NestJS code to ensure proper patterns for modules, dependency injection, security, and performance. | See description |
+| `nuxt` | Use when working on Nuxt 4+ projects - provides server routes, file-based routing, middleware patterns, Nuxt-specific composables, and configuration with latest docs. Covers h3 v1 helpers (validation, WebSocket, SSE) and nitropack v2 patterns. Updated for Nuxt 4.3+. | See description |
+| `sdd-apply` | Implement tasks from the change, writing actual code following the specs and design. Trigger: When the orchestrator launches you to implement one or more tasks from a change. | See description |
+| `sdd-archive` | Sync delta specs to main specs and archive a completed change. Trigger: When the orchestrator launches you to archive a change after implementation and verification. | See description |
+| `sdd-design` | Create technical design document with architecture decisions and approach. Trigger: When the orchestrator launches you to write or update the technical design for a change. | See description |
+| `sdd-explore` | Explore and investigate ideas before committing to a change. Trigger: When the orchestrator launches you to think through a feature, investigate the codebase, or clarify requirements. | See description |
+| `sdd-init` | Initialize Spec-Driven Development context in any project. Detects stack, conventions, testing capabilities, and bootstraps the active persistence backend. Trigger: When user wants to initialize SDD in a project, or says "sdd init", "iniciar sdd", "openspec init". | See description |
+| `sdd-onboard` | Guided end-to-end walkthrough of the SDD workflow using the real codebase. Trigger: When the orchestrator launches you to onboard a user through the full SDD cycle. | See description |
+| `sdd-propose` | Create a change proposal with intent, scope, and approach. Trigger: When the orchestrator launches you to create or update a proposal for a change. | See description |
+| `sdd-spec` | Write specifications with requirements and scenarios (delta specs for changes). Trigger: When the orchestrator launches you to write or update specs for a change. | See description |
+| `sdd-tasks` | Break down a change into an implementation task checklist. Trigger: When the orchestrator launches you to create or update the task breakdown for a change. | See description |
+| `sdd-verify` | Validate that implementation matches specs, design, and tasks. Trigger: When the orchestrator launches you to verify a completed (or partially completed) change. | See description |
+| `skill-creator` | Creates new AI agent skills following the Agent Skills spec. Trigger: When user asks to create a new skill, add agent instructions, or document patterns for AI. | See description |
+| `skill-registry` | Create or update the skill registry for the current project. Scans user skills and project conventions, writes .atl/skill-registry.md, and saves to engram if available. Trigger: When user says "update skills", "skill registry", "actualizar skills", "update registry", or after installing/removing skills. | See description |
+| `tavily-cli` | Web search, content extraction, crawling, and deep research via the Tavily CLI. Use this skill whenever the user wants to search the web, find articles, research a topic, look something up online, extract content from a URL, grab text from a webpage, crawl documentation, download a site's pages, discover URLs on a domain, or conduct in-depth research with citations. Also use when they say "fetch this page", "pull the content from", "get the page at https://", "find me articles about", or reference extracting data from external websites. This provides LLM-optimized web search, content extraction, site crawling, URL discovery, and AI-powered deep research — capabilities beyond what agents can do natively. Do NOT trigger for local file operations, git commands, deployments, or code editing tasks. | See description |
+| `typeorm` | typeorm | See description |
+| `vue-data-table` | Create paginated data tables with TanStack Vue Table and backend integration. Use for admin panels, list pages, CRUD interfaces. Use proactively when users need to display tabular data with filtering, sorting, pagination. Examples: - user: "Create a users table" → build table with columns, filters, actions - user: "Add pagination to my list" → implement DataTable with API integration - user: "Build an admin panel table" → create table with filters, sorting, action menus - user: "Table for products" → implement DataTable with select filters, cell renderers | See description |
+| `vue-form-generator` | Create Vue forms with Zod validation using base UI components. Use for CRUD forms, settings pages, profile editors. Use proactively when users need to create/edit forms with validation. Examples: - user: "Create a user form" → build form with Zod schema and base components - user: "Add validation to my form" → add Zod schema and error handling - user: "Build a settings page" → create form with switches, selects, inputs - user: "Form for creating products" → create form with all field types | See description |
+
+<!-- skills-end -->
 
 ---
 
@@ -342,23 +363,25 @@ ORCHESTRATOR resuelve skill paths del registry UNA VEZ (inicio sesión o primera
 
 Docs en `docs/`. Docs pa contexto y teoría. Skills pa acción.
 
+<!-- docs-start -->
+
 | Documento | Contenido |
 |-----------|-----------|
 | `docs/modules/auth.md` | Authentication & Authorization |
 | `docs/modules/database.md` | Database & Migrations |
-| `docs/modules/storage.md` | File Storage |
 | `docs/modules/email.md` | Email System |
-| `docs/modules/webhooks.md` | Webhooks |
-| `docs/modules/translations.md` | i18n Translations |
 | `docs/modules/error-logging.md` | Error Tracking |
-| `docs/extensions/cms.md` | CMS Extension |
-| `docs/ARCHITECTURE.md` | Dependency graph auto-generado (Mermaid) |
-| `docs/TOOLS.md` | Catálogo completo de tools |
-| `docs/EXTENSIONS-SYSTEM.md` | Arquitectura modular extensions |
-| `docs/FRONTEND-LAYERS.md` | Nuxt layers |
-| `docs/GENERATORS.md` | Hygen CLI |
-| `docs/CREATE-EXTENSION.md` | Cómo crear extensions |
-| `docs/TYPESCRIPT-GUIDELINES.md` | Convenciones TypeScript |
+| `docs/modules/storage.md` | File Storage |
+| `docs/modules/translations.md` | i18n Translations |
+| `docs/modules/webhooks.md` | Webhooks |
+| `docs/extensions/cms.md` | CMS |
+| `docs/EXTENSIONS-SYSTEM.md` | EXTENSIONS-SYSTEM |
+| `docs/FRONTEND-LAYERS.md` | FRONTEND-LAYERS |
+| `docs/GENERATORS.md` | GENERATORS |
+| `docs/TOOLS.md` | TOOLS |
+| `docs/TYPESCRIPT-GUIDELINES.md` | TYPESCRIPT-GUIDELINES |
+
+<!-- docs-end -->
 
 ### Cuándo referenciar docs
 
