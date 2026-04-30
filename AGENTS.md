@@ -404,6 +404,16 @@ Docs en `docs/`. Docs pa contexto y teoría. Skills pa acción.
 3. Consultar docs/ARCHITECTURE.md pa contexto
 ```
 
+**⚠️ Migraciones — NUNCA hardcode. Siempre usar TypeORM CLI:**
+
+```bash
+# ✅ CORRECTO
+pnpm migration:generate AddUserEmail   # Genera migración desde entities
+pnpm migration:run                     # Ejecuta migraciones pendientes
+
+# ❌ NUNCA — no crear archivos SQL a mano ni escribir queries DDL inline
+```
+
 ### Frontend Task
 
 ```
@@ -453,6 +463,7 @@ foundation/
 5. **Nunca commitear sin preguntar**: Solo commits cuando usuario pida explícito
 6. **No build tras cambios**: Salvo que usuario pida
 7. **Delegación > Trabajo inline**: Leer/escribir código? Delegá
+8. **Migraciones**: NUNCA hardcode. Siempre `pnpm migration:generate` + `pnpm migration:run`
 
 ---
 
