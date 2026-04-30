@@ -1,5 +1,5 @@
 ---
-name: graph-query
+name: graph
 description: |
   Query the Foundation knowledge graph (graphify-out/graph.json) for code architecture questions.
   Also: build/rebuild the graph from source code.
