@@ -1,0 +1,89 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  // ─── Agent ──────────────────────────────────────────────────────────────────
+  // Uses AGENTS.md as the system prompt (auto-detected by OpenCode Rules)
+  "agent": {
+    "foundation": {
+      "description": "Foundation architect — uses AGENTS.md, SDD, and project skills",
+      "mode": "primary",
+      "model": "opencode-go/deepseek-v4-pro",
+      "prompt": "{file:./AGENTS.md}",
+      "tools": {
+        "bash": true,
+        "edit": true,
+        "read": true,
+        "write": true,
+        "task": true,
+        "delegate": true,
+        "delegation_read": true,
+        "delegation_list": true
+      },
+      "permission": {
+        "skill": {
+          "*": "allow"
+        }
+      }
+    }
+  },
+  // Default agent
+  "default_agent": "foundation",
+  // Model for lightweight tasks (title generation, summaries)
+  "small_model": "opencode-go/deepseek-v4-flash",
+  // ─── MCP Servers ────────────────────────────────────────────────────────────
+  // Remote MCPs (always available, no local setup)
+  "mcp": {
+    // Context7 — search library docs (free)
+    "context7": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp",
+      "enabled": true
+    },
+    // Engram — persistent memory for agents (local)
+    "engram": {
+      "type": "local",
+      "command": ["engram", "mcp", "--tools=agent"],
+      "enabled": true
+    },
+    // Puppeteer — browser automation (local)
+    "puppeteer": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-puppeteer"],
+      "enabled": true
+    }
+  },
+  // ─── Plugins ────────────────────────────────────────────────────────────────
+  "plugin": [
+    ".agents/plugins/graphify.js"
+  ],
+  // ─── Instructions (auto-loaded into system prompt) ──────────────────────────
+  "instructions": [
+    "docs/ARCHITECTURE.md",
+    "docs/TOOLS.md",
+    ".agents/generated.json"
+  ],
+  // ─── Permissions ────────────────────────────────────────────────────────────
+  "permission": {
+    "bash": {
+      "*": "allow",
+      "git commit *": "ask",
+      "git push": "ask",
+      "git push *": "ask",
+      "git push --force *": "ask"
+    },
+    "read": {
+      "*": "allow",
+      "**/.env": "deny",
+      "**/.env.*": "deny",
+      "**/credentials.json": "deny",
+      "**/secrets/**": "deny"
+    }
+  },
+  // ─── Shell ──────────────────────────────────────────────────────────────────
+  "shell": "pwsh",
+  // ─── Compaction ─────────────────────────────────────────────────────────────
+  "compaction": {
+    "auto": true,
+    "prune": true,
+    "reserved": 10000
+  }
+}

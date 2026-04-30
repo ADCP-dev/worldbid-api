@@ -95,22 +95,6 @@ context7_query-docs(libraryId="/mongodb/mongoose", query="schema validation")
 
 ---
 
-### ✏️ Pencil Design (`pencil_*`)
-
-Suite pa archivos `.pen` (prototipado visual).
-
-| Tool | Qué hace |
-|------|----------|
-| `pencil_open_document` | Abre/crea archivo .pen |
-| `pencil_batch_design` | Insertar/copiar/actualizar/reemplazar/mover nodos |
-| `pencil_batch_get` | Buscar y leer nodos |
-| `pencil_get_screenshot` | Screenshot de nodo |
-| `pencil_export_nodes` | Exporta a PNG/JPEG/WEBP/PDF |
-| `pencil_snapshot_layout` | Ver estructura layout |
-| `pencil_get_editor_state` | Estado editor activo |
-
----
-
 ### 🧠 Engram Memory (`engram_mem_*`)
 
 Memoria persistente entre sesiones. Sobrevive compactaciones.
@@ -161,6 +145,22 @@ content:
 ## Relevant Files
 - path → [qué hace o qué cambió]
 ```
+
+---
+
+### 🌐 Puppeteer (`puppeteer_*`)
+
+Automatización de navegador. Para screenshots, testing visual, web scraping.
+
+| Tool | Qué hace |
+|------|----------|
+| `puppeteer_navigate` | Navegar a URL |
+| `puppeteer_screenshot` | Screenshot de página o elemento |
+| `puppeteer_click` | Click en elemento |
+| `puppeteer_fill` | Rellenar campo input |
+| `puppeteer_select` | Seleccionar opción dropdown |
+| `puppeteer_hover` | Hover sobre elemento |
+| `puppeteer_evaluate` | Ejecutar JS en consola del navegador |
 
 ---
 
