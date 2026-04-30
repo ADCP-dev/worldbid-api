@@ -74,7 +74,7 @@ export class BlogPostsService {
   }
 
   async create(createPostDto: CreateBlogPostDto): Promise<BlogPostEntity> {
-    const { categoryId, tagIds, ...postData } = createPostDto;
+    const { categoryId, tagIds, author, ...postData } = createPostDto;
 
     // Create post without relations first
     const post = this.blogPostRepository.create(postData);

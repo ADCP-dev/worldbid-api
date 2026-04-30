@@ -79,7 +79,7 @@
       "label": "AppModule",
       "file_type": "code",
       "source_file": "apps\\back\\src\\app.module.ts",
-      "source_location": "L21",
+      "source_location": "L15",
       "id": "app_module_appmodule",
       "community": 84,
       "norm_label": "appmodule"
@@ -11904,7 +11904,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps\\back\\src\\app.module.ts",
-      "source_location": "L21",
+      "source_location": "L15",
       "weight": 1.0,
       "_src": "apps_back_src_app_module_ts",
       "_tgt": "app_module_appmodule",

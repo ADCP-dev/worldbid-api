@@ -26,7 +26,7 @@ export class PagesService {
   ) {}
 
   async create(createPageDto: CreatePageDto): Promise<PageEntity> {
-    const { name, slug, ...rest } = createPageDto;
+    const { name, slug, author, ...rest } = createPageDto;
 
     if (!name) {
       throw new NotFoundException('Name is required');
