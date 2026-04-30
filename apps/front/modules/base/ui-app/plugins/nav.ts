@@ -39,6 +39,16 @@ export default defineNuxtPlugin(() => {
                 icon: "LayoutList",
                 link: localePath("/app/components/form-components-demo"),
               },
+              {
+                title: "Kanban",
+                icon: "Kanban",
+                link: localePath("/app/components/kanban-demo"),
+              },
+              {
+                title: "Calendar",
+                icon: "Calendar",
+                link: localePath("/app/components/calendar-demo"),
+              },
             ],
           },
         ],
