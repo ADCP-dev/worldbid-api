@@ -390,6 +390,7 @@ Docs en `docs/`. Docs pa contexto y teoría. Skills pa acción.
 | `docs/modules/storage.md` | File Storage |
 | `docs/modules/translations.md` | i18n Translations |
 | `docs/modules/webhooks.md` | Webhooks |
+| `docs/extensions/cms-audit.md` | CMS Audit & Gap Analysis |
 | `docs/extensions/cms.md` | CMS |
 | `docs/EXTENSIONS-SYSTEM.md` | EXTENSIONS-SYSTEM |
 | `docs/FRONTEND-LAYERS.md` | FRONTEND-LAYERS |

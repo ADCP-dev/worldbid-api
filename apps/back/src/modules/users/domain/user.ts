@@ -17,7 +17,7 @@ export class User {
     type: String,
     example: 'john.doe@example.com',
   })
-  @Expose({ groups: ['me', 'admin'] })
+  @Expose()
   email: string | null;
 
   @Exclude({ toPlainOnly: true })
@@ -27,14 +27,14 @@ export class User {
     type: String,
     example: 'email',
   })
-  @Expose({ groups: ['me', 'admin'] })
+  @Expose()
   provider: string;
 
   @ApiProperty({
     type: String,
     example: '1234567890',
   })
-  @Expose({ groups: ['me', 'admin'] })
+  @Expose()
   socialId?: string | null;
 
   @ApiProperty({
