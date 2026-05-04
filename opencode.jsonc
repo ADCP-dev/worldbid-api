@@ -55,6 +55,12 @@
       "type": "remote",
       "url": "https://mcp.tavily.com/mcp/?tavilyApiKey={env:TAVILY_API_KEY}",
       "enabled": true
+    },
+    // PostgreSQL — local database access (reads from apps/back/.env)
+    "postgres": {
+      "type": "local",
+      "command": ["bash", "-c", "set -a; source <(grep -v '^#' apps/back/.env | sed 's/^/export /'); npx -y mcp-postgres \"postgresql://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}\""],
+      "enabled": true
     }
   },
   // ─── Plugins ────────────────────────────────────────────────────────────────
