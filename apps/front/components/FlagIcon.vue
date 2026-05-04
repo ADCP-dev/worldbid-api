@@ -12,5 +12,5 @@ const iconClass = computed(() => {
 </script>
 
 <template>
-    <span :class="iconClass"></span>
+    <span :class="iconClass"/>
 </template>

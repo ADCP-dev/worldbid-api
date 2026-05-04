@@ -12,13 +12,13 @@ const { data: posts, pending } = await useFetch('/api/v1/cms/blog/posts/public',
     <h1 class="text-4xl font-bold mb-8">Blog</h1>
     
     <div v-if="pending" class="flex justify-center py-12">
-      <span class="loading loading-spinner loading-lg"></span>
+      <span class="loading loading-spinner loading-lg"/>
     </div>
     
     <div v-else class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
       <article v-for="post in posts?.data" :key="post.id" class="card bg-base-100 shadow-xl">
         <figure v-if="post.featuredImage">
-          <img :src="post.featuredImage.url" :alt="post.slug" class="w-full h-48 object-cover" />
+          <img :src="post.featuredImage.url" :alt="post.slug" class="w-full h-48 object-cover" >
         </figure>
         <div class="card-body">
           <h2 class="card-title">

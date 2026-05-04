@@ -272,8 +272,8 @@ function clearHighlighting() {
           type="button"
           class="btn btn-sm btn-ghost join-item"
           :class="{ 'btn-active bg-base-300': editor.isActive('bold') }"
-          @click="editor.chain().focus().toggleBold().run()"
           title="Negrita (Ctrl+B)"
+          @click="editor.chain().focus().toggleBold().run()"
         >
           <Bold class="w-4 h-4" />
         </button>
@@ -281,8 +281,8 @@ function clearHighlighting() {
           type="button"
           class="btn btn-sm btn-ghost join-item"
           :class="{ 'btn-active bg-base-300': editor.isActive('italic') }"
-          @click="editor.chain().focus().toggleItalic().run()"
           title="Cursiva (Ctrl+I)"
+          @click="editor.chain().focus().toggleItalic().run()"
         >
           <Italic class="w-4 h-4" />
         </button>
@@ -290,8 +290,8 @@ function clearHighlighting() {
           type="button"
           class="btn btn-sm btn-ghost join-item"
           :class="{ 'btn-active bg-base-300': editor.isActive('strike') }"
-          @click="editor.chain().focus().toggleStrike().run()"
           title="Tachado"
+          @click="editor.chain().focus().toggleStrike().run()"
         >
           <Strikethrough class="w-4 h-4" />
         </button>
@@ -299,8 +299,8 @@ function clearHighlighting() {
           type="button"
           class="btn btn-sm btn-ghost join-item"
           :class="{ 'btn-active bg-base-300': editor.isActive('code') }"
-          @click="editor.chain().focus().toggleCode().run()"
           title="Código inline"
+          @click="editor.chain().focus().toggleCode().run()"
         >
           <Code class="w-4 h-4" />
         </button>
@@ -308,14 +308,14 @@ function clearHighlighting() {
           type="button"
           class="btn btn-sm btn-ghost join-item"
           :class="{ 'btn-active bg-base-300': editor.isActive('highlight') }"
-          @click="editor.chain().focus().toggleHighlight().run()"
           title="Resaltar texto"
+          @click="editor.chain().focus().toggleHighlight().run()"
         >
           <Highlighter class="w-4 h-4" />
         </button>
       </div>
 
-      <div class="divider divider-horizontal mx-1 h-8"></div>
+      <div class="divider divider-horizontal mx-1 h-8"/>
 
       <!-- Headings -->
       <div class="join">
@@ -325,8 +325,8 @@ function clearHighlighting() {
           :class="{
             'btn-active bg-base-300': editor.isActive('heading', { level: 1 }),
           }"
-          @click="editor.chain().focus().toggleHeading({ level: 1 }).run()"
           title="Título 1"
+          @click="editor.chain().focus().toggleHeading({ level: 1 }).run()"
         >
           <Heading1 class="w-4 h-4" />
         </button>
@@ -336,8 +336,8 @@ function clearHighlighting() {
           :class="{
             'btn-active bg-base-300': editor.isActive('heading', { level: 2 }),
           }"
-          @click="editor.chain().focus().toggleHeading({ level: 2 }).run()"
           title="Título 2"
+          @click="editor.chain().focus().toggleHeading({ level: 2 }).run()"
         >
           <Heading2 class="w-4 h-4" />
         </button>
@@ -347,14 +347,14 @@ function clearHighlighting() {
           :class="{
             'btn-active bg-base-300': editor.isActive('heading', { level: 3 }),
           }"
-          @click="editor.chain().focus().toggleHeading({ level: 3 }).run()"
           title="Título 3"
+          @click="editor.chain().focus().toggleHeading({ level: 3 }).run()"
         >
           <Heading3 class="w-4 h-4" />
         </button>
       </div>
 
-      <div class="divider divider-horizontal mx-1 h-8"></div>
+      <div class="divider divider-horizontal mx-1 h-8"/>
 
       <!-- Lists -->
       <div class="join">
@@ -362,8 +362,8 @@ function clearHighlighting() {
           type="button"
           class="btn btn-sm btn-ghost join-item"
           :class="{ 'btn-active bg-base-300': editor.isActive('bulletList') }"
-          @click="editor.chain().focus().toggleBulletList().run()"
           title="Lista con viñetas"
+          @click="editor.chain().focus().toggleBulletList().run()"
         >
           <List class="w-4 h-4" />
         </button>
@@ -371,14 +371,14 @@ function clearHighlighting() {
           type="button"
           class="btn btn-sm btn-ghost join-item"
           :class="{ 'btn-active bg-base-300': editor.isActive('orderedList') }"
-          @click="editor.chain().focus().toggleOrderedList().run()"
           title="Lista ordenada"
+          @click="editor.chain().focus().toggleOrderedList().run()"
         >
           <ListOrdered class="w-4 h-4" />
         </button>
       </div>
 
-      <div class="divider divider-horizontal mx-1 h-8"></div>
+      <div class="divider divider-horizontal mx-1 h-8"/>
 
       <!-- Block elements -->
       <div class="join">
@@ -386,8 +386,8 @@ function clearHighlighting() {
           type="button"
           class="btn btn-sm btn-ghost join-item"
           :class="{ 'btn-active bg-base-300': editor.isActive('blockquote') }"
-          @click="editor.chain().focus().toggleBlockquote().run()"
           title="Cita"
+          @click="editor.chain().focus().toggleBlockquote().run()"
         >
           <Quote class="w-4 h-4" />
         </button>
@@ -395,14 +395,14 @@ function clearHighlighting() {
           type="button"
           class="btn btn-sm btn-ghost join-item"
           :class="{ 'btn-active bg-base-300': editor.isActive('codeBlock') }"
-          @click="editor.chain().focus().toggleCodeBlock().run()"
           title="Bloque de código"
+          @click="editor.chain().focus().toggleCodeBlock().run()"
         >
           <Code2 class="w-4 h-4" />
         </button>
       </div>
 
-      <div class="divider divider-horizontal mx-1 h-8"></div>
+      <div class="divider divider-horizontal mx-1 h-8"/>
 
       <!-- Text Alignment -->
       <div class="join">
@@ -412,8 +412,8 @@ function clearHighlighting() {
           :class="{
             'btn-active bg-base-300': editor.isActive({ textAlign: 'left' }),
           }"
-          @click="editor.chain().focus().setTextAlign('left').run()"
           title="Alinear a la izquierda"
+          @click="editor.chain().focus().setTextAlign('left').run()"
         >
           <AlignLeft class="w-4 h-4" />
         </button>
@@ -423,8 +423,8 @@ function clearHighlighting() {
           :class="{
             'btn-active bg-base-300': editor.isActive({ textAlign: 'center' }),
           }"
-          @click="editor.chain().focus().setTextAlign('center').run()"
           title="Centrar"
+          @click="editor.chain().focus().setTextAlign('center').run()"
         >
           <AlignCenter class="w-4 h-4" />
         </button>
@@ -434,8 +434,8 @@ function clearHighlighting() {
           :class="{
             'btn-active bg-base-300': editor.isActive({ textAlign: 'right' }),
           }"
-          @click="editor.chain().focus().setTextAlign('right').run()"
           title="Alinear a la derecha"
+          @click="editor.chain().focus().setTextAlign('right').run()"
         >
           <AlignRight class="w-4 h-4" />
         </button>
@@ -445,85 +445,85 @@ function clearHighlighting() {
           :class="{
             'btn-active bg-base-300': editor.isActive({ textAlign: 'justify' }),
           }"
-          @click="editor.chain().focus().setTextAlign('justify').run()"
           title="Justificar"
+          @click="editor.chain().focus().setTextAlign('justify').run()"
         >
           <AlignJustify class="w-4 h-4" />
         </button>
       </div>
 
-      <div class="divider divider-horizontal mx-1 h-8"></div>
+      <div class="divider divider-horizontal mx-1 h-8"/>
 
       <!-- Link & Image -->
       <div class="join">
         <button
           type="button"
           class="btn btn-sm btn-ghost join-item"
-          @click="setLink"
           title="Insertar enlace"
+          @click="setLink"
         >
           <LinkIcon class="w-4 h-4" />
         </button>
         <button
           type="button"
           class="btn btn-sm btn-ghost join-item"
-          @click="unsetLink"
           :disabled="!editor.isActive('link')"
           title="Quitar enlace"
+          @click="unsetLink"
         >
           <Link2Off class="w-4 h-4" />
         </button>
         <button
           type="button"
           class="btn btn-sm btn-ghost join-item"
-          @click="addImage"
           title="Insertar imagen desde archivo"
+          @click="addImage"
         >
           <ImageIcon class="w-4 h-4" />
         </button>
         <button
           type="button"
           class="btn btn-sm btn-ghost join-item"
-          @click="insertHorizontalRule"
           title="Línea horizontal"
+          @click="insertHorizontalRule"
         >
           <Minus class="w-4 h-4" />
         </button>
       </div>
 
-      <div class="divider divider-horizontal mx-1 h-8"></div>
+      <div class="divider divider-horizontal mx-1 h-8"/>
 
       <!-- Clear formatting -->
       <div class="join">
         <button
           type="button"
           class="btn btn-sm btn-ghost join-item"
-          @click="editor.chain().focus().unsetAllMarks().run()"
           title="Limpiar formato de texto"
+          @click="editor.chain().focus().unsetAllMarks().run()"
         >
           <Trash2 class="w-4 h-4" />
         </button>
       </div>
 
-      <div class="divider divider-horizontal mx-1 h-8"></div>
+      <div class="divider divider-horizontal mx-1 h-8"/>
 
       <!-- Undo/Redo -->
       <div class="join">
         <button
           type="button"
           class="btn btn-sm btn-ghost join-item"
-          @click="editor.chain().focus().undo().run()"
           :disabled="!editor.can().undo()"
           title="Deshacer (Ctrl+Z)"
+          @click="editor.chain().focus().undo().run()"
         >
           <Undo class="w-4 h-4" />
         </button>
         <button
           type="button"
           class="btn btn-sm btn-ghost join-item"
-          @click="editor.chain().focus().redo().run()"
           :disabled="!editor.can().redo()"
           title="Rehacer (Ctrl+Shift+Z)"
+          @click="editor.chain().focus().redo().run()"
         >
           <Redo class="w-4 h-4" />
         </button>
@@ -545,7 +545,7 @@ function clearHighlighting() {
               min="1"
               max="10"
               class="input input-bordered"
-            />
+            >
           </div>
           <div class="form-control">
             <label class="label">
@@ -557,7 +557,7 @@ function clearHighlighting() {
               min="1"
               max="10"
               class="input input-bordered"
-            />
+            >
           </div>
           <div class="form-control">
             <label class="label cursor-pointer">
@@ -566,7 +566,7 @@ function clearHighlighting() {
                 v-model="tableWithHeader"
                 type="checkbox"
                 class="checkbox"
-              />
+              >
             </label>
           </div>
         </div>
@@ -585,7 +585,7 @@ function clearHighlighting() {
       v-if="isUploading"
       class="absolute inset-0 bg-base-100/50 flex items-center justify-center z-10"
     >
-      <span class="loading loading-spinner loading-lg"></span>
+      <span class="loading loading-spinner loading-lg"/>
     </div>
 
     <!-- Hidden file input for image upload -->
@@ -595,7 +595,7 @@ function clearHighlighting() {
       accept="image/*"
       class="hidden"
       @change="onFileSelected"
-    />
+    >
 
     <!-- Editor content -->
     <div class="rounded-b-lg border bg-base-100 overflow-hidden relative">

@@ -72,7 +72,7 @@ function fileMeta(file: File | null) {
             description="Your unique username"
             required
           />
-          <button @click="toggleError" class="btn btn-sm btn-error mt-2 w-fit">
+          <button class="btn btn-sm btn-error mt-2 w-fit" @click="toggleError">
             {{ formInputError ? 'Hide' : 'Show' }} Error
           </button>
           <FormInput

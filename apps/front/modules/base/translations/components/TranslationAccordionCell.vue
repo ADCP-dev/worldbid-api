@@ -93,7 +93,7 @@ const summaryRows = computed(() => languageRows.value.filter(r => r.translation)
 
 <template>
   <div class="collapse collapse-arrow bg-base-100 border  w-full rounded-md shadow-sm">
-    <input type="checkbox" />
+    <input type="checkbox" >
     <div class="collapse-title py-2 px-4 hover:bg-base-200/50 text-left text-sm font-normal text-muted-foreground flex gap-2 items-center overflow-hidden cursor-pointer min-h-0">
       <template v-if="summaryRows.length > 0 && summaryRows[0]">
          <div class="flex gap-2 items-center truncate max-w-[200px]">
@@ -111,8 +111,8 @@ const summaryRows = computed(() => languageRows.value.filter(r => r.translation)
           <div class="tooltip tooltip-right" :data-tip="$t('base.translations.accordion.tooltip')">
             <button
               class="btn btn-outline btn-square btn-sm"
-              @click="translateRow"
               :disabled="isTranslating"
+              @click="translateRow"
             >
               <BotIcon v-if="!isTranslating" class="w-4 h-4"/>
               <Loader2 v-if="isTranslating" class="w-4 h-4 animate-spin"/>
@@ -129,12 +129,12 @@ const summaryRows = computed(() => languageRows.value.filter(r => r.translation)
               </span>
             </label>
             <textarea
+              :key="`${row.lang.id}-${row.content}`"
               class="textarea textarea-bordered textarea-sm w-full min-h-[60px]"
               :value="row.content"
-              :key="`${row.lang.id}-${row.content}`"
               :placeholder="$t('base.translations.accordion.placeholder', { lang: row.lang.name })"
               @blur="handleBlur(row, $event)"
-            ></textarea>
+            />
           </div>
         </div>
       </div>

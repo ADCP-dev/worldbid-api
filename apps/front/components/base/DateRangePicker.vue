@@ -74,13 +74,13 @@ const endDateString = computed({
         <label class="label p-0">
           <span class="label-text font-semibold text-xs uppercase opacity-60">Start Date</span>
         </label>
-        <input v-model="startDateString" type="date" class="input input-bordered input-sm w-full" />
+        <input v-model="startDateString" type="date" class="input input-bordered input-sm w-full" >
       </div>
       <div class="flex flex-col gap-2">
         <label class="label p-0">
           <span class="label-text font-semibold text-xs uppercase opacity-60">End Date</span>
         </label>
-        <input v-model="endDateString" type="date" class="input input-bordered input-sm w-full" />
+        <input v-model="endDateString" type="date" class="input input-bordered input-sm w-full" >
       </div>
     </div>
   </div>

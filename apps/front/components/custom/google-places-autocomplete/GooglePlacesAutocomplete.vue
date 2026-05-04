@@ -176,9 +176,9 @@ const onSelect = async (
         autocomplete="off"
         @focus="isOpen = true"
         @blur="setTimeout(() => isOpen = false, 200)"
-      />
+      >
       <div v-if="isSearching" class="absolute right-3 top-1/2 -translate-y-1/2">
-        <span class="loading loading-spinner loading-xs opacity-50"></span>
+        <span class="loading loading-spinner loading-xs opacity-50"/>
       </div>
     </div>
 
@@ -188,7 +188,7 @@ const onSelect = async (
     >
       <ul class="w-full p-0">
         <li v-for="(option, index) in searchOptions" :key="index">
-          <a @click.prevent="onSelect(option.placePrediction)" class="py-2">
+          <a class="py-2" @click.prevent="onSelect(option.placePrediction)">
             {{ option.text }}
           </a>
         </li>

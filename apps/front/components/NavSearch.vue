@@ -137,22 +137,22 @@ function handleOpenModal() {
 
   <Teleport to="body">
     <dialog class="modal sm:modal-middle modal-top z-[999]" :class="{ 'modal-open': openCommand }">
-      <div class="modal-box p-0 overflow-hidden flex flex-col h-[80vh] max-h-[400px] mt-16 sm:mt-0" ref="modalRef">
+      <div ref="modalRef" class="modal-box p-0 overflow-hidden flex flex-col h-[80vh] max-h-[400px] mt-16 sm:mt-0">
         <div class="p-4 border-b border-base-300">
           <input
             ref="inputRef"
+            v-model="searchQuery"
             type="text"
             :placeholder="$t('base.nav.searchPlaceholder')"
             class="input input-bordered w-full"
-            v-model="searchQuery"
-          />
+          >
         </div>
 
         <div v-if="filteredItems.length === 0" class="p-6 text-center text-sm opacity-60">
           {{ $t('base.nav.noResults') }}
         </div>
 
-        <ul v-else class="menu flex-1 overflow-y-auto w-full p-2 flex-nowrap" ref="resultsListRef">
+        <ul v-else ref="resultsListRef" class="menu flex-1 overflow-y-auto w-full p-2 flex-nowrap">
           <li v-for="(nav, index) in filteredItems" :key="nav.link">
             <a
               class="flex items-center gap-2"

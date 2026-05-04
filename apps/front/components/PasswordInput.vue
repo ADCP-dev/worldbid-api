@@ -27,7 +27,7 @@ const showPassword = ref(false)
       :disabled="props.disabled"
       :autocomplete="props.autocomplete"
       v-bind="props.componentField"
-    />
+    >
     <button
       type="button"
       class="btn btn-ghost btn-circle btn-sm"

@@ -77,7 +77,8 @@ const reviewList: ReviewProps[] = [
 
       <div class="relative max-w-6xl mx-auto">
         <div class="flex overflow-x-auto gap-6 pb-8 snap-x no-scrollbar">
-          <div v-for="(review, index) in reviewList" :key="review.name"
+          <div
+v-for="(review, index) in reviewList" :key="review.name"
             class="min-w-[300px] md:min-w-[350px] snap-start"
             :data-aos="'fade-up'" :data-aos-delay="index * 100">
             <div class="card bg-muted/50 dark:bg-card border border-base-300 shadow-sm h-full">
@@ -91,7 +92,7 @@ const reviewList: ReviewProps[] = [
                 <div class="flex items-center gap-4 mt-auto pt-4 border-t border-base-300">
                   <div class="avatar">
                     <div class="w-12 rounded-full border border-primary/20 bg-base-300">
-                      <img :src="review.image" :alt="review.name" />
+                      <img :src="review.image" :alt="review.name" >
                     </div>
                   </div>
 

@@ -117,8 +117,8 @@ watch(
     <!-- Fields for active language -->
     <div
       v-for="lang in languages"
-      :key="lang.code"
       v-show="activeLang === lang.code"
+      :key="lang.code"
       class="space-y-4"
     >
       <!-- Title -->
@@ -158,8 +158,8 @@ watch(
         </label>
         <RichEditorAdvanced
           :model-value="ensureLang(lang.code).content"
-          @update:model-value="updateField(lang.code, 'content', $event)"
           class="min-h-[400px]"
+          @update:model-value="updateField(lang.code, 'content', $event)"
         />
         <label v-if="validationErrors[lang.code]?.content" class="label py-0 mt-1">
           <span class="label-text-alt text-error font-medium">{{ validationErrors[lang.code]?.content }}</span>

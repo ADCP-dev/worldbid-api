@@ -13,6 +13,7 @@ export interface JsonLdSchema {
 // Schema type union - all supported schema types
 export type SchemaType =
   | 'Article'
+  | 'BlogPosting'
   | 'BreadcrumbList'
   | 'Organization'
   | 'WebPage'
@@ -96,6 +97,20 @@ export interface OfferSchema {
 export interface PersonSchema {
   '@type': 'Person';
   name: string;
+}
+
+// BlogPosting schema — Google recommends BlogPosting over Article for blog posts
+export interface BlogPostingSchema extends JsonLdSchema {
+  '@type': 'BlogPosting';
+  headline: string;
+  description?: string;
+  image?: string;
+  datePublished?: string;
+  dateModified?: string;
+  author?: PersonSchema;
+  url: string;
+  publisher?: OrganizationSchema;
+  mainEntityOfPage?: string;
 }
 
 // Factory input types - used by composables to generate schemas

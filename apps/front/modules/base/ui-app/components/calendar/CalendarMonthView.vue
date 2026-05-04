@@ -113,13 +113,13 @@ function handleDragEnd(event: CalendarEventType, payload: { clientX: number; cli
       <div
         v-for="cell in grid"
         :key="cell.date.toISOString()"
+        :ref="(el) => { if (el) cellRefs[cell.date.toISOString()] = el as HTMLElement }"
         class="calendar-cell min-h-[100px] relative flex flex-col"
         :class="{
           'calendar-cell-other-month': !cell.isCurrentMonth,
           'calendar-cell-today': cell.isToday,
           'ring-2 ring-primary ring-inset bg-primary/20': hoveredCellDate === cell.date.toISOString(),
         }"
-        :ref="(el) => { if (el) cellRefs[cell.date.toISOString()] = el as HTMLElement }"
         @click="handleCellClick(cell.date)"
       >
         <span

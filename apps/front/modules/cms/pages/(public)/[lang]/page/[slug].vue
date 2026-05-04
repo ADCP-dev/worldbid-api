@@ -46,7 +46,7 @@ const seoData = computed(() => ({
     <CmsSeoMeta :seo="seoData" type="WebPage" />
     <article v-if="page">
       <h1 class="text-4xl font-bold mb-8">{{ title }}</h1>
-      <div class="prose prose-lg max-w-none" v-html="content"></div>
+      <div class="prose prose-lg max-w-none" v-html="content"/>
     </article>
   </div>
 </template>

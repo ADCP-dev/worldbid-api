@@ -51,10 +51,11 @@ const FAQList: FAQProps[] = [
       </div>
 
       <div class="join join-vertical w-full">
-        <div v-for="{ question, answer, value }, index in FAQList" :key="value"
+        <div
+v-for="{ question, answer, value }, index in FAQList" :key="value"
           class="collapse collapse-arrow join-item border border-base-300 bg-base-100"
           :data-aos="'fade-up'" :data-aos-delay="index * 100">
-          <input type="radio" name="my-accordion-4" :checked="index === 0" />
+          <input type="radio" name="my-accordion-4" :checked="index === 0" >
           <div class="collapse-title text-xl font-medium">
             {{ question }}
           </div>

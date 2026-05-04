@@ -70,8 +70,8 @@ const excerpt = computed(
       <div class="flex items-center gap-4">
         <select
           v-model="currentLang"
-          @change="handleLanguageChange"
           class="select select-bordered"
+          @change="handleLanguageChange"
         >
           <option v-for="loc in locales" :key="loc.code" :value="loc.code">
             {{ loc.name }}
@@ -87,7 +87,7 @@ const excerpt = computed(
     </div>
 
     <div v-if="loading" class="flex justify-center py-12">
-      <span class="loading loading-spinner loading-lg"></span>
+      <span class="loading loading-spinner loading-lg"/>
     </div>
 
     <div v-else-if="post" class="space-y-6">
@@ -109,7 +109,7 @@ const excerpt = computed(
         {{ excerpt }}
       </div>
 
-      <div class="prose max-w-none" v-html="content"></div>
+      <div class="prose max-w-none" v-html="content"/>
 
       <div v-if="post.tags?.length" class="flex gap-2 mt-8">
         <span v-for="tag in post.tags" :key="tag" class="badge badge-outline">

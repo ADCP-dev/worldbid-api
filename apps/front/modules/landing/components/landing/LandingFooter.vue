@@ -96,7 +96,7 @@ const config = useRuntimeConfig();
         </div>
       </div>
 
-      <div class="divider my-6"></div>
+      <div class="divider my-6"/>
       <section className="">
         <div class="flex flex-col md:flex-row justify-between items-center gap-4">
           <h3 class="text-center md:text-left">

@@ -174,7 +174,7 @@ onMounted(fetchLangs);
                     ($event.target as HTMLInputElement).checked,
                   )
                 "
-              />
+              >
             </td>
             <td>
               <div class="flex items-center gap-2">
@@ -198,7 +198,7 @@ onMounted(fetchLangs);
         <h3 class="font-bold text-lg mb-4">
           {{ $t("app.languages.editLanguageDialogTitle") }}
         </h3>
-        <div class="flex flex-col gap-4 py-4" v-if="editingLang">
+        <div v-if="editingLang" class="flex flex-col gap-4 py-4">
           <FormInput
             v-model="editingLang.code"
             :label="$t('app.languages.code')"

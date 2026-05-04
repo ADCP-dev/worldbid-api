@@ -61,7 +61,7 @@ const formattedHtml = computed(() => {
                     <div class="card-body p-8">
                         <h2 class="card-title text-xl mb-4">Preview</h2>
                         <div class="prose max-w-none p-6 border rounded-xl min-h-[400px] bg-base-200/30">
-                            <div v-html="content"></div>
+                            <div v-html="content"/>
                         </div>
                         
                         <div class="mt-8">

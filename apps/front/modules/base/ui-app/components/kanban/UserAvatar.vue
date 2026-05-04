@@ -42,7 +42,7 @@ const tooltipContent = computed(() => {
           v-if="user.avatarUrl"
           :src="user.avatarUrl"
           :alt="user.name"
-        />
+        >
         <span v-else class="text-xs font-medium">{{ initials }}</span>
       </div>
     </div>

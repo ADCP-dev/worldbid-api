@@ -114,7 +114,7 @@ const handleReorder = () => {
           class="w-4 h-4"
         />
       </button>
-      <div v-else class="w-6"></div>
+      <div v-else class="w-6"/>
 
       <!-- Drag handle -->
       <div class="cursor-grab active:cursor-grabbing text-base-content/40">

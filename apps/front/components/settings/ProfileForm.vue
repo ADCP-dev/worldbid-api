@@ -160,7 +160,7 @@ const onSubmit = handleSubmit(async (values) => {
       </h3>
     </div>
 
-    <div class="divider"></div>
+    <div class="divider"/>
 
     <form class="space-y-8" @submit.prevent="onSubmit">
       <!-- Profile photo upload -->
@@ -178,7 +178,7 @@ const onSubmit = handleSubmit(async (values) => {
                 :src="photoPreviewUrl || authStore.user?.photo?.path"
                 class="object-cover"
                 alt="Profile photo"
-              />
+              >
               <div v-else class="flex items-center justify-center p-4">
                 <span class="text-xs text-base-content/70">{{
                   $t("base.settings.profile.noPhoto")
@@ -194,7 +194,7 @@ const onSubmit = handleSubmit(async (values) => {
               accept="image/*"
               class="hidden"
               @change="onPhotoChange"
-            />
+            >
             <div class="flex flex-wrap items-center gap-2">
               <button
                 type="button"

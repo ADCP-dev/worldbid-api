@@ -159,7 +159,7 @@ function submitNewItem() {
             class="input input-bordered input-sm w-full"
             @keydown="handleKeydown"
             @blur="saveTitle"
-          />
+          >
           <h3 v-else class="text-sm font-medium leading-tight truncate">{{ task.title }}</h3>
         </div>
         <button
@@ -244,7 +244,7 @@ function submitNewItem() {
             :checked="item.done"
             class="checkbox checkbox-xs"
             @change="handleChecklistToggle(item.id)"
-          />
+          >
           <span :class="{ 'line-through opacity-50': item.done }">{{ item.text }}</span>
         </label>
 
@@ -254,7 +254,7 @@ function submitNewItem() {
             class="input input-xs flex-1"
             placeholder="Nueva tarea..."
             @keydown.enter.prevent="submitNewItem"
-          />
+          >
           <button class="btn btn-ghost btn-xs btn-square" @click="submitNewItem">
             <Plus class="w-3 h-3" />
           </button>

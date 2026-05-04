@@ -107,7 +107,8 @@ onMounted(() => {
         <div v-if="plans.length === 0" class="col-span-full text-center py-8">
           <p class="text-base-content/60">{{ $t('landing.pricing.loading') }}</p>
         </div>
-        <div v-else v-for="{
+        <div
+v-for="{
           title,
           popular,
           price,
@@ -116,7 +117,7 @@ onMounted(() => {
           benefitList,
           interval,
           currencySymbol
-        }, index in plans" :key="title"
+        }, index in plans" v-else :key="title"
           class="card bg-base-100 border border-base-300 shadow-xl transition-all duration-300"
           :class="{
             'ring-2 ring-primary scale-105 z-10': popular,
@@ -138,7 +139,7 @@ onMounted(() => {
               </span>
             </div>
 
-            <div class="divider my-2"></div>
+            <div class="divider my-2"/>
 
             <ul class="space-y-3 mb-6">
               <li v-for="benefit in benefitList" :key="benefit" class="flex items-start gap-3">
@@ -174,7 +175,8 @@ onMounted(() => {
                 </p>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-10">
-                  <div v-for="feature in [
+                  <div
+v-for="feature in [
                     { title: 'landing.pricing.custom.features.integration.title', desc: 'landing.pricing.custom.features.integration.description' },
                     { title: 'landing.pricing.custom.features.ai.title', desc: 'landing.pricing.custom.features.ai.description' },
                     { title: 'landing.pricing.custom.features.support.title', desc: 'landing.pricing.custom.features.support.description' },

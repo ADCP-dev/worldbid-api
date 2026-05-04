@@ -24,9 +24,10 @@ const isOpen = ref<boolean>(false);
 
 <template>
   <div class="drawer">
-    <input id="landing-drawer" type="checkbox" v-model="isOpen" class="drawer-toggle" />
+    <input id="landing-drawer" v-model="isOpen" type="checkbox" class="drawer-toggle" >
     <div class="drawer-content flex flex-col items-center">
-      <header :class="{
+      <header
+:class="{
         'shadow-light': colorMode === 'light',
         'shadow-dark': colorMode === 'dark',
         'container top-5 mx-auto place-items-center lg:max-w-screen-xl gap-8 mx-auto sticky border z-40 px-4 py-2 sm:px-6 rounded-2xl flex justify-between items-center shadow-md backdrop-blur-xl': true,
@@ -59,7 +60,7 @@ const isOpen = ref<boolean>(false);
 
     <!-- Mobile Drawer Side -->
     <div class="drawer-side z-50">
-      <label for="landing-drawer" class="drawer-overlay"></label>
+      <label for="landing-drawer" class="drawer-overlay"/>
       <div class="menu p-4 w-80 min-h-full bg-base-200 text-base-content flex flex-col">
         <div class="flex items-center justify-between mb-8">
           <AppLogo />
@@ -68,13 +69,13 @@ const isOpen = ref<boolean>(false);
 
         <ul class="flex-grow gap-2">
           <li v-for="{ href, label } in routeList" :key="label">
-            <a :href="href" @click="isOpen = false" class="text-lg">
+            <a :href="href" class="text-lg" @click="isOpen = false">
               {{ label }}
             </a>
           </li>
         </ul>
 
-        <div class="divider"></div>
+        <div class="divider"/>
 
         <div class="flex flex-col gap-4 p-2">
           <NuxtLink :to="localePath('/login')" class="btn btn-primary w-full" @click="isOpen = false">

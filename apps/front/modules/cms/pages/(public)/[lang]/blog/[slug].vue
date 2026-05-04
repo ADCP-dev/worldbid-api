@@ -65,10 +65,10 @@ const seoData = computed(() => ({
           :src="post.featuredImage.url"
           :alt="title"
           class="w-full rounded-lg"
-        />
+        >
       </figure>
 
-      <div class="prose prose-lg max-w-none" v-html="content"></div>
+      <div class="prose prose-lg max-w-none" v-html="content"/>
     </article>
   </div>
 </template>

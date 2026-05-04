@@ -55,8 +55,8 @@ async function onSubmit(event: Event) {
   <form @submit="onSubmit">
     <div class="grid gap-4">
       <FormInput
-        :label="$t('base.auth.forgotPassword.emailLabel')"
         v-model="email"
+        :label="$t('base.auth.forgotPassword.emailLabel')"
         :placeholder="$t('base.auth.forgotPassword.emailPlaceholder')"
         type="email"
         :disabled="isLoading"

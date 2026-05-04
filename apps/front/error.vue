@@ -5,7 +5,7 @@
     >
       <h1 class="text-[7rem] font-bold leading-tight">{{ error.statusCode }}</h1>
       <span class="font-medium">{{ errorTitle }}</span>
-      <p class="text-center text-muted-foreground" v-html="errorMessage"></p>
+      <p class="text-center text-muted-foreground" v-html="errorMessage"/>
       <div class="mt-6 flex gap-4">
         <Button variant="outline" @click="router.back()"> Volver </Button>
         <Button @click="navigateTo('/')"> Volver al inicio </Button>

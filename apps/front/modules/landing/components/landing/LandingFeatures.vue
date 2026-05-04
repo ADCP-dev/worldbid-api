@@ -89,7 +89,8 @@ const iconMap: Record<
       </div>
 
       <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div v-for="{ icon, title, description }, index in featureList" :key="title" :data-aos="'fade-up'"
+        <div
+v-for="{ icon, title, description }, index in featureList" :key="title" :data-aos="'fade-up'"
           :data-aos-delay="index * 100">
           <div class="card h-full bg-base-100 border-none shadow-none text-center">
             <div class="card-body items-center group">

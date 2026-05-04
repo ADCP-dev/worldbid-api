@@ -2,6 +2,8 @@
 import { ref, onMounted, onUnmounted, watch } from "vue";
 import { useTranslations } from "@/modules/base/translations/composables/useTranslations";
 
+import { toast } from "vue-sonner";
+
 const showKeys = useState("i18n-show-keys", () => false);
 const isEditing = ref(false);
 const editingKey = ref("");
@@ -226,8 +228,6 @@ onUnmounted(() => {
   document.removeEventListener("mouseout", handleMouseOut, { capture: true });
   window.removeEventListener("scroll", handleScroll, { capture: true });
 });
-
-import { toast } from "vue-sonner";
 </script>
 
 <template>
@@ -263,8 +263,8 @@ import { toast } from "vue-sonner";
             }}</span>
           </h3>
           <button
-            @click="isEditing = false"
             class="btn btn-sm btn-circle btn-ghost"
+            @click="isEditing = false"
           >
             ✕
           </button>
@@ -294,9 +294,9 @@ import { toast } from "vue-sonner";
 
         <div class="modal-action flex-col sm:flex-row gap-2 mt-0">
           <button
-            @click="bulkTranslate"
             :disabled="isBulkTranslating"
             class="btn btn-neutral grow"
+            @click="bulkTranslate"
           >
             <AppIcon
               v-if="isBulkTranslating"
@@ -310,9 +310,9 @@ import { toast } from "vue-sonner";
             }}
           </button>
           <button
-            @click="handleSaveAll"
             :disabled="isSaving"
             class="btn btn-primary sm:w-auto"
+            @click="handleSaveAll"
           >
             <AppIcon
               v-if="isSaving"

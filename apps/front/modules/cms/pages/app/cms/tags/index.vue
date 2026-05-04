@@ -51,7 +51,7 @@ const columns = computed(() => [
       ref="tableRef"
       :columns="columns"
       endpoint="cms/tags"
-      tableName="cms-tags-table"
+      table-name="cms-tags-table"
       @row-click="(row: any) => router.push(`/app/cms/tags/${row.id}/edit`)"
     />
   </div>

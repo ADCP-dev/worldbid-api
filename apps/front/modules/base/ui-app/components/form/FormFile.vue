@@ -45,7 +45,7 @@ function onFileChange(event: Event) {
       class="file-input file-input-bordered w-full"
       :class="{ 'file-input-error': error }"
       @change="onFileChange"
-    />
+    >
 
     <label v-if="description" class="label py-1">
       <span class="label-text-alt text-base-content/60">{{ description }}</span>

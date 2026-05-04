@@ -7,7 +7,8 @@ defineProps<{
 </script>
 
 <template>
-  <div class="relative flex items-center justify-center px-4 h-dvh lg:max-w-none lg:px-0"
+  <div
+class="relative flex items-center justify-center px-4 h-dvh lg:max-w-none lg:px-0"
     :class="{ 'flex-row-reverse': reverse }">
     <div class="relative hidden h-full flex-1 flex-col bg-muted p-10 text-white lg:flex dark:border-r">
       <img :src="loginImage" class="absolute inset-0 bg-zinc-900 h-full w-full object-cover">

@@ -82,7 +82,7 @@ const columns = computed(() => [
       ref="tableRef"
       :columns="columns"
       :data="categories"
-      tableName="cms-blog-categories-table"
+      table-name="cms-blog-categories-table"
       @row-click="(row: any) => router.push(`/app/cms/blog/categories/${row.id}/edit`)"
     />
   </div>

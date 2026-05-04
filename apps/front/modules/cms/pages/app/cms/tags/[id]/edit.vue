@@ -114,7 +114,7 @@ const handleDelete = async () => {
       </div>
     </div>
 
-    <form @submit.prevent="handleSubmit" class="space-y-4">
+    <form class="space-y-4" @submit.prevent="handleSubmit">
       <div class="join join-vertical w-full">
         <details
           v-for="lang in languages"

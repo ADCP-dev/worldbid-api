@@ -47,7 +47,8 @@ const HowItWorksList: HowItWorksProps[] = [
       </div>
 
       <div class="max-w-6xl mx-auto">
-        <div v-for="(
+        <div
+v-for="(
 { step, title, description, image }, index
           ) in HowItWorksList" :key="title" :class="[
             'flex flex-col md:flex-row gap-8 items-center mb-12 last:mb-0',
@@ -71,7 +72,7 @@ const HowItWorksList: HowItWorksProps[] = [
 
           <div class="flex-1">
             <div class="rounded-lg overflow-hidden border">
-              <img :src="image" :alt="title" class="w-full h-96 object-cover rounded-lg" />
+              <img :src="image" :alt="title" class="w-full h-96 object-cover rounded-lg" >
             </div>
           </div>
         </div>

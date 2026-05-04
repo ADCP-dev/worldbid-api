@@ -181,7 +181,8 @@ const socialIcon = (socialName: string) => {
         </h2>
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-        <div v-for="{
+        <div
+v-for="{
           imageUrl,
           firstName,
           lastName,
@@ -191,7 +192,8 @@ const socialIcon = (socialName: string) => {
           class="card bg-muted/60 dark:bg-card flex flex-col h-full overflow-hidden group/hoverimg border border-base-300 shadow-sm transition-all duration-300 hover:shadow-xl">
 
           <figure class="aspect-square overflow-hidden">
-            <img :src="imageUrl" alt=""
+            <img
+:src="imageUrl" alt=""
               class="w-full h-full object-cover saturate-0 transition-all duration-500 ease-in-out group-hover/hoverimg:saturate-100 group-hover/hoverimg:scale-110">
           </figure>
 
@@ -206,10 +208,11 @@ const socialIcon = (socialName: string) => {
               </span>
             </div>
 
-            <div class="divider my-4"></div>
+            <div class="divider my-4"/>
 
             <div class="flex gap-4 mt-auto">
-              <a v-for="{ name, url } in socialNetworks" :key="name" :href="url" target="_blank"
+              <a
+v-for="{ name, url } in socialNetworks" :key="name" :href="url" target="_blank"
                 class="btn btn-ghost btn-sm btn-circle hover:text-primary transition-colors" :aria-label="`Visit our ${name} page`">
                 <component :is="socialIcon(name)" class="w-5 h-5" />
               </a>

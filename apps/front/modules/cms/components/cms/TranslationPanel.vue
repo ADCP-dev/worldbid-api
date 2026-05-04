@@ -135,7 +135,7 @@ const getLangLabel = (lang: string) => langLabels[lang] || lang.toUpperCase();
             :value="translations[currentLang]?.[field] || ''"
             :placeholder="`Enter ${field} in ${getLangLabel(currentLang)}`"
             readonly
-          />
+          >
 
           <!-- AI Translate button for missing translations -->
           <button
@@ -185,7 +185,7 @@ const getLangLabel = (lang: string) => langLabels[lang] || lang.toUpperCase();
         }"
         :value="completeness[currentLang] || 0"
         max="100"
-      ></progress>
+      />
       <div class="flex justify-between text-xs text-base-content/60 mt-2">
         <span v-for="lang in availableLangs" :key="lang">
           {{ getLangLabel(lang) }}: {{ completeness[lang] || 0 }}%

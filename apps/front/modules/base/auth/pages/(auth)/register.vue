@@ -25,7 +25,7 @@ definePageMeta({
         </NuxtLink>
       </p>
 
-      <p class="text-center mt-5 text-xs text-base-content/60" v-html="$t('base.auth.terms.register', { year: new Date().getFullYear() })"></p>
+      <p class="text-center mt-5 text-xs text-base-content/60" v-html="$t('base.auth.terms.register', { year: new Date().getFullYear() })"/>
     </div>
   </AuthLayout>
 </template>

@@ -11,10 +11,10 @@ const toggleKeys = () => {
 <template>
   <div class="fixed bottom-4 right-4 z-[9999]">
     <button
-      @click="toggleKeys"
       class="btn btn-circle shadow-lg opacity-70 hover:opacity-100 transition-opacity border border-base-content/20"
       :class="showKeys ? 'btn-primary' : 'btn-neutral'"
       title="Toggle Translation Keys"
+      @click="toggleKeys"
     >
       <LanguagesIcon class="w-5 h-5" />
     </button>

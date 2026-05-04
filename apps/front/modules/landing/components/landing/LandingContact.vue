@@ -106,14 +106,14 @@ const handleSubmit = () => {
                   <label class="label" for="first-name">
                     <span class="label-text font-semibold">Nombre</span>
                   </label>
-                  <input id="first-name" v-model="contactForm.firstName" type="text" placeholder="Juan" class="input input-bordered w-full" />
+                  <input id="first-name" v-model="contactForm.firstName" type="text" placeholder="Juan" class="input input-bordered w-full" >
                 </div>
 
                 <div class="form-control w-full">
                   <label class="label" for="last-name">
                     <span class="label-text font-semibold">Apellidos</span>
                   </label>
-                  <input id="last-name" v-model="contactForm.lastName" type="text" placeholder="García" class="input input-bordered w-full" />
+                  <input id="last-name" v-model="contactForm.lastName" type="text" placeholder="García" class="input input-bordered w-full" >
                 </div>
               </div>
 
@@ -121,7 +121,7 @@ const handleSubmit = () => {
                 <label class="label" for="email">
                   <span class="label-text font-semibold">Correo Electrónico</span>
                 </label>
-                <input id="email" v-model="contactForm.email" type="email" placeholder="juan@empresa.com" class="input input-bordered w-full" />
+                <input id="email" v-model="contactForm.email" type="email" placeholder="juan@empresa.com" class="input input-bordered w-full" >
               </div>
 
               <div class="form-control w-full">
@@ -142,7 +142,8 @@ const handleSubmit = () => {
                 <label class="label" for="message">
                   <span class="label-text font-semibold">Mensaje</span>
                 </label>
-                <textarea id="message" v-model="contactForm.message" placeholder="Cuéntanos sobre tu proyecto..."
+                <textarea
+id="message" v-model="contactForm.message" placeholder="Cuéntanos sobre tu proyecto..."
                   class="textarea textarea-bordered w-full h-32" />
               </div>
 

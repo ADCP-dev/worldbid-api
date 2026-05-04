@@ -97,7 +97,7 @@ defineExpose({ openDialog, closeDialog });
             type="text"
             class="input input-bordered w-full"
             required
-          />
+          >
         </div>
 
         <div class="form-control w-full mb-4">
@@ -109,7 +109,7 @@ defineExpose({ openDialog, closeDialog });
             type="text"
             class="input input-bordered w-full"
             required
-          />
+          >
         </div>
 
         <div class="form-control w-full mb-4">
@@ -121,7 +121,7 @@ defineExpose({ openDialog, closeDialog });
             type="email"
             class="input input-bordered w-full"
             required
-          />
+          >
         </div>
 
         <div v-if="!props.user" class="form-control w-full mb-4">
@@ -134,13 +134,13 @@ defineExpose({ openDialog, closeDialog });
             class="input input-bordered w-full"
             required
             minlength="6"
-          />
+          >
         </div>
 
         <div class="modal-action">
-          <button type="button" class="btn" @click="closeDialog" :disabled="isSubmitting">Cancelar</button>
+          <button type="button" class="btn" :disabled="isSubmitting" @click="closeDialog">Cancelar</button>
           <button type="submit" class="btn btn-primary" :disabled="isSubmitting">
-            <span v-if="isSubmitting" class="loading loading-spinner loading-xs"></span>
+            <span v-if="isSubmitting" class="loading loading-spinner loading-xs"/>
             Guardar
           </button>
         </div>

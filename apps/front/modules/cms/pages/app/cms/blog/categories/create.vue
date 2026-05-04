@@ -29,7 +29,7 @@ const translations = ref<Record<string, { name: string; slug: string; descriptio
 });
 
 // Auto-generate slug from Spanish name
-let slugManuallyEdited = false;
+const slugManuallyEdited = false;
 watch(
   () => translations.value.es.name,
   (newVal) => {
@@ -106,7 +106,7 @@ const handleSubmit = async () => {
       </div>
     </div>
 
-    <form @submit.prevent="handleSubmit" class="space-y-4">
+    <form class="space-y-4" @submit.prevent="handleSubmit">
       <!-- Accordion per language -->
       <div class="join join-vertical w-full">
         <details

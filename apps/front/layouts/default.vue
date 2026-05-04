@@ -25,7 +25,7 @@ watch(() => route.fullPath, () => {
 
 <template>
   <div class="drawer lg:drawer-open">
-    <input id="main-drawer" type="checkbox" class="drawer-toggle" v-model="isSidebarOpen" />
+    <input id="main-drawer" v-model="isSidebarOpen" type="checkbox" class="drawer-toggle" >
     <div class="drawer-content flex flex-col min-h-screen bg-base-200">
       <Header>
         <div class="flex items-center gap-2">
@@ -41,7 +41,7 @@ watch(() => route.fullPath, () => {
       </div>
     </div>
     <div class="drawer-side z-50 h-screen overflow-hidden">
-      <label for="main-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
+      <label for="main-drawer" aria-label="close sidebar" class="drawer-overlay"/>
       <AppSidebar />
     </div>
   </div>

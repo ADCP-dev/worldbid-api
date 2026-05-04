@@ -69,16 +69,16 @@ async function onSubmit(event: Event) {
     <form @submit="onSubmit">
       <div class="grid gap-4">
         <FormInput
-          :label="$t('base.auth.signUp.nameLabel')"
           v-model="name"
+          :label="$t('base.auth.signUp.nameLabel')"
           :placeholder="$t('base.auth.signUp.namePlaceholder')"
           :disabled="isLoading"
           required
         />
 
         <FormInput
-          :label="$t('base.auth.signUp.emailLabel')"
           v-model="email"
+          :label="$t('base.auth.signUp.emailLabel')"
           :placeholder="$t('base.auth.signUp.emailPlaceholder')"
           type="email"
           :disabled="isLoading"
