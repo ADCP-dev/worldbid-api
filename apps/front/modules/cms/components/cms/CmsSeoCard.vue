@@ -219,7 +219,7 @@ function cancelJsonLdEdit() {
             type="text"
             class="input input-sm input-bordered flex-1"
             :placeholder="t('pages.seo.newKeyword') || 'Nueva palabra clave...'"
-            @keyup.enter="addKeyword"
+            @keyup.enter.prevent="addKeyword"
           >
           <button
             type="button"

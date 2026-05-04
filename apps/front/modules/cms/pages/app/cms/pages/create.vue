@@ -57,7 +57,7 @@ watch(
   () => form.value.name,
   (newVal) => {
     if (!slugManuallyEdited || !form.value.slug) {
-      form.value.slug = kebabCase(newVal);
+      form.value.slug = '/' + kebabCase(newVal);
     }
   },
 );
@@ -174,7 +174,7 @@ const handleSubmit = async () => {
               v-model="form.name"
               label="Nombre"
               required
-              placeholder="escribe en minúsculas, ej: mi-pagina"
+              placeholder="ej: HomePage o BlogHome"
               :error="validationErrors.name"
             />
 

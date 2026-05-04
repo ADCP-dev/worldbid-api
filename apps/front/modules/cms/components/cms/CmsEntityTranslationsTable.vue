@@ -72,6 +72,7 @@ async function handleAddTranslation() {
       if (!content) continue;
 
       await fetchWrapper.post(`${baseURL}/translations`, {
+        app: 'front',
         langCode: lang.code,
         section,
         key,
@@ -105,6 +106,7 @@ const handleBlur = async (translation: any, event: Event) => {
       }
     } else if (newContent) {
       await fetchWrapper.post(`${baseURL}/translations`, {
+        app: 'front',
         langCode: translation.langCode,
         section: translation.section,
         key: translation.key,

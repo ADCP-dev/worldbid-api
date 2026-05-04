@@ -307,6 +307,7 @@ export function useCmsPages() {
   ) => {
     try {
       return await fetchWrapper.post(`${baseUrl}/translations`, {
+        app: 'front',
         category,
         langCode: lang,
         key,

@@ -25,6 +25,7 @@ const {
   error,
   updateSeo,
   saveTranslationsBatch,
+  fetchSeo,
 } = useCmsBlogPosts();
 const { tags: availableTags, fetchTags } = useCmsTags();
 const { categories, fetchCategories } = useCmsCategories();
@@ -98,7 +99,7 @@ watch(
   () => form.value.title,
   (newVal) => {
     if (!slugManuallyEdited.value) {
-      form.value.slug = kebabCase(newVal);
+      form.value.slug = '/' + kebabCase(newVal);
     }
   },
 );
@@ -138,19 +139,24 @@ onMounted(async () => {
     }
     translations.value = transMap;
 
-    // Load SEO data
-    const postSeo = (post as any).seo;
-    if (postSeo) {
-      seo.value = {
-        metaTitle: postSeo.metaTitle || "",
-        metaDescription: postSeo.metaDescription || "",
-        metaKeywords: postSeo.metaKeywords || [],
-        canonicalUrl: postSeo.canonicalUrl || "",
-        ogImageId: postSeo.ogImage?.id || null,
-        ogImageUrl: postSeo.ogImage?.url || null,
-        type: postSeo.type || "Article",
-      };
-    }
+    // Load SEO data from dedicated endpoint
+    try {
+      const postSeo = await fetchSeo(postId, 'es');
+      if (postSeo) {
+        seo.value = {
+          metaTitle: postSeo.metaTitle || '',
+          metaDescription: postSeo.metaDescription || '',
+          metaKeywords: postSeo.metaKeywords || [],
+          canonicalUrl: postSeo.canonicalUrl || '',
+          ogImageId: postSeo.ogImageId || postSeo.ogImage?.id || null,
+          ogImageUrl: postSeo.ogImage?.url || null,
+          type: postSeo.type || 'Article',
+          customJsonLd: postSeo.customJsonLd || null,
+        };
+      }
+    } catch (_) { /* SEO fetch optional */ }
+
+    slugManuallyEdited.value = true;
   } catch (e) {
     console.error(e);
   }

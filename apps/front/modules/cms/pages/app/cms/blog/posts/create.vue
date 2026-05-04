@@ -73,7 +73,7 @@ watch(
   () => form.value.title,
   (newVal) => {
     if (!slugManuallyEdited || !form.value.slug) {
-      form.value.slug = kebabCase(newVal);
+      form.value.slug = '/' + kebabCase(newVal);
     }
   },
 );

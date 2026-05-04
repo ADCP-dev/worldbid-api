@@ -15,15 +15,15 @@ export class CreatePageDto {
   @ApiProperty({ example: 'about-us', type: String })
   @IsNotEmpty()
   @IsString()
-  @Matches(/^[a-z0-9-]+$/, { message: 'Must be kebab-case' })
+  @Matches(/^[a-zA-Z0-9]+$/, { message: 'Only letters and numbers, no spaces' })
   name: string;
 
   @ApiPropertyOptional({ example: '/about/team', type: String })
   @IsOptional()
   @IsNotEmpty()
   @IsString()
-  @Matches(/^\/?[a-z0-9-]+(\/[a-z0-9-]+)*$/, {
-    message: 'Slug must be path segments with optional leading /',
+  @Matches(/^\/$|^\/?[a-z0-9-]+(\/[a-z0-9-]+)*$/, {
+    message: 'Slug must start with / and only lowercase, numbers, hyphens and slashes',
   })
   slug?: string;
 

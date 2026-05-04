@@ -14,7 +14,7 @@ definePageMeta({
 const { t } = useI18n();
 const router = useRouter();
 const route = useRoute();
-const { fetchPage, updatePage, deletePage, loading, updateSeo, saveTranslation } = useCmsPages();
+const { fetchPage, updatePage, deletePage, loading, updateSeo, saveTranslation, fetchSeo } = useCmsPages();
 
 const pageId = route.params.id as string;
 
@@ -64,13 +64,13 @@ function mapValidationErrors(zodError: z.ZodError): Record<string, string> {
   return errors;
 }
 
-const slugManuallyEdited = false;
+const slugManuallyEdited = ref(false);
 
 watch(
   () => form.value.name,
   (newName) => {
     if (!slugManuallyEdited) {
-      form.value.slug = kebabCase(newName);
+      form.value.slug = '/' + kebabCase(newName);
     }
   },
 );
@@ -87,19 +87,24 @@ onMounted(async () => {
       isPublished: page.isPublished || false,
     };
 
-    // Load SEO data
-    const pageSeo = (page as any).seo;
-    if (pageSeo) {
-      seo.value = {
-        metaTitle: pageSeo.metaTitle || "",
-        metaDescription: pageSeo.metaDescription || "",
-        metaKeywords: pageSeo.metaKeywords || [],
-        canonicalUrl: pageSeo.canonicalUrl || "",
-        ogImageId: pageSeo.ogImage?.id || null,
-        ogImageUrl: pageSeo.ogImage?.url || null,
-        type: pageSeo.type || "WebPage",
-      };
-    }
+    // Load SEO data from dedicated endpoint
+    try {
+      const pageSeo = await fetchSeo(pageId, 'es');
+      if (pageSeo) {
+        seo.value = {
+          metaTitle: pageSeo.metaTitle || '',
+          metaDescription: pageSeo.metaDescription || '',
+          metaKeywords: pageSeo.metaKeywords || [],
+          canonicalUrl: pageSeo.canonicalUrl || '',
+          ogImageId: pageSeo.ogImageId || pageSeo.ogImage?.id || null,
+          ogImageUrl: pageSeo.ogImage?.url || null,
+          type: pageSeo.type || 'WebPage',
+          customJsonLd: pageSeo.customJsonLd || null,
+        };
+      }
+    } catch (_) { /* SEO fetch optional */ }
+
+    slugManuallyEdited.value = true;
   } catch (e) {
     console.error(e);
   }
@@ -205,7 +210,7 @@ const handleDelete = async () => {
               v-model="form.name"
               label="Nombre"
               required
-              placeholder="escribe en minúsculas, ej: mi-pagina"
+              placeholder="ej: HomePage o BlogHome"
               :error="validationErrors.name"
             />
 

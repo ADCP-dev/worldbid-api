@@ -12,8 +12,8 @@ export const translationItemSchema = z.object({
 export type TranslationItem = z.infer<typeof translationItemSchema>
 
 export const pageSchema = z.object({
-  name: z.string().min(1, 'El nombre es obligatorio').regex(/^[a-z0-9-]+$/, 'Solo minúsculas, números y guiones'),
-  slug: z.string().min(1, 'El slug es obligatorio').regex(/^[a-z0-9-]+$/, 'Solo minúsculas, números y guiones'),
+  name: z.string().min(1, 'El nombre es obligatorio').regex(/^[a-zA-Z0-9]+$/, 'Solo letras y números, sin espacios'),
+  slug: z.string().min(1, 'El slug es obligatorio').regex(/^\/$|^\/[a-z0-9-]+(\/[a-z0-9-]+)*$/, 'Debe comenzar con / y solo minúsculas, números, guiones y barras'),
   section: z.enum(['landing', 'blog', 'documentation', 'store']),
   isPublished: z.boolean().optional(),
   translations: z.record(z.string(), translationItemSchema).optional(),

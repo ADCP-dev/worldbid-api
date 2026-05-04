@@ -12,7 +12,7 @@ export const translationItemSchema = z.object({
 export type TranslationItem = z.infer<typeof translationItemSchema>
 
 export const blogPostSchema = z.object({
-  slug: z.string().min(1, 'El slug es obligatorio').regex(/^[a-z0-9-]+$/, 'Solo minúsculas, números y guiones'),
+  slug: z.string().min(1, 'El slug es obligatorio').regex(/^\/$|^\/[a-z0-9-]+(\/[a-z0-9-]+)*$/, 'Debe comenzar con / y solo minúsculas, números, guiones y barras'),
   categoryId: z.string().optional(),
   tagIds: z.array(z.string()).optional(),
   isPublished: z.boolean().optional(),
