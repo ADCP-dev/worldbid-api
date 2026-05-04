@@ -7,6 +7,9 @@ import { toast } from "vue-sonner";
 interface Props {
   endpoint: string;
   tableName?: string;
+  categoryPrefix?: string;
+  entityName?: string;
+  entityId?: string;
 }
 
 const props = defineProps<Props>();
@@ -30,6 +33,62 @@ onMounted(() => {
 const refreshTable = () => {
   tableRef.value?.fetchData();
 };
+
+const defaultCategory = computed(() => {
+  const match = props.endpoint.match(/filter\[category\]=([^&]+)/);
+  return match ? decodeURIComponent(match[1]) : '';
+});
+
+const showAddModal = ref(false);
+const newSection = ref('');
+const newKey = ref('');
+const newContent = ref<Record<string, string>>({});
+
+function openAddModal() {
+  newSection.value = '';
+  newKey.value = '';
+  newContent.value = {};
+  for (const lang of activeLangs.value) {
+    newContent.value[lang.code] = '';
+  }
+  showAddModal.value = true;
+}
+
+function closeAddModal() {
+  showAddModal.value = false;
+}
+
+async function handleAddTranslation() {
+  const section = newSection.value.trim();
+  const key = newKey.value.trim();
+  if (!section || !key) return;
+
+  const hasContent = Object.values(newContent.value).some((v) => v.trim());
+  if (!hasContent) return;
+
+  try {
+    for (const lang of activeLangs.value) {
+      const content = newContent.value[lang.code]?.trim();
+      if (!content) continue;
+
+      await fetchWrapper.post(`${baseURL}/translations`, {
+        langCode: lang.code,
+        section,
+        key,
+        content,
+        ...(defaultCategory.value && { category: defaultCategory.value }),
+        ...(props.entityName && { entityName: props.entityName }),
+        ...(props.entityId && { entityId: props.entityId }),
+      });
+    }
+    toast.success("Traducción creada");
+    closeAddModal();
+    refreshTable();
+  } catch (err) {
+    console.error("Failed to create translation", err);
+    toast.error("Error al crear traducción");
+  }
+}
 
 const handleBlur = async (translation: any, event: Event) => {
   const newContent = (event.target as HTMLTextAreaElement).value.trim();
@@ -158,10 +217,78 @@ const columns = computed(() => [
 </script>
 
 <template>
-  <DataTable
-    ref="tableRef"
-    :columns="columns"
-    :endpoint="endpoint"
-    :table-name="tableName || 'entity-translations-table'"
-  />
+  <div>
+    <div class="flex justify-between items-center mb-3">
+      <button type="button" class="btn btn-sm btn-outline" @click="openAddModal">
+        + Agregar traducción
+      </button>
+    </div>
+
+    <DataTable
+      ref="tableRef"
+      :columns="columns"
+      :endpoint="endpoint"
+      :table-name="tableName || 'entity-translations-table'"
+    />
+
+    <dialog :class="{ 'modal-open modal-bottom sm:modal-middle': showAddModal }" class="modal">
+      <div class="modal-box">
+        <h3 class="text-lg font-bold mb-4">Nueva traducción</h3>
+
+        <div class="space-y-4">
+          <div class="form-control">
+            <label class="label py-1">
+              <span class="label-text">Sección</span>
+            </label>
+            <input
+              v-model="newSection"
+              type="text"
+              class="input input-bordered input-sm w-full"
+              placeholder="Ej: page, hero, footer"
+            >
+          </div>
+
+          <div class="form-control">
+            <label class="label py-1">
+              <span class="label-text">Clave</span>
+            </label>
+            <input
+              v-model="newKey"
+              type="text"
+              class="input input-bordered input-sm w-full"
+              placeholder="Ej: title, description, cta"
+            >
+          </div>
+
+          <div class="divider my-1">Traducciones</div>
+
+          <div v-for="lang in activeLangs" :key="lang.id" class="form-control">
+            <label class="label py-1">
+              <span class="label-text-alt uppercase font-bold text-base-content/70">
+                {{ lang.code.toUpperCase() }} — {{ lang.name }}
+              </span>
+            </label>
+            <textarea
+              v-model="newContent[lang.code]"
+              class="textarea textarea-bordered textarea-sm w-full min-h-[60px]"
+              :placeholder="`Traducción en ${lang.name}`"
+            />
+          </div>
+        </div>
+
+        <div class="modal-action">
+          <button type="button" class="btn btn-sm btn-ghost" @click="closeAddModal">
+            Cancelar
+          </button>
+          <button type="button" class="btn btn-sm btn-primary" @click="handleAddTranslation">
+            Guardar
+          </button>
+        </div>
+      </div>
+
+      <form method="dialog" class="modal-backdrop">
+        <button @click="closeAddModal">close</button>
+      </form>
+    </dialog>
+  </div>
 </template>

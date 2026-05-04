@@ -23,7 +23,8 @@ const {
   deletePost,
   loading,
   error,
-  saveTranslation,
+  updateSeo,
+  saveTranslationsBatch,
 } = useCmsBlogPosts();
 const { tags: availableTags, fetchTags } = useCmsTags();
 const { categories, fetchCategories } = useCmsCategories();
@@ -86,9 +87,21 @@ function kebabCase(str: string): string {
     .trim()
     .toLowerCase()
     .replace(/[^\w\s-]/g, "")
+    .replace(/_/g, "-")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
 }
+
+const slugManuallyEdited = ref(false);
+
+watch(
+  () => form.value.title,
+  (newVal) => {
+    if (!slugManuallyEdited.value) {
+      form.value.slug = kebabCase(newVal);
+    }
+  },
+);
 
 onMounted(async () => {
   try {
@@ -135,7 +148,7 @@ onMounted(async () => {
         canonicalUrl: postSeo.canonicalUrl || "",
         ogImageId: postSeo.ogImage?.id || null,
         ogImageUrl: postSeo.ogImage?.url || null,
-        type: "Article",
+        type: postSeo.type || "Article",
       };
     }
   } catch (e) {
@@ -232,6 +245,12 @@ const handleSubmit = async () => {
       isPublished: form.value.isPublished,
     });
 
+    if (seo.value.metaTitle || seo.value.metaDescription) {
+      await updateSeo(postId, seo.value, 'es');
+    }
+
+    await handleSaveTranslations();
+
     toast.success("Post actualizado correctamente");
     router.push("/app/cms/blog/posts");
   } catch (e) {
@@ -249,16 +268,20 @@ const handleDelete = async () => {
   }
 };
 
-const handleSaveTranslations = async (
-  newTranslations: Record<string, Record<string, string>>,
-) => {
+const handleSaveTranslations = async () => {
   isSavingTranslations.value = true;
   try {
-    for (const [lang, fields] of Object.entries(newTranslations)) {
-      for (const [key, value] of Object.entries(fields)) {
-        if (value.trim()) {
-          await saveTranslation(postId, lang, key, value);
-        }
+    for (const lang of availableLangs.value) {
+      const langData = translations.value[lang] || {};
+      const items = translationFields
+        .map((key) => ({
+          section: key,
+          key,
+          value: langData[key] || (form.value as Record<string, any>)[key] || '',
+        }))
+        .filter((item) => item.value.trim());
+      if (items.length > 0) {
+        await saveTranslationsBatch(postId, lang, items);
       }
     }
   } catch (e) {
@@ -291,7 +314,7 @@ const handleSaveTranslations = async (
       </div>
     </div>
 
-    <form @submit.prevent="handleSubmit" class="space-y-6">
+    <form class="space-y-6" @submit.prevent="handleSubmit">
       <!-- Title + Slug -->
       <div class="card bg-base-100 shadow-sm border">
         <div class="card-body">
@@ -309,6 +332,7 @@ const handleSaveTranslations = async (
               v-model="form.slug"
               label="Slug"
               required
+              @focus="slugManuallyEdited = true"
             />
           </div>
         </div>
@@ -329,7 +353,7 @@ const handleSaveTranslations = async (
               :src="previewImage || featuredImage?.url"
               class="w-full h-48 object-cover"
               alt="Cover"
-            />
+            >
             <div v-else class="text-center p-4">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-2 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -353,7 +377,7 @@ const handleSaveTranslations = async (
             class="file-input file-input-bordered w-full file-input-sm"
             :disabled="isUploadingCover"
             @change="handleCoverUpload"
-          />
+          >
           <span v-if="isUploadingCover" class="text-sm text-base-content/60 mt-1 block">
             Subiendo...
           </span>
@@ -413,10 +437,10 @@ const handleSaveTranslations = async (
               <div class="form-control">
                 <label class="label cursor-pointer justify-start gap-3">
                   <input
+                    v-model="form.isPublished"
                     type="checkbox"
                     class="toggle toggle-primary"
-                    v-model="form.isPublished"
-                  />
+                  >
                   <span class="label-text">{{ form.isPublished ? "Publicado" : "Borrador" }}</span>
                 </label>
               </div>
@@ -469,7 +493,7 @@ const handleSaveTranslations = async (
                   <div v-if="form.title" class="mb-6">
                     <h1 class="text-3xl font-bold mb-4">{{ form.title }}</h1>
                   </div>
-                  <div v-if="form.content" v-html="form.content"></div>
+                  <div v-if="form.content" v-html="form.content"/>
                   <p v-else class="text-base-content/40 italic">El contenido aparecerá aquí...</p>
                 </div>
               </div>

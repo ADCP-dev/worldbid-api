@@ -15,7 +15,7 @@ definePageMeta({
 
 const { locale } = useI18n();
 const router = useRouter();
-const { createPost, loading, error } = useCmsBlogPosts();
+const { createPost, loading, error, updateSeo, saveTranslationsBatch } = useCmsBlogPosts();
 const { tags: availableTags, fetchTags } = useCmsTags();
 const { categories, fetchCategories } = useCmsCategories();
 
@@ -27,6 +27,7 @@ onMounted(() => {
 const isCreating = ref(false);
 const showPreviewModal = ref(false);
 const validationErrors = ref<Record<string, string>>({});
+const createdPostId = ref<string>('');
 let slugManuallyEdited = false;
 
 const form = ref({
@@ -181,6 +182,26 @@ const handleSubmit = async () => {
       featuredImageId: form.value.featuredImageId,
     });
 
+    createdPostId.value = post.id;
+
+    if (seo.value.metaTitle || seo.value.metaDescription) {
+      await updateSeo(post.id, seo.value, 'es');
+    }
+
+    const items: { section: string; key: string; value: string }[] = [];
+    if (form.value.title.trim()) {
+      items.push({ section: 'title', key: 'title', value: form.value.title });
+    }
+    if (form.value.content.trim()) {
+      items.push({ section: 'content', key: 'content', value: form.value.content });
+    }
+    if (form.value.slug.trim()) {
+      items.push({ section: 'slug', key: 'slug', value: form.value.slug });
+    }
+    if (items.length > 0) {
+      await saveTranslationsBatch(post.id, 'es', items);
+    }
+
     toast.success("Post creado correctamente");
     router.push(`/app/cms/blog/posts/${post.id}/edit`);
   } catch (e) {
@@ -207,7 +228,7 @@ const handleSubmit = async () => {
       </button>
     </div>
 
-    <form @submit.prevent="handleSubmit" class="space-y-6">
+    <form class="space-y-6" @submit.prevent="handleSubmit">
       <!-- Title + Slug -->
       <div class="card bg-base-100 shadow-sm border">
         <div class="card-body">
@@ -246,7 +267,7 @@ const handleSubmit = async () => {
               :src="previewImage || featuredImage?.url"
               class="w-full h-48 object-cover"
               alt="Cover"
-            />
+            >
             <div v-else class="text-center p-4">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-2 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -270,7 +291,7 @@ const handleSubmit = async () => {
             class="file-input file-input-bordered w-full file-input-sm"
             :disabled="isUploadingCover"
             @change="handleCoverUpload"
-          />
+          >
           <span v-if="isUploadingCover" class="text-sm text-base-content/60 mt-1 block">
             Subiendo...
           </span>
@@ -330,10 +351,10 @@ const handleSubmit = async () => {
               <div class="form-control">
                 <label class="label cursor-pointer justify-start gap-3">
                   <input
+                    v-model="form.isPublished"
                     type="checkbox"
                     class="toggle toggle-primary"
-                    v-model="form.isPublished"
-                  />
+                  >
                   <span class="label-text">{{ form.isPublished ? "Publicado" : "Borrador" }}</span>
                 </label>
               </div>
@@ -386,7 +407,7 @@ const handleSubmit = async () => {
                   <div v-if="form.title" class="mb-6">
                     <h1 class="text-3xl font-bold mb-4">{{ form.title }}</h1>
                   </div>
-                  <div v-if="form.content" v-html="form.content"></div>
+                  <div v-if="form.content" v-html="form.content"/>
                   <p v-else class="text-base-content/40 italic">El contenido aparecerá aquí...</p>
                 </div>
               </div>
@@ -404,6 +425,7 @@ const handleSubmit = async () => {
       <CmsSeoCard
         v-model="seo"
         entity-type="BlogPost"
+        :entity-id="createdPostId || undefined"
       />
 
       <!-- Translations Table -->

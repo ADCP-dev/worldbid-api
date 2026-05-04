@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { z } from "zod";
+import type { z } from "zod";
 import { pageSchema } from "@cms/schemas/page.schema";
 import FormTextArea from "@base/ui-app/components/form/FormTextArea.vue";
 import CmsSeoCard, { type SeoCardModel } from "@cms/components/cms/CmsSeoCard.vue";
@@ -12,12 +12,12 @@ definePageMeta({
 
 const { t } = useI18n();
 const router = useRouter();
-const { createPage, loading, error } = useCmsPages();
+const { createPage, loading, error, updateSeo, saveTranslation } = useCmsPages();
 
 const isCreating = ref(false);
 const formError = ref<string | null>(null);
 const validationErrors = ref<Record<string, string>>({});
-let slugManuallyEdited = false;
+const slugManuallyEdited = false;
 
 const form = ref({
   name: "",
@@ -100,6 +100,19 @@ const handleSubmit = async () => {
       isPublished: form.value.isPublished,
     });
 
+    if (seo.value.metaTitle || seo.value.metaDescription) {
+      await updateSeo(page.id, seo.value, 'es');
+    }
+
+    if (form.value.description) {
+      await saveTranslation(
+        `page.${page.name}`,
+        'es',
+        'description',
+        form.value.description,
+      );
+    }
+
     toast.success("Página creada correctamente");
     router.push(`/app/cms/pages/${page.id}/edit`);
   } catch (e) {
@@ -140,17 +153,17 @@ const handleSubmit = async () => {
         />
         <label class="label cursor-pointer gap-2 whitespace-nowrap">
           <input
+            v-model="form.isPublished"
             type="checkbox"
             class="toggle toggle-primary toggle-sm"
-            v-model="form.isPublished"
-          />
+          >
           <span class="label-text">{{ form.isPublished ? "Publicado" : "Borrador" }}</span>
         </label>
         <NuxtLink to="/app/cms/pages" class="btn btn-ghost">Cancelar</NuxtLink>
       </div>
     </div>
 
-    <form @submit.prevent="handleSubmit" class="space-y-6">
+    <form class="space-y-6" @submit.prevent="handleSubmit">
       <!-- Name + Slug + Description Card -->
       <div class="card bg-base-100 shadow-sm border">
         <div class="card-body">

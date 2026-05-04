@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { z } from "zod";
+import type { z } from "zod";
 import { pageSchema } from "@cms/schemas/page.schema";
 import FormTextArea from "@base/ui-app/components/form/FormTextArea.vue";
 import CmsSeoCard, { type SeoCardModel } from "@cms/components/cms/CmsSeoCard.vue";
@@ -14,7 +14,7 @@ definePageMeta({
 const { t } = useI18n();
 const router = useRouter();
 const route = useRoute();
-const { fetchPage, updatePage, deletePage, loading } = useCmsPages();
+const { fetchPage, updatePage, deletePage, loading, updateSeo, saveTranslation } = useCmsPages();
 
 const pageId = route.params.id as string;
 
@@ -64,7 +64,7 @@ function mapValidationErrors(zodError: z.ZodError): Record<string, string> {
   return errors;
 }
 
-let slugManuallyEdited = false;
+const slugManuallyEdited = false;
 
 watch(
   () => form.value.name,
@@ -97,7 +97,7 @@ onMounted(async () => {
         canonicalUrl: pageSeo.canonicalUrl || "",
         ogImageId: pageSeo.ogImage?.id || null,
         ogImageUrl: pageSeo.ogImage?.url || null,
-        type: "WebPage",
+        type: pageSeo.type || "WebPage",
       };
     }
   } catch (e) {
@@ -128,6 +128,19 @@ const handleSubmit = async () => {
       section: form.value.section,
       isPublished: form.value.isPublished,
     });
+
+    if (seo.value.metaTitle || seo.value.metaDescription) {
+      await updateSeo(pageId, seo.value, 'es');
+    }
+
+    if (form.value.description) {
+      await saveTranslation(
+        `page.${form.value.name}`,
+        'es',
+        'description',
+        form.value.description,
+      );
+    }
 
     toast.success("Página actualizada correctamente");
     router.push("/app/cms/pages");
@@ -181,7 +194,7 @@ const handleDelete = async () => {
       </div>
     </div>
 
-    <form @submit.prevent="handleSubmit" class="space-y-6">
+    <form class="space-y-6" @submit.prevent="handleSubmit">
       <!-- Name + Slug + Author Card -->
       <div class="card bg-base-100 shadow-sm border">
         <div class="card-body">
@@ -232,10 +245,10 @@ const handleDelete = async () => {
             <div class="form-control">
               <label class="label cursor-pointer justify-start gap-3">
                 <input
+                  v-model="form.isPublished"
                   type="checkbox"
                   class="toggle toggle-primary"
-                  v-model="form.isPublished"
-                />
+                >
                 <span class="label-text">{{ form.isPublished ? "Publicado" : "Borrador" }}</span>
               </label>
             </div>

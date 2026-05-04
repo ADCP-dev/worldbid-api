@@ -1,14 +1,12 @@
+import type { CmsTag } from '../types/cms'
+
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { fetchWrapper } from '@/helpers/fetch-wrapper'
 
+export type { CmsTag }
+
 const runtimeConfig = useRuntimeConfig()
 const baseUrl = `${runtimeConfig.public.apiUrl}${runtimeConfig.public.apiPrefix}`
-
-export interface CmsTag {
-  id: string
-  slug: string
-  name: string
-}
 
 export function useCmsTags() {
   const queryClient = useQueryClient()

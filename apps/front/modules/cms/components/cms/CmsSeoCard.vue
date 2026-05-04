@@ -2,6 +2,8 @@
 import FormInput from "@base/ui-app/components/form/FormInput.vue";
 import FormTextArea from "@base/ui-app/components/form/FormTextArea.vue";
 import FormMultipleSelect from "@base/ui-app/components/form/FormMultipleSelect.vue";
+import FormSelect from "@base/ui-app/components/form/FormSelect.vue";
+import { fetchWrapper } from "@/helpers/fetch-wrapper";
 
 export interface SeoCardModel {
   metaTitle: string;
@@ -10,7 +12,8 @@ export interface SeoCardModel {
   canonicalUrl: string;
   ogImageId: string | null;
   ogImageUrl: string | null;
-  type?: "WebPage" | "Article" | "WebSite";
+  type?: "WebPage" | "Article" | "WebSite" | "BlogPosting" | "Organization" | "Product" | "BreadcrumbList";
+  customJsonLd?: Record<string, unknown> | null;
 }
 
 const props = defineProps<{
@@ -113,6 +116,75 @@ function removeImage() {
     ogImageUrl: null,
   };
 }
+
+// --- JSON-LD ---
+
+const jsonLdTypeOptions = computed(() => [
+  { value: "", label: t("pages.seo.selectJsonLdType") || "None" },
+  { value: "WebPage", label: "WebPage" },
+  { value: "Article", label: "Article" },
+  { value: "WebSite", label: "WebSite" },
+  { value: "BlogPosting", label: "BlogPosting" },
+  { value: "Organization", label: "Organization" },
+  { value: "Product", label: "Product" },
+  { value: "BreadcrumbList", label: "BreadcrumbList" },
+]);
+
+const jsonLdTemplate = ref<Record<string, unknown> | null>(null);
+const isEditingJsonLd = ref(false);
+const editJsonString = ref("");
+const isFetchingTemplate = ref(false);
+const templateFetchError = ref("");
+
+watch(
+  () => local.value.type,
+  async (newType) => {
+    jsonLdTemplate.value = null;
+    templateFetchError.value = "";
+    isEditingJsonLd.value = false;
+
+    if (!newType) return;
+
+    isFetchingTemplate.value = true;
+    try {
+      const result = await fetchWrapper.get(`${baseUrl}/cms/seo/template/${newType}`);
+      jsonLdTemplate.value = result;
+    } catch (e) {
+      templateFetchError.value = e instanceof Error ? e.message : "Error fetching template";
+    } finally {
+      isFetchingTemplate.value = false;
+    }
+  },
+);
+
+const displayedJsonLd = computed(() => {
+  const source = local.value.customJsonLd ?? jsonLdTemplate.value;
+  if (!source) return "";
+  return JSON.stringify(source, null, 2);
+});
+
+function startEditJsonLd() {
+  editJsonString.value = displayedJsonLd.value;
+  isEditingJsonLd.value = true;
+}
+
+function saveJsonLdEdit() {
+  try {
+    const parsed = JSON.parse(editJsonString.value);
+    local.value = {
+      ...local.value,
+      customJsonLd: parsed,
+    };
+    isEditingJsonLd.value = false;
+  } catch {
+    // JSON parse error — keep editing
+  }
+}
+
+function cancelJsonLdEdit() {
+  isEditingJsonLd.value = false;
+  editJsonString.value = "";
+}
 </script>
 
 <template>
@@ -148,7 +220,7 @@ function removeImage() {
             class="input input-sm input-bordered flex-1"
             :placeholder="t('pages.seo.newKeyword') || 'Nueva palabra clave...'"
             @keyup.enter="addKeyword"
-          />
+          >
           <button
             type="button"
             class="btn btn-sm btn-outline"
@@ -170,7 +242,7 @@ function removeImage() {
               :src="local.ogImageUrl"
               class="h-24 w-full object-cover rounded-lg border"
               alt="OG Image"
-            />
+            >
             <button
               type="button"
               class="absolute top-1 right-1 btn btn-xs btn-error btn-circle opacity-0 group-hover:opacity-100 transition-opacity"
@@ -199,7 +271,7 @@ function removeImage() {
             class="file-input file-input-bordered w-full file-input-sm"
             :disabled="isUploading"
             @change="handleImageUpload"
-          />
+          >
 
           <span v-if="isUploading" class="text-sm text-base-content/60 mt-1">
             {{ t("pages.common.uploading") || "Subiendo..." }}
@@ -215,18 +287,64 @@ function removeImage() {
           placeholder="https://example.com/page"
         />
 
-        <div class="form-control">
+        <FormSelect
+          v-model="local.type"
+          :label="t('pages.seo.jsonLdType') || 'JSON-LD Type'"
+          :options="jsonLdTypeOptions"
+        />
+
+        <!-- JSON-LD Preview -->
+        <div v-if="local.type" class="form-control">
           <label class="label">
-            <span class="label-text font-semibold">
-              {{ t("pages.seo.jsonLdType") || "JSON-LD Type" }}
-            </span>
+            <span class="label-text font-semibold">JSON-LD Preview</span>
           </label>
-          <select v-model="local.type" class="select select-bordered select-sm w-full">
-            <option value="">{{ t("pages.seo.selectJsonLdType") || "Seleccionar tipo..." }}</option>
-            <option value="WebPage">WebPage</option>
-            <option value="Article">Article</option>
-            <option value="WebSite">WebSite</option>
-          </select>
+
+          <div v-if="isFetchingTemplate" class="skeleton h-32 w-full rounded-lg"/>
+
+          <div v-else-if="templateFetchError" class="text-error text-sm">
+            {{ templateFetchError }}
+          </div>
+
+          <div v-else class="space-y-2">
+            <pre
+              v-if="!isEditingJsonLd"
+              class="bg-base-200 rounded-lg p-3 text-xs overflow-x-auto max-h-64"
+            ><code>{{ displayedJsonLd }}</code></pre>
+
+            <textarea
+              v-else
+              v-model="editJsonString"
+              class="textarea textarea-bordered w-full font-mono text-xs"
+              rows="8"
+            />
+
+            <div class="flex gap-2">
+              <button
+                v-if="!isEditingJsonLd"
+                type="button"
+                class="btn btn-xs btn-outline"
+                @click="startEditJsonLd"
+              >
+                {{ t("pages.common.edit") || "Edit" }}
+              </button>
+              <template v-else>
+                <button
+                  type="button"
+                  class="btn btn-xs btn-primary"
+                  @click="saveJsonLdEdit"
+                >
+                  {{ t("pages.common.save") || "Save" }}
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-xs btn-outline"
+                  @click="cancelJsonLdEdit"
+                >
+                  {{ t("pages.common.cancel") || "Cancel" }}
+                </button>
+              </template>
+            </div>
+          </div>
         </div>
       </div>
     </div>
