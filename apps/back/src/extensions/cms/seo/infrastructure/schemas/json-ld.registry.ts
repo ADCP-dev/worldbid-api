@@ -2,6 +2,7 @@ import type {
   SchemaType,
   JsonLdSchema,
   ArticleSchemaInput,
+  BlogPostingSchemaInput,
   OrganizationSchemaInput,
   BreadcrumbSchemaInput,
   WebPageSchemaInput,
@@ -10,6 +11,7 @@ import type {
 } from './types';
 import {
   createArticleSchema,
+  createBlogPostingSchema,
   createOrganizationSchema,
   createBreadcrumbSchema,
   createWebPageSchema,
@@ -31,6 +33,10 @@ const schemaRegistryMap: Record<SchemaType, SchemaFactoryEntry> = {
   Article: {
     factory: createArticleSchema as SchemaFactory<unknown>,
     inputType: 'ArticleSchemaInput',
+  },
+  BlogPosting: {
+    factory: createBlogPostingSchema as SchemaFactory<unknown>,
+    inputType: 'BlogPostingSchemaInput',
   },
   Organization: {
     factory: createOrganizationSchema as SchemaFactory<unknown>,
@@ -119,6 +125,7 @@ export function generateSchema<T extends Record<string, unknown>>(
 // Re-export types for convenience
 export type {
   ArticleSchemaInput,
+  BlogPostingSchemaInput,
   OrganizationSchemaInput,
   BreadcrumbSchemaInput,
   WebPageSchemaInput,
