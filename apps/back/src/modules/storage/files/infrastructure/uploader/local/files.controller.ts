@@ -4,6 +4,7 @@ import {
   Param,
   Post,
   Put,
+  Patch,
   Delete,
   Response,
   UploadedFile,
@@ -63,7 +64,7 @@ export class FilesLocalController {
   async getFiles(
     @Query() filters: FileFilterDto,
     @UserId() userId: number,
-  ): Promise<FileType[]> {
+  ): Promise<{ data: FileType[]; total: number }> {
     try {
       return await this.filesGenericService.findWithFilters({
         ...filters,
@@ -165,6 +166,22 @@ export class FilesLocalController {
     return this.filesService.update(id, file, isPublic, destination);
   }
 
+  @ApiOkResponse({
+    type: FileType,
+    description: 'File metadata updated successfully',
+  })
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Patch(':id')
+  @ApiParam({ name: 'id', description: 'File ID' })
+  @ApiOperation({ summary: 'Update file metadata' })
+  async updateFileMetadata(
+    @Param('id') id: string,
+    @Body() body: { name?: string; isPublic?: boolean },
+  ): Promise<FileType> {
+    return this.filesGenericService.update(id, body);
+  }
+
   @ApiNoContentResponse({ description: 'File deleted successfully' })
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
@@ -219,6 +236,46 @@ export class FilesLocalController {
     });
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Get('stats')
+  @ApiOperation({ summary: 'Get file storage statistics' })
+  async getStats(): Promise<{
+    totalFiles: number;
+    totalSize: number;
+    byType: Array<{ type: string; count: number; size: number }>;
+    recentFiles: FileType[];
+  }> {
+    const files = await this.filesGenericService.findWithFilters({ page: 1, limit: 1000 } as any);
+    const allFiles = files.data;
+    
+    const totalSize = allFiles.reduce((sum, f) => sum + (Number(f.size) || 0), 0);
+    
+    const byTypeMap: Record<string, { count: number; size: number }> = {};
+    for (const f of allFiles) {
+      const category = getFileCategory(f.type);
+      if (!byTypeMap[category]) byTypeMap[category] = { count: 0, size: 0 };
+      byTypeMap[category].count++;
+      byTypeMap[category].size += Number(f.size) || 0;
+    }
+    
+    const byType = Object.entries(byTypeMap).map(([type, data]) => ({
+      type,
+      count: data.count,
+      size: data.size,
+    }));
+    
+    const recentFiles = allFiles
+      .sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA;
+      })
+      .slice(0, 5);
+    
+    return { totalFiles: allFiles.length, totalSize, byType, recentFiles };
+  }
+
   @Get('public/*path')
   @ApiExcludeEndpoint()
   downloadPublic(@Param('path') path: Array<string>, @Response() response) {
@@ -233,4 +290,12 @@ export class FilesLocalController {
   downloadPrivate(@Param('path') path: Array<string>, @Response() response) {
     return response.sendFile(path.join('/'), { root: './files/private' });
   }
+}
+
+function getFileCategory(mimeType: string): string {
+  if (mimeType?.startsWith('image/')) return 'image';
+  if (mimeType?.startsWith('video/')) return 'video';
+  if (mimeType?.startsWith('audio/')) return 'audio';
+  if (mimeType?.includes('pdf') || mimeType?.includes('document') || mimeType?.includes('text')) return 'document';
+  return 'other';
 }

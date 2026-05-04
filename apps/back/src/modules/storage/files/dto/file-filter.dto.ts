@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, ValidateIf, IsNumber } from 'class-validator';
+import { IsOptional, IsString, ValidateIf, IsNumber, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 import { IsEntityTable } from '@infra/utils/validators/is-entity-table.validator';
 
@@ -46,4 +46,27 @@ export class FileFilterDto {
   @IsOptional()
   @IsString()
   type?: string;
+
+  @ApiProperty({
+    required: false,
+    description: 'Page number for pagination',
+    example: 1,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  page?: number;
+
+  @ApiProperty({
+    required: false,
+    description: 'Number of items per page',
+    example: 10,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  @Max(100)
+  limit?: number;
 }

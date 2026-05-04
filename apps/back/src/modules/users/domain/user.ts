@@ -27,7 +27,7 @@ export class User {
     type: String,
     example: 'email',
   })
-  @Expose({ groups: ['me', 'admin'] })
+  @Expose()
   provider: string;
 
   @ApiProperty({

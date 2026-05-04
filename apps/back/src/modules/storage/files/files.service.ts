@@ -17,7 +17,7 @@ export class FilesService {
     return this.fileRepository.findByIds(ids);
   }
 
-  async findWithFilters(filters: FileFilterDto): Promise<FileType[]> {
+  async findWithFilters(filters: FileFilterDto): Promise<{ data: FileType[]; total: number }> {
     // Validate that if entityId is provided, entityName must also be provided
     if (filters.entityId !== undefined && filters.entityName === undefined) {
       throw new Error(
@@ -26,6 +26,13 @@ export class FilesService {
     }
 
     return this.fileRepository.findWithFilters(filters);
+  }
+
+  update(
+    id: FileType['id'],
+    data: Partial<Omit<FileType, 'id'>>,
+  ): Promise<FileType> {
+    return this.fileRepository.update(id, data);
   }
 
   /**

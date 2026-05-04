@@ -50,13 +50,17 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         ? exception.getResponse()
         : { statusCode: status, message: 'Internal Server Error' };
 
-    response.status(status).json({
-      statusCode: status,
-      message:
-        status === HttpStatus.INTERNAL_SERVER_ERROR
-          ? 'Internal Server Error'
-          : (errorResponse as { message?: string }).message || 'Error',
-      timestamp: new Date().toISOString(),
-    });
+    const body: Record<string, unknown> = { statusCode: status };
+
+    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
+      body.message = 'Internal Server Error';
+    } else if (typeof errorResponse === 'object' && errorResponse !== null) {
+      Object.assign(body, errorResponse);
+    } else {
+      body.message = errorResponse || 'Error';
+    }
+
+    body.timestamp = new Date().toISOString();
+    response.status(status).json(body);
   }
 }
