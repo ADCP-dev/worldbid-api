@@ -1,5 +1,7 @@
 import type {
   ArticleSchemaInput,
+  BlogPostingSchemaInput,
+  BlogPostingSchema,
   OrganizationSchemaInput,
   BreadcrumbSchemaInput,
   WebPageSchemaInput,
@@ -89,6 +91,37 @@ export function createWebSiteSchema(input: WebSiteSchemaInput): WebSiteSchema {
     };
   }
 
+  return schema;
+}
+
+// BlogPosting factory
+export function createBlogPostingSchema(
+  input: BlogPostingSchemaInput,
+): BlogPostingSchema {
+  const url = `${APP_URL}/blog/${input.slug}`;
+  const schema: BlogPostingSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: input.metaTitle,
+    description: input.metaDescription,
+    image: input.ogImage?.url,
+    datePublished: input.publishedAt?.toISOString(),
+    dateModified: input.publishedAt?.toISOString(),
+    author: input.author
+      ? { '@type': 'Person', name: input.author }
+      : undefined,
+    url,
+    mainEntityOfPage: url,
+  };
+  if (input.publisherName) {
+    schema.publisher = {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      name: input.publisherName,
+      logo: input.publisherLogo,
+      url: APP_URL,
+    };
+  }
   return schema;
 }
 

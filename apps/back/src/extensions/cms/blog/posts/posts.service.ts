@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, Logger, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  Logger,
+  Inject,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import { In } from 'typeorm';
@@ -76,6 +82,25 @@ export class BlogPostsService {
   async create(createPostDto: CreateBlogPostDto): Promise<BlogPostEntity> {
     const { categoryId, tagIds, author, ...postData } = createPostDto;
 
+    // Auto-prepend / if missing
+    let slug = postData.slug;
+    if (slug && !slug.startsWith('/')) {
+      slug = `/${slug}`;
+      postData.slug = slug;
+    }
+
+    // Enforce slug uniqueness
+    if (slug) {
+      const existing = await this.blogPostRepository.findOne({
+        where: { slug },
+      });
+      if (existing) {
+        throw new ConflictException(
+          `Blog post with slug "${slug}" already exists`,
+        );
+      }
+    }
+
     // Create post without relations first
     const post = this.blogPostRepository.create(postData);
 
@@ -90,7 +115,7 @@ export class BlogPostsService {
       post.tags = tags;
     }
 
-    const saved = await this.blogPostRepository.save(post) as BlogPostEntity;
+    const saved = (await this.blogPostRepository.save(post)) as BlogPostEntity;
     (saved as any).translations = {};
     return saved;
   }

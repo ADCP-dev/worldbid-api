@@ -6,6 +6,7 @@ import {
   Body,
   UseGuards,
   Query,
+  NotFoundException,
 } from '@nestjs/common';
 import { SeoService } from './seo.service';
 import { UpdateSeoDto } from './dto/update-seo.dto';
@@ -24,6 +25,17 @@ import { RolesGuard } from '@iam/roles/roles.guard';
 })
 export class SeoController {
   constructor(private readonly seoService: SeoService) {}
+
+  @Get('template/:type')
+  getTemplate(@Param('type') type: string) {
+    const schema = this.seoService.getBaseSchema(type);
+    if (!schema) {
+      throw new NotFoundException(
+        `Unknown JSON-LD type: ${type}. Valid types: Article, BlogPosting, BreadcrumbList, Organization, Product, WebPage, WebSite`,
+      );
+    }
+    return schema;
+  }
 
   @Get(':pageId')
   @ApiParam({ name: 'pageId', type: String })

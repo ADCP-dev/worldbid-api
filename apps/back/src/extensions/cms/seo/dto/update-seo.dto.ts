@@ -91,10 +91,35 @@ export class UpdateSeoDto {
   @IsObject()
   customJsonLd?: Record<string, unknown>;
 
-  @ApiPropertyOptional({ enum: ['WebPage', 'Article', 'WebSite'] })
+  @ApiPropertyOptional({
+    enum: [
+      'WebPage',
+      'Article',
+      'WebSite',
+      'BlogPosting',
+      'Organization',
+      'Product',
+      'BreadcrumbList',
+    ],
+  })
   @IsOptional()
-  @IsEnum(['WebPage', 'Article', 'WebSite'])
-  type?: 'WebPage' | 'Article' | 'WebSite';
+  @IsEnum([
+    'WebPage',
+    'Article',
+    'WebSite',
+    'BlogPosting',
+    'Organization',
+    'Product',
+    'BreadcrumbList',
+  ])
+  type?:
+    | 'WebPage'
+    | 'Article'
+    | 'WebSite'
+    | 'BlogPosting'
+    | 'Organization'
+    | 'Product'
+    | 'BreadcrumbList';
 
   @ApiPropertyOptional({ type: RobotsPolicyDto })
   @IsOptional()

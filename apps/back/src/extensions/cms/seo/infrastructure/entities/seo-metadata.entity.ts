@@ -66,7 +66,7 @@ export class SeoMetadataEntity extends EntityRelationalHelper {
   customJsonLd: Record<string, any> | null;
 
   @Column({ type: 'varchar', length: 20, nullable: true })
-  type?: 'WebPage' | 'Article' | 'WebSite';
+  type?: 'WebPage' | 'Article' | 'WebSite' | 'BlogPosting' | 'Organization' | 'Product' | 'BreadcrumbList';
 
   @Column({ type: 'jsonb', nullable: true })
   robotsPolicy: RobotsPolicy | null;

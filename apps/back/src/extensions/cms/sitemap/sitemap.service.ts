@@ -13,6 +13,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BlogPostEntity } from '../blog/posts/infrastructure/entities/blog-post.entity';
 import { PageEntity } from '../pages/infrastructure/entities/page.entity';
+import { LangEntity } from '@src/modules/translations/infrastructure/entities/lang.entity';
 
 @Injectable()
 export class SitemapService {
@@ -21,7 +22,17 @@ export class SitemapService {
     private readonly blogPostRepository: Repository<BlogPostEntity>,
     @InjectRepository(PageEntity)
     private readonly pageRepository: Repository<PageEntity>,
+    @InjectRepository(LangEntity)
+    private readonly langRepository: Repository<LangEntity>,
   ) {}
+
+  private async getActiveLanguages(): Promise<string[]> {
+    const langs = await this.langRepository.find({
+      where: { isActive: true },
+      order: { code: 'ASC' },
+    });
+    return langs.map((l) => l.code);
+  }
 
   async getBlogUrls(): Promise<SitemapUrl[]> {
     const posts = await this.blogPostRepository.find({
@@ -30,7 +41,7 @@ export class SitemapService {
     });
 
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const langs = ['es', 'en'];
+    const langs = await this.getActiveLanguages();
 
     const urls: SitemapUrl[] = [];
     for (const post of posts) {
@@ -58,7 +69,7 @@ export class SitemapService {
     });
 
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const langs = ['es', 'en'];
+    const langs = await this.getActiveLanguages();
 
     const urls: SitemapUrl[] = [];
     for (const page of pages) {

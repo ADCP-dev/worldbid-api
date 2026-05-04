@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  Logger,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { PageEntity } from './infrastructure/entities/page.entity';
@@ -32,7 +37,22 @@ export class PagesService {
       throw new NotFoundException('Name is required');
     }
 
-    const finalSlug = slug ?? slugify(name);
+    let finalSlug = slug ?? slugify(name);
+
+    // Auto-prepend / if missing
+    if (!finalSlug.startsWith('/')) {
+      finalSlug = `/${finalSlug}`;
+    }
+
+    // Enforce slug uniqueness
+    const existing = await this.pageRepository.findOne({
+      where: { slug: finalSlug },
+    });
+    if (existing) {
+      throw new ConflictException(
+        `Page with slug "${finalSlug}" already exists`,
+      );
+    }
 
     const page = this.pageRepository.create({
       ...rest,
@@ -40,7 +60,7 @@ export class PagesService {
       slug: finalSlug,
     });
 
-    const saved = await this.pageRepository.save(page) as PageEntity;
+    const saved = (await this.pageRepository.save(page)) as PageEntity;
     (saved as any).translations = {};
     return saved;
   }

@@ -75,7 +75,7 @@ export class SeoService {
 
     // Try Page category translations
     const pageResult = await this.dataSource.query(
-      `SELECT name FROM "page" WHERE id = $1 LIMIT 1`,
+      `SELECT name FROM "ext_cms_page" WHERE id = $1 LIMIT 1`,
       [pageId],
     );
 
@@ -133,7 +133,7 @@ export class SeoService {
   generateJsonLd(
     entity: { slug: string; publishedAt?: Date | null },
     seo: SeoMetadataEntity,
-    type: 'WebPage' | 'Article' | 'WebSite',
+    type: SchemaType,
     author?: string,
   ): Record<string, unknown> {
     // Build input for the schema factory
@@ -210,5 +210,44 @@ export class SeoService {
     if (seo) {
       await this.seoRepository.remove(seo);
     }
+  }
+
+  getBaseSchema(type: string): Record<string, unknown> | null {
+    const appUrl = process.env.APP_URL || 'https://example.com';
+
+    const defaultInput: Record<SchemaType, unknown> = {
+      Article: {
+        slug: 'example',
+        metaTitle: '',
+        publishedAt: new Date(),
+      },
+      BlogPosting: {
+        slug: 'example',
+        metaTitle: '',
+        publishedAt: new Date(),
+      },
+      BreadcrumbList: {
+        pathSegments: [{ name: 'Home', url: appUrl }],
+      },
+      Organization: { name: '', url: appUrl },
+      Product: { name: '', description: '' },
+      WebPage: { slug: 'example', metaTitle: '' },
+      WebSite: {
+        name: '',
+        url: appUrl,
+        potentialAction: {
+          target: `${appUrl}/search?q={search_term_string}`,
+          query: 'required',
+        },
+      },
+    };
+
+    const input = defaultInput[type as SchemaType];
+    if (!input) {
+      return null;
+    }
+
+    const schema = schemaRegistry.generate(type as SchemaType, input);
+    return schema as Record<string, unknown>;
   }
 }

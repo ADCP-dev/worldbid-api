@@ -9,10 +9,12 @@ import {
 } from 'class-validator';
 
 export class CreateBlogPostDto {
-  @ApiProperty({ example: 'my-first-post', type: String })
+  @ApiProperty({ example: '/blog/my-first-post', type: String })
   @IsNotEmpty()
   @IsString()
-  @Matches(/^[a-z0-9-]+$/, { message: 'Must be kebab-case' })
+  @Matches(/^\/?[a-z0-9-]+(\/[a-z0-9-]+)*$/, {
+    message: 'Slug must be path segments with optional leading /',
+  })
   slug: string;
 
   @ApiPropertyOptional({ type: String })

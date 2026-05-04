@@ -18,11 +18,13 @@ export class CreatePageDto {
   @Matches(/^[a-z0-9-]+$/, { message: 'Must be kebab-case' })
   name: string;
 
-  @ApiPropertyOptional({ example: 'home', type: String })
+  @ApiPropertyOptional({ example: '/about/team', type: String })
   @IsOptional()
   @IsNotEmpty()
   @IsString()
-  @Matches(/^[a-z0-9-]+$/, { message: 'Must be kebab-case' })
+  @Matches(/^\/?[a-z0-9-]+(\/[a-z0-9-]+)*$/, {
+    message: 'Slug must be path segments with optional leading /',
+  })
   slug?: string;
 
   @ApiPropertyOptional({ example: '/es/home', type: String })
