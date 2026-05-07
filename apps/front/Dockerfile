@@ -1,11 +1,10 @@
 # Stage 1: Build
 FROM node:22-alpine AS builder
 WORKDIR /app
-RUN corepack enable && corepack prepare pnpm@latest --activate
 COPY package.json ./
-RUN pnpm install --no-frozen-lockfile
+RUN npm install
 COPY . .
-RUN pnpm run build
+RUN npm run build
 
 # Stage 2: Serve static with nginx
 FROM nginx:alpine
