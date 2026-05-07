@@ -1,14 +1,43 @@
-# Stage 1: Build
-FROM node:22-alpine AS builder
-WORKDIR /app
-COPY package.json ./
-RUN npm install
-COPY . .
-RUN npm run build
+ARG NODE_VERSION=22.15.0
 
-# Stage 2: Serve static with nginx
-FROM nginx:alpine
-COPY --from=builder /app/.output/public /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+# Create build stage
+FROM node:${NODE_VERSION}-slim AS build
+
+# Install pnpm
+RUN npm install -g pnpm@9.0.0
+
+# Set shamefully-hoist to true for better dependency resolution
+RUN pnpm config set shamefully-hoist true
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy package.json
+COPY package.json ./
+
+# Install dependencies - pnpm will create a new lockfile
+RUN pnpm install
+
+# Copy the rest of the application files to the working directory
+COPY . ./
+
+# Generate static files (SPA) - should use less memory than build
+RUN pnpm run generate
+
+# Production stage - use simple Node.js static server
+FROM node:${NODE_VERSION}-slim
+
+# Install serve
+RUN npm install -g serve
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy the generated static files from build stage
+COPY --from=build /app/dist ./
+
+# Expose the port the application will run on
+EXPOSE 3000
+
+# Start static server
+CMD ["serve", "-s", ".", "-l", "3000"]
