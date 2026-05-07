@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, ValidateIf, IsNumber, Min, Max } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  ValidateIf,
+  IsNumber,
+  Min,
+  Max,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { IsEntityTable } from '@infra/utils/validators/is-entity-table.validator';
 

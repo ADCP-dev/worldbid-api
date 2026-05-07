@@ -81,6 +81,10 @@ export class User {
   @Expose()
   stripeCustomerId?: string | null;
 
+  @ApiProperty({ example: 'es', required: false })
+  @Expose()
+  language: string | null;
+
   @ApiProperty()
   @Expose()
   createdAt: Date;

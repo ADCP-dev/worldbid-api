@@ -116,6 +116,7 @@ export class UsersService {
       status: status,
       provider: createUserDto.provider ?? AuthProvidersEnum.email,
       socialId: createUserDto.socialId,
+      language: createUserDto.language ?? null,
     });
   }
 

@@ -246,11 +246,17 @@ export class FilesLocalController {
     byType: Array<{ type: string; count: number; size: number }>;
     recentFiles: FileType[];
   }> {
-    const files = await this.filesGenericService.findWithFilters({ page: 1, limit: 1000 } as any);
+    const files = await this.filesGenericService.findWithFilters({
+      page: 1,
+      limit: 1000,
+    } as any);
     const allFiles = files.data;
-    
-    const totalSize = allFiles.reduce((sum, f) => sum + (Number(f.size) || 0), 0);
-    
+
+    const totalSize = allFiles.reduce(
+      (sum, f) => sum + (Number(f.size) || 0),
+      0,
+    );
+
     const byTypeMap: Record<string, { count: number; size: number }> = {};
     for (const f of allFiles) {
       const category = getFileCategory(f.type);
@@ -258,13 +264,13 @@ export class FilesLocalController {
       byTypeMap[category].count++;
       byTypeMap[category].size += Number(f.size) || 0;
     }
-    
+
     const byType = Object.entries(byTypeMap).map(([type, data]) => ({
       type,
       count: data.count,
       size: data.size,
     }));
-    
+
     const recentFiles = allFiles
       .sort((a, b) => {
         const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
@@ -272,7 +278,7 @@ export class FilesLocalController {
         return dateB - dateA;
       })
       .slice(0, 5);
-    
+
     return { totalFiles: allFiles.length, totalSize, byType, recentFiles };
   }
 
@@ -296,6 +302,11 @@ function getFileCategory(mimeType: string): string {
   if (mimeType?.startsWith('image/')) return 'image';
   if (mimeType?.startsWith('video/')) return 'video';
   if (mimeType?.startsWith('audio/')) return 'audio';
-  if (mimeType?.includes('pdf') || mimeType?.includes('document') || mimeType?.includes('text')) return 'document';
+  if (
+    mimeType?.includes('pdf') ||
+    mimeType?.includes('document') ||
+    mimeType?.includes('text')
+  )
+    return 'document';
   return 'other';
 }

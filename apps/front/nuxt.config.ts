@@ -97,79 +97,81 @@ export default defineNuxtConfig({
             flagCode: lang.flagCode || lang.code,
           }));
 
-        // Fallback to static if backend is unreachable during build
-        const localesToRegister =
-          dynamicLocales.length > 0
-            ? dynamicLocales
-            : [
-                {
-                  code: 'es',
-                  name: 'Español',
-                  files: getI18nFiles('es'),
-                  flagCode: 'es',
-                },
-                {
-                  code: 'en',
-                  name: 'English',
-                  files: getI18nFiles('en'),
-                  flagCode: 'gb',
-                },
-              ];
+        // Only register locales from backend that are NOT already in static config
+        // to avoid duplicates. Static config already has es, en as fallback.
+        const staticCodes = new Set(['es', 'en']);
+        const newLocales = dynamicLocales.filter(
+          (lang) => !staticCodes.has(lang.code),
+        );
 
-        register({
-          langDir: path.resolve(process.cwd(), 'locales'),
-          locales: localesToRegister,
-        });
+        if (newLocales.length > 0) {
+          register({
+            langDir: path.resolve(process.cwd(), 'locales'),
+            locales: newLocales,
+          });
+        }
       } catch (error) {
         console.warn(
-          '⚠️ Failed to fetch dynamic languages from backend. Falling back to default locales [es, en].',
+          '⚠️ Failed to fetch dynamic languages from backend. Using static fallback locales [es, en].',
           error,
         );
-        register({
-          langDir: path.resolve(process.cwd(), 'locales'),
-          locales: [
-            {
-              code: 'es',
-              name: 'Español',
-              files: getI18nFiles('es'),
-              flagCode: 'es',
-            },
-            {
-              code: 'en',
-              name: 'English',
-              files: getI18nFiles('en'),
-              flagCode: 'gb',
-            },
-          ],
-        });
+        // Static fallback already defined in i18n.locales config
       }
     },
   },
   i18n: {
     vueI18n: './i18n.config.ts',
+    strategy: 'prefix_and_default',
     detectBrowserLanguage: {
       useCookie: true,
       cookieKey: 'i18n_redirected',
       redirectOn: 'root',
     },
     defaultLocale: 'es',
+    langDir: path.resolve(process.cwd(), 'locales'),
+    // Static fallback locales for build-time route generation
+    locales: [
+      {
+        code: 'es',
+        name: 'Español',
+        files: getI18nFiles('es'),
+        flagCode: 'es',
+      },
+      {
+        code: 'en',
+        name: 'English',
+        files: getI18nFiles('en'),
+        flagCode: 'gb',
+      },
+    ],
+  },
+
+  site: {
+    url: process.env.SITE_URL || 'http://localhost',
   },
 
   routeRules: {
-    // Admin/app routes - client-side only (auth uses localStorage, not available in SSR)
-    '/app/**': { ssr: false },
+    // Root and language homepages
+    '/': { prerender: true },
+    '/es': { prerender: true },
+    '/en': { prerender: true },
+    // Admin/app routes - client-side only SPA shell
+    '/app/**': { ssr: false, prerender: true },
     // Public CMS routes - prerender at build time
     '/[lang]/page/**': { prerender: true },
     '/[lang]/pages': { prerender: true },
     '/[lang]/blog': { prerender: true },
     '/[lang]/blog/**': { prerender: true },
     '/[lang]/category/**': { prerender: true },
-    // Fallback: generate on demand if not prerendered
+    // Fallback: don't prerender unknown routes
     '/**': { prerender: false },
   },
 
   sitemap: {
-    sources: ['/api/sitemap/blog', '/api/sitemap/cms-pages'],
+    // Only use dynamic sources when backend is available
+    sources: process.env.API_URL
+      ? ['/api/sitemap/blog', '/api/sitemap/cms-pages']
+      : [],
     urls: {
       each: (entry) => {
         const locales = ['es', 'en'];
@@ -183,9 +185,11 @@ export default defineNuxtConfig({
 
   // SSG Prerender configuration
   nitro: {
+    preset: 'static',
     prerender: {
       crawlLinks: true,
       routes: ['/', '/es', '/en'],
+      failOnError: false, // Don't fail build on missing backend data
     },
   },
 

@@ -41,8 +41,11 @@ export class FileRepository {
     return entities.map((entity) => plainToClass(FileType, entity));
   }
 
-  async findWithFilters(filters: FileFilterDto): Promise<{ data: FileType[]; total: number }> {
-    const { entityName, entityId, context, userId, type, page, limit } = filters;
+  async findWithFilters(
+    filters: FileFilterDto,
+  ): Promise<{ data: FileType[]; total: number }> {
+    const { entityName, entityId, context, userId, type, page, limit } =
+      filters;
     const where: any = {};
 
     if (entityName !== undefined) {

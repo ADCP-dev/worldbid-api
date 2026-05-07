@@ -61,6 +61,12 @@
       "type": "local",
       "command": ["bash", "-c", "set -a; source <(grep -v '^#' apps/back/.env | sed 's/^/export /'); npx -y mcp-postgres \"postgresql://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}\""],
       "enabled": true
+    },
+    // Stripe — payment processing MCP
+    "stripe": {
+      "type": "local",
+      "command": ["npx", "-y", "@stripe/mcp", "--api-key={env:STRIPE_SECRET_KEY}"],
+      "enabled": true
     }
   },
   // ─── Plugins ────────────────────────────────────────────────────────────────

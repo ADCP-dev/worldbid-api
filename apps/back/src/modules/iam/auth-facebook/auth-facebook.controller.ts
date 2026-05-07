@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Headers,
   HttpCode,
   HttpStatus,
   Post,
@@ -33,10 +34,11 @@ export class AuthFacebookController {
   @HttpCode(HttpStatus.OK)
   async login(
     @Body() loginDto: AuthFacebookLoginDto,
+    @Headers('x-custom-lang') lang?: string,
   ): Promise<LoginResponseDto> {
     const socialData =
       await this.authFacebookService.getProfileByToken(loginDto);
 
-    return this.authService.validateSocialLogin('facebook', socialData);
+    return this.authService.validateSocialLogin('facebook', socialData, lang);
   }
 }

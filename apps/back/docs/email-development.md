@@ -4,10 +4,10 @@ This document provides information about the email system in Foundation NestJS, 
 
 ## Mail Module Structure
 
-The mail module is located at `src/mail` and has the following structure:
+The mail module is located at `src/modules/communications/mail` and has the following structure:
 
 ```
-src/mail/
+src/modules/communications/mail/
 ├── config/                  # Mail configuration
 ├── interfaces/              # Mail interfaces
 ├── mail-templates/          # Email templates
@@ -76,7 +76,7 @@ For local development and testing of emails, the application uses [Mailpit](http
 
 ## Using the Mail Service
 
-The `MailService` (src/mail/mail.service.ts) handles the sending of emails in the application. It uses the following key components:
+The `MailService` (src/modules/communications/mail/mail.service.ts) handles the sending of emails in the application. It uses the following key components:
 
 1. **Handlebars templates**: For rendering dynamic email content
 2. **Nodemailer**: For sending emails
@@ -94,8 +94,8 @@ The mail service currently supports several types of emails:
 
 To create a new email template:
 
-1. Create a new template file in `src/mail/mail-templates/emails/`
-2. Use an existing layout or create a new one in `src/mail/mail-templates/layouts/`
+1. Create a new template file in `src/modules/communications/mail/mail-templates/emails/`
+2. Use an existing layout or create a new one in `src/modules/communications/mail/mail-templates/layouts/`
 3. Build the template using `npm run maizzle:build`
 4. Add a new method in the `MailService` to send the email
 
@@ -120,6 +120,8 @@ async newEmailType(mailData: MailData<{ customData: string }>): Promise<void> {
         infer: true,
       }),
       'src',
+      'modules',
+      'communications',
       'mail',
       'mail-templates',
       'build',

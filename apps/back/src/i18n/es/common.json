@@ -1,4 +1,15 @@
 {
   "confirmEmail": "Confirmar correo electrónico",
-  "resetPassword": "Restablecer contraseña"
+  "resetPassword": "Restablecer contraseña",
+  "confirmNewEmail": "Confirmar nuevo email",
+  "email": {
+    "greeting": "Hola {name},",
+    "activationBody": "Gracias por registrarte. Confirma tu email para activar tu cuenta.",
+    "confirmButton": "Confirmar email",
+    "resetBody": "Recibimos una solicitud para restablecer tu contraseña.",
+    "resetButton": "Restablecer contraseña",
+    "newEmailBody": "Solicitaste cambiar tu dirección de email. Confirma la nueva dirección.",
+    "newEmailButton": "Confirmar nuevo email",
+    "ignoreIfNotYou": "Si no fuiste vos, ignora este mensaje."
+  }
 }

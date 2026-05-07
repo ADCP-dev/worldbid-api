@@ -17,7 +17,9 @@ export class FilesService {
     return this.fileRepository.findByIds(ids);
   }
 
-  async findWithFilters(filters: FileFilterDto): Promise<{ data: FileType[]; total: number }> {
+  async findWithFilters(
+    filters: FileFilterDto,
+  ): Promise<{ data: FileType[]; total: number }> {
     // Validate that if entityId is provided, entityName must also be provided
     if (filters.entityId !== undefined && filters.entityName === undefined) {
       throw new Error(

@@ -15,6 +15,14 @@ const sidebarNavItems = computed<Item[]>(() => [
     title: t('base.settings.profile.title'),
     href: '/app/settings/profile',
   },
+  {
+    title: 'Suscripción',
+    href: '/app/settings/plan',
+  },
+  {
+    title: 'Stripe Test',
+    href: '/app/settings/stripe-test',
+  },
 ])
 </script>
 

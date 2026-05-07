@@ -134,17 +134,19 @@ Maizzle allows writing email templates with Tailwind CSS — it compiles to inli
 ```
 apps/back/src/modules/communications/mail/
 └── mail-templates/
-    ├── emails/              # Source templates (.html) — Maizzle format
-    │   ├── activation.html
-    │   ├── reset-password.html
-    │   └── confirm-new-email.html
+    ├── emails/              # Source templates (.hbs) — Maizzle format
+    │   ├── activation.hbs
+    │   ├── reset-password.hbs
+    │   └── confirm-new-email.hbs
     ├── build/               # Compiled output (.hbs) — used by MailService
     │   ├── activation.hbs
     │   ├── reset-password.hbs
     │   └── confirm-new-email.hbs
     └── layouts/             # Shared Maizzle layouts
-        └── main.html
+        └── main.hbs
 ```
+
+> **Logo synchronization**: The email banner (`banner.svg`) and logo (`logo.svg`) in `apps/back/public/assets/` are synchronized from `apps/front/public/`. When the frontend branding changes, copy the updated assets to the backend to keep email branding consistent.
 
 ### Creating a New Template
 
@@ -176,7 +178,7 @@ This outputs compiled Handlebars (`.hbs`) files to `mail-templates/build/`.
 
 | Rule | Description |
 |------|-------------|
-| Source files | `emails/*.html` (Maizzle) |
+| Source files | `emails/*.hbs` (Maizzle) |
 | Compiled output | `build/*.hbs` (Handlebars) |
 | Layout inheritance | Use `<x-main>` tag to wrap content |
 | CSS | Tailwind classes in source → inline styles in output |

@@ -90,7 +90,7 @@ export class BlogPostsService {
       post.tags = tags;
     }
 
-    const saved = await this.blogPostRepository.save(post) as BlogPostEntity;
+    const saved = (await this.blogPostRepository.save(post)) as BlogPostEntity;
     (saved as any).translations = {};
     return saved;
   }

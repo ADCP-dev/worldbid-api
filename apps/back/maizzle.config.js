@@ -1,12 +1,18 @@
+const path = require('node:path');
+
 /** @type {import('@maizzle/framework').Config} */
 module.exports = {
   components: {
-    folders: ['src/mail/mail-templates/layouts'],
+    folders: [
+      path.resolve(__dirname, 'src/modules/communications/mail/mail-templates/layouts'),
+    ],
   },
   build: {
-    content: ['./src/mail/mail-templates/emails/**/*.hbs'],
+    content: [
+      path.resolve(__dirname, 'src/modules/communications/mail/mail-templates/emails') + '/**/*.hbs',
+    ],
     output: {
-      path: './src/mail/mail-templates/build',
+      path: path.resolve(__dirname, 'src/modules/communications/mail/mail-templates/build'),
     },
   },
   prettify: true,

@@ -40,7 +40,7 @@ export class PagesService {
       slug: finalSlug,
     });
 
-    const saved = await this.pageRepository.save(page) as PageEntity;
+    const saved = (await this.pageRepository.save(page)) as PageEntity;
     (saved as any).translations = {};
     return saved;
   }

@@ -2,6 +2,10 @@
   "name": "foundation",
   "private": true,
   "scripts": {
+    "assets:sync": "node scripts/sync-assets.js",
+    "email:test": "node scripts/test-email.js",
+    "email:test-reset": "node scripts/test-email.js reset-password",
+    "email:test-confirm": "node scripts/test-email.js confirm-new-email",
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",

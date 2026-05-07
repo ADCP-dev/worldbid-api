@@ -13,9 +13,7 @@ export class RenameCmsTablesToExtPrefix1777544607618
     );
 
     // Rename entity tables
-    await queryRunner.query(
-      `ALTER TABLE "page" RENAME TO "ext_cms_page"`,
-    );
+    await queryRunner.query(`ALTER TABLE "page" RENAME TO "ext_cms_page"`);
     await queryRunner.query(
       `ALTER TABLE "blog_post" RENAME TO "ext_cms_blog_post"`,
     );
@@ -51,9 +49,7 @@ export class RenameCmsTablesToExtPrefix1777544607618
     await queryRunner.query(
       `DROP INDEX "public"."IDX_ea73dc8ba4e3cd20823a585eb0"`,
     );
-    await queryRunner.query(
-      `ALTER TABLE "translation" DROP COLUMN "category"`,
-    );
+    await queryRunner.query(`ALTER TABLE "translation" DROP COLUMN "category"`);
 
     // Rename join tables back
     await queryRunner.query(
@@ -76,9 +72,7 @@ export class RenameCmsTablesToExtPrefix1777544607618
     await queryRunner.query(
       `ALTER TABLE "ext_cms_blog_post" RENAME TO "blog_post"`,
     );
-    await queryRunner.query(
-      `ALTER TABLE "ext_cms_page" RENAME TO "page"`,
-    );
+    await queryRunner.query(`ALTER TABLE "ext_cms_page" RENAME TO "page"`);
 
     // Rename enum type back
     await queryRunner.query(
