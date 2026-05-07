@@ -21,7 +21,7 @@ RUN pnpm install
 # Copy the rest of the application files to the working directory
 COPY . ./
 
-# Generate static files (SPA) - should use less memory than build
+# Generate static files (SPA)
 RUN pnpm run generate
 
 # Production stage - use simple Node.js static server
