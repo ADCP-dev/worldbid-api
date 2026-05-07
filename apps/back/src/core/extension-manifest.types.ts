@@ -1,6 +1,7 @@
 export interface ExtensionManifest {
   name: string;
   version: string;
+  parent?: string;
   displayName?: string;
   description?: string;
   author?: string;
@@ -48,7 +49,10 @@ export interface ExtensionConflict {
     | 'route_conflict'
     | 'table_conflict'
     | 'missing_dependency'
-    | 'circular_dependency';
+    | 'circular_dependency'
+    | 'parent_not_found'
+    | 'parent_not_in_deps'
+    | 'parent_cycle';
   detail: string;
   severity: 'error' | 'warning';
 }

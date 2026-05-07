@@ -45,6 +45,7 @@ function loadManifest(extPath) {
 
   var nameMatch = content.match(/\bname:\s*['"]([^'"]+)['"]/);
   var versionMatch = content.match(/\bversion:\s*['"]([^'"]+)['"]/);
+  var parentMatch = content.match(/\bparent:\s*['"]([^'"]+)['"]/);
 
   var extensionDeps = [];
   var depsSection = content.match(
@@ -60,6 +61,7 @@ function loadManifest(extPath) {
   return {
     name: nameMatch ? nameMatch[1] : null,
     version: versionMatch ? versionMatch[1] : null,
+    parent: parentMatch ? parentMatch[1] : null,
     dependencies:
       extensionDeps.length > 0 ? { extensions: extensionDeps } : undefined,
   };
@@ -102,6 +104,22 @@ function findDependents(extName, installed) {
   });
 
   return dependents;
+}
+
+/**
+ * Find extensions that have extName as their parent (hierarchical metadata).
+ * Returns array of extension names.
+ */
+function findChildren(extName, installed) {
+  var children = [];
+
+  installed.forEach(function (manifest, name) {
+    if (manifest && manifest.parent === extName) {
+      children.push(name);
+    }
+  });
+
+  return children;
 }
 
 /**
@@ -225,6 +243,9 @@ function main() {
   var installed = getInstalledExtensions();
   var dependents = findDependents(extName, installed);
 
+  // ── Also check for children (via parent metadata) ──────────────────
+  var children = findChildren(extName, installed);
+
   if (dependents.length > 0) {
     console.error(
       '❌ Cannot remove "' + extName + '": other extensions depend on it',
@@ -232,8 +253,58 @@ function main() {
     for (var d = 0; d < dependents.length; d++) {
       console.error('   - "' + dependents[d] + '" depends on this extension');
     }
+    if (children.length > 0) {
+      console.warn(
+        '⚠️  Also: Extension "' +
+          extName +
+          '" has ' +
+          children.length +
+          ' child extension(s) via parent metadata:',
+      );
+      for (var c = 0; c < children.length; c++) {
+        console.warn(
+          '   - "' + children[c] + '" (parent: ' + extName + ')',
+        );
+      }
+      console.warn('   These would become orphans if removed.');
+    }
     console.error('   Remove dependent extensions first');
     process.exit(1);
+  }
+
+  if (children.length > 0) {
+    if (args.includes('--force')) {
+      console.log(
+        '⚠️  Warning: Extension "' +
+          extName +
+          '" has ' +
+          children.length +
+          ' child extension(s) that will become orphans:',
+      );
+      for (var c = 0; c < children.length; c++) {
+        console.log(
+          '   - "' + children[c] + '" (parent: ' + extName + ')',
+        );
+      }
+      console.log('   Proceeding anyway (--force)');
+    } else {
+      console.warn(
+        '⚠️  Warning: Extension "' +
+          extName +
+          '" has ' +
+          children.length +
+          ' child extension(s) via parent metadata:',
+      );
+      for (var c = 0; c < children.length; c++) {
+        console.warn(
+          '   - "' + children[c] + '" (parent: ' + extName + ')',
+        );
+      }
+      console.warn('   These will become ORPHANS if you proceed.');
+      console.warn(
+        '   Use --force to remove anyway, or remove children first.',
+      );
+    }
   }
 
   // ── Step 3: Delete backend ─────────────────────────────────────────────

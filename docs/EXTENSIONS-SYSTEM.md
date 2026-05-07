@@ -289,6 +289,62 @@ La arquitectura actual (modules/ + FoundationModule) es válida para el uso inte
 
 ---
 
+## Sub-extension Parent Metadata
+
+### Concepto
+
+Extensiones pueden declarar `parent?: string` en `extension.manifest.ts`. Es metadata pura — NO afecta el orden de carga ni el runtime del loader. El sistema de dependencias (`dependencies.extensions` + topological sort) sigue siendo el mecanismo de carga.
+
+### Por qué metadata y no nested folders
+
+- **Flat is simple**: Copiar carpeta a `extensions/` → funciona. Sin jerarquía de directorios.
+- **VS Code pattern**: El ecosistema de extensiones más grande del mundo usa `extensionPack` y `extensionDependencies` — cero jerarquía de folders.
+- **Tooling > runtime**: La metadata habilita visualización, bundling y validación sin complejizar el loader.
+
+### Reglas
+
+| Regla | Descripción |
+|-------|-------------|
+| `parent` implica `dependencies.extensions` | Si `parent: 'stripe'`, entonces `dependencies.extensions` DEBE incluir `'stripe'`. Validado por `ext:validate`. |
+| Sin ciclos | No puede haber cadena circular de parents. Ej: A → B → A. |
+| Sin runtime impact | El loader ignora `parent`. Solo afecta tooling. |
+
+### Tooling
+
+| Comando | Descripción |
+|---------|-------------|
+| `pnpm ext:validate` | Valida integridad de parent relationships en todas las extensiones |
+| `pnpm ext:tree` | Muestra árbol visual de jerarquía parent-child |
+| `pnpm create:bundle <name>` | Empaqueta extensión + todos sus hijos recursivamente |
+| `pnpm remove-extension <name>` | Ahora advierte sobre hijos huérfanos (via parent) |
+
+### Ejemplo
+
+```typescript
+// extensions/stripe/extension.manifest.ts
+export const manifest: ExtensionManifest = {
+  name: 'stripe',
+  version: '2.0.0',
+  // ... sin parent (es raíz)
+};
+
+// extensions/stripe-subscriptions/extension.manifest.ts
+export const manifest: ExtensionManifest = {
+  name: 'stripe-subscriptions',
+  version: '1.0.0',
+  parent: 'stripe',  // ← pertenece a stripe
+  dependencies: {
+    extensions: ['stripe'],  // ← requerido por la regla
+  },
+};
+```
+
+### Mermaid en ARCHITECTURE.md
+
+El `docs:sync` lee `parent` de los manifests y genera edges `child → parent` en el diagrama Mermaid, además de las dependencias normales.
+
+---
+
 ## Alternative Approaches Considered
 
 ### ❌ Script that copies files to the right positions
