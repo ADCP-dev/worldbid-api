@@ -50,7 +50,6 @@ export default defineNuxtConfig({
     '@nuxtjs/sitemap',
     '@nuxtjs/color-mode',
     '@nuxtjs/robots',
-    'vue-sonner/nuxt',
   ],
   css: ['~/assets/css/tailwind.css'],
   vite: {
@@ -106,7 +105,7 @@ export default defineNuxtConfig({
 
         if (newLocales.length > 0) {
           register({
-            langDir: path.resolve(process.cwd(), 'locales'),
+            langDir: 'locales',
             locales: newLocales,
           });
         }
@@ -128,7 +127,7 @@ export default defineNuxtConfig({
       redirectOn: 'root',
     },
     defaultLocale: 'es',
-    langDir: path.resolve(process.cwd(), 'locales'),
+    langDir: 'locales',
     // Static fallback locales for build-time route generation
     locales: [
       {
