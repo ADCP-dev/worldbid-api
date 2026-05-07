@@ -105,7 +105,7 @@ export default defineNuxtConfig({
 
         if (newLocales.length > 0) {
           register({
-            langDir: 'locales',
+            langDir: path.resolve(process.cwd(), 'locales'),
             locales: newLocales,
           });
         }
@@ -127,7 +127,7 @@ export default defineNuxtConfig({
       redirectOn: 'root',
     },
     defaultLocale: 'es',
-    langDir: 'locales',
+    langDir: path.resolve(process.cwd(), 'locales'),
     // Static fallback locales for build-time route generation
     locales: [
       {
