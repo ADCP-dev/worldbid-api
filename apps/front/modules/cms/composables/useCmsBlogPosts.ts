@@ -1,16 +1,11 @@
 import type { RobotsPolicy } from '../types/seo'
+import type { CmsTag } from './useCmsTags'
 
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { fetchWrapper } from '@/helpers/fetch-wrapper'
 
 const runtimeConfig = useRuntimeConfig()
 const baseUrl = `${runtimeConfig.public.apiUrl}${runtimeConfig.public.apiPrefix}`
-
-export interface CmsTag {
-  id: string
-  slug: string
-  name: string
-}
 
 export interface CmsBlogPost {
   id: string

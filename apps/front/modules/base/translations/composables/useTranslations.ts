@@ -31,6 +31,7 @@ export const useTranslations = () => {
   const deleteTranslation = (id: number) => fetchWrapper.delete(`${baseUrl}/${id}`);
   const generateJson = () => fetchWrapper.post(`${baseUrl}/generate`);
   const bulkTranslate = (app: string) => fetchWrapper.post(`${baseUrl}/bulk-translate?app=${app}`, {});
+  const syncTranslations = () => fetchWrapper.post(`${baseUrl}/sync`, {});
 
   return {
     getLangs,
@@ -45,5 +46,6 @@ export const useTranslations = () => {
     deleteTranslation,
     generateJson,
     bulkTranslate,
+    syncTranslations,
   };
 };

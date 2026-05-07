@@ -16,4 +16,5 @@ WORKDIR /usr/src/app
 RUN echo "" > .env
 RUN npm run build
 
+EXPOSE 3000
 CMD ["/opt/startup.sh"]

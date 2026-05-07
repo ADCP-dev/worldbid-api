@@ -50,7 +50,6 @@ export default defineNuxtConfig({
     '@nuxtjs/sitemap',
     '@nuxtjs/color-mode',
     '@nuxtjs/robots',
-    'vue-sonner/nuxt',
   ],
   css: ['~/assets/css/tailwind.css'],
   vite: {

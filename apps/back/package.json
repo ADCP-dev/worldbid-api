@@ -47,6 +47,7 @@
     "maizzle:build": "maizzle build && node ./scripts/flatten-maizzle-output.js"
   },
   "dependencies": {
+    "@aws-sdk/abort-controller": "^3.374.0",
     "@aws-sdk/client-s3": "3.758.0",
     "@aws-sdk/s3-request-presigner": "3.758.0",
     "@langchain/core": "^1.1.27",

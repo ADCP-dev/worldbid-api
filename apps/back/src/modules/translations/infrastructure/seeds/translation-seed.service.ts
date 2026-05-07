@@ -4,6 +4,7 @@ import { IsNull, Repository } from 'typeorm';
 import { LangEntity } from '../entities/lang.entity';
 import { TranslationEntity } from '../entities/translation.entity';
 import * as fs from 'fs/promises';
+import { existsSync } from 'fs';
 import * as path from 'path';
 
 @Injectable()
@@ -26,7 +27,12 @@ export class TranslationSeedService {
       : path.resolve(__dirname, '../../../../../../front/locales');
 
     await this.processDirectory(backI18nPath, 'back');
-    await this.processDirectory(frontLocalesPath, 'front');
+    
+    if (existsSync(frontLocalesPath)) {
+      await this.processDirectory(frontLocalesPath, 'front');
+    } else {
+      console.log(`Skipping frontend locales scan (not found at ${frontLocalesPath})`);
+    }
   }
 
   private async processDirectory(basePath: string, appContext: string) {
