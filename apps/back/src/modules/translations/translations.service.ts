@@ -15,6 +15,7 @@ import { UpdateTranslationDto } from './dto/update-translation.dto';
 import { InfinityPaginationResponseDto } from '@infra/utils/dto/infinity-pagination-response.dto';
 import { infinityPagination } from '@infra/utils/infinity-pagination';
 import * as fs from 'fs/promises';
+import { existsSync } from 'fs';
 import * as path from 'path';
 
 @Injectable()
@@ -407,7 +408,7 @@ export class TranslationsService {
   }
 
   // Generation
-  async generateJsonFiles(): Promise<{ message: string }> {
+  async generateJsonFiles(): Promise<{ message: string; files: string[] }> {
     const langs = await this.langRepository.find({ where: { isActive: true } });
     const langIds = langs.map((lang) => lang.id);
 
@@ -447,6 +448,9 @@ export class TranslationsService {
       isBackContext ? path.join(cwd, '../front') : path.join(cwd, 'apps/front'),
       'locales',
     );
+    const frontPathExists = existsSync(frontRootPath);
+
+    const files: string[] = [];
 
     for (const lang of langs) {
       const translations = translationsByLangId[lang.id] || [];
@@ -514,6 +518,9 @@ export class TranslationsService {
 
       // Write files
       for (const [app, sections] of Object.entries(groupedData)) {
+        if (app === 'front' && !frontPathExists) {
+          continue;
+        }
         const rootPath = app === 'front' ? frontRootPath : backRootPath;
         const langPath = path.join(rootPath, lang.code);
 
@@ -533,12 +540,14 @@ export class TranslationsService {
 
           const jsonContent = JSON.stringify(data, null, 2);
           const fileName = `${sectionName}.json`;
-          await fs.writeFile(path.join(targetDir, fileName), jsonContent);
+          const filePath = path.join(targetDir, fileName);
+          await fs.writeFile(filePath, jsonContent);
+          files.push(filePath);
         }
       }
     }
 
-    return { message: 'JSON files generated successfully' };
+    return { message: 'JSON files generated successfully', files };
   }
 
   private setDeepValue(obj: any, path: string, value: any) {
