@@ -14,10 +14,17 @@
     "docs:sync": "node bin/sync-docs.js",
     "obsidian:sync": "node bin/sync-obsidian.js",
     "worktree:spawn": "node bin/spawn-worktree.js",
-    "worktree:cleanup": "node bin/cleanup-worktree.js"
+    "worktree:cleanup": "node bin/cleanup-worktree.js",
+
+    "ext:validate": "tsx bin/ext-validate.ts",
+    "ext:tree": "tsx bin/ext-tree.ts",
+    "create:bundle": "tsx bin/create-bundle.ts"
+    "sync:translations": "cd apps/back && ts-node -r tsconfig-paths/register src/modules/translations/cli/sync-translations.ts"
+
   },
   "devDependencies": {
     "prettier": "^3.7.4",
+    "tsx": "^4.21.0",
     "turbo": "^2.8.6",
     "typescript": "5.9.2"
   },

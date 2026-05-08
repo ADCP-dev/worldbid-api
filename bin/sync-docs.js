@@ -129,6 +129,40 @@ function scanDir(dirPath) {
   return entries;
 }
 
+// ─── Manifest Parent Scanner ────────────────────────────────────────────────
+
+/**
+ * Scan extension manifests for parent metadata.
+ * Returns Map<extensionName, parentName|null>
+ */
+function scanManifestParents() {
+  const parents = new Map();
+  const extDir = path.join(ROOT, "apps", "back", "src", "extensions");
+  if (!fs.existsSync(extDir)) return parents;
+
+  const dirs = fs
+    .readdirSync(extDir, { withFileTypes: true })
+    .filter((d) => d.isDirectory());
+  for (const dir of dirs) {
+    const manifestPath = path.join(
+      extDir,
+      dir.name,
+      "extension.manifest.ts"
+    );
+    if (!fs.existsSync(manifestPath)) continue;
+    try {
+      const content = fs.readFileSync(manifestPath, "utf-8");
+      const parentMatch = content.match(/\bparent:\s*['"]([^'"]+)['"]/);
+      if (parentMatch) {
+        parents.set(dir.name, parentMatch[1]);
+      }
+    } catch {
+      /* skip broken manifests */
+    }
+  }
+  return parents;
+}
+
 // ─── Validation ─────────────────────────────────────────────────────────────
 
 const REQUIRED_FIELDS = ["id", "type", "parent", "dependencies"];
@@ -194,7 +228,7 @@ function escapeMermaidId(id) {
   return id.replace(/[^a-zA-Z0-9_-]/g, "_");
 }
 
-function generateMermaid(modules, extensions) {
+function generateMermaid(modules, extensions, manifestParents) {
   const lines = ["graph TD"];
 
   // Module nodes
@@ -223,9 +257,17 @@ function generateMermaid(modules, extensions) {
 
   for (const ext of extensions) {
     const sourceId = escapeMermaidId(ext.fm.id);
-    const parent = ext.fm.parent;
-    if (parent !== undefined && parent !== null && parent !== "null") {
-      const parentId = escapeMermaidId(parent);
+    // Fallback to manifest parent if YAML frontmatter doesn't specify one
+    const manifestParent = manifestParents
+      ? manifestParents.get(ext.fm.id)
+      : undefined;
+    const effectiveParent = ext.fm.parent || manifestParent;
+    if (
+      effectiveParent !== undefined &&
+      effectiveParent !== null &&
+      effectiveParent !== "null"
+    ) {
+      const parentId = escapeMermaidId(effectiveParent);
       lines.push(`  ${sourceId} --> ${parentId}`);
     }
     const deps = ext.fm.dependencies || [];
@@ -257,13 +299,17 @@ function modulesTable(modules) {
   return rows.join("\n");
 }
 
-function extensionsTable(extensions) {
+function extensionsTable(extensions, manifestParents) {
   const rows = [
     "| ID | Name | Parent | Dependencies |",
     "|----|------|--------|--------------|",
   ];
   for (const ext of extensions) {
-    const parent = ext.fm.parent || "—";
+    const manifestParent = manifestParents
+      ? manifestParents.get(ext.fm.id)
+      : undefined;
+    const effectiveParent = ext.fm.parent || manifestParent;
+    const parent = effectiveParent || "—";
     const deps = (ext.fm.dependencies || []).join(", ") || "—";
     rows.push(
       `| \`${ext.fm.id}\` | ${ext.fm.name || ext.fm.id} | ${parent} | ${deps} |`
@@ -646,6 +692,14 @@ function main() {
 
   console.log("   ✓ All documents valid");
 
+  // Scan manifest parents once for Mermaid + extensions table
+  const manifestParents = scanManifestParents();
+  if (manifestParents.size > 0) {
+    console.log(
+      `   Found ${manifestParents.size} extension(s) with parent metadata in manifests`
+    );
+  }
+
   // Generate ARCHITECTURE.md
   console.log("\n📄 Generating docs/ARCHITECTURE.md...");
 
@@ -683,7 +737,7 @@ ${modules.length > 0 ? modulesTable(modules) : "No modules registered."}
 
 ## Extensions
 
-${extensions.length > 0 ? extensionsTable(extensions) : "No extensions registered."}
+${extensions.length > 0 ? extensionsTable(extensions, manifestParents) : "No extensions registered."}
 
 ---
 
@@ -702,7 +756,7 @@ ${researchDocs.length > 0 ? researchList(researchDocs) : "None."}
 ## Dependency Diagram
 
 \`\`\`mermaid
-${generateMermaid(modules, extensions)}
+${generateMermaid(modules, extensions, manifestParents)}
 \`\`\`
 
 ---
