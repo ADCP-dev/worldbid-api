@@ -6,7 +6,7 @@ import { FacebookConfig } from '@iam/auth-facebook/config/facebook-config.type';
 import { FileConfig } from '@storage/files/config/file-config.type';
 import { GoogleConfig } from '@iam/auth-google/config/google-config.type';
 import { MailConfig } from '@comms/mail/config/mail-config.type';
-import { StripeConfig } from '@billing/stripe/config/stripe-config.type';
+import { StripeConfig } from '@ext/stripe/config/stripe-config.type';
 import { WorkerConfig } from './worker-config.type';
 
 export type AllConfigType = {

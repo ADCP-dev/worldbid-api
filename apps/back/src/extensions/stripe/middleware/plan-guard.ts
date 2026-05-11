@@ -36,6 +36,8 @@ export class PlanGuard implements CanActivate {
     );
     if (!subscription) return false;
 
+    if (!subscription?.planId) return false;
+
     try {
       const plan = await this.plansService.findById(subscription.planId);
       return plan?.features?.includes(requiredFeature) ?? false;

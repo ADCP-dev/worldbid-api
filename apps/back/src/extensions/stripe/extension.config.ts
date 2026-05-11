@@ -2,7 +2,7 @@ import { registerAs } from '@nestjs/config';
 
 import { IsString, IsOptional } from 'class-validator';
 import validateConfig from '@infra/utils/validate-config';
-import { StripeConfig } from '@billing/stripe/config/stripe-config.type';
+import { StripeConfig } from '@ext/stripe/config/stripe-config.type';
 
 class EnvironmentVariablesValidator {
   @IsString()

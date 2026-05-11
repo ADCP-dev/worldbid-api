@@ -213,12 +213,10 @@ Skills = workflows especializados y conocimiento de dominio. Se auto-detectan se
 | `apify-scrape` | Run Apify Actors to scrape websites and extract structured data. Use to deep-scrape documentation sites into local Markdown for the knowledge graph. Use when Tavily results are insufficient. | See description |
 | `backend` | Foundation backend development — NestJS + TypeORM + Hygen generators. Use for ALL backend work: creating resources, adding properties, migrations, seeders, and NestJS patterns. Use proactively when working on apps/back/, creating CRUD modules, managing database schema, or writing NestJS code. Examples: - user: "Create a Product resource" → pnpm generate:resource -- --name=Product - user: "Add email field to User" → pnpm add:property -- --name=User --property=email --kind=primitive --type=string - user: "Run migrations" → pnpm migration:generate AddXxx + pnpm migration:run | See description |
 | `branch-pr` | PR creation workflow for Agent Teams Lite following the issue-first enforcement system. Trigger: When creating a pull request, opening a PR, or preparing changes for review. | See description |
-| `find-skills` | Helps users discover and install agent skills when they ask questions like "how do I do X", "find a skill for X", "is there a skill that can...", or express interest in extending capabilities. This skill should be used when the user is looking for functionality that might exist as an installable skill. | See description |
 | `frontend` | Foundation frontend development — Nuxt 4 + Vue 3 + Tailwind + DaisyUI + TanStack. Use for ALL frontend work: forms, data tables, pages, components, and UI patterns. Use proactively when working on apps/front/, creating pages, forms, tables, or Vue components. Examples: - user: "Create a user form" → use FormInput, FormSelect from @base/ui-app/ - user: "Build a data table" → use DataTable from @base/ui-app/ - user: "Add a new page" → create in pages/, use Nuxt routing | See description |
-| `github-cli` | github-cli | See description |
+| `github-cli` | Expert help with GitHub CLI (gh) for managing pull requests, issues, repositories, workflows, and releases. Use this when working with GitHub operations from the command line. | See description |
 | `go-testing` | Go testing patterns for Gentleman.Dots, including Bubbletea TUI testing. Trigger: When writing Go tests, using teatest, or adding test coverage. | See description |
 | `graph` | Query the Foundation knowledge graph (graphify-out/graph.json) for code architecture questions. Also: build/rebuild the graph from source code. Trigger: When user asks about architecture, dependencies, "how does X connect to Y", "show me the path", "graph query", "what depends on", or wants to explore the codebase structure. | See description |
-| `graphify` | any input (code, docs, papers, images) → knowledge graph → clustered communities → HTML + JSON + audit report | See description |
 | `issue-creation` | Issue creation workflow for Agent Teams Lite following the issue-first enforcement system. Trigger: When creating a GitHub issue, reporting a bug, or requesting a feature. | See description |
 | `judgment-day` | Parallel adversarial review protocol that launches two independent blind judge sub-agents simultaneously to review the same target, synthesizes their findings, applies fixes, and re-judges until both pass or escalates after 2 iterations. Trigger: When user says "judgment day", "judgment-day", "review adversarial", "dual review", "doble review", "juzgar", "que lo juzguen". | See description |
 | `sdd-apply` | Implement tasks from the change, writing actual code following the specs and design. Trigger: When the orchestrator launches you to implement one or more tasks from a change. | See description |
@@ -391,9 +389,11 @@ Docs en `docs/`. Docs pa contexto y teoría. Skills pa acción.
 | `docs/modules/translations.md` | i18n Translations |
 | `docs/modules/webhooks.md` | Webhooks |
 | `docs/extensions/cms.md` | CMS |
+| `docs/extensions/stripe.md` | Stripe Billing |
 | `docs/EXTENSIONS-SYSTEM.md` | EXTENSIONS-SYSTEM |
 | `docs/FRONTEND-LAYERS.md` | FRONTEND-LAYERS |
 | `docs/GENERATORS.md` | GENERATORS |
+| `docs/PLAYWRIGHT-TEST-AGENTS.md` | Playwright Test Agents |
 | `docs/PRD-email-logo-sync.md` | PRD-email-logo-sync |
 | `docs/PRD-email-tailwind-sync.md` | PRD-email-tailwind-sync |
 | `docs/PRD-stripe-module.md` | PRD-stripe-module |

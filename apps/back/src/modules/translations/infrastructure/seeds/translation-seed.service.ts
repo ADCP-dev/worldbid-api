@@ -27,11 +27,13 @@ export class TranslationSeedService {
       : path.resolve(__dirname, '../../../../../../front/locales');
 
     await this.processDirectory(backI18nPath, 'back');
-    
+
     if (existsSync(frontLocalesPath)) {
       await this.processDirectory(frontLocalesPath, 'front');
     } else {
-      console.log(`Skipping frontend locales scan (not found at ${frontLocalesPath})`);
+      console.log(
+        `Skipping frontend locales scan (not found at ${frontLocalesPath})`,
+      );
     }
   }
 

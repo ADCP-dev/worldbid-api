@@ -10,6 +10,7 @@ const props = defineProps<{
   autocomplete?: string
   modelValue?: string
   placeholder?: string
+  testId?: string
 }>()
 
 const model = useModel(props, 'modelValue')
@@ -26,6 +27,7 @@ const showPassword = ref(false)
       :placeholder="props.placeholder || 'Enter your password'"
       :disabled="props.disabled"
       :autocomplete="props.autocomplete"
+      :data-testid="props.testId"
       v-bind="props.componentField"
     />
     <button

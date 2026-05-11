@@ -21,6 +21,7 @@ export default class StripeService {
   async getPlans(): Promise<any> {
     const response = await fetch(`${this.apiUrl}/stripe/plans`, {
       method: "GET",
+      headers: this.getHeaders(),
     });
     return await response.json();
   }
@@ -45,6 +46,63 @@ export default class StripeService {
     );
     const json = await response.json();
     return json.url;
+  }
+
+  async createCheckoutSession(planId: string): Promise<{ url: string }> {
+    const response = await fetch(`${this.apiUrl}/stripe/checkout`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body: JSON.stringify({ planId }),
+    });
+    return await response.json();
+  }
+
+  async cancelSubscription(subscriptionId: string): Promise<void> {
+    await fetch(`${this.apiUrl}/stripe/subscriptions/${subscriptionId}`, {
+      method: "DELETE",
+      headers: this.getHeaders(),
+    });
+  }
+
+  async resumeSubscription(subscriptionId: string): Promise<void> {
+    await fetch(`${this.apiUrl}/stripe/subscriptions/${subscriptionId}/resume`, {
+      method: "PATCH",
+      headers: this.getHeaders(),
+    });
+  }
+
+  async getInvoices(): Promise<any[]> {
+    const response = await fetch(`${this.apiUrl}/stripe/invoices`, {
+      method: "GET",
+      headers: this.getHeaders(),
+    });
+    if (!response.ok) throw new Error("Failed to fetch invoices");
+    return await response.json();
+  }
+
+  async downloadInvoice(invoiceId: string): Promise<void> {
+    const response = await fetch(`${this.apiUrl}/stripe/invoices/${invoiceId}/pdf`, {
+      method: "GET",
+      headers: this.getHeaders(),
+    });
+    if (!response.ok) throw new Error("Failed to download invoice");
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `factura-${invoiceId}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  }
+
+  async getCustomerPortal(): Promise<{ url: string }> {
+    const response = await fetch(`${this.apiUrl}/stripe/portal`, {
+      method: "POST",
+      headers: this.getHeaders(),
+    });
+    return await response.json();
   }
 
   private getHeaders() {

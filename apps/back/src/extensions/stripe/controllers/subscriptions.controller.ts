@@ -15,6 +15,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { SubscriptionsService } from '../services/subscriptions.service';
 import { CreateSubscriptionDto } from '../dto/create-subscription.dto';
 import { UserId } from '@iam/auth/decorators/current-user.decorator';
+import { PlanGuard, RequiredFeature } from '../middleware/plan-guard';
 
 @ApiTags('Stripe')
 @Controller({
@@ -47,6 +48,8 @@ export class SubscriptionsController {
   @Post()
   @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(PlanGuard)
+  @RequiredFeature('subscription')
   create(@UserId() userId: number, @Body() dto: CreateSubscriptionDto) {
     return this.subscriptionsService.create(userId, dto);
   }
@@ -54,6 +57,8 @@ export class SubscriptionsController {
   @Patch(':id/resume')
   @ApiBearerAuth()
   @ApiParam({ name: 'id', type: String })
+  @UseGuards(PlanGuard)
+  @RequiredFeature('subscription')
   resume(@Param('id') id: string) {
     return this.subscriptionsService.resume(id);
   }
@@ -62,6 +67,8 @@ export class SubscriptionsController {
   @ApiBearerAuth()
   @ApiParam({ name: 'id', type: String })
   @HttpCode(HttpStatus.OK)
+  @UseGuards(PlanGuard)
+  @RequiredFeature('subscription')
   cancel(@Param('id') id: string) {
     return this.subscriptionsService.cancel(id);
   }

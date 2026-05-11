@@ -2,6 +2,10 @@
 import { ref, computed } from 'vue';
 import { toast } from 'vue-sonner';
 import { fetchWrapper } from '@/helpers/fetch-wrapper';
+import {
+  usePlansQuery,
+  useCheckoutMutation,
+} from '@/composables/useSubscription';
 
 definePageMeta({ layout: 'default', middleware: 'auth' });
 
@@ -114,102 +118,68 @@ async function loadMethods() {
 
 loadPayments();
 loadMethods();
+
+const { data: plans } = usePlansQuery();
+const checkout = useCheckoutMutation();
+
+const sortedPlans = computed(() => {
+  if (!plans.value?.length) return [];
+  return [...plans.value].sort((a, b) => {
+    if (a.isDefault) return -1;
+    if (b.isDefault) return 1;
+    return (a.price?.unitAmount ?? 0) - (b.price?.unitAmount ?? 0);
+  });
+});
+
+function handleCheckout(planId: string) {
+  checkout.mutate(planId);
+}
 </script>
 
 <template>
   <div class="container mx-auto py-8 max-w-5xl">
     <h1 class="text-3xl font-bold mb-8">Stripe Test Suite</h1>
 
+    <!-- Planes disponibles (Checkout real) -->
+    <div class="card bg-base-100 shadow-sm border mb-6">
+      <div class="card-body">
+        <h2 class="card-title text-lg">Planes disponibles (Checkout real)</h2>
+        <p class="text-sm text-base-content/60 mb-4">
+          Contrata un plan usando Stripe Checkout real en modo test. Tarjeta: <code class="badge badge-sm">4242 4242 4242 4242</code>
+        </p>
+        <div v-if="sortedPlans.length" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div
+            v-for="plan in sortedPlans"
+            :key="plan.id"
+            class="card bg-base-200 border border-base-300"
+            :class="{ 'ring-2 ring-primary': plan.isDefault }"
+          >
+            <div class="card-body p-4">
+              <h3 class="card-title text-lg">{{ plan.name }}</h3>
+              <p class="text-sm text-base-content/60">{{ plan.description }}</p>
+              <ul class="space-y-1 mt-2">
+                <li v-for="f in (plan.features ?? [])" :key="f" class="text-sm flex items-center gap-1">
+                  <span class="text-success text-xs">✓</span> {{ f }}
+                </li>
+              </ul>
+              <div class="card-actions mt-4">
+                <button
+                  class="btn btn-primary btn-sm w-full"
+                  data-testid="stripe-checkout-btn"
+                  :disabled="checkout.isPending.value && checkout.variables.value === plan.id"
+                  @click="handleCheckout(plan.id)"
+                >
+                  {{ checkout.isPending.value && checkout.variables.value === plan.id ? 'Redirigiendo...' : 'Contratar' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p v-else class="text-sm text-base-content/60 mt-2">No hay planes disponibles</p>
+      </div>
+    </div>
+
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <!-- Simulate Payment -->
-      <div class="card bg-base-100 shadow-sm border">
-        <div class="card-body">
-          <h2 class="card-title text-lg border-b pb-3 mb-4">Simular pago</h2>
-          <div class="space-y-4">
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="label pt-0"><span class="label-text font-medium">Importe (centavos)</span></label>
-                <input v-model.number="amount" type="number" class="input input-bordered w-full" min="1" />
-              </div>
-              <div>
-                <label class="label pt-0"><span class="label-text font-medium">Moneda</span></label>
-                <select v-model="currency" class="select select-bordered w-full">
-                  <option value="eur">EUR (€)</option>
-                  <option value="usd">USD ($)</option>
-                </select>
-              </div>
-            </div>
-            <div>
-              <label class="label pt-0"><span class="label-text font-medium">Número de tarjeta</span></label>
-              <input v-model="cardNumber" class="input input-bordered w-full font-mono" placeholder="4242 4242 4242 4242" />
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="label pt-0"><span class="label-text font-medium">Caducidad</span></label>
-                <input v-model="cardExpiry" class="input input-bordered w-full" placeholder="MM/AA" />
-              </div>
-              <div>
-                <label class="label pt-0"><span class="label-text font-medium">CVC</span></label>
-                <input v-model="cardCvc" class="input input-bordered w-full" placeholder="123" maxlength="4" />
-              </div>
-            </div>
-            <div>
-              <label class="label pt-0"><span class="label-text font-medium">Titular</span></label>
-              <input v-model="cardName" class="input input-bordered w-full" placeholder="Nombre en la tarjeta" />
-            </div>
-            <div>
-              <label class="label pt-0"><span class="label-text font-medium">Descripción</span></label>
-              <input v-model="description" class="input input-bordered w-full" placeholder="Ej: Suscripción mensual" />
-            </div>
-            <button class="btn btn-primary w-full mt-2" @click="simulatePayment">
-              Pagar {{ formatAmount(amount, currency) }}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Test Cards -->
-      <div class="card bg-base-100 shadow-sm border">
-        <div class="card-body">
-          <h2 class="card-title text-lg border-b pb-3 mb-4">Tarjetas de prueba</h2>
-          <p class="text-xs text-base-content/60 mb-3">Clic en una tarjeta para usarla en el formulario</p>
-          <div v-if="methods" class="space-y-2">
-            <div
-              v-for="card in methods.testCards"
-              :key="card.number"
-              class="flex items-center justify-between text-sm p-2.5 rounded bg-base-200 cursor-pointer hover:bg-base-300 transition-colors"
-              @click="cardNumber = card.number.replace(/\s/g, ''); toast.info('Tarjeta ' + card.brand + ' seleccionada')"
-            >
-              <div>
-                <span class="font-mono text-xs">{{ card.number }}</span>
-                <span class="badge badge-xs ml-2">{{ card.brand }}</span>
-              </div>
-              <span class="badge badge-xs" :class="card.result.includes('exitoso') ? 'badge-success' : card.result.includes('rechazado') ? 'badge-error' : card.result.includes('3D') ? 'badge-warning' : 'badge-ghost'">
-                {{ card.result }}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Simulate Subscription -->
-      <div class="card bg-base-100 shadow-sm border">
-        <div class="card-body">
-          <h2 class="card-title text-lg border-b pb-3 mb-4">Simular suscripción</h2>
-          <div class="space-y-5">
-            <div>
-              <label class="label pt-0"><span class="label-text font-medium">Plan</span></label>
-              <select v-model="plan" class="select select-bordered w-full">
-                <option v-for="opt in planOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-              </select>
-            </div>
-            <button class="btn btn-primary w-full mt-2" @click="simulateSubscription">
-              Crear suscripción
-            </button>
-          </div>
-        </div>
-      </div>
-
       <!-- Simulate Webhook -->
       <div class="card bg-base-100 shadow-sm border">
         <div class="card-body">
@@ -224,6 +194,55 @@ loadMethods();
             <button class="btn btn-primary w-full mt-2" @click="simulateWebhook">
               Disparar webhook
             </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tarjetas de prueba -->
+      <div class="card bg-base-100 shadow-sm border">
+        <div class="card-body">
+          <h2 class="card-title text-lg border-b pb-3 mb-4">Tarjetas de prueba</h2>
+          <p class="text-xs text-base-content/60 mb-3">Usa estas tarjetas en el Checkout de Stripe (modo test, 0€)</p>
+          <div class="space-y-2">
+            <div class="flex items-center justify-between text-sm p-2.5 rounded bg-success/10">
+              <div>
+                <span class="font-mono text-xs">4242 4242 4242 4242</span>
+                <span class="badge badge-xs ml-2">Visa</span>
+              </div>
+              <span class="badge badge-success badge-xs">Pago exitoso</span>
+            </div>
+            <div class="flex items-center justify-between text-sm p-2.5 rounded bg-error/10">
+              <div>
+                <span class="font-mono text-xs">4000 0000 0000 0002</span>
+                <span class="badge badge-xs ml-2">Visa</span>
+              </div>
+              <span class="badge badge-error badge-xs">Rechazada</span>
+            </div>
+            <div class="flex items-center justify-between text-sm p-2.5 rounded bg-error/10">
+              <div>
+                <span class="font-mono text-xs">4000 0000 0000 9995</span>
+                <span class="badge badge-xs ml-2">Visa</span>
+              </div>
+              <span class="badge badge-error badge-xs">Fondos insuficientes</span>
+            </div>
+            <div class="flex items-center justify-between text-sm p-2.5 rounded bg-error/10">
+              <div>
+                <span class="font-mono text-xs">4000 0000 0000 9987</span>
+                <span class="badge badge-xs ml-2">Visa</span>
+              </div>
+              <span class="badge badge-error badge-xs">Tarjeta robada</span>
+            </div>
+            <div class="flex items-center justify-between text-sm p-2.5 rounded bg-warning/10">
+              <div>
+                <span class="font-mono text-xs">4000 0000 0000 3220</span>
+                <span class="badge badge-xs ml-2">Visa</span>
+              </div>
+              <span class="badge badge-warning badge-xs">3D Secure</span>
+            </div>
+            <div class="flex items-center justify-between text-sm p-2.5 rounded bg-base-200 mt-3">
+              <span class="text-xs text-base-content/60">CVC: <b>cualquier 3 dígitos</b></span>
+              <span class="text-xs text-base-content/60">Caducidad: <b>fecha futura</b></span>
+            </div>
           </div>
         </div>
       </div>
