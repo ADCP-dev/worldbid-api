@@ -15,7 +15,7 @@ import fileConfig from '@storage/files/config/file.config';
 import facebookConfig from '@iam/auth-facebook/config/facebook.config';
 import googleConfig from '@iam/auth-google/config/google.config';
 import appleConfig from '@iam/auth-apple/config/apple.config';
-import stripeConfig from '@billing/stripe/config/stripe.config';
+import stripeConfig from '@ext/stripe/extension.config';
 import workerConfig from '@src/config/worker.config';
 import { TypeOrmConfigService } from '@infra/database/typeorm-config.service';
 import { discoverExtensionConfigs } from '@core/config-loader';

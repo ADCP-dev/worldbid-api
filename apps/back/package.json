@@ -85,6 +85,8 @@
     "passport-anonymous": "1.0.1",
     "passport-custom": "^1.1.1",
     "passport-jwt": "4.0.1",
+    "pdfkit": "^0.18.0",
+    "pdfmake": "^0.3.8",
     "pg": "8.14.1",
     "reflect-metadata": "0.2.2",
     "rimraf": "6.0.1",

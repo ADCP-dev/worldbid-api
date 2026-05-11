@@ -17,7 +17,10 @@ describe('ext-validate', () => {
     if (fs.existsSync(realExtDir)) {
       for (const entry of fs.readdirSync(realExtDir, { withFileTypes: true })) {
         if (entry.name.startsWith(TEST_PREFIX) && entry.isDirectory()) {
-          fs.rmSync(path.join(realExtDir, entry.name), { recursive: true, force: true });
+          fs.rmSync(path.join(realExtDir, entry.name), {
+            recursive: true,
+            force: true,
+          });
         }
       }
     }
@@ -99,8 +102,7 @@ describe('ext-validate', () => {
     expect(stdout).toContain('FAILED');
     const output = (stdout as string).toLowerCase();
     expect(
-      output.includes('parent_not_found') ||
-        output.includes('not found'),
+      output.includes('parent_not_found') || output.includes('not found'),
     ).toBe(true);
   });
 

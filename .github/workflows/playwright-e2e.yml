@@ -1,0 +1,107 @@
+name: Playwright E2E Tests
+
+on:
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - 'apps/front/**'
+      - 'apps/back/**'
+      - 'packages/**'
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: Playwright E2E (${{ matrix.shard }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1/1]
+
+    services:
+      postgres:
+        image: postgres:17.4-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: api
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Copy env config
+        working-directory: apps/back
+        run: cp .env.example .env
+
+      - name: Build backend
+        working-directory: apps/back
+        run: pnpm build
+
+      - name: Run migrations + seeds
+        working-directory: apps/back
+        run: |
+          pnpm migration:run
+          pnpm seed:run || true
+
+      - name: Start backend
+        working-directory: apps/back
+        run: |
+          node dist/main.js &
+          sleep 5
+          curl -s --retry 10 --retry-delay 2 http://localhost:3001/api/v1/translations/langs || true
+
+      - name: Install Playwright browsers
+        working-directory: apps/front
+        run: npx playwright install chromium --with-deps
+
+      - name: Run Playwright tests
+        working-directory: apps/front
+        run: npx playwright test --reporter=html
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-${{ matrix.shard }}
+          path: apps/front/playwright-report/
+          retention-days: 7
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-results-${{ matrix.shard }}
+          path: apps/front/test-results/
+          retention-days: 7

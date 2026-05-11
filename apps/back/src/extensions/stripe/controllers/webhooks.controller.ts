@@ -1,6 +1,19 @@
-import { Controller, Post, Body, HttpStatus, HttpCode } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Req,
+  Headers,
+  HttpCode,
+  HttpStatus,
+  BadRequestException,
+  Logger,
+  RawBodyRequest,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { WebhooksService } from '../services/webhooks.service';
+import { Request } from 'express';
+import { ConfigService } from '@nestjs/config';
+import { StripeService } from '../services/stripe.service';
+import { AllConfigType } from '@src/config/config.type';
 
 @ApiTags('Stripe')
 @Controller({
@@ -8,14 +21,41 @@ import { WebhooksService } from '../services/webhooks.service';
   version: '1',
 })
 export class WebhooksController {
-  constructor(private readonly webhooksService: WebhooksService) {}
+  private readonly logger = new Logger(WebhooksController.name);
+
+  constructor(
+    private readonly stripeService: StripeService,
+    private readonly configService: ConfigService<AllConfigType>,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.OK)
   async handleWebhook(
-    @Body() event: { type: string; data: { object: Record<string, unknown> } },
+    @Req() req: RawBodyRequest<Request>,
+    @Headers('stripe-signature') signature: string,
   ) {
-    await this.webhooksService.handleEvent(event);
-    return { received: true };
+    const webhookSecret = this.configService.get('stripe', {
+      infer: true,
+    })?.webhookSecret;
+
+    if (!webhookSecret) {
+      this.logger.error('Stripe webhook secret not configured');
+      throw new BadRequestException('Webhook secret not configured');
+    }
+
+    try {
+      const event = this.stripeService.constructWebhookEvent(
+        req.rawBody as Buffer,
+        signature,
+        webhookSecret,
+      );
+
+      await this.stripeService.handleWebhookEvent(event);
+
+      return { received: true };
+    } catch (error: any) {
+      this.logger.error(`Webhook error: ${error.message}`);
+      throw new BadRequestException(`Webhook error: ${error.message}`);
+    }
   }
 }

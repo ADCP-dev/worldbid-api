@@ -58,10 +58,10 @@ onMounted(() => {
 <template>
   <div class="w-full flex flex-col gap-4">
     <div class="flex flex-wrap items-center justify-between gap-2">
-      <h2 class="text-2xl font-bold tracking-tight">{{ $t('app.dashboard.title') }}</h2>
+      <h2 class="text-2xl font-bold tracking-tight" data-testid="dashboard-title">{{ $t('app.dashboard.title') }}</h2>
       <div class="flex items-center gap-2">
         <BaseDateRangePicker />
-        <button class="btn btn-primary">{{ $t('app.dashboard.download') }}</button>
+        <button class="btn btn-primary" data-testid="dashboard-download">{{ $t('app.dashboard.download') }}</button>
       </div>
     </div>
     <main class="flex flex-1 flex-col gap-4 md:gap-8">

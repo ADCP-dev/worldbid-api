@@ -20,8 +20,8 @@ export class SubscriptionEntity {
   @Column()
   userId: number;
 
-  @Column()
-  planId: string;
+  @Column({ nullable: true })
+  planId: string | null;
 
   @OneToOne(() => PlanEntity)
   @JoinColumn({ name: 'planId' })
@@ -35,13 +35,13 @@ export class SubscriptionEntity {
   status: string;
 
   @Column({ type: 'timestamp', nullable: true })
-  currentPeriodStart: Date;
+  currentPeriodStart: Date | null;
 
   @Column({ type: 'timestamp', nullable: true })
-  currentPeriodEnd: Date;
+  currentPeriodEnd: Date | null;
 
   @Column({ type: 'timestamp', nullable: true })
-  trialEnd: Date;
+  trialEnd: Date | null;
 
   @Column({ default: false })
   cancelAtPeriodEnd: boolean;
