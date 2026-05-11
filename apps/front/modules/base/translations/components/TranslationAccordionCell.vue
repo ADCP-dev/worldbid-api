@@ -97,7 +97,7 @@ const summaryRows = computed(() => languageRows.value.filter(r => r.translation)
     <div class="collapse-title py-2 px-4 hover:bg-base-200/50 text-left text-sm font-normal text-muted-foreground flex gap-2 items-center overflow-hidden cursor-pointer min-h-0">
       <template v-if="summaryRows.length > 0 && summaryRows[0]">
          <div class="flex gap-2 items-center truncate max-w-[200px]">
-            <FlagIcon :code="summaryRows[0].lang.flagCode || summaryRows[0].lang.code" squared />
+            <span :class="['fi', 'fi-' + (summaryRows[0].lang.flagCode || summaryRows[0].lang.code)]" style="width: 1.2em; height: 1.2em; display: inline-block;" />
             <span class="truncate text-base-content">{{ summaryRows[0].content }}</span>
          </div>
       </template>
@@ -124,7 +124,7 @@ const summaryRows = computed(() => languageRows.value.filter(r => r.translation)
           <div v-for="row in languageRows" :key="row.lang.id" class="form-control w-full">
             <label class="label py-1">
               <span class="label-text-alt uppercase font-bold flex gap-2 items-center text-base-content/70">
-                <FlagIcon :code="row.lang.flagCode || row.lang.code" class="w-4 h-3" />
+                <span :class="['fi', 'fi-' + (row.lang.flagCode || row.lang.code)]" style="width: 1em; height: 1em; display: inline-block;" />
                 {{ row.lang.name }}
               </span>
             </label>
