@@ -26,7 +26,7 @@ const emit = defineEmits<{
   (e: 'event-drop', payload: { event: CalendarEventType; newStart: Date; newEnd: Date }): void;
 }>();
 
-const { getHours, calculateEventStyle, formatDate, getEventsForDay } = useCalendar();
+const { getHours, calculateEventStyle, detectOverlaps, formatDate, getEventsForDay } = useCalendar();
 
 const hours = computed(() => getHours(props.hourStart, props.hourEnd));
 
@@ -36,6 +36,25 @@ const subdivisions = computed(() =>
 
 const dayEvents = computed(() => getEventsForDay(props.events, props.currentDate).filter(e => !e.allDay));
 const allDayEvents = computed(() => getEventsForDay(props.events, props.currentDate).filter(e => e.allDay));
+
+// Compute column layout for overlapping events
+const eventColumns = computed(() => detectOverlaps(dayEvents.value));
+
+function getEventStyle(event: CalendarEventType): Record<string, string> {
+  const base = calculateEventStyle(event, props.hourStart, props.timeSlotHeight);
+  const columns = eventColumns.value.get(event.id);
+  const colIdx = columns?.columnIndex ?? 0;
+  const total = columns?.totalColumns ?? 1;
+  const left = (colIdx / total) * 100;
+  const width = 100 / total;
+  return {
+    position: 'absolute',
+    top: base.top,
+    height: base.height,
+    left: `${left}%`,
+    width: `calc(${width}% - 4px)`,
+  };
+}
 
 const gridRef = ref<HTMLElement>();
 const { top: gridTop } = useElementBounding(gridRef);
@@ -180,7 +199,7 @@ function handleDragEnd(event: CalendarEventType, payload: { clientX: number; cli
           v-for="event in dayEvents"
           :key="event.id"
           :event="event"
-          :style="{ position: 'absolute', left: '2px', right: '2px', ...calculateEventStyle(event, hourStart, timeSlotHeight) }"
+          :style="getEventStyle(event)"
           @click="emit('event-click', event)"
           @drag-start="onDragStart"
           @drag-end="(payload) => { onDragEnd(); handleDragEnd(event, payload); }"

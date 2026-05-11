@@ -28,10 +28,37 @@ const emit = defineEmits<{
   (e: 'event-drop', payload: { event: CalendarEventType; newStart: Date; newEnd: Date }): void;
 }>();
 
-const { generateWeekGrid, getHours, calculateEventStyle, formatDate, getEventsForDay } = useCalendar();
+const { generateWeekGrid, getHours, calculateEventStyle, detectOverlaps, formatDate, getEventsForDay } = useCalendar();
 
 const weekDays = computed(() => generateWeekGrid(props.currentDate, props.firstDayOfWeek));
 const hours = computed(() => getHours(props.hourStart, props.hourEnd));
+
+// Compute column layout for overlapping events per day
+const dayEventColumns = computed(() => {
+  const map = new Map<string, Map<string, { columnIndex: number; totalColumns: number }>>();
+  for (const day of weekDays.value) {
+    const dayEvents = getDayEvents(props.events, day);
+    const columns = detectOverlaps(dayEvents);
+    map.set(day.toISOString(), columns);
+  }
+  return map;
+});
+
+function getEventStyle(event: CalendarEventType, day: Date): Record<string, string> {
+  const base = calculateEventStyle(event, props.hourStart, props.timeSlotHeight);
+  const columns = dayEventColumns.value.get(day.toISOString())?.get(event.id);
+  const colIdx = columns?.columnIndex ?? 0;
+  const total = columns?.totalColumns ?? 1;
+  const left = (colIdx / total) * 100;
+  const width = 100 / total;
+  return {
+    position: 'absolute',
+    top: base.top,
+    height: base.height,
+    left: `${left}%`,
+    width: `calc(${width}% - 4px)`,
+  };
+}
 
 const subdivisions = computed(() =>
   Array.from({ length: 1 }, (_, i) => i + 1) // 30-min lines
@@ -85,7 +112,7 @@ function onDragPointerMove(e: PointerEvent) {
       const extraHours = Math.floor(snappedSlotMinutes / 60);
       const finalMinute = snappedSlotMinutes % 60;
       const finalHour = Number(hourStr) + extraHours;
-      hoveredSlot.value = { day: dayStr, startHour: finalHour, startMinute: finalMinute };
+      hoveredSlot.value = { day: dayStr || '', startHour: finalHour, startMinute: finalMinute };
       return;
     }
   }
@@ -209,7 +236,7 @@ function handleDragEnd(event: CalendarEventType, payload: { clientX: number; cli
             v-for="event in getDayEvents(events, day)"
             :key="event.id"
             :event="event"
-            :style="{ position: 'absolute', left: '2px', right: '2px', ...calculateEventStyle(event, hourStart, timeSlotHeight) }"
+            :style="getEventStyle(event, day)"
             @click="emit('event-click', event)"
             @drag-start="onDragStart"
             @drag-end="(payload) => { onDragEnd(); handleDragEnd(event, payload); }"

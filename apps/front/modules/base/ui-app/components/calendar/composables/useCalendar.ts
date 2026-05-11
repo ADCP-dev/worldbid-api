@@ -80,12 +80,116 @@ export function useCalendar() {
     event: CalendarEvent,
     hourStart: number,
     timeSlotHeight: number,
-  ): { top: string; height: string } {
+    columnIndex = 0,
+    totalColumns = 1,
+  ): { top: string; height: string; left: string; width: string } {
     const startHour = event.start.getHours() + event.start.getMinutes() / 60;
     const endHour = event.end.getHours() + event.end.getMinutes() / 60;
     const top = (startHour - hourStart) * timeSlotHeight;
     const height = Math.max((endHour - startHour) * timeSlotHeight, timeSlotHeight * 0.5);
-    return { top: `${top}px`, height: `${height}px` };
+    const leftPercent = (columnIndex / totalColumns) * 100;
+    const widthPercent = 100 / totalColumns;
+    return {
+      top: `${top}px`,
+      height: `${height}px`,
+      left: `${leftPercent}%`,
+      width: `calc(${widthPercent}% - 4px)`,
+    };
+  }
+
+  /**
+   * Detect overlapping events and assign each to a column lane.
+   * Groups events into overlap sets, then assigns columns per group.
+   *
+   * Returns a Map of event ids to { columnIndex, totalColumns }.
+   */
+  function detectOverlaps(
+    events: CalendarEvent[],
+  ): Map<string, { columnIndex: number; totalColumns: number }> {
+    const result = new Map<string, { columnIndex: number; totalColumns: number }>();
+
+    if (!events.length) return result;
+
+    // Sort by start time
+    const sorted = [...events].sort(
+      (a, b) => a.start.getTime() - b.start.getTime(),
+    );
+
+    // Find overlap groups: events that are connected by overlap
+    const groups: CalendarEvent[][] = [];
+    const visited = new Set<string>();
+
+    for (const event of sorted) {
+      if (visited.has(event.id)) continue;
+
+      // BFS/DFS to find all connected overlapping events
+      const group: CalendarEvent[] = [];
+      const stack = [event];
+
+      while (stack.length > 0) {
+        const current = stack.pop()!;
+        if (visited.has(current.id)) continue;
+        visited.add(current.id);
+        group.push(current);
+
+        // Find all events that overlap with current
+        for (const other of sorted) {
+          if (!visited.has(other.id) && overlap(current, other)) {
+            stack.push(other);
+          }
+        }
+      }
+
+      groups.push(group);
+    }
+
+    // For each group, assign columns greedily (first pass)
+    // then update totalColumns after all events in the group are placed
+    for (const group of groups) {
+      // Sort group by start time
+      group.sort((a, b) => a.start.getTime() - b.start.getTime());
+
+      const colEndTimes: number[] = [];
+      const assignments: { event: CalendarEvent; col: number }[] = [];
+
+      for (const event of group) {
+        let col = 0;
+        while (
+          col < colEndTimes.length &&
+          colEndTimes[col]! > event.start.getTime()
+        ) {
+          col++;
+        }
+        if (col < colEndTimes.length) {
+          colEndTimes[col] = event.end.getTime();
+        } else {
+          colEndTimes.push(event.end.getTime());
+        }
+        assignments.push({ event, col });
+      }
+
+      const totalCols = colEndTimes.length;
+      for (const { event, col } of assignments) {
+        result.set(event.id, {
+          columnIndex: col,
+          totalColumns: totalCols,
+        });
+      }
+    }
+
+    // Events with no overlaps get full width
+    for (const event of sorted) {
+      if (!result.has(event.id)) {
+        result.set(event.id, { columnIndex: 0, totalColumns: 1 });
+      }
+    }
+
+    return result;
+  }
+
+  /** Check if two events overlap in time */
+  function overlap(a: CalendarEvent, b: CalendarEvent): boolean {
+    return a.start < b.end && b.start < a.end;
   }
 
   const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -99,6 +203,7 @@ export function useCalendar() {
     generateWeekGrid,
     getHours,
     calculateEventStyle,
+    detectOverlaps,
     weekDays,
   };
 }
