@@ -51,7 +51,7 @@ export default defineNuxtConfig({
     '@nuxtjs/color-mode',
     '@nuxtjs/robots',
   ],
-  css: ['~/assets/css/tailwind.css', 'flag-icons/css/flag-icons.min.css'],
+  css: ['~/assets/css/tailwind.css', '~/assets/css/flag-icons.css'],
   vite: {
     // @ts-ignore - Incompatible vite/rollup plugin types in this environment
     plugins: [tailwindcss()],
