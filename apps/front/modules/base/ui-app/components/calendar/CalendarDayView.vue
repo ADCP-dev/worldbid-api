@@ -45,14 +45,29 @@ function getEventStyle(event: CalendarEventType): Record<string, string> {
   const columns = eventColumns.value.get(event.id);
   const colIdx = columns?.columnIndex ?? 0;
   const total = columns?.totalColumns ?? 1;
-  const left = (colIdx / total) * 100;
-  const width = 100 / total;
+
+  if (total <= 1) {
+    return {
+      position: 'absolute',
+      top: base.top,
+      height: base.height,
+      left: '2px',
+      right: '2px',
+    };
+  }
+
+  const gap = 2;
+  const leftPx = colIdx > 0 ? `calc(${(colIdx / total) * 100}% + ${gap}px)` : `${gap}px`;
+  const rightPx = colIdx < total - 1
+    ? `calc(${((total - colIdx - 1) / total) * 100}% + ${gap}px)`
+    : `${gap}px`;
+
   return {
     position: 'absolute',
     top: base.top,
     height: base.height,
-    left: `${left}%`,
-    width: `calc(${width}% - 4px)`,
+    left: leftPx,
+    right: rightPx,
   };
 }
 
