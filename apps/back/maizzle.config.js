@@ -15,8 +15,15 @@ module.exports = {
       path: path.resolve(__dirname, 'src/modules/communications/mail/mail-templates/build'),
     },
   },
+  css: {
+    inline: true,
+    purge: true,
+  },
+  tailwind: {
+    config: './tailwind.email.config.js',
+  },
   prettify: true,
-  minify: true,
+  minify: false,
   server: {
     port: 3001,
   },

@@ -129,6 +129,26 @@ async myNewEmail(mailData: MailData<{ link: string }>, async = true): Promise<vo
 
 Maizzle allows writing email templates with Tailwind CSS — it compiles to inline-styled HTML compatible with all major email clients (Gmail, Outlook, Apple Mail).
 
+### Configuration
+
+| File | Purpose |
+|------|---------|
+| `maizzle.config.js` | Maizzle build config: paths, CSS inlining, output |
+| `tailwind.email.config.js` | Tailwind theme synced with frontend DaisyUI colors |
+
+**Color sync:** `tailwind.email.config.js` defines the same primary color palette as the frontend (`--color-primary: oklch(58% 0.233 277.117) ≈ #8b5cf6`). When frontend colors change, update this file too.
+
+**CSS inlining:** `css: { inline: true }` in `maizzle.config.js` ensures Tailwind classes are compiled to `style="..."` attributes on each element — required for email client compatibility.
+
+### Build Command
+
+```bash
+cd apps/back && pnpm maizzle:build
+# → maizzle build && node ./scripts/flatten-maizzle-output.js
+```
+
+This compiles `.hbs` templates from `emails/` to `build/` with inlined CSS, then flattens any nested directory structure.
+
 ### Template Directory Structure
 
 ```
