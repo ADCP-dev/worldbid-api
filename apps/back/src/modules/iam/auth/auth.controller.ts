@@ -54,7 +54,7 @@ export class AuthController {
     @Body() createUserDto: AuthRegisterLoginDto,
     @Headers('x-custom-lang') lang?: string,
   ): Promise<void> {
-    return this.service.register(createUserDto, lang);
+    return this.service.register(createUserDto, createUserDto.language ?? lang);
   }
 
   @Post('email/confirm')

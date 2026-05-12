@@ -3,7 +3,7 @@ import PasswordInput from "~/components/PasswordInput.vue";
 import { toast } from 'vue-sonner';
 import { useI18n } from 'vue-i18n';
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const router = useRouter();
 const authStore = useAuthStore();
 
@@ -40,6 +40,7 @@ async function onSubmit(event: Event) {
       lastName: lastNameParts.join(' ') || '',
       email: email.value,
       password: password.value,
+      language: locale.value,
     });
 
     if (result.success) {
