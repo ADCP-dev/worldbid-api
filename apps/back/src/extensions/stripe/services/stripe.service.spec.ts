@@ -4,6 +4,8 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { StripeService } from './stripe.service';
 import { UsersService } from '@users/users.service';
+import { MailService } from '@comms/mail/mail.service';
+import { PdfInvoiceService } from '@ext/stripe/services/pdf-invoice.service';
 import { SubscriptionEntity } from '../infrastructure/persistence/entities/subscription.entity';
 import { PriceEntity } from '../infrastructure/persistence/entities/price.entity';
 import { PlanEntity } from '../infrastructure/persistence/entities/plan.entity';
@@ -63,6 +65,14 @@ describe('StripeService', () => {
             create: jest.fn(),
             save: jest.fn(),
           },
+        },
+        {
+          provide: MailService,
+          useValue: { invoicePaymentConfirmed: jest.fn() },
+        },
+        {
+          provide: PdfInvoiceService,
+          useValue: { generateInvoice: jest.fn() },
         },
       ],
     }).compile();

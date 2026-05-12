@@ -525,7 +525,7 @@ export class StripeService {
     this.logger.log(`Invoice paid: ${invoice.id}`);
 
     try {
-      const subscriptionId = invoice.subscription as string | undefined;
+      const subscriptionId = (invoice as any).subscription as string | undefined;
 
       if (subscriptionId) {
         const entity = await this.subscriptionRepository.findOne({
@@ -573,7 +573,7 @@ export class StripeService {
       }
 
       const pdfBuffer = await this.pdfInvoiceService.generateInvoice({
-        invoiceNumber: invoice.number ?? invoice.id,
+        invoiceNumber: invoice.number ?? invoice.id!,
         invoiceDate: new Date(invoice.created * 1000).toLocaleDateString('es-ES'),
         dueDate: invoice.due_date
           ? new Date(invoice.due_date * 1000).toLocaleDateString('es-ES')
@@ -596,7 +596,7 @@ export class StripeService {
       await this.mailService.invoicePaymentConfirmed({
         to,
         data: {
-          invoiceNumber: invoice.number ?? invoice.id,
+          invoiceNumber: invoice.number ?? invoice.id!,
           amount: (total / 100).toFixed(2),
           currency: currency.toUpperCase(),
           attachment: {
@@ -619,7 +619,7 @@ export class StripeService {
     this.logger.log(`Invoice payment failed: ${invoice.id}`);
 
     try {
-      const subscriptionId = invoice.subscription as string | undefined;
+      const subscriptionId = (invoice as any).subscription as string | undefined;
       if (!subscriptionId) return;
 
       const entity = await this.subscriptionRepository.findOne({
