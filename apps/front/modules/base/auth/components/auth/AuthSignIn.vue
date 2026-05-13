@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import PasswordInput from '~/components/PasswordInput.vue'
+import PasswordInput from '@/components/PasswordInput.vue'
 import { toast } from 'vue-sonner';
 import { useI18n } from 'vue-i18n';
+import { sanitizeRedirect } from '@base/auth/utils/redirect'
 
 const { t } = useI18n()
 const router = useRouter()
 const authStore = useAuthStore()
 const localePath = useLocalePath()
+const route = useRoute()
 
 const isLoading = ref(false)
 const email = ref('')
@@ -32,8 +34,13 @@ async function onSubmit(event: Event) {
         description: t('base.auth.signIn.successLoginDesc'),
       })
 
-      const { navigateHome } = useHomeRoute()
-      navigateHome()
+      const redirect = sanitizeRedirect(route.query.redirect)
+      if (redirect) {
+        await navigateTo(redirect)
+      } else {
+        const { navigateHome } = useHomeRoute()
+        await navigateHome()
+      }
     } else {
       let description = result.error || t('base.auth.signIn.errorInvalidCreds');
       if (result.errorCode === 'incorrectPassword' || result.errorCode === 'notFound' || result.errorCode === 'incorrectEmail') {
@@ -44,9 +51,14 @@ async function onSubmit(event: Event) {
         description,
       })
     }
-  } catch (error: any) {
-    let description = error?.message || t('base.auth.signIn.errorLoginFailed');
-    if (error?.data?.errors?.password === 'incorrectPassword' || error?.data?.errors?.email === 'notFound') {
+  } catch (error: unknown) {
+    let description = t('base.auth.signIn.errorLoginFailed');
+    if (error instanceof Error) {
+      description = error.message || description;
+    }
+    // Narrow for API error shape (axios errors carry data.errors)
+    const apiError = error as { data?: { errors?: Record<string, string> } } | undefined;
+    if (apiError?.data?.errors?.password === 'incorrectPassword' || apiError?.data?.errors?.email === 'notFound') {
       description = t('base.auth.signIn.errorIncorrectLogin');
     }
 

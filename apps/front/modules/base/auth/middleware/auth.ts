@@ -1,10 +1,14 @@
-export default defineNuxtRouteMiddleware(() => {
+import { buildLoginRedirectUrl } from '@base/auth/utils/redirect'
+
+export default defineNuxtRouteMiddleware((to) => {
   const authStore = useAuthStore();
   const localePath = useLocalePath();
 
-  // If user is not authenticated, redirect to login
+  // If user is not authenticated, redirect to login preserving intended route
   if (!authStore.isAuthenticated) {
-    return navigateTo(localePath("/login"));
+    return navigateTo(
+      buildLoginRedirectUrl(localePath("/login"), to.fullPath),
+    );
   }
 
   // If token is expired, try to refresh it
