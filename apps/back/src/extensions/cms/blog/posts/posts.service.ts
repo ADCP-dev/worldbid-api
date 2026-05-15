@@ -178,12 +178,12 @@ export class BlogPostsService {
       qb.andWhere(
         `EXISTS (
           SELECT 1 FROM translation t
-          WHERE t."entityId" = post.id
+          WHERE t."entityId" = post.id::text
           AND t."entityName" = 'BlogPost'
           AND t.key = 'title'
-          AND t.content ILIKE :search
+          AND t.content ILIKE :searchTerm
         )`,
-        { search: `%${search}%` },
+        { searchTerm: `%${search}%` },
       );
     }
 
