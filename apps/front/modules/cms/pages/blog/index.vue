@@ -6,6 +6,7 @@ import TagFilter from '@cms/components/cms/TagFilter.vue'
 import Pagination from '@cms/components/cms/Pagination.vue'
 import { useCmsBlogPosts } from '@cms/composables/useCmsBlogPosts'
 import { useCmsTags } from '@cms/composables/useCmsTags'
+import { useReadingTime } from '@cms/composables/useReadingTime'
 
 const route = useRoute()
 const { locale } = useI18n()
@@ -168,13 +169,19 @@ const tagItems = computed(() => {
             </NuxtLink>
           </h2>
 
-          <p class="text-sm text-base-content/70">
-            {{ post.publishedAt ? new Date(post.publishedAt).toLocaleDateString() : '' }}
+          <p class="text-sm text-base-content/70 flex items-center gap-3">
+            <span v-if="post.publishedAt">
+              {{ new Date(post.publishedAt).toLocaleDateString(lang, { year: 'numeric', month: 'long', day: 'numeric' }) }}
+            </span>
+            <span v-if="post.translations?.content" class="text-base-content/50">
+              · {{ useReadingTime(post.translations.content) }} min de lectura
+            </span>
           </p>
 
           <p v-if="post.translations?.excerpt" class="text-sm text-base-content/80 line-clamp-3">
             {{ post.translations.excerpt }}
           </p>
+          <p v-else-if="post.translations?.content" class="text-sm text-base-content/80 line-clamp-2" v-html="post.translations.content.replace(/<[^>]+>/g, '').slice(0, 200) + '...'" />
 
           <div v-if="post.tags?.length" class="flex flex-wrap gap-1 mt-3">
             <NuxtLink

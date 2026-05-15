@@ -2,6 +2,7 @@
 definePageMeta({ layout: "public" })
 import CmsSeoMeta from "@cms/components/cms/CmsSeoMeta.vue";
 import ImageLightbox from "@cms/components/cms/ImageLightbox.vue";
+import { useReadingTime } from "@cms/composables/useReadingTime";
 
 const route = useRoute()
 const { locale } = useI18n()
@@ -72,15 +73,16 @@ function onContentClick(e: MouseEvent) {
     <article v-if="post">
       <header class="mb-8">
         <h1 class="text-4xl font-bold mb-4">{{ title }}</h1>
-        <div class="flex items-center gap-4 text-muted">
+        <div class="flex items-center gap-4 text-base-content/70 text-sm">
           <span v-if="post.publishedAt">
-            {{ new Date(post.publishedAt).toLocaleDateString() }}
+            {{ new Date(post.publishedAt).toLocaleDateString(lang, { year: 'numeric', month: 'long', day: 'numeric' }) }}
           </span>
+          <span v-if="content">· {{ useReadingTime(content) }} min de lectura</span>
           <span v-if="post.author"> por {{ post.author }}</span>
         </div>
-        <div v-if="post.tags?.length" class="flex gap-2 mt-2">
-          <span v-for="tag in post.tags" :key="tag" class="badge badge-outline">
-            {{ tag }}
+        <div v-if="post.tags?.length" class="flex gap-2 mt-3">
+          <span v-for="tag in post.tags" :key="tag.id" class="badge badge-outline">
+            {{ tag.name }}
           </span>
         </div>
       </header>

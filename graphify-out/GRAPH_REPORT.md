@@ -1,11 +1,11 @@
 # Graph Report - foundation  (2026-05-15)
 
 ## Corpus Check
-- 473 files · ~176,438 words
+- 476 files · ~179,785 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1332 nodes · 1531 edges · 150 communities detected
+- 1339 nodes · 1535 edges · 154 communities detected
 - Extraction: 69% EXTRACTED · 31% INFERRED · 0% AMBIGUOUS · INFERRED: 474 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
@@ -30,13 +30,13 @@
 - [[_COMMUNITY_Community 17|Community 17]]
 - [[_COMMUNITY_Community 18|Community 18]]
 - [[_COMMUNITY_Community 19|Community 19]]
-- [[_COMMUNITY_Community 21|Community 21]]
+- [[_COMMUNITY_Community 20|Community 20]]
 - [[_COMMUNITY_Community 22|Community 22]]
 - [[_COMMUNITY_Community 23|Community 23]]
 - [[_COMMUNITY_Community 24|Community 24]]
 - [[_COMMUNITY_Community 25|Community 25]]
-- [[_COMMUNITY_Community 28|Community 28]]
-- [[_COMMUNITY_Community 29|Community 29]]
+- [[_COMMUNITY_Community 26|Community 26]]
+- [[_COMMUNITY_Community 27|Community 27]]
 - [[_COMMUNITY_Community 30|Community 30]]
 - [[_COMMUNITY_Community 31|Community 31]]
 - [[_COMMUNITY_Community 32|Community 32]]
@@ -46,20 +46,19 @@
 - [[_COMMUNITY_Community 36|Community 36]]
 - [[_COMMUNITY_Community 37|Community 37]]
 - [[_COMMUNITY_Community 38|Community 38]]
+- [[_COMMUNITY_Community 39|Community 39]]
 - [[_COMMUNITY_Community 40|Community 40]]
 - [[_COMMUNITY_Community 41|Community 41]]
 - [[_COMMUNITY_Community 42|Community 42]]
-- [[_COMMUNITY_Community 43|Community 43]]
 - [[_COMMUNITY_Community 44|Community 44]]
 - [[_COMMUNITY_Community 45|Community 45]]
 - [[_COMMUNITY_Community 46|Community 46]]
 - [[_COMMUNITY_Community 47|Community 47]]
 - [[_COMMUNITY_Community 48|Community 48]]
+- [[_COMMUNITY_Community 49|Community 49]]
 - [[_COMMUNITY_Community 50|Community 50]]
 - [[_COMMUNITY_Community 51|Community 51]]
 - [[_COMMUNITY_Community 52|Community 52]]
-- [[_COMMUNITY_Community 53|Community 53]]
-- [[_COMMUNITY_Community 54|Community 54]]
 - [[_COMMUNITY_Community 55|Community 55]]
 - [[_COMMUNITY_Community 56|Community 56]]
 - [[_COMMUNITY_Community 57|Community 57]]
@@ -88,11 +87,11 @@
 - [[_COMMUNITY_Community 80|Community 80]]
 - [[_COMMUNITY_Community 81|Community 81]]
 - [[_COMMUNITY_Community 82|Community 82]]
+- [[_COMMUNITY_Community 83|Community 83]]
+- [[_COMMUNITY_Community 84|Community 84]]
+- [[_COMMUNITY_Community 85|Community 85]]
+- [[_COMMUNITY_Community 86|Community 86]]
 - [[_COMMUNITY_Community 87|Community 87]]
-- [[_COMMUNITY_Community 88|Community 88]]
-- [[_COMMUNITY_Community 89|Community 89]]
-- [[_COMMUNITY_Community 90|Community 90]]
-- [[_COMMUNITY_Community 91|Community 91]]
 - [[_COMMUNITY_Community 92|Community 92]]
 - [[_COMMUNITY_Community 93|Community 93]]
 - [[_COMMUNITY_Community 94|Community 94]]
@@ -160,6 +159,11 @@
 - [[_COMMUNITY_Community 156|Community 156]]
 - [[_COMMUNITY_Community 157|Community 157]]
 - [[_COMMUNITY_Community 158|Community 158]]
+- [[_COMMUNITY_Community 159|Community 159]]
+- [[_COMMUNITY_Community 160|Community 160]]
+- [[_COMMUNITY_Community 161|Community 161]]
+- [[_COMMUNITY_Community 162|Community 162]]
+- [[_COMMUNITY_Community 163|Community 163]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `get()` - 58 edges
@@ -174,78 +178,78 @@
 10. `BlogPostsService` - 15 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `fetchLangs()` --calls--> `error()`  [INFERRED]
+  apps\front\components\InteractiveTranslationEditor.vue → bin\build-extension.js
+- `handleGenerate()` --calls--> `error()`  [INFERRED]
+  apps\front\modules\base\translations\pages\admin\translations\index.vue → bin\build-extension.js
 - `detectRouteConflicts()` --calls--> `get()`  [INFERRED]
   apps\back\src\core\extension-conflict-detector.ts → apps\front\modules\base\ui-app\pages\app\components\kanban-demo.vue
 - `detectRouteConflicts()` --calls--> `set()`  [INFERRED]
   apps\back\src\core\extension-conflict-detector.ts → apps\front\modules\base\ui-app\pages\app\components\kanban-demo.vue
 - `detectTableConflicts()` --calls--> `get()`  [INFERRED]
   apps\back\src\core\extension-conflict-detector.ts → apps\front\modules\base\ui-app\pages\app\components\kanban-demo.vue
-- `detectTableConflicts()` --calls--> `set()`  [INFERRED]
-  apps\back\src\core\extension-conflict-detector.ts → apps\front\modules\base\ui-app\pages\app\components\kanban-demo.vue
-- `resolveDependencies()` --calls--> `set()`  [INFERRED]
-  apps\back\src\core\extension-dependency-resolver.ts → apps\front\modules\base\ui-app\pages\app\components\kanban-demo.vue
 
 ## Communities
 
 ### Community 0 - "Community 0"
-Cohesion: 0.05
-Nodes (42): checkDependencies(), extractArchive(), generateMigration(), getInstalledExtensions(), loadManifest(), main(), runSeeds(), updateNuxtExtends() (+34 more)
+Cohesion: 0.04
+Nodes (52): checkDependencies(), extractArchive(), generateMigration(), getInstalledExtensions(), loadManifest(), main(), runSeeds(), updateNuxtExtends() (+44 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.04
-Nodes (9): ApiKeyRepository, ApiKeyStrategy, ApiKeysController, BlogCategoriesService, FileRepository, BlogPostsService, SessionRepository, slugify() (+1 more)
+Nodes (49): AuthAppleService, AuthFacebookService, EmailProcessor, discover_tsconfigs(), enrich_graph(), extract_backend_routes(), link_api_calls(), main() (+41 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.04
-Nodes (11): FilesS3PresignedController, generateSchema(), JsonLdSchemaRegistry, MediaController, MediaService, RoleSeedService, SeoController, SeoService (+3 more)
+Nodes (10): AuthController, AuthService, FilesS3PresignedController, buildWhereClause(), RoleSeedService, SessionRepository, StatusSeedService, StripeController (+2 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.04
-Nodes (9): AuthAppleController, AuthController, AuthFacebookController, AuthGoogleController, AuthGoogleService, AuthService, BlogCategoriesController, handleResponse() (+1 more)
+Cohesion: 0.05
+Nodes (8): ApiKeyRepository, ApiKeyStrategy, ApiKeysController, BlogCategoriesService, FileRepository, BlogPostsService, slugify(), TagsService
 
 ### Community 4 - "Community 4"
-Cohesion: 0.05
-Nodes (26): bootstrap(), copyDir(), createZip(), ensureDir(), error(), main(), readManifest(), FileLocalSubscriber (+18 more)
+Cohesion: 0.06
+Nodes (17): ApiKeysService, GlobalFileCleanupSubscriber, fetchLangs(), handleBulkTranslate(), handleCreate(), handleDelete(), handleEditSubmit(), handleGenerate() (+9 more)
 
 ### Community 5 - "Community 5"
-Cohesion: 0.05
-Nodes (28): AuthAppleService, AuthFacebookService, EmailProcessor, FilesS3PresignedService, bfs(), dfs(), find_graph(), format_edge() (+20 more)
-
-### Community 6 - "Community 6"
 Cohesion: 0.07
 Nodes (3): PagesController, PagesService, BlogPostsController
 
+### Community 6 - "Community 6"
+Cohesion: 0.08
+Nodes (6): buildStoragePath(), FilesLocalController, FilesS3Controller, FilesLocalService, FilesS3Service, ImageProcessingService
+
 ### Community 7 - "Community 7"
-Cohesion: 0.06
-Nodes (6): ErrorTrackerController, ErrorTrackerService, FilesLocalController, GlobalExceptionFilter, Status, TestErrorController
+Cohesion: 0.07
+Nodes (6): generateSchema(), JsonLdSchemaRegistry, MediaController, MediaService, SeoController, SeoService
 
 ### Community 8 - "Community 8"
 Cohesion: 0.08
-Nodes (23): discover_tsconfigs(), enrich_graph(), extract_backend_routes(), link_api_calls(), main(), make_id(), normalize_api_url(), parse_nuxt_layers() (+15 more)
+Nodes (3): infinityPagination(), TranslationAgentService, TranslationsController
 
 ### Community 9 - "Community 9"
-Cohesion: 0.11
-Nodes (5): buildStoragePath(), FilesS3Controller, FilesLocalService, FilesS3Service, ImageProcessingService
+Cohesion: 0.08
+Nodes (5): ErrorTrackerController, ErrorTrackerService, GlobalExceptionFilter, Status, TestErrorController
 
 ### Community 10 - "Community 10"
-Cohesion: 0.09
-Nodes (5): ApiKeysService, GlobalFileCleanupSubscriber, handleSaveAll(), if(), TranslationsService
-
-### Community 11 - "Community 11"
 Cohesion: 0.1
 Nodes (2): UsersController, UsersService
 
-### Community 12 - "Community 12"
-Cohesion: 0.1
-Nodes (2): infinityPagination(), TranslationsController
-
-### Community 13 - "Community 13"
+### Community 11 - "Community 11"
 Cohesion: 0.2
 Nodes (18): customTable(), escapeMermaidId(), escapeRegex(), extensionsTable(), generateDocsTable(), generateMermaid(), generateOpenCodeConfig(), generateSkillsTable() (+10 more)
 
-### Community 14 - "Community 14"
+### Community 12 - "Community 12"
+Cohesion: 0.12
+Nodes (4): AuthAppleController, AuthFacebookController, AuthGoogleController, AuthGoogleService
+
+### Community 13 - "Community 13"
 Cohesion: 0.2
 Nodes (5): createArticleSchema(), createWebPageSchema(), generateSchema(), getAppUrl(), useSeo()
+
+### Community 14 - "Community 14"
+Cohesion: 0.22
+Nodes (1): BlogCategoriesController
 
 ### Community 15 - "Community 15"
 Cohesion: 0.22
@@ -267,805 +271,829 @@ Nodes (3): cancelEdit(), handleKeydown(), saveTitle()
 Cohesion: 0.39
 Nodes (7): copyFiltered(), createZip(), ensureDir(), log(), main(), readPackageVersion(), shouldExclude()
 
-### Community 21 - "Community 21"
+### Community 20 - "Community 20"
+Cohesion: 0.39
+Nodes (1): TranslationSeedService
+
+### Community 22 - "Community 22"
 Cohesion: 0.29
 Nodes (1): FilesService
 
-### Community 22 - "Community 22"
+### Community 23 - "Community 23"
 Cohesion: 0.47
 Nodes (1): SitemapService
 
-### Community 23 - "Community 23"
+### Community 24 - "Community 24"
 Cohesion: 0.33
 Nodes (1): IsEntityTableConstraint
 
-### Community 24 - "Community 24"
+### Community 25 - "Community 25"
 Cohesion: 0.33
 Nodes (1): EmailService
 
-### Community 25 - "Community 25"
+### Community 26 - "Community 26"
 Cohesion: 0.33
 Nodes (4): ApiKeyAuthGuard, FlexibleAuthGuard, JwtAuthGuard, OptionalAuthGuard
 
-### Community 28 - "Community 28"
+### Community 27 - "Community 27"
+Cohesion: 0.33
+Nodes (1): FileCleanupErrorRepository
+
+### Community 30 - "Community 30"
 Cohesion: 0.4
 Nodes (1): SitemapController
 
-### Community 29 - "Community 29"
-Cohesion: 0.5
-Nodes (1): Init1777883404629
-
-### Community 30 - "Community 30"
-Cohesion: 0.5
-Nodes (1): AddSeoEntityPolymorphic1778758152311
-
 ### Community 31 - "Community 31"
 Cohesion: 0.5
-Nodes (1): StripLeadingSlashFromBlogPostSlugs1778826771542
+Nodes (2): handleResponse(), processQueue()
 
 ### Community 32 - "Community 32"
 Cohesion: 0.5
-Nodes (1): EntityRelationalHelper
+Nodes (1): Init1777883404629
 
 ### Community 33 - "Community 33"
 Cohesion: 0.5
-Nodes (1): HomeController
+Nodes (1): AddSeoEntityPolymorphic1778758152311
 
 ### Community 34 - "Community 34"
 Cohesion: 0.5
-Nodes (1): AnonymousStrategy
+Nodes (1): StripLeadingSlashFromBlogPostSlugs1778826771542
 
 ### Community 35 - "Community 35"
 Cohesion: 0.5
-Nodes (1): JwtRefreshStrategy
+Nodes (1): EntityRelationalHelper
 
 ### Community 36 - "Community 36"
 Cohesion: 0.5
-Nodes (1): JwtStrategy
+Nodes (1): HomeController
 
 ### Community 37 - "Community 37"
 Cohesion: 0.5
-Nodes (1): RolesGuard
+Nodes (1): AnonymousStrategy
 
 ### Community 38 - "Community 38"
 Cohesion: 0.5
-Nodes (1): FileResponseDto
+Nodes (1): JwtRefreshStrategy
+
+### Community 39 - "Community 39"
+Cohesion: 0.5
+Nodes (1): JwtStrategy
 
 ### Community 40 - "Community 40"
-Cohesion: 0.67
-Nodes (2): RobotsPolicyDto, UpdateSeoDto
+Cohesion: 0.5
+Nodes (1): RolesGuard
 
 ### Community 41 - "Community 41"
-Cohesion: 0.67
-Nodes (1): ResolvePromisesInterceptor
+Cohesion: 0.5
+Nodes (1): FileS3Subscriber
 
 ### Community 42 - "Community 42"
-Cohesion: 0.67
-Nodes (1): InfinityPaginationResponseDto
-
-### Community 43 - "Community 43"
-Cohesion: 0.67
-Nodes (1): BillingModule
+Cohesion: 0.5
+Nodes (1): FileResponseDto
 
 ### Community 44 - "Community 44"
 Cohesion: 0.67
-Nodes (1): ApiKeyGuard
+Nodes (2): RobotsPolicyDto, UpdateSeoDto
 
 ### Community 45 - "Community 45"
 Cohesion: 0.67
-Nodes (1): JwtOrApiKeyGuard
+Nodes (1): ResolvePromisesInterceptor
 
 ### Community 46 - "Community 46"
 Cohesion: 0.67
-Nodes (1): StorageModule
+Nodes (1): InfinityPaginationResponseDto
 
 ### Community 47 - "Community 47"
 Cohesion: 0.67
-Nodes (1): FilesModule
+Nodes (1): BillingModule
 
 ### Community 48 - "Community 48"
 Cohesion: 0.67
-Nodes (2): BatchTranslationDto, BatchTranslationPayloadItemDto
+Nodes (1): ApiKeyGuard
+
+### Community 49 - "Community 49"
+Cohesion: 0.67
+Nodes (1): JwtOrApiKeyGuard
 
 ### Community 50 - "Community 50"
-Cohesion: 1.0
-Nodes (1): AppModule
+Cohesion: 0.67
+Nodes (1): StorageModule
 
 ### Community 51 - "Community 51"
-Cohesion: 1.0
-Nodes (1): EnvironmentVariablesValidator
+Cohesion: 0.67
+Nodes (1): FilesModule
 
 ### Community 52 - "Community 52"
-Cohesion: 1.0
-Nodes (1): EnvironmentVariablesValidator
-
-### Community 53 - "Community 53"
-Cohesion: 1.0
-Nodes (1): FoundationModule
-
-### Community 54 - "Community 54"
-Cohesion: 1.0
-Nodes (1): InfrastructureModule
+Cohesion: 0.67
+Nodes (2): BatchTranslationDto, BatchTranslationPayloadItemDto
 
 ### Community 55 - "Community 55"
 Cohesion: 1.0
-Nodes (1): CmsModule
+Nodes (1): AppModule
 
 ### Community 56 - "Community 56"
 Cohesion: 1.0
-Nodes (1): BlogModule
+Nodes (1): EnvironmentVariablesValidator
 
 ### Community 57 - "Community 57"
 Cohesion: 1.0
-Nodes (1): CreateBlogCategoryDto
+Nodes (1): EnvironmentVariablesValidator
 
 ### Community 58 - "Community 58"
 Cohesion: 1.0
-Nodes (1): UpdateCategoryDto
+Nodes (1): FoundationModule
 
 ### Community 59 - "Community 59"
 Cohesion: 1.0
-Nodes (1): BlogCategoryEntity
+Nodes (1): InfrastructureModule
 
 ### Community 60 - "Community 60"
 Cohesion: 1.0
-Nodes (1): CreateBlogPostDto
+Nodes (1): CmsModule
 
 ### Community 61 - "Community 61"
 Cohesion: 1.0
-Nodes (1): CreateTagDto
+Nodes (1): BlogModule
 
 ### Community 62 - "Community 62"
 Cohesion: 1.0
-Nodes (1): FindAllBlogPostDto
+Nodes (1): CreateBlogCategoryDto
 
 ### Community 63 - "Community 63"
 Cohesion: 1.0
-Nodes (1): FindAllTagDto
+Nodes (1): UpdateCategoryDto
 
 ### Community 64 - "Community 64"
 Cohesion: 1.0
-Nodes (1): UpdateBlogPostDto
+Nodes (1): BlogCategoryEntity
 
 ### Community 65 - "Community 65"
 Cohesion: 1.0
-Nodes (1): UpdateTagDto
+Nodes (1): CreateBlogPostDto
 
 ### Community 66 - "Community 66"
 Cohesion: 1.0
-Nodes (1): BlogPostEntity
+Nodes (1): CreateTagDto
 
 ### Community 67 - "Community 67"
 Cohesion: 1.0
-Nodes (1): TagEntity
+Nodes (1): FindAllBlogPostDto
 
 ### Community 68 - "Community 68"
 Cohesion: 1.0
-Nodes (1): MediaModule
+Nodes (1): FindAllTagDto
 
 ### Community 69 - "Community 69"
 Cohesion: 1.0
-Nodes (1): PagesModule
+Nodes (1): UpdateBlogPostDto
 
 ### Community 70 - "Community 70"
 Cohesion: 1.0
-Nodes (1): CreatePageDto
+Nodes (1): UpdateTagDto
 
 ### Community 71 - "Community 71"
 Cohesion: 1.0
-Nodes (1): FindAllPageDto
+Nodes (1): BlogPostEntity
 
 ### Community 72 - "Community 72"
 Cohesion: 1.0
-Nodes (1): UpdatePageDto
+Nodes (1): TagEntity
 
 ### Community 73 - "Community 73"
 Cohesion: 1.0
-Nodes (1): PageEntity
+Nodes (1): MediaModule
 
 ### Community 74 - "Community 74"
 Cohesion: 1.0
-Nodes (1): SeoModule
+Nodes (1): PagesModule
 
 ### Community 75 - "Community 75"
 Cohesion: 1.0
-Nodes (1): SeoMetadataEntity
+Nodes (1): CreatePageDto
 
 ### Community 76 - "Community 76"
 Cohesion: 1.0
-Nodes (1): SitemapModule
+Nodes (1): FindAllPageDto
 
 ### Community 77 - "Community 77"
 Cohesion: 1.0
-Nodes (1): EnvironmentVariablesValidator
+Nodes (1): UpdatePageDto
 
 ### Community 78 - "Community 78"
 Cohesion: 1.0
-Nodes (1): SeedModule
+Nodes (1): PageEntity
 
 ### Community 79 - "Community 79"
 Cohesion: 1.0
-Nodes (1): RoleSeedModule
+Nodes (1): SeoModule
 
 ### Community 80 - "Community 80"
 Cohesion: 1.0
-Nodes (1): StatusSeedModule
+Nodes (1): SeoMetadataEntity
 
 ### Community 81 - "Community 81"
 Cohesion: 1.0
-Nodes (1): UserSeedModule
+Nodes (1): SitemapModule
 
 ### Community 82 - "Community 82"
 Cohesion: 1.0
-Nodes (1): MailerModule
+Nodes (1): EnvironmentVariablesValidator
+
+### Community 83 - "Community 83"
+Cohesion: 1.0
+Nodes (1): SeedModule
+
+### Community 84 - "Community 84"
+Cohesion: 1.0
+Nodes (1): RoleSeedModule
+
+### Community 85 - "Community 85"
+Cohesion: 1.0
+Nodes (1): StatusSeedModule
+
+### Community 86 - "Community 86"
+Cohesion: 1.0
+Nodes (1): UserSeedModule
 
 ### Community 87 - "Community 87"
 Cohesion: 1.0
-Nodes (1): StripeModule
-
-### Community 88 - "Community 88"
-Cohesion: 1.0
-Nodes (1): EnvironmentVariablesValidator
-
-### Community 89 - "Community 89"
-Cohesion: 1.0
-Nodes (1): CreateCheckoutSessionDto
-
-### Community 90 - "Community 90"
-Cohesion: 1.0
-Nodes (1): CreatePortalSessionDto
-
-### Community 91 - "Community 91"
-Cohesion: 1.0
-Nodes (1): CommsModule
+Nodes (1): MailerModule
 
 ### Community 92 - "Community 92"
 Cohesion: 1.0
-Nodes (1): HomeModule
+Nodes (1): StripeModule
 
 ### Community 93 - "Community 93"
 Cohesion: 1.0
-Nodes (1): MailModule
+Nodes (1): EnvironmentVariablesValidator
 
 ### Community 94 - "Community 94"
 Cohesion: 1.0
-Nodes (1): EnvironmentVariablesValidator
+Nodes (1): CreateCheckoutSessionDto
 
 ### Community 95 - "Community 95"
 Cohesion: 1.0
-Nodes (1): ErrorTrackerModule
+Nodes (1): CreatePortalSessionDto
 
 ### Community 96 - "Community 96"
 Cohesion: 1.0
-Nodes (1): CreateErrorDto
+Nodes (1): CommsModule
 
 ### Community 97 - "Community 97"
 Cohesion: 1.0
-Nodes (1): UpdateErrorDto
+Nodes (1): HomeModule
 
 ### Community 98 - "Community 98"
 Cohesion: 1.0
-Nodes (1): ErrorLogEntity
+Nodes (1): MailModule
 
 ### Community 99 - "Community 99"
 Cohesion: 1.0
-Nodes (1): IamModule
+Nodes (1): EnvironmentVariablesValidator
 
 ### Community 100 - "Community 100"
 Cohesion: 1.0
-Nodes (1): ApiKeysModule
+Nodes (1): ErrorTrackerModule
 
 ### Community 101 - "Community 101"
 Cohesion: 1.0
-Nodes (1): ApiKey
+Nodes (1): CreateErrorDto
 
 ### Community 102 - "Community 102"
 Cohesion: 1.0
-Nodes (1): ApiKeyResponseDto
+Nodes (1): UpdateErrorDto
 
 ### Community 103 - "Community 103"
 Cohesion: 1.0
-Nodes (1): ApiKeyPersistenceModule
+Nodes (1): ErrorLogEntity
 
 ### Community 104 - "Community 104"
 Cohesion: 1.0
-Nodes (1): ApiKeyEntity
+Nodes (1): IamModule
 
 ### Community 105 - "Community 105"
 Cohesion: 1.0
-Nodes (1): AuthModule
+Nodes (1): ApiKeysModule
 
 ### Community 106 - "Community 106"
 Cohesion: 1.0
-Nodes (1): EnvironmentVariablesValidator
+Nodes (1): ApiKey
 
 ### Community 107 - "Community 107"
 Cohesion: 1.0
-Nodes (1): AuthConfirmEmailDto
+Nodes (1): ApiKeyResponseDto
 
 ### Community 108 - "Community 108"
 Cohesion: 1.0
-Nodes (1): AuthEmailLoginDto
+Nodes (1): ApiKeyPersistenceModule
 
 ### Community 109 - "Community 109"
 Cohesion: 1.0
-Nodes (1): AuthRegisterLoginDto
+Nodes (1): ApiKeyEntity
 
 ### Community 110 - "Community 110"
 Cohesion: 1.0
-Nodes (1): AuthUpdateDto
+Nodes (1): AuthModule
 
 ### Community 111 - "Community 111"
 Cohesion: 1.0
-Nodes (1): LoginResponseDto
+Nodes (1): EnvironmentVariablesValidator
 
 ### Community 112 - "Community 112"
 Cohesion: 1.0
-Nodes (1): RefreshResponseDto
+Nodes (1): AuthConfirmEmailDto
 
 ### Community 113 - "Community 113"
 Cohesion: 1.0
-Nodes (1): AuthAppleModule
+Nodes (1): AuthEmailLoginDto
 
 ### Community 114 - "Community 114"
 Cohesion: 1.0
-Nodes (1): EnvironmentVariablesValidator
+Nodes (1): AuthRegisterLoginDto
 
 ### Community 115 - "Community 115"
 Cohesion: 1.0
-Nodes (1): AuthAppleLoginDto
+Nodes (1): AuthUpdateDto
 
 ### Community 116 - "Community 116"
 Cohesion: 1.0
-Nodes (1): AuthFacebookModule
+Nodes (1): LoginResponseDto
 
 ### Community 117 - "Community 117"
 Cohesion: 1.0
-Nodes (1): EnvironmentVariablesValidator
+Nodes (1): RefreshResponseDto
 
 ### Community 118 - "Community 118"
 Cohesion: 1.0
-Nodes (1): AuthFacebookLoginDto
+Nodes (1): AuthAppleModule
 
 ### Community 119 - "Community 119"
 Cohesion: 1.0
-Nodes (1): AuthGoogleModule
+Nodes (1): EnvironmentVariablesValidator
 
 ### Community 120 - "Community 120"
 Cohesion: 1.0
-Nodes (1): EnvironmentVariablesValidator
+Nodes (1): AuthAppleLoginDto
 
 ### Community 121 - "Community 121"
 Cohesion: 1.0
-Nodes (1): AuthGoogleLoginDto
+Nodes (1): AuthFacebookModule
 
 ### Community 122 - "Community 122"
 Cohesion: 1.0
-Nodes (1): Role
+Nodes (1): EnvironmentVariablesValidator
 
 ### Community 123 - "Community 123"
 Cohesion: 1.0
-Nodes (1): RoleDto
+Nodes (1): AuthFacebookLoginDto
 
 ### Community 124 - "Community 124"
 Cohesion: 1.0
-Nodes (1): RoleEntity
+Nodes (1): AuthGoogleModule
 
 ### Community 125 - "Community 125"
 Cohesion: 1.0
-Nodes (1): SessionModule
+Nodes (1): EnvironmentVariablesValidator
 
 ### Community 126 - "Community 126"
 Cohesion: 1.0
-Nodes (1): Session
+Nodes (1): AuthGoogleLoginDto
 
 ### Community 127 - "Community 127"
 Cohesion: 1.0
-Nodes (1): SessionPersistenceModule
+Nodes (1): Role
 
 ### Community 128 - "Community 128"
 Cohesion: 1.0
-Nodes (1): SessionEntity
+Nodes (1): RoleDto
 
 ### Community 129 - "Community 129"
 Cohesion: 1.0
-Nodes (1): EnvironmentVariablesValidator
+Nodes (1): RoleEntity
 
 ### Community 130 - "Community 130"
 Cohesion: 1.0
-Nodes (1): FileType
+Nodes (1): SessionModule
 
 ### Community 131 - "Community 131"
 Cohesion: 1.0
-Nodes (1): FileFilterDto
+Nodes (1): Session
 
 ### Community 132 - "Community 132"
 Cohesion: 1.0
-Nodes (1): FileUploadDto
+Nodes (1): SessionPersistenceModule
 
 ### Community 133 - "Community 133"
 Cohesion: 1.0
-Nodes (1): FileDto
+Nodes (1): SessionEntity
 
 ### Community 134 - "Community 134"
 Cohesion: 1.0
-Nodes (1): FilePersistenceModule
+Nodes (1): EnvironmentVariablesValidator
 
 ### Community 135 - "Community 135"
 Cohesion: 1.0
-Nodes (1): FileCleanupErrorEntity
+Nodes (1): FileType
 
 ### Community 136 - "Community 136"
 Cohesion: 1.0
-Nodes (1): FileEntity
+Nodes (1): FileFilterDto
 
 ### Community 137 - "Community 137"
 Cohesion: 1.0
-Nodes (1): FilesLocalModule
+Nodes (1): FileUploadDto
 
 ### Community 138 - "Community 138"
 Cohesion: 1.0
-Nodes (1): FilesS3Module
+Nodes (1): FileDto
 
 ### Community 139 - "Community 139"
 Cohesion: 1.0
-Nodes (1): FilesS3PresignedModule
+Nodes (1): FilePersistenceModule
 
 ### Community 140 - "Community 140"
 Cohesion: 1.0
-Nodes (1): FileUploadDto
+Nodes (1): FileCleanupErrorEntity
 
 ### Community 141 - "Community 141"
 Cohesion: 1.0
-Nodes (1): TranslationsModule
+Nodes (1): FileEntity
 
 ### Community 142 - "Community 142"
 Cohesion: 1.0
-Nodes (1): CreateLangDto
+Nodes (1): FilesLocalModule
 
 ### Community 143 - "Community 143"
 Cohesion: 1.0
-Nodes (1): CreateTranslationDto
+Nodes (1): FilesS3Module
 
 ### Community 144 - "Community 144"
 Cohesion: 1.0
-Nodes (1): UpdateLangDto
+Nodes (1): FilesS3PresignedModule
 
 ### Community 145 - "Community 145"
 Cohesion: 1.0
-Nodes (1): UpdateTranslationDto
+Nodes (1): FileUploadDto
 
 ### Community 146 - "Community 146"
 Cohesion: 1.0
-Nodes (1): LangEntity
+Nodes (1): TranslationsModule
 
 ### Community 147 - "Community 147"
 Cohesion: 1.0
-Nodes (1): TranslationEntity
+Nodes (1): CreateLangDto
 
 ### Community 148 - "Community 148"
 Cohesion: 1.0
-Nodes (1): UsersModule
+Nodes (1): CreateTranslationDto
 
 ### Community 149 - "Community 149"
 Cohesion: 1.0
-Nodes (1): User
+Nodes (1): UpdateLangDto
 
 ### Community 150 - "Community 150"
 Cohesion: 1.0
-Nodes (1): CreateUserDto
+Nodes (1): UpdateTranslationDto
 
 ### Community 151 - "Community 151"
 Cohesion: 1.0
-Nodes (1): FindAllUserPaginatedDto
+Nodes (1): LangEntity
 
 ### Community 152 - "Community 152"
 Cohesion: 1.0
-Nodes (1): FindAllUserDto
+Nodes (1): TranslationEntity
 
 ### Community 153 - "Community 153"
 Cohesion: 1.0
-Nodes (1): UpdateUserDto
+Nodes (1): UsersModule
 
 ### Community 154 - "Community 154"
 Cohesion: 1.0
-Nodes (1): UserDto
+Nodes (1): User
 
 ### Community 155 - "Community 155"
 Cohesion: 1.0
-Nodes (1): UserPersistenceModule
+Nodes (1): CreateUserDto
 
 ### Community 156 - "Community 156"
 Cohesion: 1.0
-Nodes (1): UserEntity
+Nodes (1): FindAllUserPaginatedDto
 
 ### Community 157 - "Community 157"
 Cohesion: 1.0
-Nodes (1): StatusDto
+Nodes (1): FindAllUserDto
 
 ### Community 158 - "Community 158"
+Cohesion: 1.0
+Nodes (1): UpdateUserDto
+
+### Community 159 - "Community 159"
+Cohesion: 1.0
+Nodes (1): UserDto
+
+### Community 160 - "Community 160"
+Cohesion: 1.0
+Nodes (1): UserPersistenceModule
+
+### Community 161 - "Community 161"
+Cohesion: 1.0
+Nodes (1): UserEntity
+
+### Community 162 - "Community 162"
+Cohesion: 1.0
+Nodes (1): StatusDto
+
+### Community 163 - "Community 163"
 Cohesion: 1.0
 Nodes (1): StatusEntity
 
 ## Knowledge Gaps
 - **129 isolated node(s):** `AppModule`, `EnvironmentVariablesValidator`, `EnvironmentVariablesValidator`, `FoundationModule`, `InfrastructureModule` (+124 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **Thin community `Community 11`** (27 nodes): `users.controller.ts`, `users.service.ts`, `.findWithFilters()`, `.getFiles()`, `.getFiles()`, `UsersController`, `.constructor()`, `.create()`, `.findAll()`, `.findAllWithPagination()`, `.remove()`, `.update()`, `.uploadProfilePhoto()`, `UsersService`, `.constructor()`, `.countAll()`, `.create()`, `.findAll()`, `.findAllWithPagination()`, `.findByEmail()`, `.findById()`, `.findByIds()`, `.findBySocialIdAndProvider()`, `.remove()`, `.resolvePhoto()`, `.update()`, `.updateProfilePhoto()`
+- **Thin community `Community 10`** (27 nodes): `users.controller.ts`, `users.service.ts`, `.findWithFilters()`, `.getFiles()`, `.getFiles()`, `UsersController`, `.constructor()`, `.create()`, `.findAll()`, `.findAllWithPagination()`, `.remove()`, `.update()`, `.uploadProfilePhoto()`, `UsersService`, `.constructor()`, `.countAll()`, `.create()`, `.findAll()`, `.findAllWithPagination()`, `.findByEmail()`, `.findById()`, `.findByIds()`, `.findBySocialIdAndProvider()`, `.remove()`, `.resolvePhoto()`, `.update()`, `.updateProfilePhoto()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 12`** (21 nodes): `infinity-pagination.ts`, `translations.controller.ts`, `infinityPagination()`, `TranslationsController`, `.batchUpsertDynamic()`, `.bulkTranslate()`, `.constructor()`, `.createLang()`, `.createTranslation()`, `.deleteLang()`, `.deleteTranslation()`, `.findAllLangs()`, `.findAllTranslations()`, `.generateJsonFiles()`, `.getExactTranslationGroup()`, `.getExactTranslationGroupByDotPath()`, `.translateEntity()`, `.translateRow()`, `.updateLang()`, `.updateTranslation()`, `.findAllTranslationsWithPagination()`
+- **Thin community `Community 14`** (9 nodes): `categories.controller.ts`, `BlogCategoriesController`, `.constructor()`, `.create()`, `.findAll()`, `.findOne()`, `.remove()`, `.reorder()`, `.update()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 15`** (9 nodes): `tags.controller.ts`, `TagsController`, `.constructor()`, `.create()`, `.findAll()`, `.findAllPublic()`, `.findOne()`, `.remove()`, `.update()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 17`** (9 nodes): `session.service.ts`, `SessionService`, `.constructor()`, `.create()`, `.deleteById()`, `.deleteByUserId()`, `.deleteByUserIdWithExclude()`, `.findById()`, `.update()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 21`** (7 nodes): `files.service.ts`, `FilesService`, `.constructor()`, `.delete()`, `.findById()`, `.findByIds()`, `.findWithFilters()`
+- **Thin community `Community 20`** (8 nodes): `translation-seed.service.ts`, `TranslationSeedService`, `.collectJsonFiles()`, `.constructor()`, `.flattenObject()`, `.processDirectory()`, `.run()`, `.seedLangFile()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 22`** (6 nodes): `sitemap.service.ts`, `SitemapService`, `.constructor()`, `.getActiveLanguages()`, `.getBlogUrls()`, `.getPageUrls()`
+- **Thin community `Community 22`** (7 nodes): `files.service.ts`, `FilesService`, `.constructor()`, `.delete()`, `.findById()`, `.findByIds()`, `.findWithFilters()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 23`** (6 nodes): `is-entity-table.validator.ts`, `IsEntityTable()`, `IsEntityTableConstraint`, `.constructor()`, `.defaultMessage()`, `.validate()`
+- **Thin community `Community 23`** (6 nodes): `sitemap.service.ts`, `SitemapService`, `.constructor()`, `.getActiveLanguages()`, `.getBlogUrls()`, `.getPageUrls()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 24`** (6 nodes): `email.service.ts`, `EmailService`, `.constructor()`, `.getQueueStats()`, `.getWaitingJobs()`, `.sendEmail()`
+- **Thin community `Community 24`** (6 nodes): `is-entity-table.validator.ts`, `IsEntityTable()`, `IsEntityTableConstraint`, `.constructor()`, `.defaultMessage()`, `.validate()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 28`** (5 nodes): `sitemap.controller.ts`, `SitemapController`, `.constructor()`, `.getBlogUrls()`, `.getPageUrls()`
+- **Thin community `Community 25`** (6 nodes): `email.service.ts`, `EmailService`, `.constructor()`, `.getQueueStats()`, `.getWaitingJobs()`, `.sendEmail()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 29`** (4 nodes): `Init1777883404629`, `.down()`, `.up()`, `1777883404629-Init.ts`
+- **Thin community `Community 27`** (6 nodes): `file-cleanup-error.repository.ts`, `FileCleanupErrorRepository`, `.constructor()`, `.findPending()`, `.remove()`, `.typeOrmRepository()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 30`** (4 nodes): `AddSeoEntityPolymorphic1778758152311`, `.down()`, `.up()`, `1778758152311-AddSeoEntityPolymorphic.ts`
+- **Thin community `Community 30`** (5 nodes): `sitemap.controller.ts`, `SitemapController`, `.constructor()`, `.getBlogUrls()`, `.getPageUrls()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 31`** (4 nodes): `StripLeadingSlashFromBlogPostSlugs1778826771542`, `.down()`, `.up()`, `1778826771542-StripLeadingSlashFromBlogPostSlugs.ts`
+- **Thin community `Community 31`** (5 nodes): `fetch-wrapper.js`, `authHeader()`, `handleResponse()`, `processQueue()`, `request()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 32`** (4 nodes): `relational-entity-helper.ts`, `EntityRelationalHelper`, `.setEntityName()`, `.toJSON()`
+- **Thin community `Community 32`** (4 nodes): `Init1777883404629`, `.down()`, `.up()`, `1777883404629-Init.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 33`** (4 nodes): `home.controller.ts`, `HomeController`, `.appInfo()`, `.constructor()`
+- **Thin community `Community 33`** (4 nodes): `AddSeoEntityPolymorphic1778758152311`, `.down()`, `.up()`, `1778758152311-AddSeoEntityPolymorphic.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 34`** (4 nodes): `AnonymousStrategy`, `.constructor()`, `.validate()`, `anonymous.strategy.ts`
+- **Thin community `Community 34`** (4 nodes): `StripLeadingSlashFromBlogPostSlugs1778826771542`, `.down()`, `.up()`, `1778826771542-StripLeadingSlashFromBlogPostSlugs.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 35`** (4 nodes): `jwt-refresh.strategy.ts`, `JwtRefreshStrategy`, `.constructor()`, `.validate()`
+- **Thin community `Community 35`** (4 nodes): `relational-entity-helper.ts`, `EntityRelationalHelper`, `.setEntityName()`, `.toJSON()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 36`** (4 nodes): `jwt.strategy.ts`, `JwtStrategy`, `.constructor()`, `.validate()`
+- **Thin community `Community 36`** (4 nodes): `home.controller.ts`, `HomeController`, `.appInfo()`, `.constructor()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 37`** (4 nodes): `roles.guard.ts`, `RolesGuard`, `.canActivate()`, `.constructor()`
+- **Thin community `Community 37`** (4 nodes): `AnonymousStrategy`, `.constructor()`, `.validate()`, `anonymous.strategy.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 38`** (4 nodes): `file-response.dto.ts`, `file-response.dto.ts`, `file-response.dto.ts`, `FileResponseDto`
+- **Thin community `Community 38`** (4 nodes): `jwt-refresh.strategy.ts`, `JwtRefreshStrategy`, `.constructor()`, `.validate()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 40`** (3 nodes): `update-seo.dto.ts`, `RobotsPolicyDto`, `UpdateSeoDto`
+- **Thin community `Community 39`** (4 nodes): `jwt.strategy.ts`, `JwtStrategy`, `.constructor()`, `.validate()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 41`** (3 nodes): `serializer.interceptor.ts`, `ResolvePromisesInterceptor`, `.intercept()`
+- **Thin community `Community 40`** (4 nodes): `roles.guard.ts`, `RolesGuard`, `.canActivate()`, `.constructor()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 42`** (3 nodes): `infinity-pagination-response.dto.ts`, `InfinityPaginationResponse()`, `InfinityPaginationResponseDto`
+- **Thin community `Community 41`** (4 nodes): `file-s3.subscriber.ts`, `FileS3Subscriber`, `.constructor()`, `.listenTo()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 43`** (3 nodes): `billing.module.ts`, `BillingModule`, `.register()`
+- **Thin community `Community 42`** (4 nodes): `file-response.dto.ts`, `file-response.dto.ts`, `file-response.dto.ts`, `FileResponseDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 44`** (3 nodes): `ApiKeyGuard`, `.canActivate()`, `api-key.guard.ts`
+- **Thin community `Community 44`** (3 nodes): `update-seo.dto.ts`, `RobotsPolicyDto`, `UpdateSeoDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 45`** (3 nodes): `jwt-or-api-key.guard.ts`, `JwtOrApiKeyGuard`, `.handleRequest()`
+- **Thin community `Community 45`** (3 nodes): `serializer.interceptor.ts`, `ResolvePromisesInterceptor`, `.intercept()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 46`** (3 nodes): `storage.module.ts`, `StorageModule`, `.register()`
+- **Thin community `Community 46`** (3 nodes): `infinity-pagination-response.dto.ts`, `InfinityPaginationResponse()`, `InfinityPaginationResponseDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 47`** (3 nodes): `files.module.ts`, `FilesModule`, `.register()`
+- **Thin community `Community 47`** (3 nodes): `billing.module.ts`, `BillingModule`, `.register()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 48`** (3 nodes): `batch-translation.dto.ts`, `BatchTranslationDto`, `BatchTranslationPayloadItemDto`
+- **Thin community `Community 48`** (3 nodes): `ApiKeyGuard`, `.canActivate()`, `api-key.guard.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 50`** (2 nodes): `AppModule`, `app.module.ts`
+- **Thin community `Community 49`** (3 nodes): `jwt-or-api-key.guard.ts`, `JwtOrApiKeyGuard`, `.handleRequest()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 51`** (2 nodes): `EnvironmentVariablesValidator`, `app.config.ts`
+- **Thin community `Community 50`** (3 nodes): `storage.module.ts`, `StorageModule`, `.register()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 52`** (2 nodes): `worker.config.ts`, `EnvironmentVariablesValidator`
+- **Thin community `Community 51`** (3 nodes): `files.module.ts`, `FilesModule`, `.register()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 53`** (2 nodes): `foundation.module.ts`, `FoundationModule`
+- **Thin community `Community 52`** (3 nodes): `batch-translation.dto.ts`, `BatchTranslationDto`, `BatchTranslationPayloadItemDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 54`** (2 nodes): `infrastructure.module.ts`, `InfrastructureModule`
+- **Thin community `Community 55`** (2 nodes): `AppModule`, `app.module.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 55`** (2 nodes): `extension.module.ts`, `CmsModule`
+- **Thin community `Community 56`** (2 nodes): `EnvironmentVariablesValidator`, `app.config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 56`** (2 nodes): `blog.module.ts`, `BlogModule`
+- **Thin community `Community 57`** (2 nodes): `worker.config.ts`, `EnvironmentVariablesValidator`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 57`** (2 nodes): `create-category.dto.ts`, `CreateBlogCategoryDto`
+- **Thin community `Community 58`** (2 nodes): `foundation.module.ts`, `FoundationModule`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 58`** (2 nodes): `update-category.dto.ts`, `UpdateCategoryDto`
+- **Thin community `Community 59`** (2 nodes): `infrastructure.module.ts`, `InfrastructureModule`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 59`** (2 nodes): `blog-category.entity.ts`, `BlogCategoryEntity`
+- **Thin community `Community 60`** (2 nodes): `extension.module.ts`, `CmsModule`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 60`** (2 nodes): `create-post.dto.ts`, `CreateBlogPostDto`
+- **Thin community `Community 61`** (2 nodes): `blog.module.ts`, `BlogModule`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 61`** (2 nodes): `create-tag.dto.ts`, `CreateTagDto`
+- **Thin community `Community 62`** (2 nodes): `create-category.dto.ts`, `CreateBlogCategoryDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 62`** (2 nodes): `find-all-post.dto.ts`, `FindAllBlogPostDto`
+- **Thin community `Community 63`** (2 nodes): `update-category.dto.ts`, `UpdateCategoryDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 63`** (2 nodes): `find-all-tag.dto.ts`, `FindAllTagDto`
+- **Thin community `Community 64`** (2 nodes): `blog-category.entity.ts`, `BlogCategoryEntity`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 64`** (2 nodes): `update-post.dto.ts`, `UpdateBlogPostDto`
+- **Thin community `Community 65`** (2 nodes): `create-post.dto.ts`, `CreateBlogPostDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 65`** (2 nodes): `update-tag.dto.ts`, `UpdateTagDto`
+- **Thin community `Community 66`** (2 nodes): `create-tag.dto.ts`, `CreateTagDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 66`** (2 nodes): `blog-post.entity.ts`, `BlogPostEntity`
+- **Thin community `Community 67`** (2 nodes): `find-all-post.dto.ts`, `FindAllBlogPostDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 67`** (2 nodes): `post-tag.entity.ts`, `TagEntity`
+- **Thin community `Community 68`** (2 nodes): `find-all-tag.dto.ts`, `FindAllTagDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 68`** (2 nodes): `media.module.ts`, `MediaModule`
+- **Thin community `Community 69`** (2 nodes): `update-post.dto.ts`, `UpdateBlogPostDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 69`** (2 nodes): `pages.module.ts`, `PagesModule`
+- **Thin community `Community 70`** (2 nodes): `update-tag.dto.ts`, `UpdateTagDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 70`** (2 nodes): `create-page.dto.ts`, `CreatePageDto`
+- **Thin community `Community 71`** (2 nodes): `blog-post.entity.ts`, `BlogPostEntity`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 71`** (2 nodes): `find-all-page.dto.ts`, `FindAllPageDto`
+- **Thin community `Community 72`** (2 nodes): `post-tag.entity.ts`, `TagEntity`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 72`** (2 nodes): `update-page.dto.ts`, `UpdatePageDto`
+- **Thin community `Community 73`** (2 nodes): `media.module.ts`, `MediaModule`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 73`** (2 nodes): `page.entity.ts`, `PageEntity`
+- **Thin community `Community 74`** (2 nodes): `pages.module.ts`, `PagesModule`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 74`** (2 nodes): `seo.module.ts`, `SeoModule`
+- **Thin community `Community 75`** (2 nodes): `create-page.dto.ts`, `CreatePageDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 75`** (2 nodes): `seo-metadata.entity.ts`, `SeoMetadataEntity`
+- **Thin community `Community 76`** (2 nodes): `find-all-page.dto.ts`, `FindAllPageDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 76`** (2 nodes): `sitemap.module.ts`, `SitemapModule`
+- **Thin community `Community 77`** (2 nodes): `update-page.dto.ts`, `UpdatePageDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 77`** (2 nodes): `database.config.ts`, `EnvironmentVariablesValidator`
+- **Thin community `Community 78`** (2 nodes): `page.entity.ts`, `PageEntity`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 78`** (2 nodes): `seed.module.ts`, `SeedModule`
+- **Thin community `Community 79`** (2 nodes): `seo.module.ts`, `SeoModule`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 79`** (2 nodes): `role-seed.module.ts`, `RoleSeedModule`
+- **Thin community `Community 80`** (2 nodes): `seo-metadata.entity.ts`, `SeoMetadataEntity`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 80`** (2 nodes): `status-seed.module.ts`, `StatusSeedModule`
+- **Thin community `Community 81`** (2 nodes): `sitemap.module.ts`, `SitemapModule`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 81`** (2 nodes): `user-seed.module.ts`, `UserSeedModule`
+- **Thin community `Community 82`** (2 nodes): `database.config.ts`, `EnvironmentVariablesValidator`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 82`** (2 nodes): `mailer.module.ts`, `MailerModule`
+- **Thin community `Community 83`** (2 nodes): `seed.module.ts`, `SeedModule`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 87`** (2 nodes): `stripe.module.ts`, `StripeModule`
+- **Thin community `Community 84`** (2 nodes): `role-seed.module.ts`, `RoleSeedModule`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 88`** (2 nodes): `stripe.config.ts`, `EnvironmentVariablesValidator`
+- **Thin community `Community 85`** (2 nodes): `status-seed.module.ts`, `StatusSeedModule`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 89`** (2 nodes): `create-checkout-session.dto.ts`, `CreateCheckoutSessionDto`
+- **Thin community `Community 86`** (2 nodes): `user-seed.module.ts`, `UserSeedModule`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 90`** (2 nodes): `create-portal-session.dto.ts`, `CreatePortalSessionDto`
+- **Thin community `Community 87`** (2 nodes): `mailer.module.ts`, `MailerModule`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 91`** (2 nodes): `comms.module.ts`, `CommsModule`
+- **Thin community `Community 92`** (2 nodes): `stripe.module.ts`, `StripeModule`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 92`** (2 nodes): `home.module.ts`, `HomeModule`
+- **Thin community `Community 93`** (2 nodes): `stripe.config.ts`, `EnvironmentVariablesValidator`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 93`** (2 nodes): `mail.module.ts`, `MailModule`
+- **Thin community `Community 94`** (2 nodes): `create-checkout-session.dto.ts`, `CreateCheckoutSessionDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 94`** (2 nodes): `mail.config.ts`, `EnvironmentVariablesValidator`
+- **Thin community `Community 95`** (2 nodes): `create-portal-session.dto.ts`, `CreatePortalSessionDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 95`** (2 nodes): `error-tracker.module.ts`, `ErrorTrackerModule`
+- **Thin community `Community 96`** (2 nodes): `comms.module.ts`, `CommsModule`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 96`** (2 nodes): `create-error.dto.ts`, `CreateErrorDto`
+- **Thin community `Community 97`** (2 nodes): `home.module.ts`, `HomeModule`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 97`** (2 nodes): `update-error.dto.ts`, `UpdateErrorDto`
+- **Thin community `Community 98`** (2 nodes): `mail.module.ts`, `MailModule`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 98`** (2 nodes): `error-log.entity.ts`, `ErrorLogEntity`
+- **Thin community `Community 99`** (2 nodes): `mail.config.ts`, `EnvironmentVariablesValidator`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 99`** (2 nodes): `iam.module.ts`, `IamModule`
+- **Thin community `Community 100`** (2 nodes): `error-tracker.module.ts`, `ErrorTrackerModule`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 100`** (2 nodes): `ApiKeysModule`, `api-keys.module.ts`
+- **Thin community `Community 101`** (2 nodes): `create-error.dto.ts`, `CreateErrorDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 101`** (2 nodes): `ApiKey`, `api-key.ts`
+- **Thin community `Community 102`** (2 nodes): `update-error.dto.ts`, `UpdateErrorDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 102`** (2 nodes): `ApiKeyResponseDto`, `api-key-response.dto.ts`
+- **Thin community `Community 103`** (2 nodes): `error-log.entity.ts`, `ErrorLogEntity`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 103`** (2 nodes): `persistence.module.ts`, `ApiKeyPersistenceModule`
+- **Thin community `Community 104`** (2 nodes): `iam.module.ts`, `IamModule`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 104`** (2 nodes): `ApiKeyEntity`, `api-key.entity.ts`
+- **Thin community `Community 105`** (2 nodes): `ApiKeysModule`, `api-keys.module.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 105`** (2 nodes): `auth.module.ts`, `AuthModule`
+- **Thin community `Community 106`** (2 nodes): `ApiKey`, `api-key.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 106`** (2 nodes): `auth.config.ts`, `EnvironmentVariablesValidator`
+- **Thin community `Community 107`** (2 nodes): `ApiKeyResponseDto`, `api-key-response.dto.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 107`** (2 nodes): `auth-confirm-email.dto.ts`, `AuthConfirmEmailDto`
+- **Thin community `Community 108`** (2 nodes): `persistence.module.ts`, `ApiKeyPersistenceModule`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 108`** (2 nodes): `auth-email-login.dto.ts`, `AuthEmailLoginDto`
+- **Thin community `Community 109`** (2 nodes): `ApiKeyEntity`, `api-key.entity.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 109`** (2 nodes): `auth-register-login.dto.ts`, `AuthRegisterLoginDto`
+- **Thin community `Community 110`** (2 nodes): `auth.module.ts`, `AuthModule`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 110`** (2 nodes): `auth-update.dto.ts`, `AuthUpdateDto`
+- **Thin community `Community 111`** (2 nodes): `auth.config.ts`, `EnvironmentVariablesValidator`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 111`** (2 nodes): `login-response.dto.ts`, `LoginResponseDto`
+- **Thin community `Community 112`** (2 nodes): `auth-confirm-email.dto.ts`, `AuthConfirmEmailDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 112`** (2 nodes): `refresh-response.dto.ts`, `RefreshResponseDto`
+- **Thin community `Community 113`** (2 nodes): `auth-email-login.dto.ts`, `AuthEmailLoginDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 113`** (2 nodes): `auth-apple.module.ts`, `AuthAppleModule`
+- **Thin community `Community 114`** (2 nodes): `auth-register-login.dto.ts`, `AuthRegisterLoginDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 114`** (2 nodes): `EnvironmentVariablesValidator`, `apple.config.ts`
+- **Thin community `Community 115`** (2 nodes): `auth-update.dto.ts`, `AuthUpdateDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 115`** (2 nodes): `auth-apple-login.dto.ts`, `AuthAppleLoginDto`
+- **Thin community `Community 116`** (2 nodes): `login-response.dto.ts`, `LoginResponseDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 116`** (2 nodes): `auth-facebook.module.ts`, `AuthFacebookModule`
+- **Thin community `Community 117`** (2 nodes): `refresh-response.dto.ts`, `RefreshResponseDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 117`** (2 nodes): `facebook.config.ts`, `EnvironmentVariablesValidator`
+- **Thin community `Community 118`** (2 nodes): `auth-apple.module.ts`, `AuthAppleModule`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 118`** (2 nodes): `auth-facebook-login.dto.ts`, `AuthFacebookLoginDto`
+- **Thin community `Community 119`** (2 nodes): `EnvironmentVariablesValidator`, `apple.config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 119`** (2 nodes): `auth-google.module.ts`, `AuthGoogleModule`
+- **Thin community `Community 120`** (2 nodes): `auth-apple-login.dto.ts`, `AuthAppleLoginDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 120`** (2 nodes): `google.config.ts`, `EnvironmentVariablesValidator`
+- **Thin community `Community 121`** (2 nodes): `auth-facebook.module.ts`, `AuthFacebookModule`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 121`** (2 nodes): `auth-google-login.dto.ts`, `AuthGoogleLoginDto`
+- **Thin community `Community 122`** (2 nodes): `facebook.config.ts`, `EnvironmentVariablesValidator`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 122`** (2 nodes): `role.ts`, `Role`
+- **Thin community `Community 123`** (2 nodes): `auth-facebook-login.dto.ts`, `AuthFacebookLoginDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 123`** (2 nodes): `role.dto.ts`, `RoleDto`
+- **Thin community `Community 124`** (2 nodes): `auth-google.module.ts`, `AuthGoogleModule`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 124`** (2 nodes): `role.entity.ts`, `RoleEntity`
+- **Thin community `Community 125`** (2 nodes): `google.config.ts`, `EnvironmentVariablesValidator`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 125`** (2 nodes): `session.module.ts`, `SessionModule`
+- **Thin community `Community 126`** (2 nodes): `auth-google-login.dto.ts`, `AuthGoogleLoginDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 126`** (2 nodes): `session.ts`, `Session`
+- **Thin community `Community 127`** (2 nodes): `role.ts`, `Role`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 127`** (2 nodes): `persistence.module.ts`, `SessionPersistenceModule`
+- **Thin community `Community 128`** (2 nodes): `role.dto.ts`, `RoleDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 128`** (2 nodes): `session.entity.ts`, `SessionEntity`
+- **Thin community `Community 129`** (2 nodes): `role.entity.ts`, `RoleEntity`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 129`** (2 nodes): `file.config.ts`, `EnvironmentVariablesValidator`
+- **Thin community `Community 130`** (2 nodes): `session.module.ts`, `SessionModule`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 130`** (2 nodes): `file.ts`, `FileType`
+- **Thin community `Community 131`** (2 nodes): `session.ts`, `Session`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 131`** (2 nodes): `file-filter.dto.ts`, `FileFilterDto`
+- **Thin community `Community 132`** (2 nodes): `persistence.module.ts`, `SessionPersistenceModule`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 132`** (2 nodes): `file-upload.dto.ts`, `FileUploadDto`
+- **Thin community `Community 133`** (2 nodes): `session.entity.ts`, `SessionEntity`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 133`** (2 nodes): `file.dto.ts`, `FileDto`
+- **Thin community `Community 134`** (2 nodes): `file.config.ts`, `EnvironmentVariablesValidator`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 134`** (2 nodes): `persistence.module.ts`, `FilePersistenceModule`
+- **Thin community `Community 135`** (2 nodes): `file.ts`, `FileType`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 135`** (2 nodes): `file-cleanup-error.entity.ts`, `FileCleanupErrorEntity`
+- **Thin community `Community 136`** (2 nodes): `file-filter.dto.ts`, `FileFilterDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 136`** (2 nodes): `file.entity.ts`, `FileEntity`
+- **Thin community `Community 137`** (2 nodes): `file-upload.dto.ts`, `FileUploadDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 137`** (2 nodes): `files.module.ts`, `FilesLocalModule`
+- **Thin community `Community 138`** (2 nodes): `file.dto.ts`, `FileDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 138`** (2 nodes): `files.module.ts`, `FilesS3Module`
+- **Thin community `Community 139`** (2 nodes): `persistence.module.ts`, `FilePersistenceModule`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 139`** (2 nodes): `files.module.ts`, `FilesS3PresignedModule`
+- **Thin community `Community 140`** (2 nodes): `file-cleanup-error.entity.ts`, `FileCleanupErrorEntity`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 140`** (2 nodes): `file.dto.ts`, `FileUploadDto`
+- **Thin community `Community 141`** (2 nodes): `file.entity.ts`, `FileEntity`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 141`** (2 nodes): `translations.module.ts`, `TranslationsModule`
+- **Thin community `Community 142`** (2 nodes): `files.module.ts`, `FilesLocalModule`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 142`** (2 nodes): `create-lang.dto.ts`, `CreateLangDto`
+- **Thin community `Community 143`** (2 nodes): `files.module.ts`, `FilesS3Module`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 143`** (2 nodes): `create-translation.dto.ts`, `CreateTranslationDto`
+- **Thin community `Community 144`** (2 nodes): `files.module.ts`, `FilesS3PresignedModule`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 144`** (2 nodes): `update-lang.dto.ts`, `UpdateLangDto`
+- **Thin community `Community 145`** (2 nodes): `file.dto.ts`, `FileUploadDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 145`** (2 nodes): `update-translation.dto.ts`, `UpdateTranslationDto`
+- **Thin community `Community 146`** (2 nodes): `translations.module.ts`, `TranslationsModule`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 146`** (2 nodes): `lang.entity.ts`, `LangEntity`
+- **Thin community `Community 147`** (2 nodes): `create-lang.dto.ts`, `CreateLangDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 147`** (2 nodes): `translation.entity.ts`, `TranslationEntity`
+- **Thin community `Community 148`** (2 nodes): `create-translation.dto.ts`, `CreateTranslationDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 148`** (2 nodes): `users.module.ts`, `UsersModule`
+- **Thin community `Community 149`** (2 nodes): `update-lang.dto.ts`, `UpdateLangDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 149`** (2 nodes): `user.ts`, `User`
+- **Thin community `Community 150`** (2 nodes): `update-translation.dto.ts`, `UpdateTranslationDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 150`** (2 nodes): `create-user.dto.ts`, `CreateUserDto`
+- **Thin community `Community 151`** (2 nodes): `lang.entity.ts`, `LangEntity`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 151`** (2 nodes): `find-all-user-paginated.dto.ts`, `FindAllUserPaginatedDto`
+- **Thin community `Community 152`** (2 nodes): `translation.entity.ts`, `TranslationEntity`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 152`** (2 nodes): `find-all-user.dto.ts`, `FindAllUserDto`
+- **Thin community `Community 153`** (2 nodes): `users.module.ts`, `UsersModule`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 153`** (2 nodes): `update-user.dto.ts`, `UpdateUserDto`
+- **Thin community `Community 154`** (2 nodes): `user.ts`, `User`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 154`** (2 nodes): `user.dto.ts`, `UserDto`
+- **Thin community `Community 155`** (2 nodes): `create-user.dto.ts`, `CreateUserDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 155`** (2 nodes): `persistence.module.ts`, `UserPersistenceModule`
+- **Thin community `Community 156`** (2 nodes): `find-all-user-paginated.dto.ts`, `FindAllUserPaginatedDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 156`** (2 nodes): `user.entity.ts`, `UserEntity`
+- **Thin community `Community 157`** (2 nodes): `find-all-user.dto.ts`, `FindAllUserDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 157`** (2 nodes): `status.dto.ts`, `StatusDto`
+- **Thin community `Community 158`** (2 nodes): `update-user.dto.ts`, `UpdateUserDto`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 158`** (2 nodes): `status.entity.ts`, `StatusEntity`
+- **Thin community `Community 159`** (2 nodes): `user.dto.ts`, `UserDto`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 160`** (2 nodes): `persistence.module.ts`, `UserPersistenceModule`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 161`** (2 nodes): `user.entity.ts`, `UserEntity`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 162`** (2 nodes): `status.dto.ts`, `StatusDto`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 163`** (2 nodes): `status.entity.ts`, `StatusEntity`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `get()` connect `Community 5` to `Community 0`, `Community 1`, `Community 2`, `Community 3`, `Community 4`, `Community 6`, `Community 8`, `Community 9`?**
-  _High betweenness centrality (0.047) - this node is a cross-community bridge._
-- **Why does `log()` connect `Community 0` to `Community 1`, `Community 2`, `Community 4`, `Community 5`, `Community 6`, `Community 7`, `Community 9`, `Community 10`, `Community 13`?**
-  _High betweenness centrality (0.043) - this node is a cross-community bridge._
-- **Why does `error()` connect `Community 4` to `Community 0`, `Community 1`, `Community 5`, `Community 6`, `Community 7`, `Community 9`, `Community 10`, `Community 13`?**
-  _High betweenness centrality (0.039) - this node is a cross-community bridge._
+- **Why does `get()` connect `Community 1` to `Community 0`, `Community 3`, `Community 5`, `Community 6`, `Community 7`, `Community 8`, `Community 12`?**
+  _High betweenness centrality (0.054) - this node is a cross-community bridge._
+- **Why does `log()` connect `Community 0` to `Community 1`, `Community 3`, `Community 4`, `Community 5`, `Community 6`, `Community 11`, `Community 20`?**
+  _High betweenness centrality (0.038) - this node is a cross-community bridge._
+- **Why does `error()` connect `Community 0` to `Community 1`, `Community 2`, `Community 3`, `Community 4`, `Community 5`, `Community 8`, `Community 11`?**
+  _High betweenness centrality (0.031) - this node is a cross-community bridge._
 - **Are the 57 inferred relationships involving `get()` (e.g. with `bootstrap()` and `detectRouteConflicts()`) actually correct?**
   _`get()` has 57 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 44 inferred relationships involving `log()` (e.g. with `discoverExtensionConfigs()` and `detectConflicts()`) actually correct?**

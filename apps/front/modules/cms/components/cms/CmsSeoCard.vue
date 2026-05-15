@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import JsonLdEditor from '@cms/components/cms/JsonLdEditor.vue';
 import FormInput from "@base/ui-app/components/form/FormInput.vue";
 import FormTextArea from "@base/ui-app/components/form/FormTextArea.vue";
 import FormMultipleSelect from "@base/ui-app/components/form/FormMultipleSelect.vue";
@@ -294,58 +295,12 @@ function cancelJsonLdEdit() {
           :options="jsonLdTypeOptions"
         />
 
-        <!-- JSON-LD Preview -->
+        <!-- JSON-LD Editor -->
         <div v-if="local.type" class="form-control">
           <label class="label">
-            <span class="label-text font-semibold">JSON-LD Preview</span>
+            <span class="label-text font-semibold">JSON-LD</span>
           </label>
-
-          <div v-if="isFetchingTemplate" class="skeleton h-32 w-full rounded-lg"/>
-
-          <div v-else-if="templateFetchError" class="text-error text-sm">
-            {{ templateFetchError }}
-          </div>
-
-          <div v-else class="space-y-2">
-            <pre
-              v-if="!isEditingJsonLd"
-              class="bg-base-200 rounded-lg p-3 text-xs overflow-x-auto max-h-64"
-            ><code>{{ displayedJsonLd }}</code></pre>
-
-            <textarea
-              v-else
-              v-model="editJsonString"
-              class="textarea textarea-bordered w-full font-mono text-xs"
-              rows="8"
-            />
-
-            <div class="flex gap-2">
-              <button
-                v-if="!isEditingJsonLd"
-                type="button"
-                class="btn btn-xs btn-outline"
-                @click="startEditJsonLd"
-              >
-                {{ t("pages.common.edit") || "Edit" }}
-              </button>
-              <template v-else>
-                <button
-                  type="button"
-                  class="btn btn-xs btn-primary"
-                  @click="saveJsonLdEdit"
-                >
-                  {{ t("pages.common.save") || "Save" }}
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-xs btn-outline"
-                  @click="cancelJsonLdEdit"
-                >
-                  {{ t("pages.common.cancel") || "Cancel" }}
-                </button>
-              </template>
-            </div>
-          </div>
+          <JsonLdEditor v-model="jsonLdString" />
         </div>
       </div>
     </div>

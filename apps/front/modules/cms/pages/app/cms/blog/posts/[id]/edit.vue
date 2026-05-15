@@ -108,7 +108,7 @@ onMounted(async () => {
     const trans = ((post as any).translations?.[currentLang.value] || {}) as Record<string, string>;
     form.value = {
       title: trans.title || "",
-      slug: post.slug || "",
+      slug: trans.slug || post.slug || "",
       content: trans.content || "",
       author: (post as any).author || "",
       categoryId: post.categoryId || "",
@@ -153,6 +153,7 @@ watch(currentLang, async (newLang) => {
   if (!lastPost) return;
   const trans = (lastPost.translations?.[newLang] || {}) as Record<string, string>;
   form.value.title = trans.title || '';
+  form.value.slug = trans.slug || lastPost.slug || '';
   form.value.content = trans.content || '';
   // Reload SEO for new language
   try {
@@ -277,6 +278,7 @@ const handleSubmit = async () => {
         lang: currentLang.value,
         translations: [
           { section: 'default', key: 'title', value: form.value.title },
+          { section: 'default', key: 'slug', value: form.value.slug },
           { section: 'default', key: 'content', value: form.value.content },
         ],
       }),
@@ -287,7 +289,9 @@ const handleSubmit = async () => {
     }
 
     toast.success("Post actualizado correctamente");
-    router.push("/app/cms/blog/posts");
+    // Reload post data to reflect changes
+    const updatedPost = await fetchPost(postId);
+    lastPost = updatedPost;
   } catch (e) {
     toast.error((e as any)?.message || "Error al guardar");
   }
