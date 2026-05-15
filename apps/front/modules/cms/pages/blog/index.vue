@@ -41,7 +41,7 @@ const selectedTags = computed({
 })
 
 const getTrans = (post: any) => {
-  return (post.translations?.[lang] || {}) as Record<string, string>;
+  return (post.translations?.[lang.value] || {}) as Record<string, string>;
 };
 const { fetchPostsPublic } = useCmsBlogPosts()
 const { fetchTagsPublic, tags: allTags } = useCmsTags()
