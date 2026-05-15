@@ -6,6 +6,7 @@ import TagFilter from '@cms/components/cms/TagFilter.vue'
 import Pagination from '@cms/components/cms/Pagination.vue'
 import { useCmsBlogPosts } from '@cms/composables/useCmsBlogPosts'
 import { useCmsTags } from '@cms/composables/useCmsTags'
+import { useCmsCategories } from '@cms/composables/useCmsCategories'
 import { useReadingTime } from '@cms/composables/useReadingTime'
 
 const route = useRoute()
@@ -45,6 +46,21 @@ const getTrans = (post: any) => {
 };
 const { fetchPostsPublic } = useCmsBlogPosts()
 const { fetchTagsPublic, tags: allTags } = useCmsTags()
+const { fetchCategories, categories: allCategories } = useCmsCategories()
+
+const selectedCategory = computed({
+  get: () => (route.query.categoryId as string) || '',
+  set: (value: string) => {
+    const query: Record<string, string | string[]> = {}
+    for (const [key, val] of Object.entries(route.query)) {
+      if (key !== 'categoryId' && key !== 'page' && val !== undefined && val !== '') {
+        query[key] = val as string | string[]
+      }
+    }
+    if (value) query.categoryId = value
+    router.replace({ path: route.path, query })
+  },
+})
 
 // Fetch SEO for blog index
 const { data: seoData } = useFetch(
@@ -54,6 +70,7 @@ const { data: seoData } = useFetch(
 
 // Fetch tags for filter
 await fetchTagsPublic(lang.value)
+await fetchCategories(lang.value)
 
 function onSearch(value: string) {
   const query: Record<string, string | string[]> = {}
@@ -73,6 +90,7 @@ const queryParams = computed(() => ({
   limit,
   search: (route.query.search as string) || undefined,
   tags: selectedTags.value.length ? selectedTags.value : undefined,
+  categoryId: (route.query.categoryId as string) || undefined,
 }))
 
 // Fetch posts
@@ -120,6 +138,17 @@ const tagItems = computed(() => {
           class="md:max-w-sm"
           @update:model-value="onSearch"
         />
+        <select
+          v-if="allCategories.length"
+          :value="selectedCategory"
+          class="select select-bordered select-sm w-full md:max-w-xs"
+          @change="selectedCategory = ($event.target as HTMLSelectElement).value"
+        >
+          <option value="">Todas las categorías</option>
+          <option v-for="cat in allCategories" :key="cat.id" :value="cat.id">
+            {{ cat.name }}
+          </option>
+        </select>
       </div>
 
       <TagFilter

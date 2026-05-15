@@ -59,6 +59,7 @@ export class BlogPostsController {
     @Query('limit') limit: number = 10,
     @Query('search') search?: string,
     @Query('tags') tags?: string | string[],
+    @Query('categoryId') categoryId?: string,
   ) {
     const normalizedTags = tags
       ? Array.isArray(tags)
@@ -71,6 +72,7 @@ export class BlogPostsController {
       limit,
       search,
       normalizedTags,
+      categoryId,
     );
   }
 
@@ -88,6 +90,12 @@ export class BlogPostsController {
   @HttpCode(HttpStatus.OK)
   findOnePublic(@Param('slug') slug: string) {
     return this.blogPostsService.findBySlugPublic(slug);
+  }
+
+  @Get('public/:slug/related')
+  @HttpCode(HttpStatus.OK)
+  findRelated(@Param('slug') slug: string, @Query('limit') limit: number = 3) {
+    return this.blogPostsService.findRelated(slug, limit);
   }
 
   @Get(':id')

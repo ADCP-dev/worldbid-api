@@ -156,12 +156,13 @@ export class BlogPostsService {
     };
   }
 
-  async findAllPublished(
+  async   findAllPublished(
     lang: string,
     page = 1,
     limit = 10,
     search?: string,
     tags?: string[],
+    categoryId?: string,
   ) {
     const skip = (page - 1) * limit;
 
@@ -190,6 +191,10 @@ export class BlogPostsService {
       qb.innerJoin('post.tags', 'tagFilter', 'tagFilter.slug IN (:...tags)', {
         tags,
       });
+    }
+
+    if (categoryId) {
+      qb.andWhere('post.categoryId = :categoryId', { categoryId });
     }
 
     qb.orderBy('post.publishedAt', 'DESC')
@@ -228,6 +233,30 @@ export class BlogPostsService {
     this.attachTranslations(post, translationsMap);
 
     return post;
+  }
+
+  async findRelated(slug: string, limit = 3): Promise<BlogPostEntity[]> {
+    const decodedSlug = decodeURIComponent(slug);
+    const post = await this.blogPostRepository.findOne({
+      where: { slug: decodedSlug },
+      select: ['id', 'categoryId'],
+    });
+
+    if (!post) return [];
+
+    const qb = this.blogPostRepository
+      .createQueryBuilder('post')
+      .leftJoinAndSelect('post.featuredImage', 'featuredImage')
+      .leftJoinAndSelect('post.tags', 'tags')
+      .where('post.isPublished = :isPublished', { isPublished: true })
+      .andWhere('post.slug != :slug', { slug: decodedSlug })
+      .andWhere('post.categoryId = :categoryId', { categoryId: post.categoryId })
+      .orderBy('post.publishedAt', 'DESC')
+      .take(limit);
+
+    const data = await qb.getMany();
+    const translationsMap = await this.loadTranslationsForPosts(data);
+    return data.map((p) => this.attachTranslations(p, translationsMap));
   }
 
   async findBySlug(slug: string): Promise<BlogPostEntity> {

@@ -37,6 +37,12 @@ const { data: seo } = useFetch(
   { server: true, default: () => null },
 );
 
+// Related posts
+const { data: related } = useFetch(
+  `${apiBase.value}/cms/blog/posts/public/${encodeURIComponent(slug.value)}/related?limit=3`,
+  { server: true, default: () => [] },
+);
+
 const title = computed(
   () => translations.value?.title?.value || post.value?.slug || "",
 );
@@ -64,6 +70,10 @@ function onContentClick(e: MouseEvent) {
     lightboxAlt.value = target.getAttribute("alt") || "";
     showLightbox.value = true;
   }
+}
+
+function getRelatedTitle(post: any): string {
+  return (post.translations?.[lang.value]?.title || post.slug || '');
 }
 </script>
 
@@ -98,6 +108,32 @@ function onContentClick(e: MouseEvent) {
 
       <div class="prose prose-lg max-w-none blog-content" v-html="content" @click="onContentClick"/>
     </article>
+
+    <!-- Related Posts -->
+    <section v-if="related?.length" class="mt-16 border-t pt-8">
+      <h2 class="text-2xl font-bold mb-6">Artículos relacionados</h2>
+      <div class="grid md:grid-cols-3 gap-6">
+        <article v-for="r in related" :key="r.id" class="card bg-base-100 shadow-md">
+          <figure v-if="r.featuredImage" class="h-40">
+            <img
+              :src="r.featuredImage.url || `${config.public.apiUrl}${r.featuredImage.path}`"
+              :alt="r.translations?.title || r.slug"
+              class="w-full h-full object-cover"
+            >
+          </figure>
+          <div class="card-body p-4">
+            <h3 class="card-title text-base">
+              <NuxtLink :to="`/blog/${r.slug}`" class="hover:text-primary">
+                {{ getRelatedTitle(r) }}
+              </NuxtLink>
+            </h3>
+            <p class="text-xs text-base-content/60">
+              {{ r.publishedAt ? new Date(r.publishedAt).toLocaleDateString(lang, { year: 'numeric', month: 'long', day: 'numeric' }) : '' }}
+            </p>
+          </div>
+        </article>
+      </div>
+    </section>
   </div>
 
   <ImageLightbox :src="lightboxSrc" :alt="lightboxAlt" :visible="showLightbox" @close="showLightbox = false" />
