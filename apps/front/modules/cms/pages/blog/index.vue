@@ -40,6 +40,9 @@ const selectedTags = computed({
   },
 })
 
+const getTrans = (post: any) => {
+  return (post.translations?.[lang] || {}) as Record<string, string>;
+};
 const { fetchPostsPublic } = useCmsBlogPosts()
 const { fetchTagsPublic, tags: allTags } = useCmsTags()
 
@@ -149,7 +152,7 @@ const tagItems = computed(() => {
         <figure v-if="post.featuredImage" class="relative">
           <img
             :src="post.featuredImage.url || `${config.public.apiUrl}${post.featuredImage.path}`"
-            :alt="post.translations?.title || post.slug"
+            :alt="getTrans(post).title || post.slug"
             class="w-full h-48 object-cover"
           >
         </figure>
@@ -165,7 +168,7 @@ const tagItems = computed(() => {
 
           <h2 class="card-title text-lg">
             <NuxtLink :to="localePath(`/blog/${post.slug}`)" class="hover:text-primary">
-              {{ post.translations?.title || post.slug }}
+              {{ getTrans(post).title || post.slug }}
             </NuxtLink>
           </h2>
 
@@ -173,15 +176,15 @@ const tagItems = computed(() => {
             <span v-if="post.publishedAt">
               {{ new Date(post.publishedAt).toLocaleDateString(lang, { year: 'numeric', month: 'long', day: 'numeric' }) }}
             </span>
-            <span v-if="post.translations?.content" class="text-base-content/50">
-              · {{ useReadingTime(post.translations.content) }} min de lectura
+            <span v-if="getTrans(post).content" class="text-base-content/50">
+              · {{ useReadingTime(getTrans(post).content) }} min de lectura
             </span>
           </p>
 
-          <p v-if="post.translations?.excerpt" class="text-sm text-base-content/80 line-clamp-3">
-            {{ post.translations.excerpt }}
+          <p v-if="getTrans(post).excerpt" class="text-sm text-base-content/80 line-clamp-3">
+            {{ getTrans(post).excerpt }}
           </p>
-          <p v-else-if="post.translations?.content" class="text-sm text-base-content/80 line-clamp-2" v-html="post.translations.content.replace(/<[^>]+>/g, '').slice(0, 200) + '...'" />
+          <p v-else-if="getTrans(post).content" class="text-sm text-base-content/80 line-clamp-2" v-html="getTrans(post).content.replace(/<[^>]+>/g, '').slice(0, 200) + '...'" />
 
           <div v-if="post.tags?.length" class="flex flex-wrap gap-1 mt-3">
             <NuxtLink

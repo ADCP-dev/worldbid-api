@@ -200,6 +200,14 @@
       "sessions": 0,
       "memories": 0,
       "prompts": 1
+    },
+    {
+      "id": "79e198a1",
+      "created_by": "YO",
+      "created_at": "2026-05-15T13:34:42Z",
+      "sessions": 0,
+      "memories": 0,
+      "prompts": 1
     }
   ]
 }
