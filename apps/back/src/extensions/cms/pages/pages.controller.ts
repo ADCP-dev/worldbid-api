@@ -23,10 +23,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '@iam/roles/roles.guard';
 
 @ApiTags('CMS Pages')
-@Controller({
-  path: 'cms/pages',
-  version: '1',
-})
+@Controller('v1/cms/pages')
 export class PagesController {
   constructor(private readonly pagesService: PagesService) {}
 

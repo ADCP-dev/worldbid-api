@@ -23,10 +23,7 @@ import { RolesGuard } from '@iam/roles/roles.guard';
 @ApiBearerAuth()
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 @ApiTags('CMS Blog Categories')
-@Controller({
-  path: 'cms/blog/categories',
-  version: '1',
-})
+@Controller('v1/cms/blog/categories')
 export class BlogCategoriesController {
   constructor(private readonly categoriesService: BlogCategoriesService) {}
 

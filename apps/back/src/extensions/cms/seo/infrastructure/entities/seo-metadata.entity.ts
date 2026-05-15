@@ -30,8 +30,16 @@ export class SeoMetadataEntity extends EntityRelationalHelper {
   id: string;
 
   @Index()
-  @Column({ type: 'uuid' })
-  pageId: string;
+  @Column({ type: 'uuid', nullable: true })
+  pageId: string | null;
+
+  @Index()
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  entityName?: string | null;
+
+  @Index()
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  entityId?: string | null;
 
   @Index()
   @Column({ type: String, length: 10 })
@@ -66,7 +74,14 @@ export class SeoMetadataEntity extends EntityRelationalHelper {
   customJsonLd: Record<string, any> | null;
 
   @Column({ type: 'varchar', length: 20, nullable: true })
-  type?: 'WebPage' | 'Article' | 'WebSite' | 'BlogPosting' | 'Organization' | 'Product' | 'BreadcrumbList';
+  type?:
+    | 'WebPage'
+    | 'Article'
+    | 'WebSite'
+    | 'BlogPosting'
+    | 'Organization'
+    | 'Product'
+    | 'BreadcrumbList';
 
   @Column({ type: 'jsonb', nullable: true })
   robotsPolicy: RobotsPolicy | null;

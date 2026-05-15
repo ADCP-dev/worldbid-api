@@ -2,8 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from '@users/users.service';
 import { UserRepository } from '@users/infrastructure/user.repository';
 import { FilesService } from '@storage/files/files.service';
+import { ImageProcessingService } from '@storage/files/infrastructure/image-processing/image-processing.service';
 import { ConfigService } from '@nestjs/config';
-import { UnprocessableEntityException } from '@nestjs/common';
 import { CreateUserDto } from '@users/dto/create-user.dto';
 
 describe('UsersService', () => {
@@ -35,6 +35,19 @@ describe('UsersService', () => {
             getOrThrow: jest.fn(),
           },
         },
+        {
+          provide: 'FILE_UPLOADER_SERVICE',
+          useValue: {
+            upload: jest.fn(),
+            delete: jest.fn(),
+          },
+        },
+        {
+          provide: ImageProcessingService,
+          useValue: {
+            process: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -48,39 +61,27 @@ describe('UsersService', () => {
   });
 
   describe('create', () => {
-    it('should throw UnprocessableEntityException when photo does not exist', async () => {
+    it('should create a user when email is available', async () => {
       const createUserDto: CreateUserDto = {
         email: 'test@example.com',
         password: 'password',
         firstName: 'John',
         lastName: 'Doe',
-        photo: {
-          id: 'non-existing-id',
-          path: '',
-          isPublic: true,
-          type: 'image',
-          size: 0,
-        },
       };
 
+      const createdUser = { id: 'uuid-1', email: 'test@example.com' };
       jest.spyOn(userRepository, 'findByEmail').mockResolvedValue(null);
-      jest.spyOn(filesService, 'findById').mockResolvedValue(null);
+      jest
+        .spyOn(userRepository, 'create')
+        .mockResolvedValue(createdUser as any);
 
-      await expect(service.create(createUserDto)).rejects.toThrow(
-        UnprocessableEntityException,
+      const result = await service.create(createUserDto);
+
+      expect(userRepository.findByEmail).toHaveBeenCalledWith(
+        'test@example.com',
       );
-
-      try {
-        await service.create(createUserDto);
-      } catch (e: any) {
-        expect(e).toBeInstanceOf(UnprocessableEntityException);
-        expect(e.getResponse()).toEqual({
-          status: 422,
-          errors: {
-            photo: 'imageNotExists',
-          },
-        });
-      }
+      expect(userRepository.create).toHaveBeenCalled();
+      expect(result).toEqual(createdUser);
     });
   });
 });

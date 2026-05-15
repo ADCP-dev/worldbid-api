@@ -82,10 +82,10 @@ export class BlogPostsService {
   async create(createPostDto: CreateBlogPostDto): Promise<BlogPostEntity> {
     const { categoryId, tagIds, author, ...postData } = createPostDto;
 
-    // Auto-prepend / if missing
+    // Normalize slug: strip leading /
     let slug = postData.slug;
-    if (slug && !slug.startsWith('/')) {
-      slug = `/${slug}`;
+    if (slug && slug.startsWith('/')) {
+      slug = slug.slice(1);
       postData.slug = slug;
     }
 
@@ -156,16 +156,48 @@ export class BlogPostsService {
     };
   }
 
-  async findAllPublished(lang: string, page = 1, limit = 10) {
+  async findAllPublished(
+    lang: string,
+    page = 1,
+    limit = 10,
+    search?: string,
+    tags?: string[],
+  ) {
     const skip = (page - 1) * limit;
 
-    const [data, total] = await this.blogPostRepository.findAndCount({
-      where: { isPublished: true },
-      order: { publishedAt: 'DESC', createdAt: 'DESC' },
-      skip,
-      take: limit,
-      relations: ['featuredImage', 'author', 'category', 'tags'],
-    });
+    const qb = this.blogPostRepository
+      .createQueryBuilder('post')
+      .leftJoinAndSelect('post.featuredImage', 'featuredImage')
+      .leftJoinAndSelect('post.author', 'author')
+      .leftJoinAndSelect('post.category', 'category')
+      .leftJoinAndSelect('post.tags', 'tags')
+      .where('post.isPublished = :isPublished', { isPublished: true });
+
+    if (search) {
+      qb.andWhere(
+        `EXISTS (
+          SELECT 1 FROM translation t
+          WHERE t."entityId" = post.id
+          AND t."entityName" = 'BlogPost'
+          AND t.key = 'title'
+          AND t.content ILIKE :search
+        )`,
+        { search: `%${search}%` },
+      );
+    }
+
+    if (tags && tags.length > 0) {
+      qb.innerJoin('post.tags', 'tagFilter', 'tagFilter.slug IN (:...tags)', {
+        tags,
+      });
+    }
+
+    qb.orderBy('post.publishedAt', 'DESC')
+      .addOrderBy('post.createdAt', 'DESC')
+      .skip(skip)
+      .take(limit);
+
+    const [data, total] = await qb.getManyAndCount();
 
     const translationsMap = await this.loadTranslationsForPosts(data);
     const dataWithTranslations = data.map((post) =>
@@ -191,9 +223,11 @@ export class BlogPostsService {
     if (!post) {
       throw new NotFoundException(`Blog post with ID ${id} not found`);
     }
-
+    // Load translations for the post
     const translationsMap = await this.loadTranslationsForPosts([post]);
-    return this.attachTranslations(post, translationsMap);
+    this.attachTranslations(post, translationsMap);
+
+    return post;
   }
 
   async findBySlug(slug: string): Promise<BlogPostEntity> {

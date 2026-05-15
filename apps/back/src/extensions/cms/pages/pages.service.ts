@@ -39,9 +39,9 @@ export class PagesService {
 
     let finalSlug = slug ?? slugify(name);
 
-    // Auto-prepend / if missing
-    if (!finalSlug.startsWith('/')) {
-      finalSlug = `/${finalSlug}`;
+    // Normalize slug: strip leading /
+    if (finalSlug.startsWith('/')) {
+      finalSlug = finalSlug.slice(1);
     }
 
     // Enforce slug uniqueness

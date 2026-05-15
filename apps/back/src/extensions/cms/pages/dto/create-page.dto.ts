@@ -23,7 +23,8 @@ export class CreatePageDto {
   @IsNotEmpty()
   @IsString()
   @Matches(/^\/$|^\/?[a-z0-9-]+(\/[a-z0-9-]+)*$/, {
-    message: 'Slug must start with / and only lowercase, numbers, hyphens and slashes',
+    message:
+      'Slug must start with / and only lowercase, numbers, hyphens and slashes',
   })
   slug?: string;
 

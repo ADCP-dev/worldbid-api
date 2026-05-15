@@ -100,6 +100,46 @@ export class TagsService {
     };
   }
 
+  async findAllPublic(lang: string = 'es'): Promise<
+    Array<{
+      id: string;
+      name: string;
+      slug: string;
+      postCount: number;
+    }>
+  > {
+    const tags = await this.tagRepository
+      .createQueryBuilder('tag')
+      .leftJoin('tag.posts', 'post', 'post.isPublished = :isPublished', {
+        isPublished: true,
+      })
+      .select([
+        'tag.id as id',
+        'tag.slug as slug',
+        'tag.name as name',
+        'COUNT(post.id)::int as "postCount"',
+      ])
+      .where('tag.deletedAt IS NULL')
+      .groupBy('tag.id')
+      .orderBy('tag.name', 'ASC')
+      .getRawMany();
+
+    // Hydrate names from translations
+    for (const tag of tags) {
+      const translations =
+        await this.translationsService.getTranslationsForEntity(
+          'Tag',
+          tag.id,
+          lang,
+        );
+      if (translations['name']?.value) {
+        tag.name = translations['name'].value;
+      }
+    }
+
+    return tags;
+  }
+
   async findOne(id: string, lang?: string): Promise<TagEntity> {
     const tag = await this.tagRepository.findOne({
       where: { id, deletedAt: IsNull() },

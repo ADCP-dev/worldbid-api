@@ -15,10 +15,9 @@ import type {
   ProductSchema,
 } from './types';
 
-const APP_URL = process.env.APP_URL || 'https://example.com';
-
 // Article factory
 export function createArticleSchema(input: ArticleSchemaInput): ArticleSchema {
+  const appUrl = input.appUrl || 'https://example.com';
   return {
     '@context': 'https://schema.org',
     '@type': 'Article',
@@ -29,7 +28,7 @@ export function createArticleSchema(input: ArticleSchemaInput): ArticleSchema {
     author: input.author
       ? { '@type': 'Person', name: input.author }
       : undefined,
-    url: `${APP_URL}/blog/${input.slug}`,
+    url: `${appUrl}/blog/${input.slug}`,
   };
 }
 
@@ -65,12 +64,13 @@ export function createBreadcrumbSchema(
 
 // WebPage factory
 export function createWebPageSchema(input: WebPageSchemaInput): WebPageSchema {
+  const appUrl = input.appUrl || 'https://example.com';
   return {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     name: input.metaTitle,
     description: input.metaDescription,
-    url: `${APP_URL}/${input.slug}`,
+    url: `${appUrl}/${input.slug}`,
   };
 }
 
@@ -98,7 +98,8 @@ export function createWebSiteSchema(input: WebSiteSchemaInput): WebSiteSchema {
 export function createBlogPostingSchema(
   input: BlogPostingSchemaInput,
 ): BlogPostingSchema {
-  const url = `${APP_URL}/blog/${input.slug}`;
+  const appUrl = input.appUrl || 'https://example.com';
+  const url = `${appUrl}/blog/${input.slug}`;
   const schema: BlogPostingSchema = {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
@@ -119,7 +120,7 @@ export function createBlogPostingSchema(
       '@type': 'Organization',
       name: input.publisherName,
       logo: input.publisherLogo,
-      url: APP_URL,
+      url: appUrl,
     };
   }
   return schema;

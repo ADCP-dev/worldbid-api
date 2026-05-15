@@ -31,10 +31,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '@iam/roles/roles.guard';
 
 @ApiTags('CMS Blog Posts')
-@Controller({
-  path: 'cms/blog/posts',
-  version: '1',
-})
+@Controller('v1/cms/blog/posts')
 export class BlogPostsController {
   constructor(private readonly blogPostsService: BlogPostsService) {}
 
@@ -60,8 +57,21 @@ export class BlogPostsController {
     @Query('lang') lang: string = 'es',
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
+    @Query('search') search?: string,
+    @Query('tags') tags?: string | string[],
   ) {
-    return this.blogPostsService.findAllPublished(lang, page, limit);
+    const normalizedTags = tags
+      ? Array.isArray(tags)
+        ? tags
+        : [tags]
+      : undefined;
+    return this.blogPostsService.findAllPublished(
+      lang,
+      page,
+      limit,
+      search,
+      normalizedTags,
+    );
   }
 
   @Get('public/category/:categoryId')

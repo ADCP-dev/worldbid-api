@@ -116,6 +116,7 @@ export interface ArticleSchemaInput {
   metaDescription?: string;
   ogImage?: { url: string } | null;
   author?: string;
+  appUrl?: string;
 }
 
 export interface OrganizationSchemaInput {
@@ -133,6 +134,7 @@ export interface WebPageSchemaInput {
   slug: string;
   metaTitle?: string;
   metaDescription?: string;
+  appUrl?: string;
 }
 
 export interface WebSiteSchemaInput {
@@ -158,6 +160,7 @@ export interface BlogPostingSchemaInput {
   author?: string;
   publisherName?: string;
   publisherLogo?: string;
+  appUrl?: string;
 }
 
 // SchemaInput mapped type
