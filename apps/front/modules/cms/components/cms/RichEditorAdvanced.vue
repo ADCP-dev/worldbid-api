@@ -69,7 +69,7 @@ const showTableModal = ref(false);
 const tableRows = ref(3);
 const tableCols = ref(3);
 const tableWithHeader = ref(true);
-const fileInput = ref<HTMLInputElement | null>(null);
+const showImageDialog = ref(false);
 
 const editor = useEditor({
   content: props.modelValue || "",
@@ -88,7 +88,7 @@ const editor = useEditor({
     Image.configure({
       inline: false,
       HTMLAttributes: {
-        class: "rounded-lg max-w-full",
+        class: "rounded-lg mx-auto block max-w-md my-4",
       },
     }),
     Placeholder.configure({
@@ -146,6 +146,19 @@ const editor = useEditor({
     emit("update:modelValue", editor.getHTML());
   },
 });
+
+// Sync external modelValue changes into the editor (e.g., async translations loading)
+watch(
+  () => props.modelValue,
+  (newVal) => {
+    if (!editor.value) return;
+    const current = editor.value.getHTML();
+    const target = newVal || '';
+    if (current !== target) {
+      editor.value.commands.setContent(target);
+    }
+  },
+);
 
 async function uploadImage(file: File) {
   if (isUploading.value) return;
@@ -212,16 +225,17 @@ function unsetLink() {
 }
 
 function addImage() {
-  fileInput.value?.click();
+  showImageDialog.value = true;
 }
 
-function onFileSelected(event: Event) {
+function onImageDialogFileSelected(event: Event) {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0];
   if (file && file.type.startsWith("image/")) {
     uploadImage(file);
   }
   target.value = "";
+  showImageDialog.value = false;
 }
 
 function insertHorizontalRule() {
@@ -588,14 +602,32 @@ function clearHighlighting() {
       <span class="loading loading-spinner loading-lg"/>
     </div>
 
-    <!-- Hidden file input for image upload -->
-    <input
-      ref="fileInput"
-      type="file"
-      accept="image/*"
-      class="hidden"
-      @change="onFileSelected"
-    >
+    <!-- Image Upload Dialog -->
+    <Teleport to="body">
+      <dialog :open="showImageDialog" :class="{ 'modal modal-open': showImageDialog }" @close="showImageDialog = false">
+        <div class="modal-box max-w-sm">
+          <h3 class="text-lg font-bold mb-4">Subir imagen</h3>
+          <div class="flex flex-col items-center gap-3">
+            <label class="btn btn-primary w-full cursor-pointer">
+              Seleccionar archivo
+              <input
+                type="file"
+                accept="image/*"
+                style="position:absolute;opacity:0;width:0;height:0;overflow:hidden"
+                @change="onImageDialogFileSelected"
+              >
+            </label>
+            <span class="text-sm text-base-content/60">Formatos: JPG, PNG, WebP, GIF</span>
+          </div>
+          <div class="modal-action">
+            <button class="btn btn-ghost btn-sm" type="button" @click="showImageDialog = false">Cancelar</button>
+          </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+          <button>close</button>
+        </form>
+      </dialog>
+    </Teleport>
 
     <!-- Editor content -->
     <div class="rounded-b-lg border bg-base-100 overflow-hidden relative">
@@ -630,8 +662,11 @@ function clearHighlighting() {
 }
 .prose img {
   border-radius: 0.5rem;
-  max-width: 100%;
+  max-width: min(100%, 28rem);
   height: auto;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
 }
 .prose mark {
   background-color: #faf594;

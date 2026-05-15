@@ -6,7 +6,6 @@ import FormSelect from "@base/ui-app/components/form/FormSelect.vue";
 import FormMultipleSelect from "@base/ui-app/components/form/FormMultipleSelect.vue";
 import RichEditorAdvanced from "@cms/components/cms/RichEditorAdvanced.vue";
 import CmsSeoCard, { type SeoCardModel } from "@cms/components/cms/CmsSeoCard.vue";
-import CmsEntityTranslationsTable from "@cms/components/cms/CmsEntityTranslationsTable.vue";
 import { toast } from "vue-sonner";
 
 definePageMeta({
@@ -24,7 +23,6 @@ const {
   loading,
   error,
   updateSeo,
-  saveTranslationsBatch,
   fetchSeo,
 } = useCmsBlogPosts();
 const { tags: availableTags, fetchTags } = useCmsTags();
@@ -60,14 +58,11 @@ const seo = ref<SeoCardModel>({
   type: "Article",
 });
 
-const translations = ref<Record<string, Record<string, string>>>({});
-const isSavingTranslations = ref(false);
-
 const availableLangs = computed(() =>
   (locales.value as Array<{ code: string; name: string }>).map((l) => l.code),
 );
 
-const translationFields = ["title", "content", "slug"];
+const currentLang = ref((locales.value as Array<{ code: string }>)[0]?.code || 'es');
 
 const tagOptions = computed(() =>
   availableTags.value.map((tag) => ({
@@ -99,7 +94,7 @@ watch(
   () => form.value.title,
   (newVal) => {
     if (!slugManuallyEdited.value) {
-      form.value.slug = '/' + kebabCase(newVal);
+      form.value.slug = kebabCase(newVal);
     }
   },
 );
@@ -109,13 +104,15 @@ onMounted(async () => {
     await Promise.all([fetchTags(), fetchCategories()]);
 
     const post = await fetchPost(postId);
+    lastPost = post;
+    const trans = ((post as any).translations?.[currentLang.value] || {}) as Record<string, string>;
     form.value = {
-      title: (post as any).title || "",
+      title: trans.title || "",
       slug: post.slug || "",
-      content: (post as any).content || "",
-      author: post.author || "",
+      content: trans.content || "",
+      author: (post as any).author || "",
       categoryId: post.categoryId || "",
-      tagIds: post.tagIds || [],
+      tagIds: ((post as any).tagIds || post.tags?.map((t: any) => t.id)) || [],
       isPublished: post.isPublished || false,
       featuredImageId: post.featuredImage?.id || null,
     };
@@ -127,21 +124,9 @@ onMounted(async () => {
       };
     }
 
-    // Load translations
-    const transMap: Record<string, Record<string, string>> = {};
-    for (const lang of availableLangs.value) {
-      const langData = (post as any).translations?.[lang];
-      transMap[lang] = {
-        title: langData?.title || "",
-        content: langData?.content || "",
-        slug: langData?.slug || "",
-      };
-    }
-    translations.value = transMap;
-
     // Load SEO data from dedicated endpoint
     try {
-      const postSeo = await fetchSeo(postId, 'es');
+      const postSeo = await fetchSeo(postId, currentLang.value);
       if (postSeo) {
         seo.value = {
           metaTitle: postSeo.metaTitle || '',
@@ -160,6 +145,31 @@ onMounted(async () => {
   } catch (e) {
     console.error(e);
   }
+});
+
+// Reload translations + SEO when language changes
+let lastPost: any = null;
+watch(currentLang, async (newLang) => {
+  if (!lastPost) return;
+  const trans = (lastPost.translations?.[newLang] || {}) as Record<string, string>;
+  form.value.title = trans.title || '';
+  form.value.content = trans.content || '';
+  // Reload SEO for new language
+  try {
+    const postSeo = await fetchSeo(postId, newLang);
+    if (postSeo) {
+      seo.value = {
+        metaTitle: postSeo.metaTitle || '',
+        metaDescription: postSeo.metaDescription || '',
+        metaKeywords: postSeo.metaKeywords || [],
+        canonicalUrl: postSeo.canonicalUrl || '',
+        ogImageId: postSeo.ogImageId || postSeo.ogImage?.id || null,
+        ogImageUrl: postSeo.ogImage?.url || null,
+        type: postSeo.type || 'Article',
+        customJsonLd: postSeo.customJsonLd || null,
+      };
+    }
+  } catch (_) { /* optional */ }
 });
 
 const handleCoverUpload = async (event: Event) => {
@@ -198,7 +208,7 @@ const handleCoverUpload = async (event: Event) => {
     const result = await response.json();
     featuredImage.value = {
       id: result.id || result.featuredImage?.id,
-      url: result.url || result.featuredImage?.url,
+      url: (result.url || result.featuredImage?.url)?.startsWith("/") ? `${useRuntimeConfig().public.apiUrl}${result.url || result.featuredImage?.url}` : (result.url || result.featuredImage?.url),
     };
     previewImage.value = null;
   } catch (e) {
@@ -251,11 +261,30 @@ const handleSubmit = async () => {
       isPublished: form.value.isPublished,
     });
 
-    if (seo.value.metaTitle || seo.value.metaDescription) {
-      await updateSeo(postId, seo.value, 'es');
-    }
+    // Save translations (title, content)
+    const authStore = useAuthStore();
+    const config = useRuntimeConfig();
+    const baseUrl = `${config.public.apiUrl}${config.public.apiPrefix}`;
+    await fetch(`${baseUrl}/translations/dynamic/batch`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${authStore.token}`,
+      },
+      body: JSON.stringify({
+        entityName: 'BlogPost',
+        entityId: postId,
+        lang: currentLang.value,
+        translations: [
+          { section: 'default', key: 'title', value: form.value.title },
+          { section: 'default', key: 'content', value: form.value.content },
+        ],
+      }),
+    });
 
-    await handleSaveTranslations();
+    if (seo.value.metaTitle || seo.value.metaDescription) {
+      await updateSeo(postId, seo.value, currentLang.value);
+    }
 
     toast.success("Post actualizado correctamente");
     router.push("/app/cms/blog/posts");
@@ -274,28 +303,6 @@ const handleDelete = async () => {
   }
 };
 
-const handleSaveTranslations = async () => {
-  isSavingTranslations.value = true;
-  try {
-    for (const lang of availableLangs.value) {
-      const langData = translations.value[lang] || {};
-      const items = translationFields
-        .map((key) => ({
-          section: key,
-          key,
-          value: langData[key] || (form.value as Record<string, any>)[key] || '',
-        }))
-        .filter((item) => item.value.trim());
-      if (items.length > 0) {
-        await saveTranslationsBatch(postId, lang, items);
-      }
-    }
-  } catch (e) {
-    console.error("Error saving translations:", e);
-  } finally {
-    isSavingTranslations.value = false;
-  }
-};
 </script>
 
 <template>
@@ -321,6 +328,20 @@ const handleSaveTranslations = async () => {
     </div>
 
     <form class="space-y-6" @submit.prevent="handleSubmit">
+      <!-- Language Selector -->
+      <div class="card bg-base-100 shadow-sm border">
+        <div class="card-body py-3">
+          <div class="flex items-center gap-3">
+            <span class="text-sm font-medium">Idioma:</span>
+            <select v-model="currentLang" class="select select-bordered select-sm">
+              <option v-for="lang in availableLangs" :key="lang" :value="lang">
+                {{ lang.toUpperCase() }}
+              </option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       <!-- Title + Slug -->
       <div class="card bg-base-100 shadow-sm border">
         <div class="card-body">
@@ -390,6 +411,21 @@ const handleSaveTranslations = async () => {
         </div>
       </div>
 
+      <!-- SEO (collapsible) -->
+      <div class="collapse collapse-arrow bg-base-100 shadow-sm border">
+        <input type="checkbox" />
+        <div class="collapse-title text-lg font-medium">
+          SEO
+        </div>
+        <div class="collapse-content">
+          <CmsSeoCard
+            v-model="seo"
+            entity-type="BlogPost"
+            :entity-id="postId"
+          />
+        </div>
+      </div>
+
       <!-- Content + Details -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Content -->
@@ -456,82 +492,13 @@ const handleSaveTranslations = async () => {
       </div>
 
       <!-- Preview Modal -->
-      <div
-        v-if="showPreviewModal"
-        class="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-2"
-        @click.self="showPreviewModal = false"
-      >
-        <div class="bg-base-100 w-full h-full flex flex-col rounded-lg overflow-hidden">
-          <div class="flex justify-between items-center p-4 border-b">
-            <h3 class="text-xl font-bold">
-              Vista previa
-            </h3>
-            <button
-              type="button"
-              class="btn btn-sm btn-ghost"
-              @click="showPreviewModal = false"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          <div class="flex-1 flex overflow-hidden">
-            <div class="w-1/2 border-r overflow-hidden flex flex-col">
-              <div class="bg-base-200 px-3 py-2 text-xs font-semibold text-base-content/60 uppercase tracking-wider">
-                Fuente
-              </div>
-              <div class="flex-1 overflow-y-auto p-2">
-                <RichEditorAdvanced
-                  v-model="form.content"
-                  entity-name="BlogPost"
-                  :entity-id="postId"
-                  class="min-h-full"
-                />
-              </div>
-            </div>
-            <div class="w-1/2 overflow-hidden flex flex-col bg-base-200">
-              <div class="bg-base-200 px-3 py-2 text-xs font-semibold text-base-content/60 uppercase tracking-wider">
-                Renderizado
-              </div>
-              <div class="flex-1 overflow-y-auto p-2">
-                <div class="prose max-w-none bg-base-100 p-6 rounded-lg shadow-sm min-h-full">
-                  <div v-if="form.title" class="mb-6">
-                    <h1 class="text-3xl font-bold mb-4">{{ form.title }}</h1>
-                  </div>
-                  <div v-if="form.content" v-html="form.content"/>
-                  <p v-else class="text-base-content/40 italic">El contenido aparecerá aquí...</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="flex justify-end gap-2 px-4 py-2 border-t bg-base-100">
-            <button type="button" class="btn btn-sm btn-ghost" @click="showPreviewModal = false">
-              Cerrar
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- SEO Card -->
-      <CmsSeoCard
-        v-model="seo"
-        entity-type="BlogPost"
-        :entity-id="postId"
+      <BlogPostPreview
+        :visible="showPreviewModal"
+        :title="form.title"
+        :content="form.content"
+        :post-id="postId"
+        @close="showPreviewModal = false"
       />
-
-      <!-- Translations Table -->
-      <div class="card bg-base-100 shadow-sm border">
-        <div class="card-body">
-          <h3 class="card-title text-lg border-b pb-2 mb-4">
-            Traducciones
-          </h3>
-          <CmsEntityTranslationsTable
-            :endpoint="`translations?filter[entityName]=BlogPost&filter[entityId]=${postId}`"
-            table-name="blog-post-translations-table"
-          />
-        </div>
-      </div>
 
       <div v-if="error" class="alert alert-error">
         {{ error }}

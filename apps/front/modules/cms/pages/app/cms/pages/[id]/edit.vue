@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { z } from "zod";
 import { pageSchema } from "@cms/schemas/page.schema";
-import FormTextArea from "@base/ui-app/components/form/FormTextArea.vue";
 import CmsSeoCard, { type SeoCardModel } from "@cms/components/cms/CmsSeoCard.vue";
 import CmsEntityTranslationsTable from "@cms/components/cms/CmsEntityTranslationsTable.vue";
 import { toast } from "vue-sonner";
@@ -11,10 +10,15 @@ definePageMeta({
   middleware: "auth",
 });
 
-const { t } = useI18n();
+const { locale, locales } = useI18n();
 const router = useRouter();
 const route = useRoute();
-const { fetchPage, updatePage, deletePage, loading, updateSeo, saveTranslation, fetchSeo } = useCmsPages();
+const { fetchPage, updatePage, deletePage, loading, updateSeo, fetchSeo } = useCmsPages();
+
+const availableLangs = computed(() =>
+  (locales.value as Array<{ code: string }>).map((l) => l.code),
+);
+const currentLang = ref((locales.value as Array<{ code: string }>)[0]?.code || 'es');
 
 const pageId = route.params.id as string;
 
@@ -89,7 +93,7 @@ onMounted(async () => {
 
     // Load SEO data from dedicated endpoint
     try {
-      const pageSeo = await fetchSeo(pageId, 'es');
+      const pageSeo = await fetchSeo(pageId, currentLang.value);
       if (pageSeo) {
         seo.value = {
           metaTitle: pageSeo.metaTitle || '',
@@ -135,16 +139,7 @@ const handleSubmit = async () => {
     });
 
     if (seo.value.metaTitle || seo.value.metaDescription) {
-      await updateSeo(pageId, seo.value, 'es');
-    }
-
-    if (form.value.description) {
-      await saveTranslation(
-        `page.${form.value.name}`,
-        'es',
-        'description',
-        form.value.description,
-      );
+      await updateSeo(pageId, seo.value, currentLang.value);
     }
 
     toast.success("Página actualizada correctamente");
@@ -200,6 +195,20 @@ const handleDelete = async () => {
     </div>
 
     <form class="space-y-6" @submit.prevent="handleSubmit">
+      <!-- Language Selector -->
+      <div class="card bg-base-100 shadow-sm border">
+        <div class="card-body py-3">
+          <div class="flex items-center gap-3">
+            <span class="text-sm font-medium">Idioma:</span>
+            <select v-model="currentLang" class="select select-bordered select-sm">
+              <option v-for="lang in availableLangs" :key="lang" :value="lang">
+                {{ lang.toUpperCase() }}
+              </option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       <!-- Name + Slug + Author Card -->
       <div class="card bg-base-100 shadow-sm border">
         <div class="card-body">
@@ -225,15 +234,19 @@ const handleDelete = async () => {
         </div>
       </div>
 
-      <!-- Description Card -->
+      <!-- Description — internal note only, not translatable -->
       <div class="card bg-base-100 shadow-sm border">
         <div class="card-body">
-          <h3 class="card-title text-lg border-b pb-2 mb-4">Descripción</h3>
-          <FormTextArea
-            v-model="form.description"
-            label="Descripción"
-            :rows="4"
-          />
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text text-xs text-base-content/60">Descripción interna</span>
+            </label>
+            <textarea
+              v-model="form.description"
+              class="textarea textarea-bordered text-sm h-16"
+              placeholder="Nota interna, no visible en el sitio"
+            />
+          </div>
         </div>
       </div>
 

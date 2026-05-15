@@ -32,12 +32,11 @@ const languages = [
   { code: "en", label: "English", flag: "🇬🇧" },
 ];
 
-const translations = ref<Record<string, { name: string; description: string }>>({
-  es: { name: "", description: "" },
-  en: { name: "", description: "" },
+const translations = ref<Record<string, { name: string; description: string; slug: string }>>({
+  es: { name: "", description: "", slug: "" },
+  en: { name: "", description: "", slug: "" },
 });
 
-const slug = ref("");
 const parentId = ref<string | null>(null);
 
 function kebabCase(str: string): string {
@@ -50,14 +49,16 @@ function kebabCase(str: string): string {
     .replace(/-+/g, "-");
 }
 
-// Auto-generate slug from Spanish name
-const slugManuallyEdited = false;
+// Auto-generate slug from name per language
+const slugManuallyEdited = ref<Record<string, boolean>>({});
 watch(
-  () => translations.value.es.name,
-  (newVal) => {
-    if (!slugManuallyEdited || !slug.value) {
-      slug.value = kebabCase(newVal);
-    }
+  () => languages.map(l => translations.value[l.code]?.name),
+  (newVals) => {
+    languages.forEach((lang, i) => {
+      if (!slugManuallyEdited.value[lang.code]) {
+        translations.value[lang.code].slug = kebabCase(newVals[i] || '');
+      }
+    });
   },
 );
 
@@ -68,7 +69,7 @@ onMounted(async () => {
     
     translations.value.es.name = category.name || "";
     translations.value.es.description = category.description || "";
-    slug.value = category.slug || "";
+    translations.value.es.slug = category.slug || "";
     parentId.value = category.parentId || null;
     
     // TODO: Fetch translations for other languages when API supports it
@@ -92,7 +93,7 @@ const toggleAll = () => {
 const handleSubmit = async () => {
   const dataToValidate = {
     name: translations.value.es.name,
-    slug: slug.value,
+    slug: translations.value.es.slug,
   };
 
   const result = categorySchema.safeParse(dataToValidate);
@@ -107,7 +108,7 @@ const handleSubmit = async () => {
   try {
     await updateCategory(categoryId, {
       name: translations.value.es.name,
-      slug: slug.value,
+      slug: translations.value.es.slug,
       description: translations.value.es.description || undefined,
       parentId: parentId.value,
     });
@@ -196,19 +197,15 @@ const availableParents = computed(() => {
                 :error="lang.code === 'es' ? validationErrors.name : undefined"
               />
 
-              <!-- Slug (only on default lang) -->
+              <!-- Slug per language -->
               <FormInput
-                v-if="lang.code === 'es'"
-                v-model="slug"
+                v-model="translations[lang.code].slug"
                 label="Slug"
                 placeholder="Se genera en minúsculas desde el nombre"
                 required
-                :error="validationErrors.slug"
-                @focus="slugManuallyEdited = true"
+                :error="lang.code === 'es' ? validationErrors.slug : undefined"
+                @focus="slugManuallyEdited[lang.code] = true"
               />
-              <div v-else class="text-sm text-base-content/60 bg-base-200 p-3 rounded-lg">
-                <span class="font-medium">Slug:</span> {{ slug || '—' }}
-              </div>
 
               <!-- Description -->
               <FormTextArea

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { h, computed } from "vue";
 import DataTable from "@/modules/base/ui-app/components/data-table/DataTable.vue";
-import AuthorBadge from "@cms/components/cms/AuthorBadge.vue";
 
 definePageMeta({
   layout: "default",
@@ -23,17 +22,6 @@ const columns = computed(() => [
     filterType: "string",
   },
   {
-    accessorKey: "author",
-    id: "author",
-    headerName: "Autor",
-    header: "Autor",
-    enableSorting: false,
-    filterType: "string",
-    cell: ({ row }: any) => {
-      return h(AuthorBadge);
-    },
-  },
-  {
     accessorKey: "description",
     headerName: "Descripción",
     header: "Descripción",
@@ -41,26 +29,6 @@ const columns = computed(() => [
     cell: ({ row }: any) => {
       const category = row.original;
       return h("span", {}, category.description || "—");
-    },
-  },
-  {
-    accessorKey: "tags",
-    headerName: "Etiquetas",
-    header: "Etiquetas",
-    enableSorting: false,
-    filterType: "string",
-    cell: ({ row }: any) => {
-      const category = row.original;
-      if (!category.tags?.length) {
-        return h("span", { class: "text-gray-400" }, "—");
-      }
-      return h(
-        "div",
-        { class: "flex gap-1 flex-wrap" },
-        category.tags.map((tag: any) =>
-          h("span", { class: "badge badge-sm badge-outline" }, tag.name),
-        ),
-      );
     },
   },
 

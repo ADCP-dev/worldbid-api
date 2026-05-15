@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { h, computed } from "vue";
 import DataTable from "@/modules/base/ui-app/components/data-table/DataTable.vue";
-import AuthorBadge from "@cms/components/cms/AuthorBadge.vue";
 
 definePageMeta({
   layout: "default",
@@ -17,21 +16,7 @@ const columns = computed(() => [
     header: "Nombre",
     filterType: "string",
   },
-  {
-    accessorKey: "author",
-    id: "author",
-    headerName: "Autor",
-    header: "Autor",
-    enableSorting: false,
-    filterType: "string",
-    cell: ({ row }: any) => {
-      const tag = row.original;
-      return h(AuthorBadge, {
-        authorName: tag.author?.name || tag.createdBy,
-        createdAt: tag.createdAt,
-      });
-    },
-  },
+
 
 ]);
 </script>
