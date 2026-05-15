@@ -158,18 +158,16 @@ watch(currentLang, async (newLang) => {
   // Reload SEO for new language
   try {
     const postSeo = await fetchSeo(postId, newLang);
-    if (postSeo) {
-      seo.value = {
-        metaTitle: postSeo.metaTitle || '',
-        metaDescription: postSeo.metaDescription || '',
-        metaKeywords: postSeo.metaKeywords || [],
-        canonicalUrl: postSeo.canonicalUrl || '',
-        ogImageId: postSeo.ogImageId || postSeo.ogImage?.id || null,
-        ogImageUrl: postSeo.ogImage?.url || null,
-        type: postSeo.type || 'Article',
-        customJsonLd: postSeo.customJsonLd || null,
-      };
-    }
+    seo.value = {
+      metaTitle: postSeo?.metaTitle || '',
+      metaDescription: postSeo?.metaDescription || '',
+      metaKeywords: postSeo?.metaKeywords || [],
+      canonicalUrl: postSeo?.canonicalUrl || '',
+      ogImageId: postSeo?.ogImageId || postSeo?.ogImage?.id || null,
+      ogImageUrl: postSeo?.ogImage?.url || null,
+      type: postSeo?.type || 'Article',
+      customJsonLd: postSeo?.customJsonLd || null,
+    };
   } catch (_) { /* optional */ }
 });
 

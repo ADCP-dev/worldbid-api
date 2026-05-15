@@ -21,6 +21,7 @@ const availableLangs = computed(() =>
 const currentLang = ref((locales.value as Array<{ code: string }>)[0]?.code || 'es');
 
 const pageId = route.params.id as string;
+let lastPage: any = null;
 
 const seo = ref<SeoCardModel>({
   metaTitle: "",
@@ -74,7 +75,7 @@ watch(
   () => form.value.name,
   (newName) => {
     if (!slugManuallyEdited) {
-      form.value.slug = '/' + kebabCase(newName);
+      form.value.slug = kebabCase(newName);
     }
   },
 );
@@ -82,6 +83,7 @@ watch(
 onMounted(async () => {
   try {
     const page = await fetchPage(pageId);
+    lastPage = page;
 
     form.value = {
       name: page.name || "",
@@ -114,6 +116,23 @@ onMounted(async () => {
   }
 });
 
+// Reload SEO when language changes
+watch(currentLang, async (newLang) => {
+  try {
+    const pageSeo = await fetchSeo(pageId, newLang);
+    seo.value = {
+      metaTitle: pageSeo?.metaTitle || '',
+      metaDescription: pageSeo?.metaDescription || '',
+      metaKeywords: pageSeo?.metaKeywords || [],
+      canonicalUrl: pageSeo?.canonicalUrl || '',
+      ogImageId: pageSeo?.ogImageId || pageSeo?.ogImage?.id || null,
+      ogImageUrl: pageSeo?.ogImage?.url || null,
+      type: pageSeo?.type || 'WebPage',
+      customJsonLd: pageSeo?.customJsonLd || null,
+    };
+  } catch (_) { /* optional */ }
+});
+
 const handleSubmit = async () => {
   const dataToValidate = {
     name: form.value.name,
@@ -143,7 +162,8 @@ const handleSubmit = async () => {
     }
 
     toast.success("Página actualizada correctamente");
-    router.push("/app/cms/pages");
+    const updatedPage = await fetchPage(pageId);
+    lastPage = updatedPage;
   } catch (e) {
     toast.error((e as any)?.message || "Error al guardar");
   }
