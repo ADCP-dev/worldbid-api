@@ -1,9 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { fetchWrapper } from '@/helpers/fetch-wrapper'
 
-const runtimeConfig = useRuntimeConfig()
-const baseUrl = `${runtimeConfig.public.apiUrl}${runtimeConfig.public.apiPrefix}`
-
 export interface CmsPage {
   id: string
   slug: string
@@ -52,6 +49,8 @@ export interface CmsSeoMetadata {
 
 export function useCmsPages() {
   const queryClient = useQueryClient()
+  const runtimeConfig = useRuntimeConfig()
+  const baseUrl = `${runtimeConfig.public.apiUrl}${runtimeConfig.public.apiPrefix}`
   const pages = ref<CmsPage[]>([])
   const currentPage = ref<CmsPageWithTranslations | null>(null)
   const loading = ref(false)

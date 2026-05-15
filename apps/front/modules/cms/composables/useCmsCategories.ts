@@ -1,9 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { fetchWrapper } from '@/helpers/fetch-wrapper'
 
-const runtimeConfig = useRuntimeConfig()
-const baseUrl = `${runtimeConfig.public.apiUrl}${runtimeConfig.public.apiPrefix}`
-
 export interface CmsCategory {
   id: string
   name: string
@@ -20,6 +17,8 @@ export interface CmsCategoryTree extends CmsCategory {
 
 export function useCmsCategories() {
   const queryClient = useQueryClient()
+  const runtimeConfig = useRuntimeConfig()
+  const baseUrl = `${runtimeConfig.public.apiUrl}${runtimeConfig.public.apiPrefix}`
   const categories = ref<CmsCategory[]>([])
   const currentCategory = ref<CmsCategory | null>(null)
   const categoryTree = ref<CmsCategoryTree[]>([])

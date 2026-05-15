@@ -20,8 +20,15 @@ import type {
   ProductSchemaInput,
 } from '../types/json-ld';
 
-// Application URL - should come from runtime config in production
-const APP_URL = 'https://example.com';
+// Application URL - comes from runtime config
+function getAppUrl(): string {
+  try {
+    const config = useRuntimeConfig();
+    return config.public.apiUrl || 'https://example.com';
+  } catch {
+    return 'https://example.com';
+  }
+}
 
 /**
  * Create an Article schema (BlogPost, NewsArticle, etc.)
@@ -38,7 +45,7 @@ export function createArticleSchema(input: ArticleSchemaInput): ArticleSchema {
     author: input.author
       ? { '@type': 'Person', name: input.author }
       : undefined,
-    url: `${APP_URL}/blog/${input.slug}`,
+    url: `${getAppUrl()}/blog/${input.slug}`,
   };
 }
 
@@ -89,7 +96,7 @@ export function createWebPageSchema(input: WebPageSchemaInput): WebPageSchema {
     '@type': 'WebPage',
     name: input.metaTitle,
     description: input.metaDescription,
-    url: `${APP_URL}/${input.slug}`,
+    url: `${getAppUrl()}/${input.slug}`,
   };
 }
 

@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import CmsSeoMeta from "@cms/components/cms/CmsSeoMeta.vue";
 
-const route = useRoute();
+const route = useRoute()
+const { locale } = useI18n();
 const config = useRuntimeConfig();
-const lang = computed(() => (route.params.lang as string) || "es");
+const lang = computed(() => locale.value);
 const slug = computed(() => route.params.slug as string);
 
 const { data: page, error } = await useFetch(

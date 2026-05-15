@@ -42,7 +42,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const config = useRuntimeConfig();
-const appUrl = config.public.appUrl || 'https://example.com';
+const appUrl = config.public.apiUrl || 'https://example.com';
 
 // Use i18n for locale-aware meta
 const { locale, locales } = useI18n();

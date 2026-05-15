@@ -31,7 +31,7 @@ export interface HreflangLinkOutput {
 export function useSeo() {
   const config = useRuntimeConfig();
   const { locale, locales } = useI18n();
-  const appUrl = config.public.appUrl || 'https://example.com';
+  const appUrl = config.public.apiUrl || 'https://example.com';
 
   // Get active locales from i18n configuration
   const activeLocales = computed<Array<{ code: string }>>(() => {

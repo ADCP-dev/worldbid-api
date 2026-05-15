@@ -5,11 +5,10 @@ import { fetchWrapper } from '@/helpers/fetch-wrapper'
 
 export type { CmsTag }
 
-const runtimeConfig = useRuntimeConfig()
-const baseUrl = `${runtimeConfig.public.apiUrl}${runtimeConfig.public.apiPrefix}`
-
 export function useCmsTags() {
   const queryClient = useQueryClient()
+  const runtimeConfig = useRuntimeConfig()
+  const baseUrl = `${runtimeConfig.public.apiUrl}${runtimeConfig.public.apiPrefix}`
   const tags = ref<CmsTag[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
@@ -27,12 +26,30 @@ export function useCmsTags() {
 
       const result = await queryClient.fetchQuery({
         queryKey: ['cms', 'tags', query],
-        queryFn: () => fetchWrapper.get(`${baseUrl}/cms/tags?${params}`),
+        queryFn: () => fetchWrapper.get(`${baseUrl}/cms/blog/tags?${params}`),
       })
       tags.value = result.data || result
       return result
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Error fetching tags'
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const fetchTagsPublic = async (lang: string = 'es') => {
+    loading.value = true
+    error.value = null
+    try {
+      const result = await queryClient.fetchQuery({
+        queryKey: ['cms', 'tags', 'public', lang],
+        queryFn: () => fetchWrapper.get(`${baseUrl}/cms/blog/tags/public?lang=${lang}`),
+      })
+      tags.value = result || []
+      return result
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : 'Error fetching public tags'
       throw e
     } finally {
       loading.value = false
@@ -126,6 +143,7 @@ export function useCmsTags() {
     loading,
     error,
     fetchTags,
+    fetchTagsPublic,
     createTag,
     updateTag,
     deleteTag,

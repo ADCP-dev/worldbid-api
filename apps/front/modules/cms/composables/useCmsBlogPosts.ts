@@ -6,9 +6,6 @@ import { fetchWrapper } from '@/helpers/fetch-wrapper'
 
 export type { CmsTag }
 
-const runtimeConfig = useRuntimeConfig()
-const baseUrl = `${runtimeConfig.public.apiUrl}${runtimeConfig.public.apiPrefix}`
-
 export interface CmsBlogPost {
   id: string
   slug: string
@@ -44,8 +41,19 @@ export interface CmsBlogPostWithTranslations extends CmsBlogPost {
   }
 }
 
+export interface FetchPostsPublicParams {
+  lang?: string
+  page?: number
+  limit?: number
+  search?: string
+  tags?: string[]
+  categoryId?: string
+}
+
 export function useCmsBlogPosts() {
   const queryClient = useQueryClient()
+  const runtimeConfig = useRuntimeConfig()
+  const baseUrl = `${runtimeConfig.public.apiUrl}${runtimeConfig.public.apiPrefix}`
   const posts = ref<CmsBlogPost[]>([])
   const currentPost = ref<CmsBlogPostWithTranslations | null>(null)
   const loading = ref(false)
@@ -72,6 +80,37 @@ export function useCmsBlogPosts() {
       return result
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Error fetching posts'
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const fetchPostsPublic = async (query: FetchPostsPublicParams = {}) => {
+    loading.value = true
+    error.value = null
+    try {
+      const params = new URLSearchParams()
+      if (query.lang) params.append('lang', query.lang)
+      if (query.page) params.append('page', String(query.page))
+      if (query.limit) params.append('limit', String(query.limit))
+      if (query.search) params.append('search', query.search)
+      if (query.categoryId) params.append('categoryId', query.categoryId)
+      if (query.tags?.length) {
+        for (const tag of query.tags) {
+          params.append('tags[]', tag)
+        }
+      }
+
+      const result = await queryClient.fetchQuery({
+        queryKey: ['cms', 'blog', 'posts', 'public', query],
+        queryFn: () =>
+          fetchWrapper.get(`${baseUrl}/cms/blog/posts/public?${params}`),
+      })
+      posts.value = result.data || result
+      return result
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : 'Error fetching public posts'
       throw e
     } finally {
       loading.value = false
@@ -245,7 +284,6 @@ export function useCmsBlogPosts() {
         content: value,
       })
     } catch (e) {
-      console.error('Error saving translation:', e)
       throw e
     }
   }
@@ -255,6 +293,17 @@ export function useCmsBlogPosts() {
       return await queryClient.fetchQuery({
         queryKey: ['cms', 'seo', pageId, lang],
         queryFn: () => fetchWrapper.get(`${baseUrl}/cms/seo/${pageId}?lang=${lang}`),
+      })
+    } catch (e) {
+      return null
+    }
+  }
+
+  const fetchSeoForEntity = async (entityName: string, entityId: string, lang: string = 'es') => {
+    try {
+      return await queryClient.fetchQuery({
+        queryKey: ['cms', 'seo', entityName, entityId, lang],
+        queryFn: () => fetchWrapper.get(`${baseUrl}/cms/seo/${entityName}/${entityId}?lang=${lang}`),
       })
     } catch (e) {
       return null
@@ -339,7 +388,7 @@ export function useCmsBlogPosts() {
 
   const fetchPostsByCategory = async (
     categoryId: string,
-    query: { page?: number; limit?: number } = {},
+    query: { page?: number; limit?: number; lang?: string } = {},
   ) => {
     loading.value = true
     error.value = null
@@ -348,6 +397,7 @@ export function useCmsBlogPosts() {
       params.append('categoryId', categoryId)
       if (query.page) params.append('page', String(query.page))
       if (query.limit) params.append('limit', String(query.limit))
+      if (query.lang) params.append('lang', query.lang)
 
       const result = await queryClient.fetchQuery({
         queryKey: ['cms', 'blog', 'posts', 'category', categoryId, query],
@@ -373,6 +423,7 @@ export function useCmsBlogPosts() {
     loading,
     error,
     fetchPosts,
+    fetchPostsPublic,
     fetchPostsByCategory,
     fetchPost,
     createPost,
@@ -384,6 +435,7 @@ export function useCmsBlogPosts() {
     saveTranslation,
     saveTranslationsBatch,
     fetchSeo,
+    fetchSeoForEntity,
     updateSeo,
     fetchMediaByEntity,
   }

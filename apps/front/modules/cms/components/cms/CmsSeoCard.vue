@@ -92,14 +92,15 @@ async function handleImageUpload(event: Event) {
     });
 
     if (!response.ok) {
-      throw new Error(`Upload failed: ${response.statusText}`);
+      const body = await response.text().catch(() => '');
+      throw new Error(`Upload failed (${response.status}): ${response.statusText}${body ? ' - ' + body : ''}`);
     }
 
     const result = await response.json();
     local.value = {
       ...local.value,
-      ogImageId: result.id,
-      ogImageUrl: result.url,
+      ogImageId: result.id || result.file?.id,
+      ogImageUrl: result.url || result.file?.url,
     };
   } catch (e) {
     uploadError.value = e instanceof Error ? e.message : "Error uploading image";
