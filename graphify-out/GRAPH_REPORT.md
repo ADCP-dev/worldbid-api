@@ -1,11 +1,11 @@
 # Graph Report - foundation  (2026-05-15)
 
 ## Corpus Check
-- 476 files · ~180,214 words
+- 476 files · ~180,224 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1342 nodes · 1540 edges · 151 communities detected
+- 1343 nodes · 1542 edges · 151 communities detected
 - Extraction: 69% EXTRACTED · 31% INFERRED · 0% AMBIGUOUS · INFERRED: 475 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
@@ -189,24 +189,24 @@
 ## Communities
 
 ### Community 0 - "Community 0"
-Cohesion: 0.05
-Nodes (45): checkDependencies(), extractArchive(), generateMigration(), getInstalledExtensions(), loadManifest(), main(), runSeeds(), updateNuxtExtends() (+37 more)
+Cohesion: 0.04
+Nodes (10): bootstrap(), ApiKeyRepository, ApiKeysController, BlogCategoriesService, FileRepository, FilesLocalController, BlogPostsService, SessionRepository (+2 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.03
-Nodes (12): AuthAppleController, AuthController, AuthFacebookController, AuthGoogleController, AuthGoogleService, AuthService, FilesS3PresignedController, buildWhereClause() (+4 more)
-
-### Community 2 - "Community 2"
 Cohesion: 0.04
 Nodes (49): AuthAppleService, AuthFacebookService, EmailProcessor, discover_tsconfigs(), enrich_graph(), extract_backend_routes(), link_api_calls(), main() (+41 more)
 
+### Community 2 - "Community 2"
+Cohesion: 0.05
+Nodes (44): checkDependencies(), extractArchive(), generateMigration(), getInstalledExtensions(), loadManifest(), main(), runSeeds(), updateNuxtExtends() (+36 more)
+
 ### Community 3 - "Community 3"
 Cohesion: 0.04
-Nodes (9): ApiKeyRepository, ApiKeyStrategy, ApiKeysController, BlogCategoriesService, FileRepository, BlogPostsService, SessionRepository, slugify() (+1 more)
+Nodes (12): AuthAppleController, AuthController, AuthFacebookController, AuthGoogleController, AuthGoogleService, AuthService, FilesS3PresignedController, buildWhereClause() (+4 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.05
-Nodes (25): copyDir(), createZip(), ensureDir(), error(), main(), readManifest(), FileCleanupCronService, FileCleanupErrorRepository (+17 more)
+Nodes (23): copyDir(), createZip(), ensureDir(), error(), main(), readManifest(), fetchLangs(), handleBulkTranslate() (+15 more)
 
 ### Community 5 - "Community 5"
 Cohesion: 0.06
@@ -214,23 +214,23 @@ Nodes (3): PagesController, PagesService, BlogPostsController
 
 ### Community 6 - "Community 6"
 Cohesion: 0.07
-Nodes (6): generateSchema(), JsonLdSchemaRegistry, MediaController, MediaService, SeoController, SeoService
+Nodes (7): buildStoragePath(), FileLocalSubscriber, FileS3Subscriber, FilesS3Controller, FilesLocalService, FilesS3Service, ImageProcessingService
 
 ### Community 7 - "Community 7"
-Cohesion: 0.08
-Nodes (3): FilesLocalController, UsersController, UsersService
+Cohesion: 0.07
+Nodes (6): generateSchema(), JsonLdSchemaRegistry, MediaController, MediaService, SeoController, SeoService
 
 ### Community 8 - "Community 8"
 Cohesion: 0.08
 Nodes (5): ErrorTrackerController, ErrorTrackerService, GlobalExceptionFilter, Status, TestErrorController
 
 ### Community 9 - "Community 9"
-Cohesion: 0.11
-Nodes (5): buildStoragePath(), FilesS3Controller, FilesLocalService, FilesS3Service, ImageProcessingService
+Cohesion: 0.08
+Nodes (5): ApiKeyStrategy, ApiKeysService, FileCleanupCronService, FileCleanupErrorRepository, GlobalFileCleanupSubscriber
 
 ### Community 10 - "Community 10"
-Cohesion: 0.1
-Nodes (4): ApiKeysService, GlobalFileCleanupSubscriber, if(), TranslationsService
+Cohesion: 0.12
+Nodes (2): UsersController, UsersService
 
 ### Community 11 - "Community 11"
 Cohesion: 0.1
@@ -795,9 +795,11 @@ Nodes (1): StatusEntity
 ## Knowledge Gaps
 - **129 isolated node(s):** `AppModule`, `EnvironmentVariablesValidator`, `EnvironmentVariablesValidator`, `FoundationModule`, `InfrastructureModule` (+124 more)
   These have ≤1 connection - possible missing edges or undocumented components.
+- **Thin community `Community 10`** (24 nodes): `users.controller.ts`, `users.service.ts`, `UsersController`, `.constructor()`, `.create()`, `.findAll()`, `.findAllWithPagination()`, `.remove()`, `.update()`, `.uploadProfilePhoto()`, `UsersService`, `.constructor()`, `.countAll()`, `.create()`, `.findAll()`, `.findAllWithPagination()`, `.findByEmail()`, `.findById()`, `.findByIds()`, `.findBySocialIdAndProvider()`, `.remove()`, `.resolvePhoto()`, `.update()`, `.updateProfilePhoto()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 11`** (21 nodes): `infinity-pagination.ts`, `translations.controller.ts`, `infinityPagination()`, `TranslationsController`, `.batchUpsertDynamic()`, `.bulkTranslate()`, `.constructor()`, `.createLang()`, `.createTranslation()`, `.deleteLang()`, `.deleteTranslation()`, `.findAllLangs()`, `.findAllTranslations()`, `.generateJsonFiles()`, `.getExactTranslationGroup()`, `.getExactTranslationGroupByDotPath()`, `.translateEntity()`, `.translateRow()`, `.updateLang()`, `.updateTranslation()`, `.findAllTranslationsWithPagination()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 14`** (9 nodes): `categories.controller.ts`, `BlogCategoriesController`, `.constructor()`, `.create()`, `.findAll()`, `.findOne()`, `.remove()`, `.reorder()`, `.update()`
+- **Thin community `Community 14`** (10 nodes): `categories.controller.ts`, `BlogCategoriesController`, `.constructor()`, `.create()`, `.findAll()`, `.findAllPublic()`, `.findOne()`, `.remove()`, `.reorder()`, `.update()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 15`** (9 nodes): `tags.controller.ts`, `TagsController`, `.constructor()`, `.create()`, `.findAll()`, `.findAllPublic()`, `.findOne()`, `.remove()`, `.update()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
@@ -1067,12 +1069,12 @@ Nodes (1): StatusEntity
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `get()` connect `Community 2` to `Community 0`, `Community 1`, `Community 3`, `Community 4`, `Community 5`, `Community 6`, `Community 9`?**
+- **Why does `get()` connect `Community 1` to `Community 0`, `Community 2`, `Community 3`, `Community 4`, `Community 5`, `Community 6`, `Community 7`?**
   _High betweenness centrality (0.054) - this node is a cross-community bridge._
-- **Why does `error()` connect `Community 4` to `Community 0`, `Community 2`, `Community 3`, `Community 5`, `Community 8`, `Community 9`, `Community 12`?**
-  _High betweenness centrality (0.037) - this node is a cross-community bridge._
-- **Why does `log()` connect `Community 0` to `Community 2`, `Community 3`, `Community 4`, `Community 5`, `Community 7`, `Community 9`, `Community 10`, `Community 12`?**
+- **Why does `log()` connect `Community 2` to `Community 0`, `Community 1`, `Community 4`, `Community 5`, `Community 6`, `Community 9`, `Community 12`?**
   _High betweenness centrality (0.036) - this node is a cross-community bridge._
+- **Why does `error()` connect `Community 4` to `Community 0`, `Community 1`, `Community 2`, `Community 5`, `Community 6`, `Community 9`, `Community 12`?**
+  _High betweenness centrality (0.032) - this node is a cross-community bridge._
 - **Are the 57 inferred relationships involving `get()` (e.g. with `bootstrap()` and `detectRouteConflicts()`) actually correct?**
   _`get()` has 57 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 44 inferred relationships involving `log()` (e.g. with `discoverExtensionConfigs()` and `detectConflicts()`) actually correct?**

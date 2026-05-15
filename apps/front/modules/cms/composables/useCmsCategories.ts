@@ -32,7 +32,7 @@ export function useCmsCategories() {
       const result = await queryClient.fetchQuery({
         queryKey: ['cms', 'blog', 'categories', lang],
         queryFn: () =>
-          fetchWrapper.get(`${baseUrl}/cms/blog/categories?lang=${lang}`),
+          fetchWrapper.get(`${baseUrl}/cms/blog/categories/public?lang=${lang}`),
       })
       categories.value = result.data || result
       return result

@@ -42,6 +42,11 @@ export class BlogCategoriesController {
     return this.categoriesService.findAll(lang);
   }
 
+  @Get('public')
+  findAllPublic(@Query('lang') lang: string = 'es') {
+    return this.categoriesService.findAll(lang);
+  }
+
   @Get(':id')
   @Roles(RoleEnum.admin)
   @ApiParam({ name: 'id', type: String })

@@ -224,6 +224,14 @@
       "sessions": 0,
       "memories": 0,
       "prompts": 1
+    },
+    {
+      "id": "17de08ca",
+      "created_by": "YO",
+      "created_at": "2026-05-15T13:52:19Z",
+      "sessions": 0,
+      "memories": 0,
+      "prompts": 1
     }
   ]
 }
