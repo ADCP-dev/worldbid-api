@@ -1,10 +1,10 @@
 <script setup lang="ts">
-definePageMeta({ layout: "public" })
 import CmsSeoMeta from "@cms/components/cms/CmsSeoMeta.vue";
 import ImageLightbox from "@cms/components/cms/ImageLightbox.vue";
 import BlogPostCard from "@cms/components/cms/BlogPostCard.vue";
 import { useReadingTime } from "@cms/composables/useReadingTime";
 import { useCmsBlogPosts } from "@cms/composables/useCmsBlogPosts";
+definePageMeta({ layout: "public" })
 
 const route = useRoute()
 const { locale } = useI18n()
@@ -33,12 +33,6 @@ const { data: translations } = useFetch(
   { server: true, default: () => null },
 );
 
-// SEO — non-blocking
-const { data: seo } = useFetch(
-  `${apiBase.value}/cms/seo/BlogPost/${post.value?.id}?lang=${lang.value}`,
-  { server: true, default: () => null },
-);
-
 // Related posts
 const { data: related } = useFetch(
   `${apiBase.value}/cms/blog/posts/public/${encodeURIComponent(slug.value)}/related?limit=3`,
@@ -48,10 +42,6 @@ const { data: related } = useFetch(
 const title = computed(
   () => translations.value?.title?.value || post.value?.slug || "",
 );
-const content = computed(
-  () => translations.value?.content?.value || "",
-);
-
 // SEO via composable (uses same pageId as admin)
 const { fetchSeo } = useCmsBlogPosts();
 const { data: seo } = useAsyncData(
@@ -95,7 +85,8 @@ function onContentClick(e: MouseEvent) {
         <h1 class="text-4xl font-bold mb-4">{{ title }}</h1>
         <div class="flex items-center gap-4 text-base-content/70 text-sm">
           <span v-if="post.publishedAt">
-            {{ new Date(post.publishedAt).toLocaleDateString(lang, { year: 'numeric', month: 'long', day: 'numeric' }) }}
+            {{ new Date(post.publishedAt).toLocaleDateString(lang, { year: 'numeric', month: 'long', day: 'numeric' })
+            }}
           </span>
           <span v-if="content">· {{ useReadingTime(content) }} min de lectura</span>
           <span v-if="post.author"> por {{ post.author }}</span>
@@ -108,15 +99,11 @@ function onContentClick(e: MouseEvent) {
       </header>
 
       <figure v-if="post.featuredImage" class="mb-8 -mx-4 sm:mx-0">
-        <img
-          :src="post.featuredImage.url || `${config.public.apiUrl}${post.featuredImage.path}`"
-          :alt="title"
-          class="w-full object-cover rounded-none sm:rounded-lg"
-          style="max-height: 400px"
-        >
+        <img :src="post.featuredImage.url || `${config.public.apiUrl}${post.featuredImage.path}`" :alt="title"
+          class="w-full object-cover rounded-none sm:rounded-lg" style="max-height: 400px">
       </figure>
 
-      <div class="prose prose-lg max-w-none blog-content" v-html="content" @click="onContentClick"/>
+      <div class="prose prose-lg max-w-none blog-content" v-html="content" @click="onContentClick" />
     </article>
 
     <!-- Related Posts -->

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-definePageMeta({ layout: "public" })
 import CmsSeoMeta from '@cms/components/cms/CmsSeoMeta.vue'
 import SearchBox from '@cms/components/cms/SearchBox.vue'
 import TagFilter from '@cms/components/cms/TagFilter.vue'
@@ -9,6 +8,8 @@ import { useCmsBlogPosts } from '@cms/composables/useCmsBlogPosts'
 import { useCmsTags } from '@cms/composables/useCmsTags'
 import { useCmsCategories } from '@cms/composables/useCmsCategories'
 import { useReadingTime } from '@cms/composables/useReadingTime'
+
+definePageMeta({ layout: "public" })
 
 const route = useRoute()
 const { locale } = useI18n()
