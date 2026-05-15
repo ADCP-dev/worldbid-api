@@ -109,8 +109,6 @@ onMounted(async () => {
         };
       }
     } catch (_) { /* SEO fetch optional */ }
-
-    slugManuallyEdited.value = true;
   } catch (e) {
     console.error(e);
   }

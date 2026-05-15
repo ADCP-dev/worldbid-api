@@ -105,6 +105,7 @@ onMounted(async () => {
 
     const post = await fetchPost(postId);
     lastPost = post;
+    slugManuallyEdited.value = true;
     const trans = ((post as any).translations?.[currentLang.value] || {}) as Record<string, string>;
     form.value = {
       title: trans.title || "",
@@ -140,8 +141,6 @@ onMounted(async () => {
         };
       }
     } catch (_) { /* SEO fetch optional */ }
-
-    slugManuallyEdited.value = true;
   } catch (e) {
     console.error(e);
   }
