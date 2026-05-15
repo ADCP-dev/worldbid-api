@@ -2,7 +2,9 @@
 definePageMeta({ layout: "public" })
 import CmsSeoMeta from "@cms/components/cms/CmsSeoMeta.vue";
 import ImageLightbox from "@cms/components/cms/ImageLightbox.vue";
+import BlogPostCard from "@cms/components/cms/BlogPostCard.vue";
 import { useReadingTime } from "@cms/composables/useReadingTime";
+import { useCmsBlogPosts } from "@cms/composables/useCmsBlogPosts";
 
 const route = useRoute()
 const { locale } = useI18n()
@@ -50,6 +52,17 @@ const content = computed(
   () => translations.value?.content?.value || "",
 );
 
+// SEO via composable (uses same pageId as admin)
+const { fetchSeo } = useCmsBlogPosts();
+const { data: seo } = useAsyncData(
+  `blog-seo-${slug.value}-${lang.value}`,
+  () => fetchSeo(post.value?.id, lang.value),
+  { default: () => null },
+);
+const content = computed(
+  () => translations.value?.content?.value || "",
+);
+
 // Prepare SEO data for CmsSeoMeta component
 const seoData = computed(() => ({
   metaTitle: seo.value?.metaTitle || title.value,
@@ -72,9 +85,6 @@ function onContentClick(e: MouseEvent) {
   }
 }
 
-function getRelatedTitle(post: any): string {
-  return (post.translations?.[lang.value]?.title || post.slug || '');
-}
 </script>
 
 <template>
@@ -113,25 +123,7 @@ function getRelatedTitle(post: any): string {
     <section v-if="related?.length" class="mt-16 border-t pt-8">
       <h2 class="text-2xl font-bold mb-6">Artículos relacionados</h2>
       <div class="grid md:grid-cols-3 gap-6">
-        <article v-for="r in related" :key="r.id" class="card bg-base-100 shadow-md">
-          <figure v-if="r.featuredImage" class="h-40">
-            <img
-              :src="r.featuredImage.url || `${config.public.apiUrl}${r.featuredImage.path}`"
-              :alt="r.translations?.title || r.slug"
-              class="w-full h-full object-cover"
-            >
-          </figure>
-          <div class="card-body p-4">
-            <h3 class="card-title text-base">
-              <NuxtLink :to="`/blog/${r.slug}`" class="hover:text-primary">
-                {{ getRelatedTitle(r) }}
-              </NuxtLink>
-            </h3>
-            <p class="text-xs text-base-content/60">
-              {{ r.publishedAt ? new Date(r.publishedAt).toLocaleDateString(lang, { year: 'numeric', month: 'long', day: 'numeric' }) : '' }}
-            </p>
-          </div>
-        </article>
+        <BlogPostCard v-for="r in related" :key="r.id" :post="r" :lang="lang" />
       </div>
     </section>
   </div>

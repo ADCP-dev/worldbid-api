@@ -4,6 +4,7 @@ import CmsSeoMeta from '@cms/components/cms/CmsSeoMeta.vue'
 import SearchBox from '@cms/components/cms/SearchBox.vue'
 import TagFilter from '@cms/components/cms/TagFilter.vue'
 import Pagination from '@cms/components/cms/Pagination.vue'
+import BlogPostCard from '@cms/components/cms/BlogPostCard.vue'
 import { useCmsBlogPosts } from '@cms/composables/useCmsBlogPosts'
 import { useCmsTags } from '@cms/composables/useCmsTags'
 import { useCmsCategories } from '@cms/composables/useCmsCategories'
@@ -132,18 +133,11 @@ const tagItems = computed(() => {
       <h1 class="text-4xl font-bold mb-6">Blog</h1>
 
       <div class="flex flex-col md:flex-row gap-4 mb-6">
-        <SearchBox
-          v-model="searchInput"
-          placeholder="Search posts..."
-          class="md:max-w-sm"
-          @update:model-value="onSearch"
-        />
-        <select
-          v-if="allCategories.length"
-          :value="selectedCategory"
+        <SearchBox v-model="searchInput" placeholder="Search posts..." class="md:max-w-sm"
+          @update:model-value="onSearch" />
+        <select v-if="allCategories.length" :value="selectedCategory"
           class="select select-bordered select-sm w-full md:max-w-xs"
-          @change="selectedCategory = ($event.target as HTMLSelectElement).value"
-        >
+          @change="selectedCategory = ($event.target as HTMLSelectElement).value">
           <option value="">Todas las categorías</option>
           <option v-for="cat in allCategories" :key="cat.id" :value="cat.id">
             {{ cat.name }}
@@ -151,11 +145,7 @@ const tagItems = computed(() => {
         </select>
       </div>
 
-      <TagFilter
-        v-if="tagItems.length"
-        v-model="selectedTags"
-        :tags="tagItems"
-      />
+      <TagFilter v-if="tagItems.length" v-model="selectedTags" :tags="tagItems" />
     </div>
 
     <!-- Loading skeleton -->
@@ -173,66 +163,7 @@ const tagItems = computed(() => {
 
     <!-- Posts grid -->
     <div v-else-if="postsList.length" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <article
-        v-for="post in postsList"
-        :key="post.id"
-        class="card bg-base-100 shadow-xl overflow-hidden"
-      >
-        <figure v-if="post.featuredImage" class="relative">
-          <img
-            :src="post.featuredImage.url || `${config.public.apiUrl}${post.featuredImage.path}`"
-            :alt="getTrans(post).title || post.slug"
-            class="w-full h-48 object-cover"
-          >
-        </figure>
-        <div class="card-body">
-          <div v-if="post.categoryName || post.categoryId" class="mb-2">
-            <NuxtLink
-              :to="localePath(`/blog/category/${post.category?.slug || post.categoryId}`)"
-              class="badge badge-primary badge-sm hover:badge-primary"
-            >
-              {{ post.categoryName || post.category?.name || 'Uncategorized' }}
-            </NuxtLink>
-          </div>
-
-          <h2 class="card-title text-lg">
-            <NuxtLink :to="localePath(`/blog/${post.slug}`)" class="hover:text-primary">
-              {{ getTrans(post).title || post.slug }}
-            </NuxtLink>
-          </h2>
-
-          <p class="text-sm text-base-content/70 flex items-center gap-3">
-            <span v-if="post.publishedAt">
-              {{ new Date(post.publishedAt).toLocaleDateString(lang, { year: 'numeric', month: 'long', day: 'numeric' }) }}
-            </span>
-            <span v-if="getTrans(post).content" class="text-base-content/50">
-              · {{ useReadingTime(getTrans(post).content) }} min de lectura
-            </span>
-          </p>
-
-          <p v-if="getTrans(post).excerpt" class="text-sm text-base-content/80 line-clamp-3">
-            {{ getTrans(post).excerpt }}
-          </p>
-          <p v-else-if="getTrans(post).content" class="text-sm text-base-content/80 line-clamp-2" v-html="getTrans(post).content.replace(/<[^>]+>/g, '').slice(0, 200) + '...'" />
-
-          <div v-if="post.tags?.length" class="flex flex-wrap gap-1 mt-3">
-            <NuxtLink
-              v-for="tag in post.tags"
-              :key="tag.id"
-              :to="localePath(`/blog?tags=${tag.id}`)"
-              class="badge badge-outline badge-sm hover:badge-primary cursor-pointer"
-            >
-              {{ tag.name }}
-            </NuxtLink>
-          </div>
-
-          <div class="card-actions justify-end mt-4">
-            <NuxtLink :to="localePath(`/blog/${post.slug}`)" class="btn btn-primary btn-sm">
-              Read more
-            </NuxtLink>
-          </div>
-        </div>
-      </article>
+      <BlogPostCard v-for="post in postsList" :key="post.id" :post="post" :lang="lang" />
     </div>
 
     <!-- Empty state -->
@@ -242,10 +173,7 @@ const tagItems = computed(() => {
 
     <!-- Pagination -->
     <div v-if="meta.totalPages > 1" class="flex justify-center mt-12">
-      <Pagination
-        :current-page="meta.page"
-        :total-pages="meta.totalPages"
-      />
+      <Pagination :current-page="meta.page" :total-pages="meta.totalPages" />
     </div>
   </div>
 </template>
