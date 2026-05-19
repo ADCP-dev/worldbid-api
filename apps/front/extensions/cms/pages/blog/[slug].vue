@@ -82,7 +82,7 @@ defineOgImage('OgImageBlogPost.satori', {
   title: title.value || post.value?.slug || '',
   description: (translations.value?.excerpt?.value || translations.value?.content?.value?.slice(0, 200) || '').replace(/<[^>]*>/g, ''),
   image: featuredImageUrl.value,
-  siteName: 'Foundation',
+  siteName: config.public.appName || 'Foundation',
   category: post.value?.category?.name || '',
 });
 

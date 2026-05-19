@@ -52,7 +52,7 @@ const { fetchCategories, categories: allCategories } = useCmsCategories()
 defineOgImage('OgImageBlogPost.satori', {
   title: 'Blog',
   description: 'Foundation Blog — Artículos y tutoriales',
-  siteName: 'Foundation',
+  siteName: config.public.appName || 'Foundation',
 })
 
 const selectedCategory = computed({
