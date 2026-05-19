@@ -13,6 +13,7 @@ interface BackendSitemapEntry {
   lastmod: string
   changefreq: string
   priority: number
+  images?: Array<{ loc: string; caption?: string; title?: string }>
   alternates?: {
     languages: Record<string, string>
   }
@@ -43,6 +44,7 @@ export default defineSitemapEventHandler(async () => {
         changefreq: (entry.changefreq || 'weekly') as SitemapUrl['changefreq'],
         priority: (entry.priority || 0.8) as SitemapUrl['priority'],
         alternatives,
+        images: entry.images,
         _i18nTransform: true,
       }
     })

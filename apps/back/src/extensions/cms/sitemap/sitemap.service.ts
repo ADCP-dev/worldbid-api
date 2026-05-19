@@ -3,6 +3,7 @@ export interface SitemapUrl {
   lastmod: string;
   changefreq: string;
   priority: number;
+  images?: Array<{ loc: string; caption?: string; title?: string }>;
   alternates?: {
     languages: Record<string, string>;
   };
@@ -37,6 +38,7 @@ export class SitemapService {
   async getBlogUrls(): Promise<SitemapUrl[]> {
     const posts = await this.blogPostRepository.find({
       where: { isPublished: true },
+      relations: ['featuredImage'],
       order: { updatedAt: 'DESC' },
     });
 
@@ -61,6 +63,14 @@ export class SitemapService {
         changefreq: 'weekly',
         priority: 0.8,
         alternates: { languages: alternates },
+        ...(post.featuredImage?.path && {
+          images: [{
+            loc: post.featuredImage.path.startsWith('http')
+              ? post.featuredImage.path
+              : `${frontendUrl}${post.featuredImage.path}`,
+            caption: post.slug,
+          }],
+        }),
       });
     }
 
