@@ -10,14 +10,7 @@ defineProps<{
 
 <template>
   <div style="width:1200px;height:630px;display:flex;position:relative;overflow:hidden;font-family:sans-serif;box-sizing:border-box">
-    <!-- Featured image background (left 55%) -->
-    <div v-if="image" style="position:absolute;top:0;left:0;width:55%;height:100%">
-      <img :src="image" style="width:100%;height:100%;opacity:0.35" />
-    </div>
-    <!-- Gradient overlay over image -->
-    <div v-if="image" style="position:absolute;top:0;left:0;width:55%;height:100%;background:linear-gradient(to right,rgba(15,12,41,0.92),rgba(15,12,41,0.6))" />
-
-    <!-- Right/content side — solid gradient -->
+    <!-- Background — solid gradient -->
     <div style="position:absolute;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,#0f0c29,#1a1744,#0f0c29)" />
 
     <!-- Accent line top -->
