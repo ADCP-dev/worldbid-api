@@ -9,38 +9,38 @@ defineProps<{
 </script>
 
 <template>
-  <div class="w-full h-full flex flex-col justify-end bg-gray-900 relative overflow-hidden" style="width:1200px;height:630px">
-    <!-- Background image with overlay -->
+  <div style="width:1200px;height:630px;display:flex;flex-direction:column;justify-content:flex-end;background:#111827;position:relative;overflow:hidden;font-family:Inter">
+    <!-- Background image -->
     <img
       v-if="image"
       :src="image"
-      class="absolute inset-0 w-full h-full object-cover opacity-50"
+      style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0.5"
     />
     <!-- Gradient overlay -->
-    <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/20" />
+    <div style="position:absolute;top:0;left:0;width:100%;height:100%;background-image:linear-gradient(to top,rgba(0,0,0,0.9),rgba(0,0,0,0.4),rgba(0,0,0,0.2))" />
 
     <!-- Content -->
-    <div class="relative z-10 flex flex-col justify-end p-16 pb-20">
-      <!-- Category badge -->
-      <div v-if="category" class="flex items-center mb-6">
-        <span class="text-white/80 text-xl font-semibold uppercase tracking-wider bg-white/10 px-5 py-2 rounded-lg">
+    <div style="position:relative;z-index:10;display:flex;flex-direction:column;padding:64px;padding-bottom:80px">
+      <!-- Category -->
+      <div v-if="category" style="display:flex;margin-bottom:24px">
+        <span style="color:rgba(255,255,255,0.8);font-size:24px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;background:rgba(255,255,255,0.1);padding:12px 20px;border-radius:8px">
           {{ category }}
         </span>
       </div>
 
       <!-- Title -->
-      <h1 class="text-white font-bold text-5xl leading-tight mb-6" style="line-height:1.15">
+      <div style="color:white;font-size:56px;font-weight:700;line-height:1.15;margin-bottom:24px;max-width:1000px">
         {{ title || 'Blog Post' }}
-      </h1>
+      </div>
 
       <!-- Description -->
-      <p v-if="description" class="text-white/70 text-2xl leading-relaxed max-w-3xl line-clamp-2">
+      <div v-if="description" style="color:rgba(255,255,255,0.7);font-size:28px;line-height:1.4;max-width:900px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">
         {{ description }}
-      </p>
+      </div>
 
-      <!-- Site name footer -->
-      <div class="flex items-center mt-10 pt-8 border-t border-white/10">
-        <span class="text-white/50 text-xl font-medium">{{ siteName || 'Foundation' }}</span>
+      <!-- Footer -->
+      <div style="display:flex;align-items:center;margin-top:40px;padding-top:32px;border-top:1px solid rgba(255,255,255,0.1)">
+        <span style="color:rgba(255,255,255,0.5);font-size:24px;font-weight:500">{{ siteName || 'Foundation' }}</span>
       </div>
     </div>
   </div>

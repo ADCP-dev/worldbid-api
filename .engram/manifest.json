@@ -384,6 +384,14 @@
       "sessions": 0,
       "memories": 0,
       "prompts": 1
+    },
+    {
+      "id": "c5cffbf3",
+      "created_by": "YO",
+      "created_at": "2026-05-19T12:15:16Z",
+      "sessions": 0,
+      "memories": 0,
+      "prompts": 1
     }
   ]
 }
