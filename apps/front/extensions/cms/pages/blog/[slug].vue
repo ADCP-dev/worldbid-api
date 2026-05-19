@@ -78,7 +78,7 @@ const featuredImageUrl = computed(() => {
   return null;
 });
 
-defineOgImageComponent('OgImageBlogPost', {
+defineOgImage('OgImageBlogPost', {
   title: () => title.value,
   description: () => translations.value?.excerpt?.value || translations.value?.content?.value?.slice(0, 200) || '',
   image: () => featuredImageUrl.value,
