@@ -27,7 +27,7 @@ export default defineSitemapEventHandler(async () => {
 
     return data.map((entry) => {
       // Strip base URL to get path (e.g. http://localhost:3000/blog/post → /blog/post)
-      const loc = entry.loc.replace(config.public.apiUrl, '') || entry.loc
+      const loc = entry.loc.replace(/^https?:\/\/[^/]+/, '') || entry.loc
 
       // Transform { languages: { es: '...', en: '...' } } → [{ hreflang: 'es', href: '...' }]
       const alternatives = entry.alternates?.languages

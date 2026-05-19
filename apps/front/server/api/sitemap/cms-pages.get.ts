@@ -23,7 +23,7 @@ export default defineSitemapEventHandler(async () => {
     const data = await $fetch<BackendSitemapEntry[]>(apiUrl)
 
     return data.map((entry) => {
-      const loc = entry.loc.replace(config.public.apiUrl, '') || entry.loc
+      const loc = entry.loc.replace(/^https?:\/\/[^/]+/, '') || entry.loc
 
       const alternatives = entry.alternates?.languages
         ? Object.entries(entry.alternates.languages).map(([hreflang, href]) => ({
