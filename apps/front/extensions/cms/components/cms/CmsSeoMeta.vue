@@ -18,6 +18,7 @@ interface Props {
   seo: {
     metaTitle?: string | null;
     metaDescription?: string | null;
+    metaKeywords?: string | null;
     ogImage?: string | null;
     customJsonLd?: Record<string, any> | null;
     // New fields
@@ -52,6 +53,7 @@ const seoData = computed(() => {
   return {
     metaTitle: props.seo?.metaTitle || '',
     metaDescription: props.seo?.metaDescription || '',
+    metaKeywords: props.seo?.metaKeywords || '',
     ogImage: props.seo?.ogImage || '',
     customJsonLd: props.seo?.customJsonLd || null,
     canonicalUrl: props.seo?.canonicalUrl || null,
@@ -138,11 +140,17 @@ const hreflangLinks = computed(() => {
     ? new URL(seoData.value.canonicalUrl, appUrl).pathname
     : '';
 
+  // Determine default locale (no prefix with prefix_except_default)
+  const defaultLocale = props.lang || 'es';
+
   const links: Array<{ rel: 'alternate'; hreflang: string; href: string }> = [];
 
   for (const loc of localeCodes) {
     const customUrl = seoData.value.hreflangCustomUrls?.[loc];
-    const href = customUrl || `${appUrl}/${loc}${currentPath}`;
+    // prefix_except_default: default locale has no /{lang}/ prefix
+    const href = customUrl || (loc === defaultLocale
+      ? `${appUrl}${currentPath}`
+      : `${appUrl}/${loc}${currentPath}`);
 
     links.push({
       rel: 'alternate',
@@ -151,16 +159,15 @@ const hreflangLinks = computed(() => {
     });
   }
 
-  // Add x-default hreflang
-  const defaultLocale = props.lang || 'es';
-  const defaultCustomUrl = seoData.value.hreflangCustomUrls?.['x-default'] ||
-                           seoData.value.hreflangCustomUrls?.[defaultLocale];
-  const defaultHref = defaultCustomUrl || `${appUrl}/${defaultLocale}${currentPath}`;
+  // x-default: same as default locale (no prefix)
+  const xDefaultCustomUrl = seoData.value.hreflangCustomUrls?.['x-default'] ||
+                            seoData.value.hreflangCustomUrls?.[defaultLocale];
+  const xDefaultHref = xDefaultCustomUrl || `${appUrl}${currentPath}`;
 
   links.push({
     rel: 'alternate',
     hreflang: 'x-default',
-    href: defaultHref,
+    href: xDefaultHref,
   });
 
   return links;
@@ -175,6 +182,11 @@ const metaTags = computed(() => {
     tags.push({ name: 'description', content: seoData.value.metaDescription });
   }
 
+  // Keywords
+  if (seoData.value.metaKeywords) {
+    tags.push({ name: 'keywords', content: seoData.value.metaKeywords });
+  }
+
   // OG tags
   const ogTitle = seoData.value.ogTitle || seoData.value.metaTitle;
   const ogDesc = seoData.value.ogDescription || seoData.value.metaDescription;
@@ -185,11 +197,28 @@ const metaTags = computed(() => {
   if (ogDesc) {
     tags.push({ property: 'og:description', content: ogDesc });
   }
-  if (seoData.value.ogImage) {
-    tags.push({ property: 'og:image', content: seoData.value.ogImage });
+
+  // OG image with full metadata
+  const ogImageUrl = seoData.value.ogImage;
+  if (ogImageUrl) {
+    // Ensure absolute URL
+    const absoluteImage = ogImageUrl.startsWith('http') ? ogImageUrl : `${appUrl}${ogImageUrl.startsWith('/') ? '' : '/'}${ogImageUrl}`;
+    tags.push({ property: 'og:image', content: absoluteImage });
+    tags.push({ property: 'og:image:secure_url', content: absoluteImage });
+    tags.push({ property: 'og:image:alt', content: ogTitle || '' });
   }
+
   tags.push({ property: 'og:type', content: props.type === 'Article' ? 'article' : 'website' });
   tags.push({ property: 'og:locale', content: localeOg.value });
+
+  // OG URL (canonical)
+  if (seoData.value.canonicalUrl) {
+    tags.push({ property: 'og:url', content: seoData.value.canonicalUrl });
+  }
+
+  // OG site name
+  const siteName = config.public.appName || 'Foundation';
+  tags.push({ property: 'og:site_name', content: siteName });
 
   // Twitter cards
   tags.push({ name: 'twitter:card', content: 'summary_large_image' });
@@ -199,8 +228,10 @@ const metaTags = computed(() => {
   if (ogDesc) {
     tags.push({ name: 'twitter:description', content: ogDesc });
   }
-  if (seoData.value.ogImage) {
-    tags.push({ name: 'twitter:image', content: seoData.value.ogImage });
+  if (ogImageUrl) {
+    const absoluteImage = ogImageUrl.startsWith('http') ? ogImageUrl : `${appUrl}${ogImageUrl.startsWith('/') ? '' : '/'}${ogImageUrl}`;
+    tags.push({ name: 'twitter:image', content: absoluteImage });
+    tags.push({ name: 'twitter:image:alt', content: ogTitle || '' });
   }
 
   // Robots meta
