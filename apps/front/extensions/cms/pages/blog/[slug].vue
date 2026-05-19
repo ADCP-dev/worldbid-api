@@ -29,8 +29,8 @@ if (error.value && !pending.value) {
   throw createError({ statusCode: 404, statusMessage: "Post not found" });
 }
 
-// Dynamic translations — non-blocking
-const { data: translations } = useFetch(
+// Dynamic translations — awaited for OG image title
+const { data: translations } = await useFetch(
   `${apiBase.value}/translations/dynamic/${lang.value}/BlogPost/${post.value?.id}`,
   { server: true, default: () => null },
 );
@@ -78,18 +78,13 @@ const featuredImageUrl = computed(() => {
   return null;
 });
 
-// OG image — deferred until translations resolve
-watch([title, () => translations.value, () => post.value], ([t, tr, p]) => {
-  if (!t && !p) return;
-  const desc = (tr?.excerpt?.value || tr?.content?.value?.slice(0, 200) || '').replace(/<[^>]*>/g, '');
-  defineOgImage('OgImageBlogPost.satori', {
-    title: t || p?.slug || '',
-    description: desc,
-    image: featuredImageUrl.value,
-    siteName: 'Foundation',
-    category: p?.category?.name || '',
-  });
-}, { immediate: true, once: true });
+defineOgImage('OgImageBlogPost.satori', {
+  title: title.value || post.value?.slug || '',
+  description: (translations.value?.excerpt?.value || translations.value?.content?.value?.slice(0, 200) || '').replace(/<[^>]*>/g, ''),
+  image: featuredImageUrl.value,
+  siteName: 'Foundation',
+  category: post.value?.category?.name || '',
+});
 
 // Lightbox
 const lightboxSrc = ref("");
