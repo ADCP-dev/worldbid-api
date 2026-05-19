@@ -115,7 +115,7 @@ const seo = computed(() => ({
   metaTitle: seoData.value?.metaTitle || 'Blog',
   metaDescription: seoData.value?.metaDescription || '',
   ogImage: seoData.value?.ogImage?.url || null,
-  canonicalUrl: seoData.value?.canonicalUrl || `${config.public.apiUrl}/blog`,
+  canonicalUrl: seoData.value?.canonicalUrl || `${config.public.apiUrl}${localePath('/blog')}`,
   customJsonLd: seoData.value?.customJsonLd || null,
   robotsPolicy: seoData.value?.robotsPolicy || { index: true, follow: true },
   hreflangEnabled: seoData.value?.hreflangEnabled !== false,
@@ -138,7 +138,7 @@ const tagItems = computed(() => {
 
     <Breadcrumbs
       :items="[
-        { name: 'Home', url: '/' + lang },
+        { name: 'Home', url: localePath('/') },
         { name: 'Blog' },
       ]"
     />

@@ -280,6 +280,14 @@
       "sessions": 0,
       "memories": 1,
       "prompts": 0
+    },
+    {
+      "id": "3dee6514",
+      "created_by": "YO",
+      "created_at": "2026-05-19T09:54:32Z",
+      "sessions": 0,
+      "memories": 0,
+      "prompts": 1
     }
   ]
 }

@@ -103,7 +103,7 @@ const seo = computed(() => ({
   metaTitle: seoData.value?.metaTitle || category.value?.name || 'Category',
   metaDescription: seoData.value?.metaDescription || category.value?.description || '',
   ogImage: seoData.value?.ogImage?.url || null,
-  canonicalUrl: seoData.value?.canonicalUrl || `${config.public.apiUrl}/${lang.value}/blog/category/${categorySlug.value}`,
+  canonicalUrl: seoData.value?.canonicalUrl || `${config.public.apiUrl}${localePath('/blog/category/' + categorySlug.value)}`,
 }))
 
 const tagItems = computed(() => {
@@ -121,8 +121,8 @@ const tagItems = computed(() => {
 
     <Breadcrumbs
       :items="[
-        { name: 'Home', url: '/' + lang },
-        { name: 'Blog', url: '/' + lang + '/blog' },
+        { name: 'Home', url: localePath('/') },
+        { name: 'Blog', url: localePath('/blog') },
         { name: category?.name || categorySlug },
       ]"
     />

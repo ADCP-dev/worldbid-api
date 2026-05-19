@@ -9,6 +9,7 @@ definePageMeta({ layout: "public" })
 
 const route = useRoute()
 const { locale } = useI18n()
+const localePath = useLocalePath()
 const lang = locale
 const config = useRuntimeConfig();
 const slug = computed(() => route.params.slug as string);
@@ -61,7 +62,7 @@ const seoData = computed(() => ({
   ogImage: seo.value?.ogImage?.url || post.value?.featuredImage?.url || null,
   ogTitle: seo.value?.ogTitle || seo.value?.metaTitle || title.value,
   ogDescription: seo.value?.ogDescription || seo.value?.metaDescription || translations.value?.excerpt?.value || "",
-  canonicalUrl: seo.value?.canonicalUrl || `${config.public.apiUrl}/blog/${post.value?.slug}`,
+  canonicalUrl: seo.value?.canonicalUrl || `${config.public.apiUrl}${localePath('/blog/' + post.value?.slug)}`,
   customJsonLd: seo.value?.customJsonLd || null,
   robotsPolicy: seo.value?.robotsPolicy || { index: true, follow: true },
   hreflangEnabled: seo.value?.hreflangEnabled !== false,
@@ -91,8 +92,8 @@ function onContentClick(e: MouseEvent) {
 
     <Breadcrumbs
       :items="[
-        { name: 'Home', url: '/' + lang },
-        { name: 'Blog', url: '/' + lang + '/blog' },
+        { name: 'Home', url: localePath('/') },
+        { name: 'Blog', url: localePath('/blog') },
         { name: post?.category?.name || '' },
         { name: title },
       ].filter(b => b.name)"
