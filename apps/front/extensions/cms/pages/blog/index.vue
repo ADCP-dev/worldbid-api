@@ -49,7 +49,7 @@ const { fetchTagsPublic, tags: allTags } = useCmsTags()
 const { fetchCategories, categories: allCategories } = useCmsCategories()
 
 // Auto-generate OG image for blog index
-defineOgImage('OgImageBlogPost', {
+defineOgImage('OgImageBlogPost.satori', {
   title: 'Blog',
   description: 'Foundation Blog — Artículos y tutoriales',
   siteName: 'Foundation',

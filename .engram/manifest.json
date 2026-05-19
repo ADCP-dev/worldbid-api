@@ -376,6 +376,14 @@
       "sessions": 0,
       "memories": 0,
       "prompts": 1
+    },
+    {
+      "id": "97fcf9bd",
+      "created_by": "YO",
+      "created_at": "2026-05-19T12:09:56Z",
+      "sessions": 0,
+      "memories": 0,
+      "prompts": 1
     }
   ]
 }
