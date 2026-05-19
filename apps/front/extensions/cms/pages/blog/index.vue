@@ -13,7 +13,7 @@ import { useReadingTime } from '@cms/composables/useReadingTime'
 definePageMeta({ layout: "public" })
 
 const route = useRoute()
-const { locale } = useI18n()
+const { locale, t } = useI18n()
 const localePath = useLocalePath()
 const lang = locale
 const router = useRouter()
@@ -51,7 +51,7 @@ const { fetchCategories, categories: allCategories } = useCmsCategories()
 // Auto-generate OG image for blog index
 defineOgImage('OgImageBlogPost.satori', {
   title: 'Blog',
-  description: 'Foundation Blog — Artículos y tutoriales',
+  description: locale.value === 'en' ? 'Articles and tutorials' : 'Artículos y tutoriales',
   siteName: config.public.appName || 'Foundation',
 })
 
