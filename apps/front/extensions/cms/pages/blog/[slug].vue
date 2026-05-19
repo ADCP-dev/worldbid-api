@@ -42,7 +42,7 @@ const { data: related } = useFetch(
 );
 
 const title = computed(
-  () => translations.value?.title?.value || post.value?.slug || "",
+  () => translations.value?.title?.value || post.value?.title || post.value?.slug || 'Blog Post',
 );
 // SEO via composable (uses same pageId as admin)
 const { fetchSeo } = useCmsBlogPosts();
@@ -79,11 +79,11 @@ const featuredImageUrl = computed(() => {
 });
 
 defineOgImage('OgImageBlogPost.satori', {
-  title: () => title.value,
-  description: () => translations.value?.excerpt?.value || translations.value?.content?.value?.slice(0, 200) || '',
-  image: () => featuredImageUrl.value,
-  siteName: () => 'Foundation',
-  category: () => post.value?.category?.name || '',
+  title: title.value || post.value?.slug || '',
+  description: (translations.value?.excerpt?.value || translations.value?.content?.value?.slice(0, 200) || '').replace(/<[^>]*>/g, ''),
+  image: featuredImageUrl.value,
+  siteName: 'Foundation',
+  category: post.value?.category?.name || '',
 });
 
 // Lightbox

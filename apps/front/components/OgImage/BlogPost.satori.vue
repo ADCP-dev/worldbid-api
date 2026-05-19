@@ -30,7 +30,7 @@ defineProps<{
 
       <!-- Title -->
       <div style="font-size:52px;font-weight:800;line-height:1.1;color:white;margin-bottom:24px;max-width:1050px;letter-spacing:-0.01em">
-        {{ title || 'Blog Post' }}
+        {{ title || 'Sin título' }}
       </div>
 
       <!-- Description -->
