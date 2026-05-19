@@ -175,7 +175,7 @@ export default defineNuxtConfig({
   },
 
   sitemap: {
-    sources: ['/api/sitemap/blog', '/api/sitemap/cms-pages'],
+    sources: ['/api/sitemap/blog', '/api/sitemap/cms-pages', '/api/sitemap/categories'],
     exclude: [
       '/app/**',
       '/admin/**',
@@ -189,18 +189,6 @@ export default defineNuxtConfig({
       '/404',
       '/500',
       '/503',
-      '/en/app/**',
-      '/en/admin/**',
-      '/en/login',
-      '/en/login-basic',
-      '/en/register',
-      '/en/forgot-password',
-      '/en/password-change',
-      '/en/401',
-      '/en/403',
-      '/en/404',
-      '/en/500',
-      '/en/503',
     ],
     autoLastmod: true,
     credits: false,

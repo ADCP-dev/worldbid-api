@@ -1,11 +1,11 @@
 # Graph Report - foundation  (2026-05-19)
 
 ## Corpus Check
-- 480 files · ~181,001 words
+- 481 files · ~181,099 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1347 nodes · 1542 edges · 151 communities detected
+- 1348 nodes · 1542 edges · 151 communities detected
 - Extraction: 69% EXTRACTED · 31% INFERRED · 0% AMBIGUOUS · INFERRED: 475 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
@@ -1070,11 +1070,11 @@ Nodes (1): StatusEntity
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `get()` connect `Community 1` to `Community 0`, `Community 2`, `Community 3`, `Community 4`, `Community 5`, `Community 6`, `Community 7`?**
-  _High betweenness centrality (0.061) - this node is a cross-community bridge._
+  _High betweenness centrality (0.065) - this node is a cross-community bridge._
 - **Why does `log()` connect `Community 2` to `Community 0`, `Community 1`, `Community 4`, `Community 5`, `Community 6`, `Community 9`, `Community 12`?**
-  _High betweenness centrality (0.037) - this node is a cross-community bridge._
+  _High betweenness centrality (0.031) - this node is a cross-community bridge._
 - **Why does `error()` connect `Community 4` to `Community 0`, `Community 1`, `Community 2`, `Community 5`, `Community 6`, `Community 9`, `Community 12`?**
-  _High betweenness centrality (0.028) - this node is a cross-community bridge._
+  _High betweenness centrality (0.027) - this node is a cross-community bridge._
 - **Are the 57 inferred relationships involving `get()` (e.g. with `bootstrap()` and `detectRouteConflicts()`) actually correct?**
   _`get()` has 57 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 44 inferred relationships involving `log()` (e.g. with `discoverExtensionConfigs()` and `detectConflicts()`) actually correct?**
