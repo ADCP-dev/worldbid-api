@@ -48,6 +48,9 @@ const { fetchPostsPublic } = useCmsBlogPosts()
 const { fetchTagsPublic, tags: allTags } = useCmsTags()
 const { fetchCategories, categories: allCategories } = useCmsCategories()
 
+// Auto-generate OG image for blog index
+defineOgImage({ static: true, title: 'Blog', description: 'Foundation Blog — Artículos y tutoriales' })
+
 const selectedCategory = computed({
   get: () => (route.query.categoryId as string) || '',
   set: (value: string) => {

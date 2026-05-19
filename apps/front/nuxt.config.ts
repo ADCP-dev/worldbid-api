@@ -44,6 +44,7 @@ export default defineNuxtConfig({
   modules: [
     '@nuxt/image',
     '@nuxtjs/sitemap',
+    'nuxt-og-image',
     '@nuxt/eslint',
     '@pinia/nuxt',
     'pinia-plugin-persistedstate',
@@ -157,6 +158,11 @@ export default defineNuxtConfig({
       cookieKey: 'i18n_redirected',
       redirectOn: 'root',
     },
+  },
+
+  site: {
+    url: process.env.FRONTEND_URL || 'http://localhost:3000',
+    name: process.env.APP_NAME || 'Foundation',
   },
 
   routeRules: {

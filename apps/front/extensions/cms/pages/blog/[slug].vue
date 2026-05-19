@@ -70,6 +70,22 @@ const seoData = computed(() => ({
   hreflangCustomUrls: seo.value?.hreflangCustomUrls || null,
 }));
 
+// Auto-generate OG image with nuxt-og-image
+const featuredImageUrl = computed(() => {
+  const img = post.value?.featuredImage;
+  if (img?.url) return img.url;
+  if (img?.path) return `${config.public.apiUrl}${img.path}`;
+  return null;
+});
+
+defineOgImageComponent('OgImageBlogPost', {
+  title: () => title.value,
+  description: () => translations.value?.excerpt?.value || translations.value?.content?.value?.slice(0, 200) || '',
+  image: () => featuredImageUrl.value,
+  siteName: () => 'Foundation',
+  category: () => post.value?.category?.name || '',
+});
+
 // Lightbox
 const lightboxSrc = ref("");
 const lightboxAlt = ref("");

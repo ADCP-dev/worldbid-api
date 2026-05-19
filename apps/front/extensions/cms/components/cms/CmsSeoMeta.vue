@@ -198,15 +198,7 @@ const metaTags = computed(() => {
     tags.push({ property: 'og:description', content: ogDesc });
   }
 
-  // OG image with full metadata
-  const ogImageUrl = seoData.value.ogImage;
-  if (ogImageUrl) {
-    // Ensure absolute URL
-    const absoluteImage = ogImageUrl.startsWith('http') ? ogImageUrl : `${appUrl}${ogImageUrl.startsWith('/') ? '' : '/'}${ogImageUrl}`;
-    tags.push({ property: 'og:image', content: absoluteImage });
-    tags.push({ property: 'og:image:secure_url', content: absoluteImage });
-    tags.push({ property: 'og:image:alt', content: ogTitle || '' });
-  }
+  // OG image handled by nuxt-og-image module (defineOgImageComponent)
 
   tags.push({ property: 'og:type', content: props.type === 'Article' ? 'article' : 'website' });
   tags.push({ property: 'og:locale', content: localeOg.value });
@@ -228,11 +220,7 @@ const metaTags = computed(() => {
   if (ogDesc) {
     tags.push({ name: 'twitter:description', content: ogDesc });
   }
-  if (ogImageUrl) {
-    const absoluteImage = ogImageUrl.startsWith('http') ? ogImageUrl : `${appUrl}${ogImageUrl.startsWith('/') ? '' : '/'}${ogImageUrl}`;
-    tags.push({ name: 'twitter:image', content: absoluteImage });
-    tags.push({ name: 'twitter:image:alt', content: ogTitle || '' });
-  }
+  // Twitter image handled by nuxt-og-image module
 
   // Robots meta
   if (robotsContent.value) {
