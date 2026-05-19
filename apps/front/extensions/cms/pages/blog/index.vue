@@ -4,6 +4,7 @@ import SearchBox from '@cms/components/cms/SearchBox.vue'
 import TagFilter from '@cms/components/cms/TagFilter.vue'
 import Pagination from '@cms/components/cms/Pagination.vue'
 import BlogPostCard from '@cms/components/cms/BlogPostCard.vue'
+import Breadcrumbs from '@cms/components/cms/Breadcrumbs.vue'
 import { useCmsBlogPosts } from '@cms/composables/useCmsBlogPosts'
 import { useCmsTags } from '@cms/composables/useCmsTags'
 import { useCmsCategories } from '@cms/composables/useCmsCategories'
@@ -114,7 +115,12 @@ const seo = computed(() => ({
   metaTitle: seoData.value?.metaTitle || 'Blog',
   metaDescription: seoData.value?.metaDescription || '',
   ogImage: seoData.value?.ogImage?.url || null,
-  canonicalUrl: seoData.value?.canonicalUrl || `${config.public.apiUrl}/${lang.value}/blog`,
+  canonicalUrl: seoData.value?.canonicalUrl || `${config.public.apiUrl}/blog`,
+  customJsonLd: seoData.value?.customJsonLd || null,
+  robotsPolicy: seoData.value?.robotsPolicy || { index: true, follow: true },
+  hreflangEnabled: seoData.value?.hreflangEnabled !== false,
+  hreflangAlternateLocales: seoData.value?.hreflangAlternateLocales || null,
+  hreflangCustomUrls: seoData.value?.hreflangCustomUrls || null,
 }))
 
 const tagItems = computed(() => {
@@ -129,6 +135,13 @@ const tagItems = computed(() => {
 <template>
   <div class="container mx-auto py-12">
     <CmsSeoMeta :seo="seo" type="WebSite" :lang="lang" />
+
+    <Breadcrumbs
+      :items="[
+        { name: 'Home', url: '/' + lang },
+        { name: 'Blog' },
+      ]"
+    />
 
     <div class="mb-8">
       <h1 class="text-4xl font-bold mb-6">Blog</h1>

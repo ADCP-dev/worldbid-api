@@ -2,6 +2,7 @@
 import CmsSeoMeta from "@cms/components/cms/CmsSeoMeta.vue";
 import ImageLightbox from "@cms/components/cms/ImageLightbox.vue";
 import BlogPostCard from "@cms/components/cms/BlogPostCard.vue";
+import Breadcrumbs from "@cms/components/cms/Breadcrumbs.vue";
 import { useReadingTime } from "@cms/composables/useReadingTime";
 import { useCmsBlogPosts } from "@cms/composables/useCmsBlogPosts";
 definePageMeta({ layout: "public" })
@@ -58,7 +59,14 @@ const seoData = computed(() => ({
   metaTitle: seo.value?.metaTitle || title.value,
   metaDescription: seo.value?.metaDescription || translations.value?.excerpt?.value || "",
   ogImage: seo.value?.ogImage?.url || post.value?.featuredImage?.url || null,
+  ogTitle: seo.value?.ogTitle || seo.value?.metaTitle || title.value,
+  ogDescription: seo.value?.ogDescription || seo.value?.metaDescription || translations.value?.excerpt?.value || "",
+  canonicalUrl: seo.value?.canonicalUrl || `${config.public.apiUrl}/blog/${post.value?.slug}`,
   customJsonLd: seo.value?.customJsonLd || null,
+  robotsPolicy: seo.value?.robotsPolicy || { index: true, follow: true },
+  hreflangEnabled: seo.value?.hreflangEnabled !== false,
+  hreflangAlternateLocales: seo.value?.hreflangAlternateLocales || null,
+  hreflangCustomUrls: seo.value?.hreflangCustomUrls || null,
 }));
 
 // Lightbox
@@ -80,6 +88,16 @@ function onContentClick(e: MouseEvent) {
 <template>
   <div class="container mx-auto py-12 max-w-4xl">
     <CmsSeoMeta :seo="seoData" type="Article" />
+
+    <Breadcrumbs
+      :items="[
+        { name: 'Home', url: '/' + lang },
+        { name: 'Blog', url: '/' + lang + '/blog' },
+        { name: post?.category?.name || '' },
+        { name: title },
+      ].filter(b => b.name)"
+    />
+
     <article v-if="post">
       <header class="mb-8">
         <h1 class="text-4xl font-bold mb-4">{{ title }}</h1>

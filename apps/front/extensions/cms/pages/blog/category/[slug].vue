@@ -1,6 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ layout: "public" })
 import CmsSeoMeta from '@cms/components/cms/CmsSeoMeta.vue'
+import Breadcrumbs from '@cms/components/cms/Breadcrumbs.vue'
 import SearchBox from '@cms/components/cms/SearchBox.vue'
 import TagFilter from '@cms/components/cms/TagFilter.vue'
 import Pagination from '@cms/components/cms/Pagination.vue'
@@ -118,14 +119,13 @@ const tagItems = computed(() => {
   <div class="container mx-auto py-12">
     <CmsSeoMeta :seo="seo" type="WebPage" :lang="lang" />
 
-    <!-- Breadcrumb -->
-    <div class="text-sm breadcrumbs mb-4">
-      <ul>
-        <li><NuxtLink :to="`/${lang}`">Home</NuxtLink></li>
-        <li><NuxtLink :to="`/${lang}/blog`">Blog</NuxtLink></li>
-        <li>{{ category?.name || categorySlug }}</li>
-      </ul>
-    </div>
+    <Breadcrumbs
+      :items="[
+        { name: 'Home', url: '/' + lang },
+        { name: 'Blog', url: '/' + lang + '/blog' },
+        { name: category?.name || categorySlug },
+      ]"
+    />
 
     <div class="mb-8">
       <h1 class="text-4xl font-bold mb-2">{{ category?.name || 'Category' }}</h1>
