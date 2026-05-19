@@ -19,7 +19,7 @@ defineProps<{
     <!-- Content -->
     <div style="position:relative;z-index:1;display:flex;flex-direction:column;max-width:1000px">
       <!-- Category pill -->
-      <div v-if="category" style="display:inline-flex;margin-bottom:28px">
+      <div v-if="category" style="display:flex;margin-bottom:28px">
         <span style="background:linear-gradient(to right,#7c3aed,#3b82f6);color:white;font-size:22px;font-weight:600;padding:10px 24px;border-radius:9999px;letter-spacing:0.04em;text-transform:uppercase">
           {{ category }}
         </span>
