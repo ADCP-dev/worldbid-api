@@ -188,7 +188,7 @@ export class BlogPostsService {
     }
 
     if (tags && tags.length > 0) {
-      qb.innerJoin('post.tags', 'tagFilter', 'tagFilter.slug IN (:...tags)', {
+      qb.innerJoin('post.tags', 'tagFilter', 'tagFilter.id IN (:...tags)', {
         tags,
       });
     }

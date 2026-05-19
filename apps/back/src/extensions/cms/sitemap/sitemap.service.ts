@@ -42,16 +42,21 @@ export class SitemapService {
 
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     const langs = await this.getActiveLanguages();
+    const defaultLocale = process.env.DEFAULT_LOCALE || 'es';
 
     const urls: SitemapUrl[] = [];
     for (const post of posts) {
       const alternates: Record<string, string> = {};
       for (const lang of langs) {
-        alternates[lang] = `${frontendUrl}/${lang}/blog/${post.slug}`;
+        alternates[lang] = lang === defaultLocale
+          ? `${frontendUrl}/blog/${post.slug}`
+          : `${frontendUrl}/${lang}/blog/${post.slug}`;
       }
 
       urls.push({
-        loc: `${frontendUrl}/es/blog/${post.slug}`,
+        loc: defaultLocale === 'es'
+          ? `${frontendUrl}/blog/${post.slug}`
+          : `${frontendUrl}/${defaultLocale}/blog/${post.slug}`,
         lastmod: post.updatedAt.toISOString(),
         changefreq: 'weekly',
         priority: 0.8,
@@ -70,13 +75,16 @@ export class SitemapService {
 
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     const langs = await this.getActiveLanguages();
+    const defaultLocale = process.env.DEFAULT_LOCALE || 'es';
 
     const urls: SitemapUrl[] = [];
     for (const page of pages) {
       for (const lang of langs) {
         const route =
           page.route?.replace('/es/', `/${lang}/`) ||
-          `/${lang}/page/${page.slug}`;
+          (lang === defaultLocale
+            ? `/page/${page.slug}`
+            : `/${lang}/page/${page.slug}`);
         urls.push({
           loc: `${frontendUrl}${route}`,
           lastmod: page.updatedAt.toISOString(),

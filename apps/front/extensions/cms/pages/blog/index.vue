@@ -44,9 +44,6 @@ const selectedTags = computed({
   },
 })
 
-const getTrans = (post: any) => {
-  return (post.translations?.[lang.value] || {}) as Record<string, string>;
-};
 const { fetchPostsPublic } = useCmsBlogPosts()
 const { fetchTagsPublic, tags: allTags } = useCmsTags()
 const { fetchCategories, categories: allCategories } = useCmsCategories()
@@ -115,6 +112,8 @@ const seo = computed(() => ({
   metaTitle: seoData.value?.metaTitle || 'Blog',
   metaDescription: seoData.value?.metaDescription || '',
   ogImage: seoData.value?.ogImage?.url || null,
+  ogTitle: seoData.value?.ogTitle || seoData.value?.metaTitle || 'Blog',
+  ogDescription: seoData.value?.ogDescription || seoData.value?.metaDescription || '',
   canonicalUrl: seoData.value?.canonicalUrl || `${config.public.apiUrl}${localePath('/blog')}`,
   customJsonLd: seoData.value?.customJsonLd || null,
   robotsPolicy: seoData.value?.robotsPolicy || { index: true, follow: true },

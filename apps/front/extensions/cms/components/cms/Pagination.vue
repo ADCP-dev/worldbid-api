@@ -9,9 +9,23 @@ const props = withDefaults(defineProps<{
   baseUrl: '',
 });
 
+const route = useRoute();
+
 function pageUrl(n: number): string {
-  const sep = props.baseUrl.includes('?') ? '&' : '?';
-  return `${props.baseUrl}${sep}page=${n}`;
+  // Preserve ALL existing query params, only update page
+  const query = new URLSearchParams();
+  for (const [key, val] of Object.entries(route.query)) {
+    if (key !== 'page' && val !== undefined && val !== '') {
+      if (Array.isArray(val)) {
+        for (const v of val) query.append(key, v as string);
+      } else {
+        query.append(key, val as string);
+      }
+    }
+  }
+  if (n > 1) query.set('page', String(n));
+  const qs = query.toString();
+  return `${props.baseUrl || route.path}${qs ? '?' + qs : ''}`;
 }
 </script>
 

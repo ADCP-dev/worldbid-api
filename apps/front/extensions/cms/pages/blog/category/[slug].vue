@@ -103,7 +103,14 @@ const seo = computed(() => ({
   metaTitle: seoData.value?.metaTitle || category.value?.name || 'Category',
   metaDescription: seoData.value?.metaDescription || category.value?.description || '',
   ogImage: seoData.value?.ogImage?.url || null,
+  ogTitle: seoData.value?.ogTitle || seoData.value?.metaTitle || category.value?.name || 'Category',
+  ogDescription: seoData.value?.ogDescription || seoData.value?.metaDescription || category.value?.description || '',
   canonicalUrl: seoData.value?.canonicalUrl || `${config.public.apiUrl}${localePath('/blog/category/' + categorySlug.value)}`,
+  customJsonLd: seoData.value?.customJsonLd || null,
+  robotsPolicy: seoData.value?.robotsPolicy || { index: true, follow: true },
+  hreflangEnabled: seoData.value?.hreflangEnabled !== false,
+  hreflangAlternateLocales: seoData.value?.hreflangAlternateLocales || null,
+  hreflangCustomUrls: seoData.value?.hreflangCustomUrls || null,
 }))
 
 const tagItems = computed(() => {

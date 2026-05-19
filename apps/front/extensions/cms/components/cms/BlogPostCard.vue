@@ -5,6 +5,7 @@ defineProps<{
 }>();
 
 const config = useRuntimeConfig();
+const localePath = useLocalePath();
 
 function getTitle(post: any, lang: string): string {
   return post.translations?.[lang]?.title || post.slug || '';
@@ -46,7 +47,7 @@ function getReadingTime(post: any, lang: string): number {
     <div class="card-body">
       <div v-if="post.category" class="mb-2">
         <NuxtLink
-          :to="`/blog/category/${post.category.slug}`"
+          :to="localePath(`/blog/category/${post.category.slug}`)"
           class="badge badge-primary badge-sm hover:badge-primary"
         >
           {{ post.category.name }}
@@ -54,7 +55,7 @@ function getReadingTime(post: any, lang: string): number {
       </div>
 
       <h2 class="card-title text-lg">
-        <NuxtLink :to="`/blog/${post.slug}`" class="hover:text-primary">
+        <NuxtLink :to="localePath(`/blog/${post.slug}`)" class="hover:text-primary">
           {{ getTitle(post, lang) }}
         </NuxtLink>
       </h2>
@@ -76,7 +77,7 @@ function getReadingTime(post: any, lang: string): number {
         <NuxtLink
           v-for="tag in post.tags"
           :key="tag.id"
-          :to="`/blog?tags=${tag.id}`"
+          :to="localePath(`/blog?tags=${tag.id}`)"
           class="badge badge-outline badge-sm hover:badge-primary cursor-pointer"
         >
           {{ tag.name }}
@@ -84,7 +85,7 @@ function getReadingTime(post: any, lang: string): number {
       </div>
 
       <div class="card-actions justify-end mt-4">
-        <NuxtLink :to="`/blog/${post.slug}`" class="btn btn-primary btn-sm">
+        <NuxtLink :to="localePath(`/blog/${post.slug}`)" class="btn btn-primary btn-sm">
           Leer más
         </NuxtLink>
       </div>

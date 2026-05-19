@@ -158,10 +158,14 @@ export default defineNuxtConfig({
   routeRules: {
     // Admin/app routes - client-side only (auth uses localStorage, not available in SSR)
     '/app/**': { ssr: false },
-    // Public CMS routes - prerender at build time
+    // Public CMS routes - prerender at build time (default locale, no prefix)
     '/blog': { prerender: true },
     '/blog/**': { prerender: true },
     '/page/**': { prerender: true },
+    // Public CMS routes - prerender for non-default locales (e.g., /en/blog)
+    '/en/blog': { prerender: true },
+    '/en/blog/**': { prerender: true },
+    '/en/page/**': { prerender: true },
     // Fallback: generate on demand if not prerendered
     '/**': { prerender: false },
   },
@@ -176,7 +180,7 @@ export default defineNuxtConfig({
   nitro: {
     prerender: {
       crawlLinks: true,
-      routes: ['/blog', '/en/blog'],
+      routes: ['/', '/blog', '/en/blog'],
       failOnError: false,
     },
   },
