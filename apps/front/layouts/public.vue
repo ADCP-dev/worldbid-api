@@ -5,7 +5,7 @@
   <div class="min-h-screen bg-base-100">
     <LandingNavbar />
 
-    <main class="container mx-auto">
+    <main class="py-12">
       <slot />
     </main>
 
