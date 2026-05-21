@@ -5,7 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull } from 'typeorm';
+import { Repository, IsNull, In } from 'typeorm';
 import { TagEntity } from '../posts/infrastructure/entities/post-tag.entity';
 import { CreateTagDto } from '../posts/dto/create-tag.dto';
 import { UpdateTagDto } from '../posts/dto/update-tag.dto';
@@ -138,6 +138,14 @@ export class TagsService {
     }
 
     return tags;
+  }
+
+  async findManyBySlugs(slugs: string[], lang: string = 'es'): Promise<TagEntity[]> {
+    if (!slugs || slugs.length === 0) return [];
+
+    return this.tagRepository.find({
+      where: { slug: In(slugs), deletedAt: IsNull() },
+    });
   }
 
   async findOne(id: string, lang?: string): Promise<TagEntity> {

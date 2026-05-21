@@ -80,7 +80,7 @@ const readingTime = computed(() => {
         <NuxtLink
           v-for="tag in post.tags"
           :key="tag.id"
-          :to="localePath(`/blog?tags=${tag.id}`)"
+          :to="localePath(`/blog?tags=${tag.slug}`)"
           class="badge badge-outline badge-sm hover:badge-primary cursor-pointer"
         >
           {{ tag.name }}

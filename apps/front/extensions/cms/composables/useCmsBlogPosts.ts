@@ -97,9 +97,7 @@ export function useCmsBlogPosts() {
       if (query.search) params.append('search', query.search)
       if (query.categoryId) params.append('categoryId', query.categoryId)
       if (query.tags?.length) {
-        for (const tag of query.tags) {
-          params.append('tags[]', tag)
-        }
+        params.append('tagSlugs', query.tags.join(','));
       }
 
       const result = await queryClient.fetchQuery({

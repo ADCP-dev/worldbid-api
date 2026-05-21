@@ -15,6 +15,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { BlogPostsService } from './posts.service';
+import { TagsService } from '../tags/tags.service';
 import { CreateBlogPostDto } from './dto/create-post.dto';
 import { UpdateBlogPostDto } from './dto/update-post.dto';
 import { FindAllBlogPostDto } from './dto/find-all-post.dto';
@@ -33,7 +34,10 @@ import { RolesGuard } from '@iam/roles/roles.guard';
 @ApiTags('CMS Blog Posts')
 @Controller('v1/cms/blog/posts')
 export class BlogPostsController {
-  constructor(private readonly blogPostsService: BlogPostsService) {}
+  constructor(
+    private readonly blogPostsService: BlogPostsService,
+    private readonly tagsService: TagsService,
+  ) {}
 
   @Post()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -53,25 +57,26 @@ export class BlogPostsController {
   }
 
   @Get('public')
-  findAllPublic(
+  async findAllPublic(
     @Query('lang') lang: string = 'es',
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
     @Query('search') search?: string,
-    @Query('tags') tags?: string | string[],
+    @Query('tagSlugs') tagSlugs?: string,
     @Query('categoryId') categoryId?: string,
   ) {
-    const normalizedTags = tags
-      ? Array.isArray(tags)
-        ? tags
-        : [tags]
-      : undefined;
+    let tagIds: string[] | undefined;
+    if (tagSlugs) {
+      const slugs = tagSlugs.split(',').map(s => s.trim()).filter(Boolean);
+      const tags = await this.tagsService.findManyBySlugs(slugs, lang);
+      tagIds = tags.map(t => t.id);
+    }
     return this.blogPostsService.findAllPublished(
       lang,
       page,
       limit,
       search,
-      normalizedTags,
+      tagIds,
       categoryId,
     );
   }

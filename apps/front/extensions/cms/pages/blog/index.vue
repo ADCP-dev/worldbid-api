@@ -30,11 +30,12 @@ const searchInput = ref((route.query.search as string) || '')
 
 const selectedTags = computed({
   get: () => {
-    const tags = route.query.tags
-    return Array.isArray(tags) ? (tags as string[]) : tags ? [tags as string] : []
+    const tagsParam = route.query.tags as string;
+    if (!tagsParam) return [];
+    return tagsParam.split(',').map(s => s.trim()).filter(Boolean);
   },
   set: (value: string[]) => {
-    updateQuery({ tags: value.length ? value : undefined }, ['tags'])
+    updateQuery({ tags: value.length ? value.join(',') : undefined }, ['tags'])
   },
 })
 
@@ -106,6 +107,7 @@ const seo = computed(() => ({
 const tagItems = computed(() => {
   return (allTags.value || []).map((t) => ({
     id: t.id,
+    slug: t.slug,
     name: t.name,
     count: undefined,
   }))

@@ -3,7 +3,7 @@
 
 
 definePageMeta({
-    layout: 'landing',
+    layout: 'public',
 })
 
 useHead({
