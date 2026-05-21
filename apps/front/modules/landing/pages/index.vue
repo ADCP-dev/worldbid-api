@@ -3,7 +3,7 @@
 
 
 definePageMeta({
-    layout: 'blank',
+    layout: 'landing',
 })
 
 useHead({
@@ -19,7 +19,6 @@ useHead({
 
 <template>
     <div>
-        <LandingNavbar />
         <LandingHero />
         <LandingSponsors />
         <LandingBenefits />
@@ -32,6 +31,5 @@ useHead({
         <LandingPricing />
         <LandingContact />
         <LandingFAQ />
-        <LandingFooter />
     </div>
 </template>

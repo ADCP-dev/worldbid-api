@@ -31,7 +31,7 @@ export interface HreflangLinkOutput {
 export function useSeo() {
   const config = useRuntimeConfig();
   const { locale, locales } = useI18n();
-  const appUrl = config.public.apiUrl || 'https://example.com';
+  const appUrl = config.public.appUrl;
 
   // Get active locales from i18n configuration
   const activeLocales = computed<Array<{ code: string }>>(() => {
@@ -58,13 +58,17 @@ export function useSeo() {
     includeXDefault = true,
   ): HreflangLinkOutput[] {
     const links: HreflangLinkOutput[] = [];
+    const defaultLocale = locale.value || 'es';
 
     for (const loc of activeLocales.value) {
       const localeCode = loc.code;
       const customUrl = customUrls?.[localeCode];
 
-      // Use custom URL if provided, otherwise generate from pattern /{locale}{path}
-      const href = customUrl || `${appUrl}/${localeCode}${currentPath}`;
+      // Use custom URL if provided, otherwise respect prefix_except_default:
+      // default locale → no prefix, alternate locales → /{locale} prefix
+      const href = customUrl || (localeCode === defaultLocale
+        ? `${appUrl}${currentPath}`
+        : `${appUrl}/${localeCode}${currentPath}`);
 
       links.push({
         rel: 'alternate',
@@ -73,11 +77,10 @@ export function useSeo() {
       });
     }
 
-    // Add x-default hreflang
+    // Add x-default hreflang — same as default locale (no prefix)
     if (includeXDefault) {
-      const defaultLocale = config.public.defaultLocale || 'es';
       const defaultCustomUrl = customUrls?.['x-default'] || customUrls?.[defaultLocale];
-      const defaultHref = defaultCustomUrl || `${appUrl}/${defaultLocale}${currentPath}`;
+      const defaultHref = defaultCustomUrl || `${appUrl}${currentPath}`;
 
       links.push({
         rel: 'alternate',

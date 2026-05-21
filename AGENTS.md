@@ -395,6 +395,7 @@ Docs en `docs/`. Docs pa contexto y teoría. Skills pa acción.
 | `docs/EXTENSIONS-SYSTEM.md` | EXTENSIONS-SYSTEM |
 | `docs/FRONTEND-LAYERS.md` | FRONTEND-LAYERS |
 | `docs/GENERATORS.md` | GENERATORS |
+| `docs/issues/issue-81-layout-category-routing.md` | CMS Layout Separation & Category Routing |
 | `docs/TOOLS.md` | TOOLS |
 | `docs/TYPESCRIPT-GUIDELINES.md` | TYPESCRIPT-GUIDELINES |
 

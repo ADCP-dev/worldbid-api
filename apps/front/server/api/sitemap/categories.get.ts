@@ -1,6 +1,6 @@
 /**
  * Sitemap categories source — fetches blog categories from NestJS backend
- * and returns sitemap URLs for /blog/category/[slug] routes.
+ * and returns sitemap URLs for /blog/c/[slug] routes.
  *
  * Uses the unprotected public endpoint to get all categories.
  */
@@ -21,7 +21,7 @@ export default defineSitemapEventHandler(async () => {
     const categories = await $fetch<Category[]>(apiUrl)
 
     return categories.map((cat) => ({
-      loc: `/blog/category/${cat.slug}`,
+      loc: `/blog/c/${cat.slug}`,
       lastmod: new Date().toISOString(),
       changefreq: 'weekly' as SitemapUrl['changefreq'],
       priority: 0.6 as SitemapUrl['priority'],

@@ -43,7 +43,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const config = useRuntimeConfig();
-const appUrl = config.public.apiUrl || 'https://example.com';
+const appUrl = config.public.appUrl;
 
 // Use i18n for locale-aware meta
 const { locale, locales } = useI18n();
@@ -209,7 +209,7 @@ const metaTags = computed(() => {
   }
 
   // OG site name
-  const siteName = config.public.appName || 'Foundation';
+  const siteName = config.public.appName || '';
   tags.push({ property: 'og:site_name', content: siteName });
 
   // Twitter cards
@@ -252,12 +252,27 @@ const linkTags = computed(() => {
 });
 
 // Build script array for JSON-LD
+// Deduplicate BreadcrumbList: if Breadcrumbs.vue already injects one, skip it here
 const jsonLdScripts = computed(() => {
   if (!seoData.value.customJsonLd) return [];
+
+  const items = Array.isArray(seoData.value.customJsonLd)
+    ? seoData.value.customJsonLd
+    : [seoData.value.customJsonLd];
+
+  // Filter out BreadcrumbList entries to prevent duplication with Breadcrumbs.vue
+  const filtered = items.filter(
+    (item: Record<string, unknown>) => item?.['@type'] !== 'BreadcrumbList'
+  );
+
+  if (filtered.length === 0) return [];
+
+  const payload = filtered.length === 1 ? filtered[0] : filtered;
+
   return [
     {
       type: 'application/ld+json' as const,
-      children: () => JSON.stringify(seoData.value.customJsonLd),
+      children: () => JSON.stringify(payload),
     },
   ];
 });

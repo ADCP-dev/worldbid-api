@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { z } from "zod";
+import type { z } from "zod";
 import { blogPostSchema } from "@cms/schemas/blog-post.schema";
 import FormInput from "@base/ui-app/components/form/FormInput.vue";
 import FormSelect from "@base/ui-app/components/form/FormSelect.vue";
@@ -414,7 +414,7 @@ const handleDelete = async () => {
 
       <!-- SEO (collapsible) -->
       <div class="collapse collapse-arrow bg-base-100 shadow-sm border">
-        <input type="checkbox" />
+        <input type="checkbox" >
         <div class="collapse-title text-lg font-medium">
           SEO
         </div>

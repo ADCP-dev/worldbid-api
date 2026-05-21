@@ -51,7 +51,18 @@
       "language": "Language",
       "selectTags": "Select tags",
       "noTags": "No tags"
-    }
+    },
+    "readingTime": "min read",
+    "readMore": "Read more",
+    "untitled": "Untitled",
+    "relatedArticles": "Related articles",
+    "searchPlaceholder": "Search articles...",
+    "allCategories": "All categories",
+    "noResults": "No results found"
+  },
+  "share": {
+    "title": "Share:",
+    "copyLink": "Copy link"
   },
   "tags": {
     "title": "Tags",

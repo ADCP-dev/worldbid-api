@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { z } from "zod";
+import type { z } from "zod";
 import { blogPostSchema } from "@cms/schemas/blog-post.schema";
 import FormInput from "@base/ui-app/components/form/FormInput.vue";
 import FormSelect from "@base/ui-app/components/form/FormSelect.vue";
@@ -28,7 +28,7 @@ const isCreating = ref(false);
 const showPreviewModal = ref(false);
 const validationErrors = ref<Record<string, string>>({});
 const createdPostId = ref<string>('');
-let slugManuallyEdited = false;
+const slugManuallyEdited = false;
 
 const form = ref({
   title: "",

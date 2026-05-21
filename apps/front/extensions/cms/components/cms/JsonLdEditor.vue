@@ -287,7 +287,7 @@ function emitUpdate() {
 
       <!-- Preview Toggle -->
       <div class="collapse collapse-arrow bg-base-200">
-        <input type="checkbox" v-model="showPreview" />
+        <input v-model="showPreview" type="checkbox" >
         <div class="collapse-title text-sm font-medium">Vista previa JSON-LD</div>
         <div class="collapse-content">
           <pre class="text-xs bg-neutral text-neutral-content p-3 rounded-lg overflow-x-auto max-h-64"><code>{{ generatedJsonLd || 'Selecciona un tipo y completa los campos...' }}</code></pre>

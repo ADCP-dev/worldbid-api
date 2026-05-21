@@ -85,30 +85,30 @@ describe('PagesService', () => {
   describe('create', () => {
     it('should auto-generate slug from name when slug is not provided', async () => {
       const dto = { name: 'About Us', section: PageSection.LANDING };
-      const created = { id: 'uuid-1', slug: '/about-us', name: 'About Us' };
+      const created = { id: 'uuid-1', slug: 'about-us', name: 'About Us' };
       mockPageRepository.create.mockReturnValue(created);
       mockPageRepository.save.mockResolvedValue(created);
 
       const result = await service.create(dto as any);
 
       expect(pageRepository.create).toHaveBeenCalledWith(
-        expect.objectContaining({ slug: '/about-us' }),
+        expect.objectContaining({ slug: 'about-us' }),
       );
-      expect(result.slug).toBe('/about-us');
+      expect(result.slug).toBe('about-us');
     });
 
     it('should use provided slug when available', async () => {
       const dto = { name: 'About Us', slug: 'custom-slug' };
-      const created = { id: 'uuid-1', slug: '/custom-slug', name: 'About Us' };
+      const created = { id: 'uuid-1', slug: 'custom-slug', name: 'About Us' };
       mockPageRepository.create.mockReturnValue(created);
       mockPageRepository.save.mockResolvedValue(created);
 
       const result = await service.create(dto as any);
 
       expect(pageRepository.create).toHaveBeenCalledWith(
-        expect.objectContaining({ slug: '/custom-slug' }),
+        expect.objectContaining({ slug: 'custom-slug' }),
       );
-      expect(result.slug).toBe('/custom-slug');
+      expect(result.slug).toBe('custom-slug');
     });
 
     it('should throw NotFoundException when neither slug nor name is provided', async () => {
@@ -121,7 +121,7 @@ describe('PagesService', () => {
 
     it('should handle section field on create', async () => {
       const dto = { name: 'Docs', section: PageSection.DOCUMENTATION };
-      const created = { id: 'uuid-1', slug: '/docs', section: 'documentation' };
+      const created = { id: 'uuid-1', slug: 'docs', section: 'documentation' };
       mockPageRepository.create.mockReturnValue(created);
       mockPageRepository.save.mockResolvedValue(created);
 
@@ -129,11 +129,11 @@ describe('PagesService', () => {
 
       expect(pageRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          slug: '/docs',
+          slug: 'docs',
           section: PageSection.DOCUMENTATION,
         }),
       );
-      expect(result.slug).toBe('/docs');
+      expect(result.slug).toBe('docs');
     });
   });
 

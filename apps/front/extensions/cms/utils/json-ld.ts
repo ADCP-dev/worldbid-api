@@ -24,9 +24,9 @@ import type {
 function getAppUrl(): string {
   try {
     const config = useRuntimeConfig();
-    return config.public.apiUrl || 'https://example.com';
+    return (config.public.appUrl as string) || 'http://localhost:3000';
   } catch {
-    return 'https://example.com';
+    return 'http://localhost:3000';
   }
 }
 

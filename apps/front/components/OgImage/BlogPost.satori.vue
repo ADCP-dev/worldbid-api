@@ -5,6 +5,7 @@ defineProps<{
   image?: string
   siteName?: string
   category?: string
+  domain?: string
 }>()
 </script>
 
@@ -30,7 +31,7 @@ defineProps<{
 
       <!-- Title -->
       <div style="font-size:52px;font-weight:800;line-height:1.1;color:white;margin-bottom:24px;max-width:1050px;letter-spacing:-0.01em">
-        {{ title || 'Sin título' }}
+        {{ title || '' }}
       </div>
 
       <!-- Description -->
@@ -40,8 +41,8 @@ defineProps<{
 
       <!-- Footer -->
       <div style="display:flex;align-items:center;justify-content:space-between;padding-top:24px;border-top:1px solid rgba(255,255,255,0.08)">
-        <span style="font-size:22px;font-weight:600;color:rgba(255,255,255,0.75);letter-spacing:0.02em">{{ siteName || 'Foundation' }}</span>
-        <span style="font-size:16px;color:rgba(255,255,255,0.25)">foundation.dev/blog</span>
+        <span style="font-size:22px;font-weight:600;color:rgba(255,255,255,0.75);letter-spacing:0.02em">{{ siteName || '' }}</span>
+        <span style="font-size:16px;color:rgba(255,255,255,0.25)">{{ domain || '' }}</span>
       </div>
     </div>
   </div>

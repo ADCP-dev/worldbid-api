@@ -9,14 +9,15 @@ import { useCmsBlogPosts } from '@cms/composables/useCmsBlogPosts'
 import { useCmsTags } from '@cms/composables/useCmsTags'
 import { useCmsCategories } from '@cms/composables/useCmsCategories'
 import { useReadingTime } from '@cms/composables/useReadingTime'
+import { useRouteQuery } from '@/composables/useRouteQuery'
 
 definePageMeta({ layout: "public" })
 
 const route = useRoute()
 const { locale, t } = useI18n()
+const { updateQuery } = useRouteQuery()
 const localePath = useLocalePath()
 const lang = locale
-const router = useRouter()
 const config = useRuntimeConfig()
 
 const page = computed(() => {
@@ -33,14 +34,7 @@ const selectedTags = computed({
     return Array.isArray(tags) ? (tags as string[]) : tags ? [tags as string] : []
   },
   set: (value: string[]) => {
-    const query: Record<string, string | string[]> = {}
-    for (const [key, val] of Object.entries(route.query)) {
-      if (key !== 'tags' && key !== 'page' && val !== undefined && val !== '') {
-        query[key] = val as string | string[]
-      }
-    }
-    if (value.length) query.tags = value
-    router.replace({ path: route.path, query })
+    updateQuery({ tags: value.length ? value : undefined }, ['tags'])
   },
 })
 
@@ -52,27 +46,15 @@ const { fetchCategories, categories: allCategories } = useCmsCategories()
 defineOgImage('OgImageBlogPost.satori', {
   title: 'Blog',
   description: locale.value === 'en' ? 'Articles and tutorials' : 'Artículos y tutoriales',
-  siteName: config.public.appName || 'Foundation',
+  siteName: config.public.appName || '',
+  domain: (config.public.appUrl as string)?.replace(/^https?:\/\//, '') || '',
 })
 
-const selectedCategory = computed({
-  get: () => (route.query.categoryId as string) || '',
-  set: (value: string) => {
-    const query: Record<string, string | string[]> = {}
-    for (const [key, val] of Object.entries(route.query)) {
-      if (key !== 'categoryId' && key !== 'page' && val !== undefined && val !== '') {
-        query[key] = val as string | string[]
-      }
-    }
-    if (value) query.categoryId = value
-    router.replace({ path: route.path, query })
-  },
-})
-
-// Fetch SEO for blog index
-const { data: seoData } = useFetch(
-  () => `${config.public.apiUrl}${config.public.apiPrefix}/cms/seo/BlogIndex/blog-index?lang=${lang.value}`,
-  { server: true, default: () => null },
+// Fetch SEO for blog index — awaited for SSR (REQ-2.1)
+const { data: seoData } = await useAsyncData(
+  'blog-index-seo',
+  () => $fetch(`${config.public.apiUrl}${config.public.apiPrefix}/cms/seo/BlogIndex/blog-index?lang=${lang.value}`),
+  { default: () => null },
 )
 
 // Fetch tags for filter
@@ -80,14 +62,7 @@ await fetchTagsPublic(lang.value)
 await fetchCategories(lang.value)
 
 function onSearch(value: string) {
-  const query: Record<string, string | string[]> = {}
-  for (const [key, val] of Object.entries(route.query)) {
-    if (key !== 'search' && key !== 'page' && val !== undefined && val !== '') {
-      query[key] = val as string | string[]
-    }
-  }
-  if (value) query.search = value
-  router.replace({ path: route.path, query })
+  updateQuery({ search: value || undefined }, ['search'])
 }
 
 // Build query params from URL only — single source of truth
@@ -97,7 +72,6 @@ const queryParams = computed(() => ({
   limit,
   search: (route.query.search as string) || undefined,
   tags: selectedTags.value.length ? selectedTags.value : undefined,
-  categoryId: (route.query.categoryId as string) || undefined,
 }))
 
 // Fetch posts
@@ -121,7 +95,7 @@ const seo = computed(() => ({
   ogImage: seoData.value?.ogImage?.url || null,
   ogTitle: seoData.value?.ogTitle || seoData.value?.metaTitle || 'Blog',
   ogDescription: seoData.value?.ogDescription || seoData.value?.metaDescription || '',
-  canonicalUrl: seoData.value?.canonicalUrl || `${config.public.apiUrl}${localePath('/blog')}`,
+  canonicalUrl: seoData.value?.canonicalUrl || `${config.public.appUrl}${localePath('/blog')}`,
   customJsonLd: seoData.value?.customJsonLd || null,
   robotsPolicy: seoData.value?.robotsPolicy || { index: true, follow: true },
   hreflangEnabled: seoData.value?.hreflangEnabled !== false,
@@ -150,19 +124,29 @@ const tagItems = computed(() => {
     />
 
     <div class="mb-8">
-      <h1 class="text-4xl font-bold mb-6">Blog</h1>
+      <h1 class="text-4xl font-bold mb-6">{{ t('cms.blog.title') }}</h1>
 
       <div class="flex flex-col md:flex-row gap-4 mb-6">
-        <SearchBox v-model="searchInput" placeholder="Search posts..." class="md:max-w-sm"
+        <SearchBox
+ v-model="searchInput" :placeholder="t('cms.blog.searchPlaceholder')" class="md:max-w-sm"
           @update:model-value="onSearch" />
-        <select v-if="allCategories.length" :value="selectedCategory"
-          class="select select-bordered select-sm w-full md:max-w-xs"
-          @change="selectedCategory = ($event.target as HTMLSelectElement).value">
-          <option value="">Todas las categorías</option>
-          <option v-for="cat in allCategories" :key="cat.id" :value="cat.id">
+        <div v-if="allCategories.length" class="flex flex-wrap items-center gap-2">
+          <NuxtLink
+            :to="localePath('/blog')"
+            class="badge badge-outline badge-sm hover:badge-primary cursor-pointer"
+            :class="{ 'badge-primary': !route.query.categoryId }"
+          >
+            {{ t('cms.blog.allCategories') }}
+          </NuxtLink>
+          <NuxtLink
+            v-for="cat in allCategories"
+            :key="cat.id"
+            :to="localePath(`/blog/c/${cat.slug}`)"
+            class="badge badge-outline badge-sm hover:badge-primary cursor-pointer"
+          >
             {{ cat.name }}
-          </option>
-        </select>
+          </NuxtLink>
+        </div>
       </div>
 
       <TagFilter v-if="tagItems.length" v-model="selectedTags" :tags="tagItems" />
@@ -188,7 +172,7 @@ const tagItems = computed(() => {
 
     <!-- Empty state -->
     <div v-else class="text-center py-12">
-      <p class="text-lg text-base-content/70">No posts found.</p>
+      <p class="text-lg text-base-content/70">{{ t('cms.blog.noResults') }}</p>
     </div>
 
     <!-- Pagination -->

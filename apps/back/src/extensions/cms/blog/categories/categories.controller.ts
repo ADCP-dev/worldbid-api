@@ -10,6 +10,7 @@ import {
   Query,
   HttpStatus,
   HttpCode,
+  NotFoundException,
 } from '@nestjs/common';
 import { BlogCategoriesService } from './categories.service';
 import { CreateBlogCategoryDto } from './dto/create-category.dto';
@@ -45,6 +46,18 @@ export class BlogCategoriesController {
   @Get('public')
   findAllPublic(@Query('lang') lang: string = 'es') {
     return this.categoriesService.findAll(lang);
+  }
+
+  @Get('public/by-slug/:slug')
+  async findPublicBySlug(
+    @Param('slug') slug: string,
+    @Query('lang') lang: string = 'es',
+  ) {
+    const category = await this.categoriesService.findBySlug(slug, lang);
+    if (!category) {
+      throw new NotFoundException(`Category with slug "${slug}" not found`);
+    }
+    return category;
   }
 
   @Get(':id')

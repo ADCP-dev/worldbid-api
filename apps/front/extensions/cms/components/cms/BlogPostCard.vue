@@ -1,38 +1,41 @@
 <script setup lang="ts">
-defineProps<{
-  post: any;
-  lang: string;
-}>();
+import type { BlogPost } from '@cms/types/blog'
+import { useReadingTime } from '@cms/composables/useReadingTime'
 
-const config = useRuntimeConfig();
-const localePath = useLocalePath();
+const props = defineProps<{
+  post: BlogPost
+  lang: string
+}>()
 
-function getTitle(post: any, lang: string): string {
-  return post.translations?.[lang]?.title || post.slug || '';
+const config = useRuntimeConfig()
+const localePath = useLocalePath()
+const { t } = useI18n()
+
+function getTitle(post: BlogPost, lang: string): string {
+  return post.translations?.[lang]?.title || post.slug || ''
 }
 
-function getExcerpt(post: any, lang: string): string {
-  if (post.translations?.[lang]?.excerpt) return post.translations[lang].excerpt;
-  const content = post.translations?.[lang]?.content;
+function getExcerpt(post: BlogPost, lang: string): string {
+  if (post.translations?.[lang]?.excerpt) return post.translations[lang].excerpt
+  const content = post.translations?.[lang]?.content
   if (content) {
-    const text = content.replace(/<[^>]+>/g, '').trim();
-    return text.length > 150 ? text.slice(0, 150) + '...' : text;
+    const text = content.replace(/<[^>]+>/g, '').trim()
+    return text.length > 150 ? text.slice(0, 150) + '...' : text
   }
-  return '';
+  return ''
 }
 
-function getImageUrl(post: any): string {
-  if (post.featuredImage?.url) return post.featuredImage.url;
-  if (post.featuredImage?.path) return `${config.public.apiUrl}${post.featuredImage.path}`;
-  return '';
+function getImageUrl(post: BlogPost): string {
+  if (post.featuredImage?.url) return post.featuredImage.url
+  if (post.featuredImage?.path) return `${config.public.apiUrl}${post.featuredImage.path}`
+  return ''
 }
 
-function getReadingTime(post: any, lang: string): number {
-  const content = post.translations?.[lang]?.content;
-  if (!content) return 0;
-  const text = content.replace(/<[^>]+>/g, '').trim();
-  return Math.max(1, Math.ceil(text.split(/\s+/).filter(Boolean).length / 180));
-}
+const readingTime = computed(() => {
+  const content = props.post.translations?.[props.lang]?.content
+  if (!content) return 0
+  return useReadingTime(content)
+})
 </script>
 
 <template>
@@ -47,7 +50,7 @@ function getReadingTime(post: any, lang: string): number {
     <div class="card-body">
       <div v-if="post.category" class="mb-2">
         <NuxtLink
-          :to="localePath(`/blog/category/${post.category.slug}`)"
+          :to="localePath(`/blog/c/${post.category.slug}`)"
           class="badge badge-primary badge-sm hover:badge-primary"
         >
           {{ post.category.name }}
@@ -64,8 +67,8 @@ function getReadingTime(post: any, lang: string): number {
         <span v-if="post.publishedAt">
           {{ new Date(post.publishedAt).toLocaleDateString(lang, { year: 'numeric', month: 'long', day: 'numeric' }) }}
         </span>
-        <span v-if="getReadingTime(post, lang) > 0" class="text-base-content/50">
-          · {{ getReadingTime(post, lang) }} min de lectura
+        <span v-if="readingTime > 0" class="text-base-content/50">
+          · {{ readingTime }} {{ t('cms.blog.readingTime') }}
         </span>
       </p>
 
@@ -86,7 +89,7 @@ function getReadingTime(post: any, lang: string): number {
 
       <div class="card-actions justify-end mt-4">
         <NuxtLink :to="localePath(`/blog/${post.slug}`)" class="btn btn-primary btn-sm">
-          Leer más
+          {{ t('cms.blog.readMore') }}
         </NuxtLink>
       </div>
     </div>

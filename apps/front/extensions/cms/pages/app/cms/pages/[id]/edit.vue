@@ -74,7 +74,7 @@ const slugManuallyEdited = ref(false);
 watch(
   () => form.value.name,
   (newName) => {
-    if (!slugManuallyEdited) {
+    if (!slugManuallyEdited.value) {
       form.value.slug = kebabCase(newName);
     }
   },
