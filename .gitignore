@@ -62,3 +62,4 @@ graphify-out/.needs_update
 
 # OpenCode generated config
 .agents/generated.json
+.playwright-mcp
