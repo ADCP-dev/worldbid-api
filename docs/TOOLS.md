@@ -309,8 +309,11 @@ Commands for managing backend extensions (auto-discovered modules).
 | Command | Description |
 |---------|-------------|
 | `add-extension` | Scaffolds a new extension. Creates folder structure under `src/extensions/<name>/` with `extension.module.ts` and full CRUD. |
-| `remove-extension` | Removes an extension directory. `rm -rf src/extensions/<name>` — since extensions are auto-discovered, no other files need editing. |
+| `remove-extension` | Removes an extension directory. Warns about orphaned children (via parent metadata). Use `--force` to skip. |
 | `build-extension` | Builds an extension for distribution. Compiles and packages the extension so it can be copied to another project. |
+| `ext:validate` | Validates extension parent relationships. Checks parent exists, parent listed in dependencies.extensions, and detects circular parent chains. | `pnpm ext:validate` (all) or `pnpm ext:validate <name>` |
+| `ext:tree` | Displays a visual tree of all extensions with parent-child hierarchy. Shows orphans, missing parents, and circular references. | `pnpm ext:tree` |
+| `create:bundle` | Recursively packages an extension and all its child extensions (via parent metadata) into a single distributable ZIP. | `pnpm create:bundle <name>` |
 
 ### Extension Structure
 
@@ -345,3 +348,4 @@ src/extensions/<name>/
 | Table prefix | `ext_<name>_` to avoid collisions |
 | Entity discovery | Automatic via TypeORM glob `**/*.entity{.ts,.js}` |
 | Config | `extension.config.ts` with `registerAs` for env variables |
+| Parent metadata | `extension.manifest.ts` may declare `parent?: string` — pure metadata, no runtime effect |

@@ -69,6 +69,7 @@ async function onSubmit(event: Event) {
       type="email"
       :placeholder="$t('base.auth.signIn.emailPlaceholder')"
       :disabled="isLoading"
+      testId="login-email"
     />
 
     <div class="form-control w-full">
@@ -78,10 +79,10 @@ async function onSubmit(event: Event) {
           {{ $t('base.auth.signIn.forgotPasswordLink') }}
         </NuxtLink>
       </div>
-      <PasswordInput id="password" v-model="password" />
+      <PasswordInput id="password" v-model="password" testId="login-password" />
     </div>
 
-    <button type="submit" class="btn btn-primary w-full" :disabled="isLoading">
+    <button type="submit" class="btn btn-primary w-full" :disabled="isLoading" data-testid="login-submit">
       <span v-if="isLoading" class="loading loading-spinner loading-sm" />
       {{ $t('base.auth.signIn.submitButton') }}
     </button>

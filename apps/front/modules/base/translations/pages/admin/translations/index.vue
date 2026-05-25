@@ -11,7 +11,7 @@ import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();
 
-const { getLangs, deleteTranslation, generateJson, bulkTranslate } =
+const { getLangs, deleteTranslation, generateJson, bulkTranslate, syncTranslations } =
   useTranslations();
 
 const langs = ref<any[]>([]);
@@ -28,6 +28,7 @@ const frontTable = ref<any>(null);
 const backTable = ref<any>(null);
 const isGenerating = ref(false);
 const isBulkTranslating = ref(false);
+const isSyncing = ref(false);
 
 const fetchLangs = async () => {
   langs.value = await getLangs();
@@ -128,6 +129,18 @@ const handleBulkTranslate = async () => {
   }
 };
 
+const handleSync = async () => {
+  isSyncing.value = true;
+  try {
+    const result = await syncTranslations();
+    toast.success(`Sincronizado: ${result.files?.length ?? 0} archivos generados`);
+  } catch (e: any) {
+    toast.error(e?.message || 'Error al sincronizar');
+  } finally {
+    isSyncing.value = false;
+  }
+};
+
 onMounted(async () => {
   await fetchLangs();
 });
@@ -167,6 +180,13 @@ onMounted(async () => {
               ? $t("base.translations.generatingMsg")
               : $t("base.translations.generateJsonBtn")
           }}
+        </button>
+        <button
+          class="btn btn-primary"
+          @click="handleSync"
+          :disabled="isSyncing"
+        >
+          {{ isSyncing ? 'Sincronizando...' : 'Sincronizar' }}
         </button>
       </div>
     </div>

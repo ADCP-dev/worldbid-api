@@ -9,6 +9,8 @@ import {
   IsEmail,
   IsNotEmpty,
   IsOptional,
+  IsString,
+  Length,
   MinLength,
 } from 'class-validator';
 import { FileDto } from '@storage/files/dto/file.dto';
@@ -55,4 +57,10 @@ export class CreateUserDto {
 
   @IsOptional()
   stripeCustomerId?: string | null;
+
+  @ApiPropertyOptional({ example: 'es' })
+  @IsOptional()
+  @IsString()
+  @Length(2, 5)
+  language?: string;
 }

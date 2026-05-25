@@ -98,6 +98,7 @@ export class AuthService {
       role: user.role,
       sessionId: session.id,
       hash,
+      language: user.language ?? 'en',
     });
 
     return {
@@ -111,6 +112,7 @@ export class AuthService {
   async validateSocialLogin(
     authProvider: string,
     socialData: SocialInterface,
+    lang?: string,
   ): Promise<LoginResponseDto> {
     let user: NullableType<User> = null;
     const socialEmail = socialData.email?.toLowerCase();
@@ -131,7 +133,7 @@ export class AuthService {
       if (socialEmail && !userByEmail) {
         user.email = socialEmail;
       }
-      await this.usersService.update(user.id, user);
+      await this.usersService.update(user.id, user as any);
     } else if (userByEmail) {
       user = userByEmail;
     } else if (socialData.id) {
@@ -150,6 +152,7 @@ export class AuthService {
         provider: authProvider,
         role,
         status,
+        language: lang || 'en',
       });
 
       user = await this.usersService.findById(user.id);
@@ -183,6 +186,7 @@ export class AuthService {
       role: user.role,
       sessionId: session.id,
       hash,
+      language: user.language ?? 'en',
     });
 
     return {
@@ -193,7 +197,7 @@ export class AuthService {
     };
   }
 
-  async register(dto: AuthRegisterLoginDto): Promise<void> {
+  async register(dto: AuthRegisterLoginDto, lang?: string): Promise<void> {
     const user = await this.usersService.create({
       ...dto,
       email: dto.email,
@@ -203,6 +207,7 @@ export class AuthService {
       status: {
         id: StatusEnum.inactive,
       },
+      language: lang || 'en',
     });
 
     const hash = await this.jwtService.signAsync(
@@ -223,6 +228,10 @@ export class AuthService {
       to: dto.email,
       data: {
         hash,
+        user: {
+          language: user.language ?? 'en',
+          firstName: user.firstName ?? undefined,
+        },
       },
     });
   }
@@ -265,7 +274,7 @@ export class AuthService {
       id: StatusEnum.active,
     };
 
-    await this.usersService.update(user.id, user);
+    await this.usersService.update(user.id, user as any);
   }
 
   async confirmNewEmail(hash: string): Promise<void> {
@@ -302,12 +311,10 @@ export class AuthService {
       });
     }
 
-    user.email = newEmail;
-    user.status = {
-      id: StatusEnum.active,
-    };
-
-    await this.usersService.update(user.id, user);
+    await this.usersService.update(user.id, {
+      email: newEmail,
+      status: { id: StatusEnum.active },
+    } as any);
   }
 
   async forgotPassword(email: string): Promise<void> {
@@ -345,6 +352,10 @@ export class AuthService {
       data: {
         hash,
         tokenExpires,
+        user: {
+          language: user.language ?? 'en',
+          firstName: user.firstName ?? undefined,
+        },
       },
     });
   }
@@ -382,13 +393,11 @@ export class AuthService {
       });
     }
 
-    user.password = password;
-
     await this.sessionService.deleteByUserId({
       userId: user.id,
     });
 
-    await this.usersService.update(user.id, user);
+    await this.usersService.update(user.id, { password } as any);
   }
 
   async me(userJwtPayload: JwtPayloadType): Promise<NullableType<User>> {
@@ -480,6 +489,10 @@ export class AuthService {
         to: userDto.email,
         data: {
           hash,
+          user: {
+            language: currentUser.language ?? 'en',
+            firstName: currentUser.firstName ?? undefined,
+          },
         },
       });
     }
@@ -490,6 +503,14 @@ export class AuthService {
     await this.usersService.update(userJwtPayload.id, userDto);
 
     return this.usersService.findById(userJwtPayload.id);
+  }
+
+  async updateLanguage(userId: number, language: string) {
+    const user = await this.usersService.findById(userId);
+    if (!user) throw new NotFoundException('User not found');
+    user.language = language;
+    await this.usersService.update(userId, { language });
+    return { language };
   }
 
   async refreshToken(
@@ -527,6 +548,7 @@ export class AuthService {
       },
       sessionId: session.id,
       hash,
+      language: user.language ?? 'en',
     });
 
     return {
@@ -549,6 +571,7 @@ export class AuthService {
     role: User['role'];
     sessionId: Session['id'];
     hash: Session['hash'];
+    language: string;
   }) {
     const tokenExpiresIn = this.configService.getOrThrow('auth.expires', {
       infer: true,
@@ -559,6 +582,7 @@ export class AuthService {
     const payload: any = {
       id: data.id,
       sessionId: data.sessionId,
+      language: data.language,
     };
 
     if (data.role) {

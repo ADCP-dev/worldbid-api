@@ -4,10 +4,20 @@
   "type": "module",
   "scripts": {
     "build": "nuxt build",
-    "dev": "nuxt dev",
+    "build:dev": "nuxt build",
     "generate": "nuxt generate",
+    "dev": "nuxt dev",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp",
+      "unrs-resolver",
+      "vue-demi",
+      "@parcel/watcher"
+    ]
   },
   "dependencies": {
     "@floating-ui/dom": "^1.6.0",

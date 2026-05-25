@@ -10,6 +10,7 @@ defineProps<{
   min?: string;
   max?: string;
   step?: string;
+  testId?: string;
 }>();
 
 const model = defineModel<string | number>();
@@ -34,6 +35,7 @@ const slots = useSlots();
         :min="min"
         :max="max"
         :step="step"
+        :data-testid="testId"
         class="input input-bordered w-full"
         :class="{ 'input-error': error, 'pl-10': slots['icon-start'], 'pr-10': slots['icon-end'] }"
         @blur="emit('blur')"

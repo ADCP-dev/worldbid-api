@@ -1,4 +1,15 @@
 {
   "confirmEmail": "Confirm email",
-  "resetPassword": "Reset password"
+  "resetPassword": "Reset password",
+  "confirmNewEmail": "Confirm new email",
+  "email": {
+    "greeting": "Hello {name},",
+    "activationBody": "Thank you for registering. Please confirm your email to activate your account.",
+    "confirmButton": "Confirm email",
+    "resetBody": "We received a request to reset your password.",
+    "resetButton": "Reset password",
+    "newEmailBody": "You requested to change your email address. Confirm the new address.",
+    "newEmailButton": "Confirm new email",
+    "ignoreIfNotYou": "If this was not you, you can ignore this message."
+  }
 }

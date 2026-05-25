@@ -7,6 +7,7 @@ import {
   Get,
   Param,
   Put,
+  Patch,
   Delete,
   Body,
   Query,
@@ -57,7 +58,7 @@ export class FilesS3Controller {
   async getFiles(
     @Query() filters: FileFilterDto,
     @UserId() userId: number,
-  ): Promise<FileType[]> {
+  ): Promise<{ data: FileType[]; total: number }> {
     try {
       return await this.filesGenericService.findWithFilters({
         ...filters,
@@ -148,6 +149,21 @@ export class FilesS3Controller {
     @Body('isPublic') isPublic?: boolean,
   ): Promise<FileResponseDto> {
     return this.filesService.update(id, file, isPublic);
+  }
+
+  @ApiOkResponse({
+    type: FileType,
+    description: 'File metadata updated successfully',
+  })
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Patch(':id')
+  @ApiParam({ name: 'id', description: 'File ID' })
+  async updateFileMetadata(
+    @Param('id') id: string,
+    @Body() body: { name?: string; isPublic?: boolean },
+  ): Promise<FileType> {
+    return this.filesGenericService.update(id, body);
   }
 
   @ApiBearerAuth()

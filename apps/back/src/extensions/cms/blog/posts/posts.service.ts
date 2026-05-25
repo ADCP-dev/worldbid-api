@@ -386,7 +386,7 @@ export class BlogPostsService {
     const post = await this.findById(id);
 
     try {
-      const files = await this.filesService.findWithFilters({
+      const { data: files } = await this.filesService.findWithFilters({
         entityName: 'BlogPost',
         entityId: id,
       });

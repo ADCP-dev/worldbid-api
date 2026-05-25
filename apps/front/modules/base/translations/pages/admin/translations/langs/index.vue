@@ -155,11 +155,7 @@ onMounted(fetchLangs);
         <tbody>
           <tr v-for="lang in langs" :key="lang.id">
             <td>
-              <FlagIcon
-                :code="lang.flagCode || lang.code"
-                squared
-                class="text-xl"
-              />
+              <span :class="['fi', 'fi-' + (lang.flagCode || lang.code)]" style="width: 1.5em; height: 1.5em; display: inline-block;" />
             </td>
             <td class="font-medium">{{ lang.code }}</td>
             <td>{{ lang.name }}</td>

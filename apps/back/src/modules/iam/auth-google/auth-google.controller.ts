@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Headers,
   HttpCode,
   HttpStatus,
   Post,
@@ -31,9 +32,12 @@ export class AuthGoogleController {
   })
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() loginDto: AuthGoogleLoginDto): Promise<LoginResponseDto> {
+  async login(
+    @Body() loginDto: AuthGoogleLoginDto,
+    @Headers('x-custom-lang') lang?: string,
+  ): Promise<LoginResponseDto> {
     const socialData = await this.authGoogleService.getProfileByToken(loginDto);
 
-    return this.authService.validateSocialLogin('google', socialData);
+    return this.authService.validateSocialLogin('google', socialData, lang);
   }
 }

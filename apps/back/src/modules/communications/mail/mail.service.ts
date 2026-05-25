@@ -1,13 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { I18nContext } from 'nestjs-i18n';
+import { I18nService } from 'nestjs-i18n';
 import { MailData } from '@comms/mail/interfaces/mail-data.interface';
-
-import { MaybeType } from '@infra/utils/types/maybe.type';
-import path from 'path';
 import { AllConfigType } from '@src/config/config.type';
 import { QueuedMailerService } from '@comms/email-queue/queued-mailer.service';
 import { MailerService } from '@infra/mailer/mailer.service';
+import { getMailTemplatePath } from './helpers/mail-template-path.helper';
 
 @Injectable()
 export class MailService {
@@ -15,59 +13,70 @@ export class MailService {
     private readonly queuedMailerService: QueuedMailerService,
     private readonly mailerService: MailerService,
     private readonly configService: ConfigService<AllConfigType>,
+    private readonly i18nService: I18nService,
   ) {}
 
+  /**
+   * Merge global context (app_name, app_url) into email template context.
+   * So each method doesn't have to repeat these fields.
+   */
+  private buildContext(
+    custom: Record<string, unknown>,
+  ): Record<string, unknown> {
+    return {
+      app_name: this.configService.get('app.name', { infer: true }),
+      app_url: this.configService.getOrThrow('app.backendDomain', {
+        infer: true,
+      }),
+      ...custom,
+    };
+  }
+
   async userSignUp(
-    mailData: MailData<{ hash: string }>,
+    mailData: MailData<{
+      hash: string;
+      user?: { language?: string; firstName?: string };
+    }>,
     async: boolean = true,
   ): Promise<void> {
-    const i18n = I18nContext.current();
-    let emailConfirmTitle: MaybeType<string>;
-    let text1: MaybeType<string>;
-    let text2: MaybeType<string>;
-    let text3: MaybeType<string>;
+    const lang = mailData.data?.user?.language ?? 'en';
+    const name = mailData.data?.user?.firstName ?? '';
 
-    if (i18n) {
-      [emailConfirmTitle, text1, text2, text3] = await Promise.all([
-        i18n.t('common.confirmEmail'),
-        i18n.t('confirm-email.text1'),
-        i18n.t('confirm-email.text2'),
-        i18n.t('confirm-email.text3'),
-      ]);
-    }
+    const subject = this.i18nService.t('common.confirmEmail', { lang });
+    const greeting = this.i18nService.t('common.email.greeting', {
+      lang,
+      args: { name },
+    });
+    const bodyText = this.i18nService.t('common.email.activationBody', {
+      lang,
+    });
+    const buttonText = this.i18nService.t('common.email.confirmButton', {
+      lang,
+    });
+    const ignoreText = this.i18nService.t('common.email.ignoreIfNotYou', {
+      lang,
+    });
 
     const url = new URL(
-      this.configService.getOrThrow('app.frontendDomain', {
-        infer: true,
-      }) + '/confirm-email',
+      this.configService.getOrThrow('app.frontendDomain', { infer: true }) +
+        '/confirm-email',
     );
     url.searchParams.set('hash', mailData.data.hash);
 
     const mailOptions = {
       to: mailData.to,
-      subject: emailConfirmTitle || 'Confirm your email',
-      text: `${url.toString()} ${emailConfirmTitle || 'Confirm your email'}`,
-      templatePath: path.join(
-        this.configService.getOrThrow('app.workingDirectory', {
-          infer: true,
-        }),
-        'src',
-        'modules',
-        'communications',
-        'mail',
-        'mail-templates',
-        'build',
-        'activation.hbs',
-      ),
-      context: {
-        title: emailConfirmTitle,
-        url: url.toString(),
-        actionTitle: emailConfirmTitle,
-        app_name: this.configService.get('app.name', { infer: true }),
-        text1,
-        text2,
-        text3,
-      },
+      subject: subject || 'Confirm your email',
+      text: url.toString(),
+      templatePath: getMailTemplatePath('activation.hbs'),
+      context: this.buildContext({
+        title: subject,
+        subject,
+        link: url.toString(),
+        greeting,
+        body_text: bodyText,
+        button_text: buttonText,
+        ignore_text: ignoreText,
+      }),
     };
 
     if (async) {
@@ -78,62 +87,48 @@ export class MailService {
   }
 
   async forgotPassword(
-    mailData: MailData<{ hash: string; tokenExpires: number }>,
+    mailData: MailData<{
+      hash: string;
+      tokenExpires: number;
+      user?: { language?: string; firstName?: string };
+    }>,
     async: boolean = true,
   ): Promise<void> {
-    const i18n = I18nContext.current();
-    let resetPasswordTitle: MaybeType<string>;
-    let text1: MaybeType<string>;
-    let text2: MaybeType<string>;
-    let text3: MaybeType<string>;
-    let text4: MaybeType<string>;
+    const lang = mailData.data?.user?.language ?? 'en';
+    const name = mailData.data?.user?.firstName ?? '';
 
-    if (i18n) {
-      [resetPasswordTitle, text1, text2, text3, text4] = await Promise.all([
-        i18n.t('common.resetPassword'),
-        i18n.t('reset-password.text1'),
-        i18n.t('reset-password.text2'),
-        i18n.t('reset-password.text3'),
-        i18n.t('reset-password.text4'),
-      ]);
-    }
+    const subject = this.i18nService.t('common.resetPassword', { lang });
+    const greeting = this.i18nService.t('common.email.greeting', {
+      lang,
+      args: { name },
+    });
+    const bodyText = this.i18nService.t('common.email.resetBody', { lang });
+    const buttonText = this.i18nService.t('common.email.resetButton', { lang });
+    const ignoreText = this.i18nService.t('common.email.ignoreIfNotYou', {
+      lang,
+    });
 
     const url = new URL(
-      this.configService.getOrThrow('app.frontendDomain', {
-        infer: true,
-      }) + '/password-change',
+      this.configService.getOrThrow('app.frontendDomain', { infer: true }) +
+        '/password-change',
     );
     url.searchParams.set('hash', mailData.data.hash);
     url.searchParams.set('expires', mailData.data.tokenExpires.toString());
 
     const mailOptions = {
       to: mailData.to,
-      subject: resetPasswordTitle || 'Reset your password',
-      text: `${url.toString()} ${resetPasswordTitle || 'Reset your password'}`,
-      templatePath: path.join(
-        this.configService.getOrThrow('app.workingDirectory', {
-          infer: true,
-        }),
-        'src',
-        'modules',
-        'communications',
-        'mail',
-        'mail-templates',
-        'build',
-        'reset-password.hbs',
-      ),
-      context: {
-        title: resetPasswordTitle,
-        url: url.toString(),
-        actionTitle: resetPasswordTitle,
-        app_name: this.configService.get('app.name', {
-          infer: true,
-        }),
-        text1,
-        text2,
-        text3,
-        text4,
-      },
+      subject: subject || 'Reset your password',
+      text: url.toString(),
+      templatePath: getMailTemplatePath('reset-password.hbs'),
+      context: this.buildContext({
+        title: subject,
+        subject,
+        link: url.toString(),
+        greeting,
+        body_text: bodyText,
+        button_text: buttonText,
+        ignore_text: ignoreText,
+      }),
     };
 
     if (async) {
@@ -144,56 +139,44 @@ export class MailService {
   }
 
   async confirmNewEmail(
-    mailData: MailData<{ hash: string }>,
+    mailData: MailData<{
+      hash: string;
+      user?: { language?: string; firstName?: string };
+    }>,
     async: boolean = true,
   ): Promise<void> {
-    const i18n = I18nContext.current();
-    let emailConfirmTitle: MaybeType<string>;
-    let text1: MaybeType<string>;
-    let text2: MaybeType<string>;
-    let text3: MaybeType<string>;
+    const lang = mailData.data?.user?.language ?? 'en';
+    const name = mailData.data?.user?.firstName ?? '';
 
-    if (i18n) {
-      [emailConfirmTitle, text1, text2, text3] = await Promise.all([
-        i18n.t('common.confirmEmail'),
-        i18n.t('confirm-new-email.text1'),
-        i18n.t('confirm-new-email.text2'),
-        i18n.t('confirm-new-email.text3'),
-      ]);
-    }
+    const subject = this.i18nService.t('common.confirmNewEmail', { lang });
+    const greeting = this.i18nService.t('common.email.greeting', {
+      lang,
+      args: { name },
+    });
+    const bodyText = this.i18nService.t('common.email.newEmailBody', { lang });
+    const buttonText = this.i18nService.t('common.email.newEmailButton', {
+      lang,
+    });
 
     const url = new URL(
-      this.configService.getOrThrow('app.frontendDomain', {
-        infer: true,
-      }) + '/confirm-new-email',
+      this.configService.getOrThrow('app.frontendDomain', { infer: true }) +
+        '/confirm-new-email',
     );
     url.searchParams.set('hash', mailData.data.hash);
 
     const mailOptions = {
       to: mailData.to,
-      subject: emailConfirmTitle || 'Confirm your email',
-      text: `${url.toString()} ${emailConfirmTitle || 'Confirm your email'}`,
-      templatePath: path.join(
-        this.configService.getOrThrow('app.workingDirectory', {
-          infer: true,
-        }),
-        'src',
-        'modules',
-        'communications',
-        'mail',
-        'mail-templates',
-        'build',
-        'confirm-new-email.hbs',
-      ),
-      context: {
-        title: emailConfirmTitle,
-        url: url.toString(),
-        actionTitle: emailConfirmTitle,
-        app_name: this.configService.get('app.name', { infer: true }),
-        text1,
-        text2,
-        text3,
-      },
+      subject: subject || 'Confirm your new email',
+      text: url.toString(),
+      templatePath: getMailTemplatePath('confirm-new-email.hbs'),
+      context: this.buildContext({
+        title: subject,
+        subject,
+        link: url.toString(),
+        greeting,
+        body_text: bodyText,
+        button_text: buttonText,
+      }),
     };
 
     if (async) {
@@ -201,5 +184,46 @@ export class MailService {
     } else {
       await this.mailerService.sendMail(mailOptions);
     }
+  }
+
+  async invoicePaymentConfirmed(
+    mailData: MailData<{
+      invoiceNumber: string;
+      amount: string;
+      currency: string;
+      attachment?: {
+        filename: string;
+        content: string;
+        contentType: string;
+      };
+    }>,
+  ): Promise<void> {
+    const emailData = mailData.data;
+    const attachments = emailData.attachment
+      ? [
+          {
+            filename: emailData.attachment.filename,
+            content: Buffer.from(emailData.attachment.content, 'base64'),
+            contentType: emailData.attachment.contentType,
+          },
+        ]
+      : [];
+
+    await this.mailerService.sendMail({
+      to: mailData.to,
+      subject: `Factura ${emailData.invoiceNumber} - ${emailData.amount} ${emailData.currency}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px">
+          <h2 style="color:#1f2937">Factura ${emailData.invoiceNumber}</h2>
+          <p>Adjuntamos tu factura por importe de <strong>${emailData.amount} ${emailData.currency}</strong>.</p>
+          <p>Gracias por tu confianza.</p>
+          <hr style="border:0;border-top:1px solid #e5e7eb;margin:20px 0">
+          <p style="color:#9ca3af;font-size:12px">Ikiraisolutions - Facturación automática</p>
+        </div>
+      `,
+      attachments,
+      templatePath: '',
+      context: {},
+    });
   }
 }

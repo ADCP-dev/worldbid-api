@@ -31,7 +31,7 @@ describe('PagesService', () => {
   };
 
   const mockFilesService = {
-    findWithFilters: jest.fn().mockResolvedValue([]),
+    findWithFilters: jest.fn().mockResolvedValue({ data: [], total: 0 }),
     delete: jest.fn().mockResolvedValue(undefined),
   };
 

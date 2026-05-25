@@ -188,6 +188,16 @@ export class TranslationsController {
     return this.translationsService.generateJsonFiles();
   }
 
+  @Post('sync')
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RoleEnum.admin)
+  @ApiOperation({ summary: 'Sync translations: generate JSON files from DB' })
+  async syncTranslations(): Promise<{ message: string; files: string[] }> {
+    const result = await this.translationsService.generateJsonFiles();
+    return result;
+  }
+
   // --- AI Translation ---
 
   @ApiBearerAuth()

@@ -58,6 +58,9 @@ export class UserEntity extends EntityRelationalHelper {
   @Column({ type: String, nullable: true, unique: true })
   stripeCustomerId?: string | null;
 
+  @Column({ type: 'varchar', length: 5, nullable: true })
+  language: string;
+
   @CreateDateColumn()
   createdAt: Date;
 

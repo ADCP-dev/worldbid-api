@@ -317,7 +317,7 @@ export class PagesService {
 
     // Cascade delete: remove associated files
     try {
-      const files = await this.filesService.findWithFilters({
+      const { data: files } = await this.filesService.findWithFilters({
         entityName: 'Page',
         entityId: id,
       });

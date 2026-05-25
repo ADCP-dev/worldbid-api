@@ -1,17 +1,43 @@
-FROM node:22.15.0-alpine AS build
+ARG NODE_VERSION=22.15.0
 
+# Create build stage
+FROM node:${NODE_VERSION}-slim AS build
+
+# Install pnpm
+RUN npm install -g pnpm@9.0.0
+
+# Set shamefully-hoist to true for better dependency resolution
+RUN pnpm config set shamefully-hoist true
+
+# Set the working directory inside the container
 WORKDIR /app
-COPY pnpm-lock.yaml package.json ./
 
-# Enable corepack for pnpm support
-RUN corepack enable
-RUN pnpm install --frozen-lockfile --prod
+# Copy package.json
+COPY package.json ./
 
-COPY . .
-RUN pnpm run build
+# Install dependencies - pnpm will create a new lockfile
+RUN pnpm install
 
-FROM node:22.15.0-alpine AS final
+# Copy the rest of the application files to the working directory
+COPY . ./
+
+# Generate static files (SPA)
+RUN pnpm run generate
+
+# Production stage - use simple Node.js static server
+FROM node:${NODE_VERSION}-slim
+
+# Install serve
+RUN npm install -g serve
+
+# Set the working directory inside the container
 WORKDIR /app
-COPY --from=build /app/.output .output
+
+# Copy the generated static files from build stage
+COPY --from=build /app/dist ./
+
+# Expose the port the application will run on
 EXPOSE 3000
-CMD ["node", ".output/server/index.mjs"]
+
+# Start static server
+CMD ["serve", "-s", ".", "-l", "3000"]

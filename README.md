@@ -7,12 +7,28 @@ A **Turborepo** monorepo containing the Foundation project's frontend (**Nuxt 3*
 ## 🚀 Quick Start
 
 ```bash
-# Install dependencies
+# 1. Install dependencies
 pnpm install
 
-# run individually
-cd apps/front && pnpm dev   # Frontend: http://localhost:3000
+# 2. Environment variables
+cp apps/back/.env.example apps/back/.env
+# Edit apps/back/.env with your credentials
+
+# 3. Sync assets (logo, favicon, etc.)
+pnpm assets:sync
+
+# 4. Build email templates (Maizzle + Tailwind → inline CSS)
+cd apps/back && pnpm maizzle:build
+
+# 5. Run database migrations (requires PostgreSQL running)
+cd apps/back && pnpm migration:run
+
+# 6. Start development
 cd apps/back && pnpm dev    # Backend: http://localhost:3001
+cd apps/front && pnpm dev   # Frontend: http://localhost:3000
+
+# Or both at once from root:
+pnpm dev
 ```
 
 ---
@@ -160,6 +176,15 @@ pnpm migration:generate     # Generate migration from entity changes
 pnpm migration:run          # Run pending migrations
 pnpm migration:revert       # Revert last migration
 pnpm seed:run               # Run seeders (roles, initial users)
+pnpm maizzle:build          # Compile email templates (Tailwind → inline CSS)
+```
+
+From root:
+
+```bash
+pnpm assets:sync            # Sync frontend assets → backend (logo, favicon)
+pnpm build                  # Build both apps via Turborepo
+pnpm --filter foundation-nestjs build   # Build backend only (SWC: ~200ms)
 ```
 
 ---

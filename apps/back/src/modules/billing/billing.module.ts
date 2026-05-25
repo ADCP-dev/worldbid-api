@@ -1,13 +1,4 @@
-import { Module, DynamicModule } from '@nestjs/common';
-import { StripeModule } from '@billing/stripe/stripe.module';
+import { Module } from '@nestjs/common';
 
 @Module({})
-export class BillingModule {
-  static register(): DynamicModule {
-    return {
-      module: BillingModule,
-      imports: [StripeModule],
-      exports: [StripeModule],
-    };
-  }
-}
+export class BillingModule {}

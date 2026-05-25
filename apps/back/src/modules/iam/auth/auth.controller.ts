@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   HttpCode,
   HttpStatus,
   Request,
@@ -24,6 +25,8 @@ import { LoginResponseDto } from '@iam/auth/dto/login-response.dto';
 import { NullableType } from '@infra/utils/types/nullable.type';
 import { User } from '@users/domain/user';
 import { RefreshResponseDto } from '@iam/auth/dto/refresh-response.dto';
+import { UpdateLanguageDto } from '@iam/auth/dto/update-language.dto';
+import { UserId } from '@iam/auth/decorators/current-user.decorator';
 
 @ApiTags('Auth')
 @Controller({
@@ -47,8 +50,11 @@ export class AuthController {
 
   @Post('email/register')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async register(@Body() createUserDto: AuthRegisterLoginDto): Promise<void> {
-    return this.service.register(createUserDto);
+  async register(
+    @Body() createUserDto: AuthRegisterLoginDto,
+    @Headers('x-custom-lang') lang?: string,
+  ): Promise<void> {
+    return this.service.register(createUserDto, lang);
   }
 
   @Post('email/confirm')
@@ -140,6 +146,16 @@ export class AuthController {
     @Body() userDto: AuthUpdateDto,
   ): Promise<NullableType<User>> {
     return this.service.update(request.user, userDto);
+  }
+
+  @ApiBearerAuth()
+  @Patch('me/language')
+  @UseGuards(AuthGuard('jwt'))
+  async updateLanguage(
+    @UserId() userId: number,
+    @Body() dto: UpdateLanguageDto,
+  ) {
+    return this.service.updateLanguage(userId, dto.language);
   }
 
   @ApiBearerAuth()

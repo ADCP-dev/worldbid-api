@@ -116,6 +116,7 @@ export class UsersService {
       status: status,
       provider: createUserDto.provider ?? AuthProvidersEnum.email,
       socialId: createUserDto.socialId,
+      language: createUserDto.language ?? null,
     });
   }
 
@@ -184,7 +185,7 @@ export class UsersService {
     }
 
     // Find existing profile photo
-    const photos = await this.filesService.findWithFilters({
+    const { data: photos } = await this.filesService.findWithFilters({
       entityName: 'user',
       entityId: String(userId),
       context: 'profile',
@@ -242,7 +243,7 @@ export class UsersService {
     if (!user) return null;
 
     // Resolve profile photo polymorphically via the file storage system
-    const photos = await this.filesService.findWithFilters({
+    const { data: photos } = await this.filesService.findWithFilters({
       entityName: 'user',
       entityId: String(user.id),
       context: 'profile',

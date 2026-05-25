@@ -12,6 +12,8 @@ const buildDir = path.join(
   __dirname,
   '..',
   'src',
+  'modules',
+  'communications',
   'mail',
   'mail-templates',
   'build',
