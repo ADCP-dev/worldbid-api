@@ -29,7 +29,7 @@ const showPassword = ref(false)
       :autocomplete="props.autocomplete"
       :data-testid="props.testId"
       v-bind="props.componentField"
-    />
+    >
     <button
       type="button"
       class="btn btn-ghost btn-circle btn-sm"

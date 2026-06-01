@@ -41,7 +41,7 @@ const textSize = computed(() => {
 </script>
 <template>
     <a href="#" class="flex font-bold items-center gap-3 is-drawer-close:justify-center">
-        <img src="/logo.svg" alt="logo" :class="logoSize" />
+        <img src="/logo.svg" alt="logo" :class="logoSize" >
 
         <h3 v-if="showText" :class="textSize + ' is-drawer-close:hidden'">{{ $config.public.appName }}</h3>
     </a>

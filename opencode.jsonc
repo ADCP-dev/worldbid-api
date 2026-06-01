@@ -138,6 +138,10 @@
       "url": "https://mcp.tavily.com/mcp/?tavilyApiKey={env:TAVILY_API_KEY}",
       "enabled": true
     },
+    // Nuxt SEO — sitemap, OG image, schema.org diagnostics (remote MCP)
+    "nuxt-seo": {
+      "type": "remote",
+      "url": "https://nuxtseo.com/mcp",
     // PostgreSQL — local database access (reads from apps/back/.env)
     "postgres": {
       "type": "local",
@@ -191,5 +195,6 @@
     "auto": true,
     "prune": true,
     "reserved": 10000
-  }
+  },
+  "lsp": true
 }

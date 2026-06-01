@@ -210,7 +210,7 @@ const handleRowClick = (row: any) => {
           <DataTable
             :columns="columns"
             :data="users"
-            tableName="demo-users-table"
+            table-name="demo-users-table"
             @row-click="handleRowClick"
           />
         </div>

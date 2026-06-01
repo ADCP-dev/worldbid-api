@@ -60,8 +60,8 @@ function unsetLink() {
           type="button"
           class="btn btn-sm btn-ghost join-item"
           :class="{ 'btn-active bg-base-300': editor.isActive('bold') }"
-          @click="editor.chain().focus().toggleBold().run()"
           title="Negrita"
+          @click="editor.chain().focus().toggleBold().run()"
         >
           <Bold class="w-4 h-4" />
         </button>
@@ -71,8 +71,8 @@ function unsetLink() {
           type="button"
           class="btn btn-sm btn-ghost join-item"
           :class="{ 'btn-active bg-base-300': editor.isActive('italic') }"
-          @click="editor.chain().focus().toggleItalic().run()"
           title="Cursiva"
+          @click="editor.chain().focus().toggleItalic().run()"
         >
           <Italic class="w-4 h-4" />
         </button>
@@ -84,8 +84,8 @@ function unsetLink() {
           type="button"
           class="btn btn-sm btn-ghost join-item"
           :class="{ 'btn-active bg-base-300': editor.isActive('heading', { level: 1 }) }"
-          @click="editor.chain().focus().toggleHeading({ level: 1 }).run()"
           title="Título 1"
+          @click="editor.chain().focus().toggleHeading({ level: 1 }).run()"
         >
           <Heading1 class="w-4 h-4" />
         </button>
@@ -93,8 +93,8 @@ function unsetLink() {
           type="button"
           class="btn btn-sm btn-ghost join-item"
           :class="{ 'btn-active bg-base-300': editor.isActive('heading', { level: 2 }) }"
-          @click="editor.chain().focus().toggleHeading({ level: 2 }).run()"
           title="Título 2"
+          @click="editor.chain().focus().toggleHeading({ level: 2 }).run()"
         >
           <Heading2 class="w-4 h-4" />
         </button>
@@ -106,8 +106,8 @@ function unsetLink() {
           type="button"
           class="btn btn-sm btn-ghost join-item"
           :class="{ 'btn-active bg-base-300': editor.isActive('bulletList') }"
-          @click="editor.chain().focus().toggleBulletList().run()"
           title="Lista desordenada"
+          @click="editor.chain().focus().toggleBulletList().run()"
         >
           <List class="w-4 h-4" />
         </button>
@@ -115,8 +115,8 @@ function unsetLink() {
           type="button"
           class="btn btn-sm btn-ghost join-item"
           :class="{ 'btn-active bg-base-300': editor.isActive('orderedList') }"
-          @click="editor.chain().focus().toggleOrderedList().run()"
           title="Lista ordenada"
+          @click="editor.chain().focus().toggleOrderedList().run()"
         >
           <ListOrdered class="w-4 h-4" />
         </button>
@@ -128,8 +128,8 @@ function unsetLink() {
           type="button"
           class="btn btn-sm btn-ghost join-item"
           :class="{ 'btn-active bg-base-300': editor.isActive('blockquote') }"
-          @click="editor.chain().focus().toggleBlockquote().run()"
           title="Cita"
+          @click="editor.chain().focus().toggleBlockquote().run()"
         >
           <Quote class="w-4 h-4" />
         </button>
@@ -137,8 +137,8 @@ function unsetLink() {
           type="button"
           class="btn btn-sm btn-ghost join-item"
           :class="{ 'btn-active bg-base-300': editor.isActive('codeBlock') }"
-          @click="editor.chain().focus().toggleCodeBlock().run()"
           title="Código"
+          @click="editor.chain().focus().toggleCodeBlock().run()"
         >
           <Code class="w-4 h-4" />
         </button>
@@ -149,16 +149,16 @@ function unsetLink() {
         <button
           type="button"
           class="btn btn-sm btn-ghost join-item"
-          @click="setLink"
           title="Enlace"
+          @click="setLink"
         >
           <LinkIcon class="w-4 h-4" />
         </button>
         <button
           type="button"
           class="btn btn-sm btn-ghost join-item"
-          @click="unsetLink"
           title="Quitar enlace"
+          @click="unsetLink"
         >
           <Link2Off class="w-4 h-4" />
         </button>
@@ -169,16 +169,16 @@ function unsetLink() {
         <button
           type="button"
           class="btn btn-sm btn-ghost join-item"
-          @click="editor.chain().focus().undo().run()"
           title="Deshacer"
+          @click="editor.chain().focus().undo().run()"
         >
           <Undo class="w-4 h-4" />
         </button>
         <button
           type="button"
           class="btn btn-sm btn-ghost join-item"
-          @click="editor.chain().focus().redo().run()"
           title="Rehacer"
+          @click="editor.chain().focus().redo().run()"
         >
           <Redo class="w-4 h-4" />
         </button>

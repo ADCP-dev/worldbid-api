@@ -130,7 +130,7 @@ export function defineShortcuts(
         key !== "-" &&
         !key.match(chainedShortcutRegex)?.length
       ) {
-        // eslint-disable-next-line no-console
+         
         console.trace(`[Shortcut] Invalid key: "${key}"`);
       }
 
@@ -139,7 +139,7 @@ export function defineShortcuts(
         key !== "_" &&
         !key.match(combinedShortcutRegex)?.length
       ) {
-        // eslint-disable-next-line no-console
+         
         console.trace(`[Shortcut] Invalid key: "${key}"`);
       }
 
@@ -183,7 +183,7 @@ export function defineShortcuts(
       }
 
       if (!shortcut.handler) {
-        // eslint-disable-next-line no-console
+         
         console.trace("[Shortcut] Invalid value");
         return null;
       }

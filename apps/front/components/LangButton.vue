@@ -24,7 +24,7 @@ function getFlagCode(loc: any) {
         </div>
         <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52 mt-2 border border-base-content/20">
             <li v-for="loc in availableLocales" :key="loc.code">
-                <button @click.prevent.stop="setLocale(loc.code)" class="flex gap-3 items-center">
+                <button class="flex gap-3 items-center" @click.prevent.stop="setLocale(loc.code)">
                     <FlagIcon :code="getFlagCode(loc)" />
                     <span>{{ loc.name }}</span>
                 </button>

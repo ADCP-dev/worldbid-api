@@ -60,7 +60,7 @@ const dateString = computed({
         :placeholder="placeholder"
         class="input input-bordered w-full pl-10"
         :class="{ 'input-error': error }"
-      />
+      >
     </div>
 
     <label v-if="description" class="label py-1">

@@ -12,7 +12,7 @@
         {{ $t('base.settings.description') }}
       </p>
     </div>
-    <div class="divider my-6"></div>
+    <div class="divider my-6"/>
     <div class="flex flex-col lg:flex-row space-y-6 lg:space-x-12 lg:space-y-0">
       <div class="w-full overflow-x-auto pb-2 lg:w-1/6 lg:pb-0">
         <SettingsSidebarNav />

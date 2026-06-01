@@ -85,7 +85,7 @@ const dropdownStyle = computed(() => {
 
 <template>
   <div ref="triggerRef" class="inline-block" @click.stop="toggle">
-    <slot name="trigger"></slot>
+    <slot name="trigger"/>
   </div>
 
   <Teleport to="body">
@@ -97,7 +97,7 @@ const dropdownStyle = computed(() => {
       :style="dropdownStyle"
       @click.stop
     >
-      <slot :close="close"></slot>
+      <slot :close="close"/>
     </ul>
   </Teleport>
 </template>

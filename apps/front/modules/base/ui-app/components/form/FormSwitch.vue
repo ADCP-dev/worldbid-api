@@ -26,20 +26,21 @@ const toggleClasses = computed(() => {
   <div class="form-control w-full flex flex-col gap-2 align-center justify-center ">
     <label class="label cursor-pointer justify-start gap-4">
       <label v-if="showIcon" class="toggle text-base-content" :class="{ 'opacity-50 pointer-events-none': disabled }">
-        <input v-model="model" type="checkbox" :disabled="disabled" />
+        <input v-model="model" type="checkbox" :disabled="disabled" >
         <svg aria-label="enabled" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
           <g stroke-linejoin="round" stroke-linecap="round" stroke-width="4" fill="none" stroke="currentColor">
-            <path d="M20 6 9 17l-5-5"></path>
+            <path d="M20 6 9 17l-5-5"/>
           </g>
         </svg>
-        <svg aria-label="disabled" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        <svg
+aria-label="disabled" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
           <path d="M18 6 6 18" />
           <path d="m6 6 12 12" />
         </svg>
       </label>
 
-      <input v-else v-model="model" type="checkbox" :class="toggleClasses" :disabled="disabled" />
+      <input v-else v-model="model" type="checkbox" :class="toggleClasses" :disabled="disabled" >
       <span class="label-text font-semibold">
         {{ label }}<span v-if="required" class="text-error ml-1">*</span>
       </span>

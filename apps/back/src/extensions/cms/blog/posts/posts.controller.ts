@@ -15,6 +15,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { BlogPostsService } from './posts.service';
+import { TagsService } from '../tags/tags.service';
 import { CreateBlogPostDto } from './dto/create-post.dto';
 import { UpdateBlogPostDto } from './dto/update-post.dto';
 import { FindAllBlogPostDto } from './dto/find-all-post.dto';
@@ -31,12 +32,12 @@ import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '@iam/roles/roles.guard';
 
 @ApiTags('CMS Blog Posts')
-@Controller({
-  path: 'cms/blog/posts',
-  version: '1',
-})
+@Controller('v1/cms/blog/posts')
 export class BlogPostsController {
-  constructor(private readonly blogPostsService: BlogPostsService) {}
+  constructor(
+    private readonly blogPostsService: BlogPostsService,
+    private readonly tagsService: TagsService,
+  ) {}
 
   @Post()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -56,12 +57,28 @@ export class BlogPostsController {
   }
 
   @Get('public')
-  findAllPublic(
+  async findAllPublic(
     @Query('lang') lang: string = 'es',
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
+    @Query('search') search?: string,
+    @Query('tagSlugs') tagSlugs?: string,
+    @Query('categoryId') categoryId?: string,
   ) {
-    return this.blogPostsService.findAllPublished(lang, page, limit);
+    let tagIds: string[] | undefined;
+    if (tagSlugs) {
+      const slugs = tagSlugs.split(',').map(s => s.trim()).filter(Boolean);
+      const tags = await this.tagsService.findManyBySlugs(slugs, lang);
+      tagIds = tags.map(t => t.id);
+    }
+    return this.blogPostsService.findAllPublished(
+      lang,
+      page,
+      limit,
+      search,
+      tagIds,
+      categoryId,
+    );
   }
 
   @Get('public/category/:categoryId')
@@ -78,6 +95,12 @@ export class BlogPostsController {
   @HttpCode(HttpStatus.OK)
   findOnePublic(@Param('slug') slug: string) {
     return this.blogPostsService.findBySlugPublic(slug);
+  }
+
+  @Get('public/:slug/related')
+  @HttpCode(HttpStatus.OK)
+  findRelated(@Param('slug') slug: string, @Query('limit') limit: number = 3) {
+    return this.blogPostsService.findRelated(slug, limit);
   }
 
   @Get(':id')

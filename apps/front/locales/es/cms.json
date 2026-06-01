@@ -51,7 +51,18 @@
       "language": "Idioma",
       "selectTags": "Seleccionar etiquetas",
       "noTags": "Sin etiquetas"
-    }
+    },
+    "readingTime": "min de lectura",
+    "readMore": "Leer más",
+    "untitled": "Sin título",
+    "relatedArticles": "Artículos relacionados",
+    "searchPlaceholder": "Buscar artículos...",
+    "allCategories": "Todas las categorías",
+    "noResults": "No se encontraron resultados"
+  },
+  "share": {
+    "title": "Compartir:",
+    "copyLink": "Copiar link"
   },
   "tags": {
     "title": "Etiquetas",

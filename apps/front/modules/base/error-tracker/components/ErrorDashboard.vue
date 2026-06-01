@@ -98,7 +98,7 @@ const testFrontendError = async () => {
     </div>
 
     <div v-if="pending" class="flex justify-center py-12">
-      <span class="loading loading-spinner loading-lg"></span>
+      <span class="loading loading-spinner loading-lg"/>
     </div>
 
     <div v-else-if="errors?.length === 0" class="alert alert-success">

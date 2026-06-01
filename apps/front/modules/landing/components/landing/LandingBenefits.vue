@@ -92,12 +92,13 @@ const iconMap: Record<
         </div>
 
         <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div v-for="({ icon, title, description }, index) in benefitList" :key="title"
+          <div
+v-for="({ icon, title, description }, index) in benefitList" :key="title"
             class="card bg-muted/50 dark:bg-card hover:bg-base-100 transition-all delay-75 group/number border border-base-300 shadow-sm"
             :data-aos="'fade-up'" :data-aos-delay="index * 100">
             <div class="card-body">
               <div class="flex justify-between items-start">
-                <component class="size-8 mb-6 text-primary" :is="iconMap[icon]" />
+                <component :is="iconMap[icon]" class="size-8 mb-6 text-primary" />
 
                 <span
                   class="text-6xl text-base-content/10 font-black transition-all delay-75 group-hover/number:text-primary/20 leading-none">0{{

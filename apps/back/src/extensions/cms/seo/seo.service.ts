@@ -1,11 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import type { Repository, DataSource } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
 import { SeoMetadataEntity } from './infrastructure/entities/seo-metadata.entity';
 import { UpdateSeoDto } from './dto/update-seo.dto';
 import { schemaRegistry } from './infrastructure/schemas/json-ld.registry';
 import type { SchemaType } from './infrastructure/schemas/types';
 import { TranslationsService } from '@src/modules/translations/translations.service';
+import { AllConfigType } from '@src/config/config.type';
 
 @Injectable()
 export class SeoService {
@@ -17,6 +19,7 @@ export class SeoService {
     private readonly translationsService: TranslationsService,
     @InjectDataSource()
     private readonly dataSource: DataSource,
+    private readonly configService: ConfigService<AllConfigType>,
   ) {}
 
   async findByPageId(
@@ -51,6 +54,40 @@ export class SeoService {
     return null;
   }
 
+  async findByEntity(
+    entityName: string,
+    entityId: string,
+    lang: string,
+  ): Promise<SeoMetadataEntity | null> {
+    const seo = await this.seoRepository.findOne({
+      where: { entityName, entityId, lang },
+      relations: ['ogImage'],
+    });
+
+    // Resolve metaTitle and metaDescription from translations
+    const { metaTitle, metaDescription } =
+      await this.resolveMetaFromTranslations(entityId, lang);
+
+    if (seo) {
+      if (metaTitle !== undefined) seo.metaTitle = metaTitle;
+      if (metaDescription !== undefined) seo.metaDescription = metaDescription;
+      return seo;
+    }
+
+    // If no SeoMetadataEntity exists but we have translations, return a virtual entity
+    if (metaTitle !== undefined || metaDescription !== undefined) {
+      return this.seoRepository.create({
+        entityName,
+        entityId,
+        lang,
+        metaTitle: metaTitle || null,
+        metaDescription: metaDescription || null,
+      });
+    }
+
+    return null;
+  }
+
   private async resolveMetaFromTranslations(
     pageId: string,
     lang: string,
@@ -75,7 +112,7 @@ export class SeoService {
 
     // Try Page category translations
     const pageResult = await this.dataSource.query(
-      `SELECT name FROM "page" WHERE id = $1 LIMIT 1`,
+      `SELECT name FROM "ext_cms_page" WHERE id = $1 LIMIT 1`,
       [pageId],
     );
 
@@ -133,9 +170,12 @@ export class SeoService {
   generateJsonLd(
     entity: { slug: string; publishedAt?: Date | null },
     seo: SeoMetadataEntity,
-    type: 'WebPage' | 'Article' | 'WebSite',
+    type: SchemaType,
     author?: string,
   ): Record<string, unknown> {
+    const appUrl = this.configService.get('app.frontendDomain', {
+      infer: true,
+    });
     // Build input for the schema factory
     const schemaInput = {
       slug: entity.slug,
@@ -144,10 +184,11 @@ export class SeoService {
       metaDescription: seo.metaDescription,
       ogImage: seo.ogImage
         ? {
-            url: `${process.env.APP_URL || 'https://example.com'}/${seo.ogImage.path}`,
+            url: `${appUrl}/${seo.ogImage.path}`,
           }
         : null,
       author,
+      appUrl,
     };
 
     // Use registry to generate schema
@@ -167,6 +208,9 @@ export class SeoService {
       return null;
     }
 
+    const appUrl = this.configService.get('app.frontendDomain', {
+      infer: true,
+    });
     const schemaType = seo.type || 'WebPage';
     const schema = schemaRegistry.generate(schemaType as SchemaType, {
       slug: pageId,
@@ -174,9 +218,10 @@ export class SeoService {
       metaDescription: seo.metaDescription,
       ogImage: seo.ogImage
         ? {
-            url: `${process.env.APP_URL || 'https://example.com'}/${seo.ogImage.path}`,
+            url: `${appUrl}/${seo.ogImage.path}`,
           }
         : null,
+      appUrl,
     });
 
     return schema as Record<string, unknown>;
@@ -210,5 +255,48 @@ export class SeoService {
     if (seo) {
       await this.seoRepository.remove(seo);
     }
+  }
+
+  getBaseSchema(type: string): Record<string, unknown> | null {
+    const appUrl = this.configService.get('app.frontendDomain', {
+      infer: true,
+    });
+
+    const defaultInput: Record<SchemaType, unknown> = {
+      Article: {
+        slug: 'example',
+        metaTitle: '',
+        publishedAt: new Date(),
+        appUrl,
+      },
+      BlogPosting: {
+        slug: 'example',
+        metaTitle: '',
+        publishedAt: new Date(),
+        appUrl,
+      },
+      BreadcrumbList: {
+        pathSegments: [{ name: 'Home', url: appUrl }],
+      },
+      Organization: { name: '', url: appUrl },
+      Product: { name: '', description: '' },
+      WebPage: { slug: 'example', metaTitle: '', appUrl },
+      WebSite: {
+        name: '',
+        url: appUrl,
+        potentialAction: {
+          target: `${appUrl}/search?q={search_term_string}`,
+          query: 'required',
+        },
+      },
+    };
+
+    const input = defaultInput[type as SchemaType];
+    if (!input) {
+      return null;
+    }
+
+    const schema = schemaRegistry.generate(type as SchemaType, input);
+    return schema as Record<string, unknown>;
   }
 }

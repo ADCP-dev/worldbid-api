@@ -252,7 +252,7 @@ function formatEventDateRange(event: CalendarEvent): string {
               v-model="createForm.allDay"
               type="checkbox"
               class="checkbox checkbox-primary"
-            />
+            >
             <span class="label-text">Todo el día</span>
           </label>
         </div>

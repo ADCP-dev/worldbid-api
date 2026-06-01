@@ -16,9 +16,13 @@ export class IsEntityTableConstraint implements ValidatorConstraintInterface {
   async validate(value: string) {
     if (!value) return true;
 
-    // Check if any entity has this tableName
     const entities = this.dataSource.entityMetadatas;
-    return entities.some((entity) => entity.tableName === value);
+    return entities.some(
+      (entity) =>
+        entity.tableName === value ||
+        entity.name === value ||
+        entity.name.replace(/Entity$/, '') === value,
+    );
   }
 
   defaultMessage(args: ValidationArguments) {

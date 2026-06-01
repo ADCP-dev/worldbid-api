@@ -48,11 +48,12 @@ const manifest: ExtensionManifest = {
       { method: 'DELETE', path: 'cms/blog/categories/:id' },
 
       // Tags
-      { method: 'GET', path: 'cms/tags' },
-      { method: 'POST', path: 'cms/tags' },
-      { method: 'GET', path: 'cms/tags/:id' },
-      { method: 'PATCH', path: 'cms/tags/:id' },
-      { method: 'DELETE', path: 'cms/tags/:id' },
+      { method: 'GET', path: 'cms/blog/tags' },
+      { method: 'POST', path: 'cms/blog/tags' },
+      { method: 'GET', path: 'cms/blog/tags/public' },
+      { method: 'GET', path: 'cms/blog/tags/:id' },
+      { method: 'PATCH', path: 'cms/blog/tags/:id' },
+      { method: 'DELETE', path: 'cms/blog/tags/:id' },
 
       // Media
       { method: 'GET', path: 'cms/media' },
@@ -60,6 +61,7 @@ const manifest: ExtensionManifest = {
 
       // SEO
       { method: 'GET', path: 'cms/seo/:pageId' },
+      { method: 'GET', path: 'cms/seo/:entityName/:entityId' },
       { method: 'PATCH', path: 'cms/seo/:pageId' },
 
       // Sitemap

@@ -5,7 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull } from 'typeorm';
+import { Repository, IsNull, In } from 'typeorm';
 import { TagEntity } from '../posts/infrastructure/entities/post-tag.entity';
 import { CreateTagDto } from '../posts/dto/create-tag.dto';
 import { UpdateTagDto } from '../posts/dto/update-tag.dto';
@@ -98,6 +98,54 @@ export class TagsService {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  async findAllPublic(lang: string = 'es'): Promise<
+    Array<{
+      id: string;
+      name: string;
+      slug: string;
+      postCount: number;
+    }>
+  > {
+    const tags = await this.tagRepository
+      .createQueryBuilder('tag')
+      .leftJoin('tag.posts', 'post', 'post.isPublished = :isPublished', {
+        isPublished: true,
+      })
+      .select([
+        'tag.id as id',
+        'tag.slug as slug',
+        'tag.name as name',
+        'COUNT(post.id)::int as "postCount"',
+      ])
+      .where('tag.deletedAt IS NULL')
+      .groupBy('tag.id')
+      .orderBy('tag.name', 'ASC')
+      .getRawMany();
+
+    // Hydrate names from translations
+    for (const tag of tags) {
+      const translations =
+        await this.translationsService.getTranslationsForEntity(
+          'Tag',
+          tag.id,
+          lang,
+        );
+      if (translations['name']?.value) {
+        tag.name = translations['name'].value;
+      }
+    }
+
+    return tags;
+  }
+
+  async findManyBySlugs(slugs: string[], lang: string = 'es'): Promise<TagEntity[]> {
+    if (!slugs || slugs.length === 0) return [];
+
+    return this.tagRepository.find({
+      where: { slug: In(slugs), deletedAt: IsNull() },
+    });
   }
 
   async findOne(id: string, lang?: string): Promise<TagEntity> {

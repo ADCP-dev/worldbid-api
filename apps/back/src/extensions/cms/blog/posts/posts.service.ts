@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, Logger, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  Logger,
+  Inject,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import { In } from 'typeorm';
@@ -76,6 +82,25 @@ export class BlogPostsService {
   async create(createPostDto: CreateBlogPostDto): Promise<BlogPostEntity> {
     const { categoryId, tagIds, author, ...postData } = createPostDto;
 
+    // Normalize slug: strip leading /
+    let slug = postData.slug;
+    if (slug && slug.startsWith('/')) {
+      slug = slug.slice(1);
+      postData.slug = slug;
+    }
+
+    // Enforce slug uniqueness
+    if (slug) {
+      const existing = await this.blogPostRepository.findOne({
+        where: { slug },
+      });
+      if (existing) {
+        throw new ConflictException(
+          `Blog post with slug "${slug}" already exists`,
+        );
+      }
+    }
+
     // Create post without relations first
     const post = this.blogPostRepository.create(postData);
 
@@ -131,16 +156,53 @@ export class BlogPostsService {
     };
   }
 
-  async findAllPublished(lang: string, page = 1, limit = 10) {
+  async   findAllPublished(
+    lang: string,
+    page = 1,
+    limit = 10,
+    search?: string,
+    tags?: string[],
+    categoryId?: string,
+  ) {
     const skip = (page - 1) * limit;
 
-    const [data, total] = await this.blogPostRepository.findAndCount({
-      where: { isPublished: true },
-      order: { publishedAt: 'DESC', createdAt: 'DESC' },
-      skip,
-      take: limit,
-      relations: ['featuredImage', 'author', 'category', 'tags'],
-    });
+    const qb = this.blogPostRepository
+      .createQueryBuilder('post')
+      .leftJoinAndSelect('post.featuredImage', 'featuredImage')
+      .leftJoinAndSelect('post.author', 'author')
+      .leftJoinAndSelect('post.category', 'category')
+      .leftJoinAndSelect('post.tags', 'tags')
+      .where('post.isPublished = :isPublished', { isPublished: true });
+
+    if (search) {
+      qb.andWhere(
+        `EXISTS (
+          SELECT 1 FROM translation t
+          WHERE t."entityId" = post.id::text
+          AND t."entityName" = 'BlogPost'
+          AND t.key = 'title'
+          AND t.content ILIKE :searchTerm
+        )`,
+        { searchTerm: `%${search}%` },
+      );
+    }
+
+    if (tags && tags.length > 0) {
+      qb.innerJoin('post.tags', 'tagFilter', 'tagFilter.id IN (:...tags)', {
+        tags,
+      });
+    }
+
+    if (categoryId) {
+      qb.andWhere('post.categoryId = :categoryId', { categoryId });
+    }
+
+    qb.orderBy('post.publishedAt', 'DESC')
+      .addOrderBy('post.createdAt', 'DESC')
+      .skip(skip)
+      .take(limit);
+
+    const [data, total] = await qb.getManyAndCount();
 
     const translationsMap = await this.loadTranslationsForPosts(data);
     const dataWithTranslations = data.map((post) =>
@@ -166,9 +228,35 @@ export class BlogPostsService {
     if (!post) {
       throw new NotFoundException(`Blog post with ID ${id} not found`);
     }
-
+    // Load translations for the post
     const translationsMap = await this.loadTranslationsForPosts([post]);
-    return this.attachTranslations(post, translationsMap);
+    this.attachTranslations(post, translationsMap);
+
+    return post;
+  }
+
+  async findRelated(slug: string, limit = 3): Promise<BlogPostEntity[]> {
+    const decodedSlug = decodeURIComponent(slug);
+    const post = await this.blogPostRepository.findOne({
+      where: { slug: decodedSlug },
+      select: ['id', 'categoryId'],
+    });
+
+    if (!post) return [];
+
+    const qb = this.blogPostRepository
+      .createQueryBuilder('post')
+      .leftJoinAndSelect('post.featuredImage', 'featuredImage')
+      .leftJoinAndSelect('post.tags', 'tags')
+      .where('post.isPublished = :isPublished', { isPublished: true })
+      .andWhere('post.slug != :slug', { slug: decodedSlug })
+      .andWhere('post.categoryId = :categoryId', { categoryId: post.categoryId })
+      .orderBy('post.publishedAt', 'DESC')
+      .take(limit);
+
+    const data = await qb.getMany();
+    const translationsMap = await this.loadTranslationsForPosts(data);
+    return data.map((p) => this.attachTranslations(p, translationsMap));
   }
 
   async findBySlug(slug: string): Promise<BlogPostEntity> {

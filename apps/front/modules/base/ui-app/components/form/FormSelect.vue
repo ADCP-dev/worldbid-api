@@ -97,7 +97,7 @@ onClickOutside(dropdownRef, () => {
 </script>
 
 <template>
-  <div class="form-control w-full" ref="dropdownRef">
+  <div ref="dropdownRef" class="form-control w-full">
     <label class="label">
       <span class="label-text font-semibold">
         {{ label }}<span v-if="required" class="text-error ml-1">*</span>

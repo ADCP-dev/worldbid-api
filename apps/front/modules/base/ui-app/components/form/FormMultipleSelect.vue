@@ -149,7 +149,7 @@ onUnmounted(() => {
           class="input input-sm input-bordered w-full"
           placeholder="Buscar..."
           @click.stop
-        />
+        >
       </div>
 
       <!-- Options -->

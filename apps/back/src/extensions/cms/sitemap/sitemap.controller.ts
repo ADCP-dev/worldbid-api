@@ -3,10 +3,7 @@ import { SitemapService } from './sitemap.service';
 import { ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Sitemap')
-@Controller({
-  path: 'sitemap',
-  version: '1',
-})
+@Controller('v1/sitemap')
 export class SitemapController {
   constructor(private readonly sitemapService: SitemapService) {}
 

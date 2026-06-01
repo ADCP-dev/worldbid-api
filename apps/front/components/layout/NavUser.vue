@@ -39,7 +39,7 @@ const initials = computed(() => {
     <div tabindex="0" role="button" class="btn btn-ghost py-2 hover:bg-base-200 w-full justify-start is-drawer-close:justify-center is-drawer-close:px-0 h-auto">
       <div class="avatar">
         <div class="w-8 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden">
-          <img v-if="user.avatar" :src="user.avatar" :alt="user.name" class="object-cover w-full h-full" />
+          <img v-if="user.avatar" :src="user.avatar" :alt="user.name" class="object-cover w-full h-full" >
           <span v-else class="text-xs font-bold text-primary">{{ initials }}</span>
         </div>
       </div>
@@ -53,7 +53,7 @@ const initials = computed(() => {
          <div class="flex items-center gap-2">
             <div class="avatar">
               <div class="w-8 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden">
-                <img v-if="user.avatar" :src="user.avatar" :alt="user.name" class="object-cover w-full h-full" />
+                <img v-if="user.avatar" :src="user.avatar" :alt="user.name" class="object-cover w-full h-full" >
                 <span v-else class="text-xs font-bold text-primary">{{ initials }}</span>
               </div>
             </div>
@@ -63,13 +63,13 @@ const initials = computed(() => {
             </div>
          </div>
       </li>
-      <div class="divider my-0"></div>
+      <div class="divider my-0"/>
       <li>
         <NuxtLink :to="localePath('/app/settings/profile')">
           <User class="w-4 h-4" /> {{ $t('base.nav.account') }}
         </NuxtLink>
       </li>
-      <div class="divider my-0"></div>
+      <div class="divider my-0"/>
       <li>
         <a @click="logout"><LogOut class="w-4 h-4" /> {{ $t('base.nav.logout') }}</a>
       </li>

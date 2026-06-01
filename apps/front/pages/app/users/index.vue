@@ -245,7 +245,7 @@ const columns = computed(() => [
       ref="tableRef"
       :columns="columns"
       endpoint="users"
-      tableName="admin-users-table"
+      table-name="admin-users-table"
     />
 
     <!-- Dialogs -->

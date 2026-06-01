@@ -82,7 +82,7 @@ const langOptions = computed(() =>
         <p
           class="py-4 text-sm text-base-content/70"
           v-html="$t('base.translations.add.description', { app: appContext })"
-        ></p>
+        />
 
         <div class="flex flex-col gap-4 py-4">
           <FormInput
@@ -117,7 +117,7 @@ const langOptions = computed(() =>
               v-model="content"
               :placeholder="$t('base.translations.add.contentPlaceholder')"
               class="textarea textarea-bordered h-24"
-            ></textarea>
+            />
           </div>
         </div>
 
@@ -128,8 +128,8 @@ const langOptions = computed(() =>
           <button
             class="btn btn-primary"
             type="submit"
-            @click="handleCreate"
             :disabled="!isValid || isSubmitting"
+            @click="handleCreate"
           >
             {{
               isSubmitting

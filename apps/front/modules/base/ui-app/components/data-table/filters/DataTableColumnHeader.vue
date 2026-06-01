@@ -9,8 +9,8 @@ defineProps<{
 
 <template>
   <button
-    @click="column.toggleSorting(column.getIsSorted() === 'asc')"
     class="btn btn-ghost btn-xs -ml-4 h-8"
+    @click="column.toggleSorting(column.getIsSorted() === 'asc')"
   >
     <span>{{ title }}</span>
     <ArrowUpDown class="ml-2 h-4 w-4" />

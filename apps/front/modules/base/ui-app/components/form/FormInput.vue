@@ -39,7 +39,7 @@ const slots = useSlots();
         class="input input-bordered w-full"
         :class="{ 'input-error': error, 'pl-10': slots['icon-start'], 'pr-10': slots['icon-end'] }"
         @blur="emit('blur')"
-      />
+      >
 
       <span
         v-if="slots['icon-start']"

@@ -10,6 +10,7 @@ import {
   Query,
   HttpStatus,
   HttpCode,
+  NotFoundException,
 } from '@nestjs/common';
 import { BlogCategoriesService } from './categories.service';
 import { CreateBlogCategoryDto } from './dto/create-category.dto';
@@ -20,18 +21,15 @@ import { RoleEnum } from '@iam/roles/roles.enum';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '@iam/roles/roles.guard';
 
-@ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'), RolesGuard)
 @ApiTags('CMS Blog Categories')
-@Controller({
-  path: 'cms/blog/categories',
-  version: '1',
-})
+@Controller('v1/cms/blog/categories')
 export class BlogCategoriesController {
   constructor(private readonly categoriesService: BlogCategoriesService) {}
 
   @Post()
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(RoleEnum.admin)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
   create(
     @Body() createCategoryDto: CreateBlogCategoryDto,
@@ -45,15 +43,36 @@ export class BlogCategoriesController {
     return this.categoriesService.findAll(lang);
   }
 
+  @Get('public')
+  findAllPublic(@Query('lang') lang: string = 'es') {
+    return this.categoriesService.findAll(lang);
+  }
+
+  @Get('public/by-slug/:slug')
+  async findPublicBySlug(
+    @Param('slug') slug: string,
+    @Query('lang') lang: string = 'es',
+  ) {
+    const category = await this.categoriesService.findBySlug(slug, lang);
+    if (!category) {
+      throw new NotFoundException(`Category with slug "${slug}" not found`);
+    }
+    return category;
+  }
+
   @Get(':id')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(RoleEnum.admin)
+  @ApiBearerAuth()
   @ApiParam({ name: 'id', type: String })
   findOne(@Param('id') id: string, @Query('lang') lang: string = 'es') {
     return this.categoriesService.findById(id, lang);
   }
 
   @Patch(':id')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(RoleEnum.admin)
+  @ApiBearerAuth()
   @ApiParam({ name: 'id', type: String })
   update(
     @Param('id') id: string,
@@ -64,7 +83,9 @@ export class BlogCategoriesController {
   }
 
   @Patch(':id/reorder')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(RoleEnum.admin)
+  @ApiBearerAuth()
   @ApiParam({ name: 'id', type: String })
   @HttpCode(HttpStatus.NO_CONTENT)
   reorder(@Body('orderedIds') orderedIds: string[]) {
@@ -72,7 +93,9 @@ export class BlogCategoriesController {
   }
 
   @Delete(':id')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(RoleEnum.admin)
+  @ApiBearerAuth()
   @ApiParam({ name: 'id', type: String })
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id') id: string) {

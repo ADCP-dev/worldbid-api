@@ -349,7 +349,7 @@ function closeModal() {
           class="input input-bordered input-sm w-full mb-4 text-xl font-bold"
           @blur="commitTitle"
           @keydown.enter="commitTitle"
-        />
+        >
 
         <div v-if="selectedTask" class="space-y-4">
           <!-- Description -->
@@ -397,7 +397,7 @@ function closeModal() {
                   class="input input-bordered input-xs flex-1"
                   placeholder="Añadir tarea..."
                   @keydown.enter="handleAddChecklistItemFromModal"
-                />
+                >
                 <button class="btn btn-xs btn-ghost" @click="handleAddChecklistItemFromModal">
                   <Plus class="w-3 h-3" />
                 </button>
@@ -412,7 +412,7 @@ function closeModal() {
                   :checked="item.done"
                   class="checkbox checkbox-sm"
                   @change="handleToggleChecklist({ taskId: selectedTask!.id, itemId: item.id })"
-                />
+                >
                 <span :class="{ 'line-through text-base-content/50': item.done }">
                   {{ item.text }}
                 </span>
@@ -443,7 +443,7 @@ function closeModal() {
                       @keydown.enter="saveEditComment(comment.id)"
                       @keydown.escape="editingCommentId = null"
                       @blur="saveEditComment(comment.id)"
-                    />
+                    >
                   </div>
                   <div v-else class="chat-bubble text-sm" :class="comment.author === 'Tú' ? 'chat-bubble-primary' : 'chat-bubble'">
                     {{ comment.text }}
@@ -460,7 +460,7 @@ function closeModal() {
                   class="input input-bordered input-sm flex-1"
                   placeholder="Escribir comentario..."
                   @keydown.enter="handleAddComment"
-                />
+                >
                 <button class="btn btn-sm btn-primary btn-square" @click="handleAddComment">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
@@ -478,7 +478,7 @@ function closeModal() {
                 v-model="selectedTask.dueDate"
                 type="date"
                 class="input input-bordered input-sm w-full"
-              />
+              >
             </div>
           <div>
             <h4 class="text-sm font-semibold mb-1">Prioridad</h4>

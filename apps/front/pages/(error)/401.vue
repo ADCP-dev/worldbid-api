@@ -13,7 +13,7 @@ const router = useRouter()
         401
       </h1>
       <span class="font-medium">{{ $t('base.error.401.title') }}</span>
-      <p class="text-center text-muted-foreground" v-html="$t('base.error.401.description')"></p>
+      <p class="text-center text-muted-foreground" v-html="$t('base.error.401.description')"/>
       <div class="mt-6 flex gap-4">
         <Button variant="outline" @click="router.back()">
           {{ $t('base.error.goBack') }}

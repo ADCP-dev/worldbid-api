@@ -84,9 +84,24 @@ export interface PersonSchema {
   name: string;
 }
 
+// BlogPosting schema
+export interface BlogPostingSchema extends JsonLdSchema {
+  '@type': 'BlogPosting';
+  headline: string;
+  description?: string;
+  image?: string;
+  datePublished?: string;
+  dateModified?: string;
+  author?: PersonSchema;
+  url: string;
+  publisher?: OrganizationSchema;
+  mainEntityOfPage?: string;
+}
+
 // Schema type union
 export type SchemaType =
   | 'Article'
+  | 'BlogPosting'
   | 'BreadcrumbList'
   | 'Organization'
   | 'WebPage'
@@ -101,6 +116,7 @@ export interface ArticleSchemaInput {
   metaDescription?: string;
   ogImage?: { url: string } | null;
   author?: string;
+  appUrl?: string;
 }
 
 export interface OrganizationSchemaInput {
@@ -118,6 +134,7 @@ export interface WebPageSchemaInput {
   slug: string;
   metaTitle?: string;
   metaDescription?: string;
+  appUrl?: string;
 }
 
 export interface WebSiteSchemaInput {
@@ -134,9 +151,22 @@ export interface ProductSchemaInput {
   offers?: OfferSchema;
 }
 
+export interface BlogPostingSchemaInput {
+  slug: string;
+  publishedAt?: Date | null;
+  metaTitle: string;
+  metaDescription?: string;
+  ogImage?: { url: string } | null;
+  author?: string;
+  publisherName?: string;
+  publisherLogo?: string;
+  appUrl?: string;
+}
+
 // SchemaInput mapped type
 export type SchemaInput =
   | ArticleSchemaInput
+  | BlogPostingSchemaInput
   | OrganizationSchemaInput
   | BreadcrumbSchemaInput
   | WebPageSchemaInput

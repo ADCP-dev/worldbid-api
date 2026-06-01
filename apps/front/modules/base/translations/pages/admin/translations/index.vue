@@ -155,8 +155,8 @@ onMounted(async () => {
       <div class="flex flex-wrap gap-2">
         <button
           class="btn btn-outline"
-          @click="handleBulkTranslate"
           :disabled="isBulkTranslating"
+          @click="handleBulkTranslate"
         >
           <BotIcon class="w-4 h-4 mr-2" />
           {{
@@ -166,14 +166,14 @@ onMounted(async () => {
           }}
         </button>
         <AddTranslationDialog
-          :appContext="currentAppTab"
+          :app-context="currentAppTab"
           :langs="activeLangs"
           @created="refreshTables"
         />
         <button
           class="btn btn-outline"
-          @click="handleGenerate"
           :disabled="isGenerating"
+          @click="handleGenerate"
         >
           {{
             isGenerating
@@ -218,7 +218,7 @@ onMounted(async () => {
         ref="frontTable"
         :columns="columns"
         :endpoint="endpointFront"
-        tableName="translations-table-front"
+        table-name="translations-table-front"
       />
     </div>
 
@@ -227,7 +227,7 @@ onMounted(async () => {
         ref="backTable"
         :columns="columns"
         :endpoint="endpointBack"
-        tableName="translations-table-back"
+        table-name="translations-table-back"
       />
     </div>
   </div>

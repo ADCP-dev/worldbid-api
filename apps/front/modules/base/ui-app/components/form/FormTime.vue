@@ -40,8 +40,8 @@ const handleContainerClick = (event: MouseEvent) => {
       @click="handleContainerClick"
     >
       <Clock
-        class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-base-content/50 pointer-events-none z-10"
         v-if="!slots['icon-start']"
+        class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-base-content/50 pointer-events-none z-10"
       />
 
       <span
@@ -64,7 +64,7 @@ const handleContainerClick = (event: MouseEvent) => {
         max="23:59"
         class="input input-bordered w-full pl-10 time-input"
         :class="{ 'input-error': error, 'pr-10': slots['icon-end'] }"
-      />
+      >
 
       <span
         v-if="slots['icon-end']"

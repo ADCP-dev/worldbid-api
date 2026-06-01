@@ -173,7 +173,7 @@ function handleDragEnd(event: CalendarEventType, payload: { clientX: number; cli
   <div class="flex flex-col" :style="{ height }">
     <!-- Day headers -->
     <div class="flex border-b border-base-300 sticky top-0 bg-base-100 z-10">
-      <div class="w-16 flex-shrink-0"></div>
+      <div class="w-16 flex-shrink-0"/>
       <div
         v-for="day in weekDays"
         :key="day.toISOString()"
@@ -232,10 +232,10 @@ function handleDragEnd(event: CalendarEventType, payload: { clientX: number; cli
           <div
             v-for="hour in hours"
             :key="hour"
+            :ref="(el) => { if (el) slotRefs[`${day.toISOString()}||${hour}`] = el as HTMLElement }"
             class="border-t border-base-200 relative cursor-pointer hover:bg-base-200/50"
             :class="hoveredSlot && hoveredSlot.day === day.toISOString() && hoveredSlot.startHour === hour ? 'ring-2 ring-primary ring-inset bg-primary/20' : ''"
             :style="{ height: timeSlotHeight + 'px' }"
-            :ref="(el) => { if (el) slotRefs[`${day.toISOString()}||${hour}`] = el as HTMLElement }"
             @click="handleSlotClick(day, $event)"
           >
             <div

@@ -50,17 +50,41 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         ? exception.getResponse()
         : { statusCode: status, message: 'Internal Server Error' };
 
-    const body: Record<string, unknown> = { statusCode: status };
+    // Preserve structured HttpException responses (e.g. { errors: { email: 'notFound' } })
+    // Only flatten to { message } for simple string responses
+    const isHttpException = exception instanceof HttpException;
+    const isStringResponse = typeof errorResponse === 'string';
+    const isInternal = status === HttpStatus.INTERNAL_SERVER_ERROR;
 
-    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
-      body.message = 'Internal Server Error';
-    } else if (typeof errorResponse === 'object' && errorResponse !== null) {
-      Object.assign(body, errorResponse);
+    let body: Record<string, unknown>;
+
+    if (isInternal) {
+      body = {
+        statusCode: status,
+        message: 'Internal Server Error',
+        timestamp: new Date().toISOString(),
+      };
+    } else if (
+      isHttpException &&
+      !isStringResponse &&
+      typeof errorResponse === 'object'
+    ) {
+      body = {
+        ...(errorResponse as Record<string, unknown>),
+        statusCode: status,
+        timestamp: new Date().toISOString(),
+      };
     } else {
-      body.message = errorResponse || 'Error';
+      body = {
+        statusCode: status,
+        message: isStringResponse
+          ? errorResponse
+          : (errorResponse as Record<string, unknown>).message ||
+            String(errorResponse),
+        timestamp: new Date().toISOString(),
+      };
     }
 
-    body.timestamp = new Date().toISOString();
     response.status(status).json(body);
   }
 }

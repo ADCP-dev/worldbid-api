@@ -77,7 +77,7 @@ function onSubmit() {
         <div class="card-body p-8">
           <h2 class="card-title text-xl mb-6">Profile Settings</h2>
 
-          <form @submit.prevent="onSubmit" class="space-y-6">
+          <form class="space-y-6" @submit.prevent="onSubmit">
             <FormInput
               v-model="form.username"
               label="Username"
@@ -133,7 +133,7 @@ function onSubmit() {
             stroke-linejoin="round"
             stroke-width="2"
             d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-          ></path>
+          />
         </svg>
         <div>
           <h3 class="font-bold">Nota sobre validación</h3>

@@ -70,7 +70,7 @@ const handleCreateNew = () => {
         @focus="isOpen = true"
         @blur="setTimeout(() => isOpen = false, 200)"
         @input="handleInput"
-      />
+      >
     </div>
     <div
       v-if="isOpen"
@@ -81,12 +81,12 @@ const handleCreateNew = () => {
           {{ emptyMessage }}
         </li>
         <li v-for="item in items" :key="item.value">
-          <a @click.prevent="handleSelect(item)" class="flex items-center px-4 py-2">
+          <a class="flex items-center px-4 py-2" @click.prevent="handleSelect(item)">
             {{ item.label }}
           </a>
         </li>
         <li class="border-t border-base-content/10 mt-1">
-          <a @click.prevent="handleCreateNew" class="flex items-center justify-center text-primary font-semibold py-2">
+          <a class="flex items-center justify-center text-primary font-semibold py-2" @click.prevent="handleCreateNew">
             <AppIcon name="lucide:plus-circle" class="mr-2 h-4 w-4" />
             {{ createNewText }}
           </a>

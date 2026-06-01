@@ -76,8 +76,8 @@ async function onSubmit(event: Event) {
     <!-- <div class="divider">Or continue with</div> -->
 
     <FormInput
-      :label="$t('base.auth.signIn.emailLabel')"
       v-model="email"
+      :label="$t('base.auth.signIn.emailLabel')"
       type="email"
       :placeholder="$t('base.auth.signIn.emailPlaceholder')"
       :disabled="isLoading"

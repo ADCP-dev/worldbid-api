@@ -390,11 +390,13 @@ Docs en `docs/`. Docs pa contexto y teoría. Skills pa acción.
 | `docs/modules/storage.md` | File Storage |
 | `docs/modules/translations.md` | i18n Translations |
 | `docs/modules/webhooks.md` | Webhooks |
+| `docs/extensions/cms-audit.md` | CMS Audit & Gap Analysis |
 | `docs/extensions/cms.md` | CMS |
 | `docs/extensions/stripe.md` | Stripe Billing |
 | `docs/EXTENSIONS-SYSTEM.md` | EXTENSIONS-SYSTEM |
 | `docs/FRONTEND-LAYERS.md` | FRONTEND-LAYERS |
 | `docs/GENERATORS.md` | GENERATORS |
+| `docs/issues/issue-81-layout-category-routing.md` | CMS Layout Separation & Category Routing |
 | `docs/PLAYWRIGHT-TEST-AGENTS.md` | Playwright Test Agents |
 | `docs/PRD-email-logo-sync.md` | PRD-email-logo-sync |
 | `docs/PRD-email-tailwind-sync.md` | PRD-email-tailwind-sync |

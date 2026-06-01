@@ -29,8 +29,7 @@ definePageMeta({
           </div>
         </div>
 
-        <div class="text-center text-balance text-xs text-base-content/60" v-html="$t('base.auth.terms.login2')">
-        </div>
+        <div class="text-center text-balance text-xs text-base-content/60" v-html="$t('base.auth.terms.login2')"/>
       </div>
     </div>
   </div>

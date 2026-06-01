@@ -195,10 +195,10 @@ function handleDragEnd(event: CalendarEventType, payload: { clientX: number; cli
         <div
           v-for="hour in hours"
           :key="hour"
+          :ref="(el) => { if (el) slotRefs[hour] = el as HTMLElement }"
           class="border-t border-base-200 relative cursor-pointer hover:bg-base-200/50"
           :class="hoveredSlot && hoveredSlot.hour === hour ? 'ring-2 ring-primary ring-inset bg-primary/20' : ''"
           :style="{ height: timeSlotHeight + 'px' }"
-          :ref="(el) => { if (el) slotRefs[hour] = el as HTMLElement }"
           @click="handleSlotClick"
         >
           <div

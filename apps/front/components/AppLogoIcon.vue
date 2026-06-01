@@ -22,7 +22,7 @@ const logoSize = computed(() => {
 
 <template>
     <a href="#" class="flex font-bold items-center gap-3">
-        <img src="/logo.svg" alt="logo" :class="logoSize" />
+        <img src="/logo.svg" alt="logo" :class="logoSize" >
 
     </a>
 </template>

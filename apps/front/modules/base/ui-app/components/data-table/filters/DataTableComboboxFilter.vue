@@ -61,14 +61,14 @@ function selectOption(option: FilterOption) {
           v-model="searchTerm"
           class="input input-sm input-ghost w-full"
           :placeholder="placeholder || 'Buscar...'"
-        />
+        >
       </li>
       <div class="max-h-[200px] overflow-y-auto">
         <li v-if="filteredOptions.length === 0" class="disabled">
           <span class="py-2 text-center text-sm opacity-50 justify-center">Sin resultados.</span>
         </li>
         <li v-for="option in filteredOptions" :key="String(option.value)">
-          <a @click="selectOption(option)" class="flex items-center gap-2">
+          <a class="flex items-center gap-2" @click="selectOption(option)">
             <Check :class="String(modelValue) === String(option.value) ? 'opacity-100' : 'opacity-0'" class="h-4 w-4" />
             <span class="truncate flex-1">{{ option.label }}</span>
           </a>
@@ -77,6 +77,6 @@ function selectOption(option: FilterOption) {
     </ul>
 
     <!-- Background overlay to catch outside clicks and close the dropdown -->
-    <div v-if="open" class="fixed inset-0 z-[9] cursor-default" @click.stop="open = false"></div>
+    <div v-if="open" class="fixed inset-0 z-[9] cursor-default" @click.stop="open = false"/>
   </div>
 </template>

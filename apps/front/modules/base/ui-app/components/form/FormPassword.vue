@@ -41,7 +41,7 @@ const togglePasswordVisibility = () => {
         :disabled="disabled"
         class="input input-bordered w-full pr-10"
         :class="{ 'input-error': error, 'pl-10': slots['icon-start'] }"
-      />
+      >
 
       <span
         v-if="slots['icon-start']"

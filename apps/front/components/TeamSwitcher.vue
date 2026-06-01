@@ -41,7 +41,7 @@ const activeTeam = ref(props.teams[0])
           <span class="opacity-50 text-xs">⌘{{ index + 1 }}</span>
         </a>
       </li>
-      <div class="divider my-0"></div>
+      <div class="divider my-0"/>
       <li>
         <a class="flex items-center gap-2">
            <div class="flex size-6 items-center justify-center rounded-md border bg-transparent">

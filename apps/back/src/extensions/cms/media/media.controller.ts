@@ -24,10 +24,7 @@ import { UserId } from '@iam/auth/decorators/current-user.decorator';
 @ApiBearerAuth()
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 @ApiTags('CMS Media')
-@Controller({
-  path: 'cms/media',
-  version: '1',
-})
+@Controller('v1/cms/media')
 export class MediaController {
   constructor(
     private readonly mediaService: MediaService,

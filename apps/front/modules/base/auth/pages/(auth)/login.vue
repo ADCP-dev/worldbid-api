@@ -19,7 +19,7 @@ definePageMeta({
 
       <AuthSignIn />
 
-      <p class="text-center mt-5 text-xs text-base-content/60" v-html="$t('base.auth.terms.login', { year: new Date().getFullYear() })"></p>
+      <p class="text-center mt-5 text-xs text-base-content/60" v-html="$t('base.auth.terms.login', { year: new Date().getFullYear() })"/>
     </div>
   </AuthLayout>
 </template>

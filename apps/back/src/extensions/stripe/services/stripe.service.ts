@@ -260,9 +260,7 @@ export class StripeService {
         );
         break;
       case 'invoice.paid':
-        await this.handleInvoicePaid(
-          event.data.object as Stripe.Invoice,
-        );
+        await this.handleInvoicePaid(event.data.object as Stripe.Invoice);
         break;
       case 'invoice.payment_failed':
         await this.handleInvoicePaymentFailed(
@@ -525,7 +523,9 @@ export class StripeService {
     this.logger.log(`Invoice paid: ${invoice.id}`);
 
     try {
-      const subscriptionId = (invoice as any).subscription as string | undefined;
+      const subscriptionId = (invoice as any).subscription as
+        | string
+        | undefined;
 
       if (subscriptionId) {
         const entity = await this.subscriptionRepository.findOne({
@@ -535,7 +535,9 @@ export class StripeService {
         if (entity) {
           entity.status = 'active';
           await this.subscriptionRepository.save(entity);
-          this.logger.log(`Subscription ${subscriptionId} status set to active`);
+          this.logger.log(
+            `Subscription ${subscriptionId} status set to active`,
+          );
         }
       }
 
@@ -574,7 +576,9 @@ export class StripeService {
 
       const pdfBuffer = await this.pdfInvoiceService.generateInvoice({
         invoiceNumber: invoice.number ?? invoice.id!,
-        invoiceDate: new Date(invoice.created * 1000).toLocaleDateString('es-ES'),
+        invoiceDate: new Date(invoice.created * 1000).toLocaleDateString(
+          'es-ES',
+        ),
         dueDate: invoice.due_date
           ? new Date(invoice.due_date * 1000).toLocaleDateString('es-ES')
           : '—',
@@ -582,7 +586,11 @@ export class StripeService {
         customerEmail: to,
         items,
         subtotal: invoice.subtotal,
-        tax: ((invoice as any).total_tax_amounts?.reduce((s: number, t: any) => s + t.amount, 0)) ?? 0,
+        tax:
+          (invoice as any).total_tax_amounts?.reduce(
+            (s: number, t: any) => s + t.amount,
+            0,
+          ) ?? 0,
         total,
         currency,
         status: invoice.status ?? 'paid',
@@ -613,13 +621,17 @@ export class StripeService {
     }
   }
 
-  private async handleInvoicePaymentFailed(invoice: Stripe.Invoice): Promise<void> {
+  private async handleInvoicePaymentFailed(
+    invoice: Stripe.Invoice,
+  ): Promise<void> {
     if (!this.isStripeConfigured) return;
 
     this.logger.log(`Invoice payment failed: ${invoice.id}`);
 
     try {
-      const subscriptionId = (invoice as any).subscription as string | undefined;
+      const subscriptionId = (invoice as any).subscription as
+        | string
+        | undefined;
       if (!subscriptionId) return;
 
       const entity = await this.subscriptionRepository.findOne({
@@ -629,10 +641,14 @@ export class StripeService {
       if (entity) {
         entity.status = 'past_due';
         await this.subscriptionRepository.save(entity);
-        this.logger.log(`Subscription ${subscriptionId} status set to past_due`);
+        this.logger.log(
+          `Subscription ${subscriptionId} status set to past_due`,
+        );
       }
     } catch (error: any) {
-      this.logger.error(`Error handling invoice payment failed: ${error.message}`);
+      this.logger.error(
+        `Error handling invoice payment failed: ${error.message}`,
+      );
     }
   }
 

@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { NotFoundException } from '@nestjs/common';
 import { PagesService } from './pages.service';
 import { PageEntity, PageSection } from './infrastructure/entities/page.entity';
+import { TranslationEntity } from '@src/modules/translations/infrastructure/entities/translation.entity';
 import { TranslationsService } from '@src/modules/translations/translations.service';
 import { SeoService } from '../seo/seo.service';
 import { FilesService } from '@storage/files/files.service';
@@ -34,6 +35,12 @@ describe('PagesService', () => {
     delete: jest.fn().mockResolvedValue(undefined),
   };
 
+  const mockTranslationRepository = {
+    findOne: jest.fn().mockResolvedValue(null),
+    find: jest.fn().mockResolvedValue([]),
+    save: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -41,6 +48,10 @@ describe('PagesService', () => {
         {
           provide: getRepositoryToken(PageEntity),
           useValue: mockPageRepository,
+        },
+        {
+          provide: getRepositoryToken(TranslationEntity),
+          useValue: mockTranslationRepository,
         },
         {
           provide: TranslationsService,

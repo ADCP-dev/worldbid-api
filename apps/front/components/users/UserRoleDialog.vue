@@ -70,7 +70,7 @@ defineExpose({ openDialog, closeDialog });
   <dialog ref="dialogRef" class="modal">
     <div class="modal-box">
       <h3 class="font-bold text-lg mb-4">Cambiar Permisos</h3>
-      <p class="text-sm text-base-content/70 mb-4" v-if="user">Usuario: {{ user.email }}</p>
+      <p v-if="user" class="text-sm text-base-content/70 mb-4">Usuario: {{ user.email }}</p>
 
       <form @submit.prevent="handleSubmit">
         <div class="form-control w-full mb-4">
@@ -96,9 +96,9 @@ defineExpose({ openDialog, closeDialog });
         </div>
 
         <div class="modal-action">
-          <button type="button" class="btn" @click="closeDialog" :disabled="isSubmitting">Cancelar</button>
+          <button type="button" class="btn" :disabled="isSubmitting" @click="closeDialog">Cancelar</button>
           <button type="submit" class="btn btn-primary" :disabled="isSubmitting">
-            <span v-if="isSubmitting" class="loading loading-spinner loading-xs"></span>
+            <span v-if="isSubmitting" class="loading loading-spinner loading-xs"/>
             Guardar
           </button>
         </div>
