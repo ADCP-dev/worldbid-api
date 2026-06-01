@@ -54,8 +54,8 @@ export default defineNuxtConfig(
       'pinia-plugin-persistedstate',
       '@nuxtjs/i18n',
       '@nuxtjs/color-mode',
-      'vue-sonner/nuxt',
     ],
+
     css: ['~/assets/css/tailwind.css', 'flag-icons/css/flag-icons.min.css'],
     vite: {
       // @ts-expect-error - Incompatible vite/rollup plugin types in this environment
@@ -137,6 +137,10 @@ export default defineNuxtConfig(
         cookieKey: 'i18n_redirected',
         redirectOn: 'root',
       },
+    },
+
+    ogImage: {
+      zeroRuntime: true,
     },
 
     site: {

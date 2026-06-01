@@ -1,7 +1,7 @@
 # Graph Report - foundation  (2026-06-01)
 
 ## Corpus Check
-- 565 files · ~211,704 words
+- 565 files · ~211,708 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -214,8 +214,8 @@
   apps\front\modules\base\translations\pages\admin\translations\index.vue → bin\build-extension.js
 - `getEventStyle()` --calls--> `get()`  [INFERRED]
   apps\front\modules\base\ui-app\components\calendar\CalendarDayView.vue → apps\front\modules\base\ui-app\pages\app\components\kanban-demo.vue
-- `warn()` --calls--> `log()`  [INFERRED]
-  bin\ext-validate.ts → bin\build-extension.js
+- `log()` --calls--> `warn()`  [INFERRED]
+  bin\build-extension.js → bin\ext-validate.ts
 - `detectRouteConflicts()` --calls--> `warn()`  [INFERRED]
   apps\back\src\core\extension-conflict-detector.ts → bin\validate-extension.js
 
