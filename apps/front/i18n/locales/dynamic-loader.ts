@@ -1,6 +1,6 @@
 export default defineI18nLocale(async (locale) => {
-  // Use import.meta.glob to find and lazy-load all json files inside the locales directory
-  // The structure can be `locales/[locale]/[namespace].json` or nested `locales/[locale]/dir/sub_dir/[namespace].json`
+  // Use import.meta.glob to find and lazy-load all json files inside the i18n/locales directory
+  // The structure can be `i18n/locales/[locale]/[namespace].json` or nested `i18n/locales/[locale]/dir/sub_dir/[namespace].json`
   const files = import.meta.glob('./**/*.json');
 
   const messages: Record<string, Record<string, unknown>> = {};

@@ -1,8 +1,7 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import tailwindcss from '@tailwindcss/vite';
-import path from 'path';
 
-function getI18nFiles(langCode: string) {
+function getI18nFiles(_langCode: string) {
   return ['dynamic-loader.ts'];
 }
 
@@ -111,7 +110,7 @@ export default defineNuxtConfig(
 
           if (newLocales.length > 0) {
             register({
-              langDir: path.resolve(process.cwd(), 'locales'),
+              langDir: 'locales',
               locales: newLocales,
             });
           }
@@ -125,14 +124,14 @@ export default defineNuxtConfig(
       },
     },
     i18n: {
+      lazy: true,
       strategy: 'prefix_except_default',
       defaultLocale: 'es',
       locales: [
-        { code: 'es', iso: 'es-ES', name: 'Español' },
-        { code: 'en', iso: 'en-US', name: 'English' },
+        { code: 'es', iso: 'es-ES', name: 'Español', files: ['dynamic-loader.ts'] },
+        { code: 'en', iso: 'en-US', name: 'English', files: ['dynamic-loader.ts'] },
       ],
       vueI18n: './i18n.config.ts',
-      strategy: 'prefix_and_default',
       detectBrowserLanguage: {
         useCookie: true,
         cookieKey: 'i18n_redirected',
@@ -161,6 +160,7 @@ export default defineNuxtConfig(
       '/en/blog': { prerender: true },
       '/en/blog/**': { prerender: true },
       '/en/page/**': { prerender: true },
+      '/en': { prerender: true },
       // Fallback: generate on demand if not prerendered
       '/**': { prerender: false },
     },
@@ -193,7 +193,7 @@ export default defineNuxtConfig(
     preset: 'static',
     prerender: {
       crawlLinks: true,
-      routes: ['/', '/blog', '/en/blog'],
+      routes: ['/', '/en/', '/blog', '/en/blog'],
       failOnError: false,
     },
   },

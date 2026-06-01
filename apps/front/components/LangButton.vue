@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-const { locale, locales, setLocale } = useI18n()
+const { locale, locales } = useI18n()
+const switchLocalePath = useSwitchLocalePath()
 
 const availableLocales = computed(() => {
     return locales.value.filter(i => i.code !== locale.value)
@@ -24,7 +25,7 @@ function getFlagCode(loc: any) {
         </div>
         <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52 mt-2 border border-base-content/20">
             <li v-for="loc in availableLocales" :key="loc.code">
-                <button class="flex gap-3 items-center" @click.prevent.stop="setLocale(loc.code)">
+                <button class="flex gap-3 items-center" @click.prevent.stop="navigateTo(switchLocalePath(loc.code))">
                     <FlagIcon :code="getFlagCode(loc)" />
                     <span>{{ loc.name }}</span>
                 </button>
