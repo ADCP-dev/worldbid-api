@@ -142,6 +142,8 @@
     "nuxt-seo": {
       "type": "remote",
       "url": "https://nuxtseo.com/mcp",
+      "enabled": true
+    },
     // PostgreSQL — local database access (reads from apps/back/.env)
     "postgres": {
       "type": "local",

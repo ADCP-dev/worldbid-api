@@ -1,4 +1,4 @@
-# Graph Report - foundation  (2026-06-01)
+# Graph Report - foundation  (2026-06-02)
 
 ## Corpus Check
 - 565 files · ~211,708 words
