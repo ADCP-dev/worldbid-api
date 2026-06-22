@@ -25,12 +25,27 @@ async function bootstrap() {
   useContainer(app.select(AppModule), { fallbackOnErrors: true });
   const configService = app.get(ConfigService<AllConfigType>);
 
+  const singularDomain = configService.get('app.frontendDomain', {
+    infer: true,
+  });
+  const pluralDomainsCsv = configService.get('app.frontendDomains', {
+    infer: true,
+  });
+
+  const allowedOrigins = [
+    ...(pluralDomainsCsv
+      ? pluralDomainsCsv
+          .split(',')
+          .map((d) => d.trim())
+          .filter(Boolean)
+      : []),
+    ...(singularDomain ? [singularDomain] : []),
+    'http://localhost:3000',
+    'http://localhost:3001',
+  ];
+
   app.enableCors({
-    origin: [
-      configService.getOrThrow('app.frontendDomain', { infer: true }),
-      'http://localhost:3000',
-      'http://localhost:3001',
-    ],
+    origin: allowedOrigins,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     allowedHeaders: 'Content-Type, Accept, Authorization',
     credentials: true,
