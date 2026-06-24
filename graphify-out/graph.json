@@ -24858,8 +24858,8 @@
       "source_file": "apps\\back\\src\\modules\\storage\\files\\infrastructure\\uploader\\s3\\files.service.ts",
       "source_location": "L256",
       "weight": 1.0,
-      "_src": "files_service_filess3service_deletephysicalfile",
-      "_tgt": "error_tracker_service_errortrackerservice_logerror",
+      "_src": "error_tracker_service_errortrackerservice_logerror",
+      "_tgt": "files_service_filess3service_deletephysicalfile",
       "source": "error_tracker_service_errortrackerservice_logerror",
       "target": "files_service_filess3service_deletephysicalfile"
     },

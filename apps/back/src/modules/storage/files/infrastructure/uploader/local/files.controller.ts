@@ -16,7 +16,6 @@ import {
   HttpStatus,
   BadRequestException,
   StreamableFile,
-  Header,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -285,7 +284,6 @@ export class FilesLocalController {
   @Get('public/*path')
   @ApiExcludeEndpoint()
   downloadPublic(@Param('path') path: Array<string>, @Response() response) {
-    console.log(path);
     return response.sendFile(path.join('/'), { root: './files/public' });
   }
 
