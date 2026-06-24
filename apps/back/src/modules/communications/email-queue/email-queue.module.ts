@@ -6,6 +6,7 @@ import { EmailService } from '@comms/email-queue/email.service';
 import { QueuedMailerService } from '@comms/email-queue/queued-mailer.service';
 import { ConfigService } from '@nestjs/config';
 import { MailerModule } from '@infra/mailer/mailer.module';
+import { ErrorTrackerModule } from '@src/modules/error-tracker/error-tracker.module';
 
 @Global()
 @Module({})
@@ -19,11 +20,12 @@ export class EmailQueueModule {
       workerHost !== 'undefined' &&
       workerHost !== 'null';
 
+    // eslint-disable-next-line no-console -- startup log
     console.log(
       `[EmailQueueModule] Redis enabled: ${isRedisEnabled}${isRedisEnabled ? ` (${workerHost})` : ''}`,
     );
 
-    const imports: any[] = [MailerModule];
+    const imports: any[] = [MailerModule, ErrorTrackerModule];
     const providers: any[] = [EmailService, QueuedMailerService];
     const exports: any[] = [EmailService, QueuedMailerService];
 

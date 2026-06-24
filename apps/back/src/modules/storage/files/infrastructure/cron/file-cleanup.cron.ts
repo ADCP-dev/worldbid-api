@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { FileCleanupErrorRepository } from '@storage/files/infrastructure/file-cleanup-error.repository';
 import fileConfig from '@storage/files/config/file.config';
 import { FileConfig } from '@storage/files/config/file-config.type';
+import { ErrorTrackerService } from '@src/modules/error-tracker/error-tracker.service';
 
 @Injectable()
 export class FileCleanupCronService {
@@ -12,6 +13,7 @@ export class FileCleanupCronService {
     private readonly cleanupErrorRepository: FileCleanupErrorRepository,
     @Inject('FILE_UPLOADER_SERVICE')
     private readonly fileUploaderService: any,
+    private readonly errorTrackerService: ErrorTrackerService,
   ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_3AM, {
@@ -63,6 +65,26 @@ export class FileCleanupCronService {
         this.logger.error(
           `Failed to retry deletion for orphaned file ${errorRecord.fileUri}: ${errorRecord.errorMessage}`,
         );
+
+        // Also persist to the central error-tracker so a stuck orphan
+        // loop is visible from the admin UI, not just cron logs.
+        await this.errorTrackerService
+          .logError({
+            message: `File cleanup cron failed for ${errorRecord.fileUri}: ${errorRecord.errorMessage}`,
+            source: 'FileCleanupCronService.handleOrphanedFilesCleanup',
+            stack: error instanceof Error ? error.stack : undefined,
+            metadata: {
+              fileUri: errorRecord.fileUri,
+              driver: errorRecord.driver,
+              attempts: errorRecord.attempts,
+            },
+          })
+          .catch((err) =>
+            this.logger.error(
+              'ErrorTracker: failed to persist cron failure',
+              err,
+            ),
+          );
       }
     }
 

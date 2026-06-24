@@ -6,6 +6,7 @@ import fs from 'node:fs/promises';
 import nodemailer from 'nodemailer';
 import Handlebars from 'handlebars';
 import { ConfigService } from '@nestjs/config';
+import { ErrorTrackerService } from '@src/modules/error-tracker/error-tracker.service';
 
 export interface EmailJobData {
   to: string | string[];
@@ -26,6 +27,7 @@ export class EmailProcessor extends WorkerHost {
   constructor(
     private readonly mailerService: MailerService,
     private readonly configService: ConfigService,
+    private readonly errorTrackerService: ErrorTrackerService,
   ) {
     super();
     // Create a transporter for direct email sending
@@ -97,7 +99,27 @@ export class EmailProcessor extends WorkerHost {
       this.logger.log(`Email job ${job.id} completed successfully`);
     } catch (error) {
       this.logger.error(`Email job ${job.id} failed:`, error);
-      // The job will be automatically retried based on the queue configuration
+      // Persist to the error-tracker so the team notices when an email
+      // job exhausts its retries (Bull logs to stdout otherwise). The
+      // job is then re-thrown so Bull's retry policy can do its job.
+      await this.errorTrackerService
+        .logError({
+          message: `Email job ${job.id} to ${Array.isArray(job.data.to) ? job.data.to.join(',') : job.data.to} failed: ${(error as Error).message}`,
+          source: 'EmailProcessor.process',
+          stack: (error as Error).stack,
+          metadata: {
+            jobId: job.id,
+            jobName: job.name,
+            attemptsMade: job.attemptsMade,
+            subject: job.data.subject,
+          },
+        })
+        .catch((err) =>
+          this.logger.error(
+            'ErrorTracker: failed to persist email failure',
+            err,
+          ),
+        );
       throw error;
     }
   }
