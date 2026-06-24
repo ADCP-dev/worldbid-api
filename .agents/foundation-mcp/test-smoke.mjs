@@ -194,7 +194,9 @@ try {
   try {
     const out = await call('endpoints_used_in_front', { path: '/v1/users' });
     const hasMatch = out.includes('users') || out.includes('No matches');
+    const matchCount = (out.match(/\| `(GET|POST|PATCH|PUT|DELETE|UNKNOWN)/g) ?? []).length;
     check('output mentions users endpoint or no matches', hasMatch);
+    check(`match count >= 9 (got ${matchCount})`, matchCount >= 9);
     console.log(`  ${INFO} First 600 chars:\n`);
     console.log(
       out
@@ -206,6 +208,23 @@ try {
     console.log('');
   } catch (e) {
     check('endpoints_used_in_front did not throw', false, e.message);
+  }
+
+  // ── 7b. endpoints_used_in_front extra paths ────────────────────────────
+  for (const [path, label] of [
+    ['/v1/cms/blog/posts', 'cms posts'],
+    ['/v1/stripe/plans', 'stripe plans'],
+    ['/v1/translations', 'translations'],
+    ['/v1/auth/email/login', 'auth login'],
+  ]) {
+    try {
+      const out = await call('endpoints_used_in_front', { path });
+      const n = (out.match(/\| `(GET|POST|PATCH|PUT|DELETE|UNKNOWN)/g) ?? []).length;
+      check(`${label} (${path}) has matches or empty`, n >= 0);
+      console.log(`  ${INFO} ${label} (${path}) → ${n} match(es)`);
+    } catch (e) {
+      check(`${label} did not throw`, false, e.message);
+    }
   }
 
   // ── 8. front_uses_endpoint ────────────────────────────────────────────

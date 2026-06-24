@@ -66,17 +66,24 @@ function dedupeAndNormalizePath(rawPath: string): string | null {
 }
 
 function endpointMatches(epPath: string, usagePath: string): boolean {
-  const normalize = (s: string) => s.replace(/^\/v\d+/, '');
-  const a = normalize(epPath);
-  const b = normalize(usagePath);
-  if (a === b) return true;
-  const aSegments = a.split('/').filter(Boolean);
-  const bSegments = b.split('/').filter(Boolean);
-  if (aSegments.length !== bSegments.length) return false;
-  return aSegments.every((seg, i) => {
-    if (seg.startsWith(':')) return true;
-    return seg === bSegments[i];
-  });
+  const normalize = (s: string) => s.replace(/^\/v\d+/, '').replace(/\$\{[^}]+\}/g, ':param')
+  const a = normalize(epPath)
+  const b = normalize(usagePath)
+  if (a === b) return true
+  const aSegments = a.split('/').filter(Boolean)
+  const bSegments = b.split('/').filter(Boolean)
+  // epPath must be a prefix of usagePath. The extra segments in b must
+  // all be path parameters (start with ':'). This lets a search for
+  // "/v1/users" match usages like "/users/${id}" and "/users/${id}/posts".
+  if (bSegments.length < aSegments.length) return false
+  for (let i = 0; i < aSegments.length; i++) {
+    if (aSegments[i].startsWith(':')) continue
+    if (aSegments[i] !== bSegments[i]) return false
+  }
+  for (let i = aSegments.length; i < bSegments.length; i++) {
+    if (!bSegments[i].startsWith(':')) return false
+  }
+  return true
 }
 
 async function listFrontFiles(): Promise<string[]> {
@@ -271,8 +278,17 @@ export function registerCrossRefTools(server: McpServer): void {
 
       const unused: Array<{ module: string; path: string; method: string }> = [];
       for (const ep of allEndpoints) {
-        const key = `${ep.method.toUpperCase()} ${normalizeForCompare(ep.path)}`;
-        if (!usedKeys.has(key)) {
+        // Use prefix matching so an endpoint like /v1/users is considered
+        // "used" if the front has any path under it (e.g. /users/${id}).
+        if (!ep.path) {
+          unused.push(ep);
+          continue;
+        }
+        const usedPath = Array.from(usedKeys).find((k) => {
+          const [, p] = k.split(' ');
+          return p ? endpointMatches(ep.path, p) : false;
+        });
+        if (!usedPath) {
           unused.push(ep);
         }
       }
@@ -325,13 +341,18 @@ export function registerCrossRefTools(server: McpServer): void {
 }
 
 function dedupeAndNormalizePathFromUsage(u: FrontUsage): string | null {
-  const m = u.matched.match(/[`'"](\/[^`'"]*?)[`'"]/);
-  if (!m) return null;
-  return dedupeAndNormalizePath(m[1]);
+  // u.matched may or may not include the closing quote/paren depending
+  // on which scanner produced it. fetchWrapper/useApi/fetch scanners
+  // stop at the first quote/paren, while path-literal scanner captures
+  // the whole literal. We match the path without requiring a closing
+  // delimiter to handle both cases.
+  const m = u.matched.match(/[`'"(](\/[^`'")\s]*)/)
+  if (!m) return null
+  return dedupeAndNormalizePath(m[1])
 }
 
 function normalizeForCompare(p: string): string {
-  return p.replace(/^\/v\d+/, '').replace(/\$\{[^}]+\}/g, ':param');
+  return p.replace(/^\/v\d+/, '').replace(/\$\{[^}]+\}/g, ':param')
 }
 
 function escapeCell(s: string): string {
