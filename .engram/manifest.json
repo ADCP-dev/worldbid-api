@@ -544,6 +544,14 @@
       "sessions": 4,
       "memories": 12,
       "prompts": 11
+    },
+    {
+      "id": "1c07e8e6",
+      "created_by": "YO",
+      "created_at": "2026-06-24T11:09:53Z",
+      "sessions": 1,
+      "memories": 3,
+      "prompts": 27
     }
   ]
 }
