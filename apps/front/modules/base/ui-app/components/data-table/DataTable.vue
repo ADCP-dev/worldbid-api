@@ -13,7 +13,7 @@ import { ref, computed, watch, onMounted } from "vue";
 import { useTableStateStore } from "../../stores/useTableState";
 import { ChevronDown } from "lucide-vue-next";
 import type { MyColumnDef } from "./types";
-import { fetchWrapper } from "~/helpers/fetch-wrapper";
+// useApi replaces the old fetchWrapper. Imported via #imports.
 import DataTableComboboxFilter from "./filters/DataTableComboboxFilter.vue";
 
 
@@ -91,8 +91,10 @@ const fetchData = async () => {
       (params as Record<string, unknown>).search = state.value.globalFilter;
     }
 
-    // Convert params to query string since fetchWrapper.get doesn't accept query params in a body configuration natively
-    const queryPairs = [];
+    // Build the query string with nested filter[] support (NestJS convention).
+    // We construct the query string ourselves because useApi serializes
+    // object values differently than the back-end expects.
+    const queryPairs: string[] = [];
     for (const [key, value] of Object.entries(params)) {
        if (key === 'filter' && typeof value === 'object') {
            for (const [filterKey, filterValue] of Object.entries((value as Record<string, any>))) {
@@ -107,8 +109,11 @@ const fetchData = async () => {
     const queryString = queryPairs.join('&');
     const separator = props.endpoint.includes('?') ? '&' : '?';
 
-    const responseData = await fetchWrapper.get(`${baseURL}/${props.endpoint}${separator}${queryString}`);
-    // fetchWrapper already parses JSON and returns the body directly
+    // Pass the path WITH the query string so useApi doesn't re-serialize.
+    // (The baseUrl is added by useApi before the path.)
+    const responseData = await api.get<{ data: unknown[]; total?: number; meta?: { total?: number } }>(
+      `/${props.endpoint}${separator}${queryString}`,
+    );
     internalData.value = responseData.data || [];
     totalCount.value = responseData.total ?? responseData.meta?.total ?? 0;
   } catch (error) {

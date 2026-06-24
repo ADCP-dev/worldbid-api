@@ -1,70 +1,140 @@
-import { fetchWrapper } from '~/helpers/fetch-wrapper';
+/**
+ * useUsers — Standard API composable for the User entity.
+ *
+ * Pattern: one file per entity. Each function is a TanStack Query hook
+ * (useQuery or useMutation) that delegates to `useApi()` for transport.
+ *
+ * Cache strategy:
+ *   - List query: ['users', params]
+ *   - Single query: ['user', id]
+ *   - All write mutations invalidate the list query and the single
+ *     query for the affected id (when known).
+ */
+import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 
 export interface User {
-  id: number | string;
-  email: string;
-  provider: string;
-  socialId?: string | null;
-  firstName: string | null;
-  lastName: string | null;
-  role?: {
-    id: number | string;
-    name?: string;
-  } | null;
-  status?: {
-    id: number | string;
-    name?: string;
-  };
-  createdAt: string;
-  updatedAt: string;
-  deletedAt?: string;
+  id: number | string
+  email: string
+  provider: string
+  socialId?: string | null
+  firstName: string | null
+  lastName: string | null
+  role?: { id: number | string; name?: string } | null
+  status?: { id: number | string; name?: string }
+  createdAt: string
+  updatedAt: string
+  deletedAt?: string
 }
 
-export function useUsers() {
-  const config = useRuntimeConfig();
-  const baseURL = `${config.public.apiUrl}${config.public.apiPrefix}`;
+export interface UserListParams {
+  page?: number
+  limit?: number
+  search?: string
+  roleId?: number | string
+  statusId?: number | string
+}
 
-  const fetchUsers = async (params: Record<string, any> = {}) => {
-    // Note: The DataTable component handles the pagination and fetching directly,
-    // but we can provide this for custom usages.
-    const queryString = new URLSearchParams(params as any).toString();
-    const url = `${baseURL}/users${queryString ? '?' + queryString : ''}`;
-    return await fetchWrapper.get(url);
-  };
+export type CreateUserInput = {
+  email: string
+  password?: string
+  firstName?: string
+  lastName?: string
+  roleId?: number | string
+  statusId?: number | string
+}
 
-  const createUser = async (userData: any) => {
-    return await fetchWrapper.post(`${baseURL}/users`, userData);
-  };
+export type UpdateUserInput = Partial<CreateUserInput>
 
-  const updateUser = async (id: number | string, userData: any) => {
-    return await fetchWrapper.patch(`${baseURL}/users/${id}`, userData);
-  };
+// ── Queries ──────────────────────────────────────────────────────────────
 
-  const deleteUser = async (id: number | string) => {
-    return await fetchWrapper.delete(`${baseURL}/users/${id}`);
-  };
+export function useUsersQuery(params: UserListParams = {}) {
+  const api = useApi()
+  return useQuery({
+    queryKey: ['users', params],
+    queryFn: () => api.get<User[]>('/users', { query: params as Record<string, string | number> }),
+  })
+}
 
-  // Dedicated endpoints or just patch depending on API capabilities
-  // Here we use the generic patch for role, status, and password
-  const changePassword = async (id: number | string, password: string) => {
-    return await fetchWrapper.patch(`${baseURL}/users/${id}`, { password });
-  };
+export function useUserQuery(id: MaybeRefOrGetter<number | string>) {
+  const api = useApi()
+  return useQuery({
+    queryKey: ['user', id],
+    queryFn: () => api.get<User>(`/users/${toValue(id)}`),
+    enabled: computed(() => !!toValue(id)),
+  })
+}
 
-  const changeRole = async (id: number | string, roleId: number | string) => {
-    return await fetchWrapper.patch(`${baseURL}/users/${id}`, { role: { id: roleId } });
-  };
+// ── Mutations ────────────────────────────────────────────────────────────
 
-  const changeStatus = async (id: number | string, statusId: number | string) => {
-    return await fetchWrapper.patch(`${baseURL}/users/${id}`, { status: { id: statusId } });
-  };
+export function useCreateUserMutation() {
+  const api = useApi()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: CreateUserInput) => api.post<User>('/users', input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['users'] })
+    },
+  })
+}
 
-  return {
-    fetchUsers,
-    createUser,
-    updateUser,
-    deleteUser,
-    changePassword,
-    changeRole,
-    changeStatus
-  };
+export function useUpdateUserMutation() {
+  const api = useApi()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number | string; data: UpdateUserInput }) =>
+      api.patch<User>(`/users/${id}`, data),
+    onSuccess: (user) => {
+      qc.invalidateQueries({ queryKey: ['users'] })
+      qc.invalidateQueries({ queryKey: ['user', user.id] })
+    },
+  })
+}
+
+export function useDeleteUserMutation() {
+  const api = useApi()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number | string) => api.delete(`/users/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['users'] })
+    },
+  })
+}
+
+export function useChangePasswordMutation() {
+  const api = useApi()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, password }: { id: number | string; password: string }) =>
+      api.patch<User>(`/users/${id}`, { password }),
+    onSuccess: (user) => {
+      qc.invalidateQueries({ queryKey: ['user', user.id] })
+    },
+  })
+}
+
+export function useChangeUserRoleMutation() {
+  const api = useApi()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, roleId }: { id: number | string; roleId: number | string }) =>
+      api.patch<User>(`/users/${id}`, { role: { id: roleId } }),
+    onSuccess: (user) => {
+      qc.invalidateQueries({ queryKey: ['users'] })
+      qc.invalidateQueries({ queryKey: ['user', user.id] })
+    },
+  })
+}
+
+export function useChangeUserStatusMutation() {
+  const api = useApi()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, statusId }: { id: number | string; statusId: number | string }) =>
+      api.patch<User>(`/users/${id}`, { status: { id: statusId } }),
+    onSuccess: (user) => {
+      qc.invalidateQueries({ queryKey: ['users'] })
+      qc.invalidateQueries({ queryKey: ['user', user.id] })
+    },
+  })
 }

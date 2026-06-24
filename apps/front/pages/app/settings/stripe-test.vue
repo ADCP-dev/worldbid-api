@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { toast } from 'vue-sonner';
-import { fetchWrapper } from '@/helpers/fetch-wrapper';
+import { useApi } from '#imports'
 import {
   usePlansQuery,
   useCheckoutMutation,
@@ -49,7 +49,7 @@ function formatAmount(cents: number, curr: string) {
 
 async function simulatePayment() {
   try {
-    const result = await fetchWrapper.post(`${baseURL}/stripe/test/payment`, {
+    const result = await useApi().post(`/stripe/test/payment`, {
       amount: amount.value,
       currency: currency.value,
       description: description.value || undefined,
@@ -82,7 +82,7 @@ async function simulatePayment() {
 
 async function simulateSubscription() {
   try {
-    const result = await fetchWrapper.post(`${baseURL}/stripe/test/subscription`, {
+    const result = await useApi().post(`/stripe/test/subscription`, {
       planId: plan.value,
     });
     results.value.unshift(result);
@@ -94,7 +94,7 @@ async function simulateSubscription() {
 
 async function simulateWebhook() {
   try {
-    const result = await fetchWrapper.post(`${baseURL}/stripe/test/webhook/simulate`, {
+    const result = await useApi().post(`/stripe/test/webhook/simulate`, {
       type: webhookType.value,
     });
     results.value.unshift(result);
@@ -106,13 +106,13 @@ async function simulateWebhook() {
 
 async function loadPayments() {
   try {
-    payments.value = await fetchWrapper.get(`${baseURL}/stripe/test/payments`);
+    payments.value = await useApi().get(`/stripe/test/payments`);
   } catch {}
 }
 
 async function loadMethods() {
   try {
-    methods.value = await fetchWrapper.get(`${baseURL}/stripe/test/methods`);
+    methods.value = await useApi().get(`/stripe/test/methods`);
   } catch {}
 }
 

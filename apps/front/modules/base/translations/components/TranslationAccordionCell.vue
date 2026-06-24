@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { BotIcon, Loader2 } from 'lucide-vue-next'
-import { fetchWrapper } from '~/helpers/fetch-wrapper';
+import { useApi } from '#imports'
 import { toast } from 'vue-sonner';
 import { useI18n } from 'vue-i18n';
 
@@ -26,9 +26,8 @@ const getBaseUrl = () => {
 
 const translateRow = async () => {
     isTranslating.value = true;
-    const baseUrl = getBaseUrl();
     try {
-        const response = await fetchWrapper.post(`${baseUrl}/translations/translate-row`, {
+        const response = await useApi().post(`/translations/translate-row`, {
             app: props.appContext || 'front',
             section: props.group.section,
             key: props.group.key

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { h, computed, ref } from "vue";
 import DataTable from "@/modules/base/ui-app/components/data-table/DataTable.vue";
-import { fetchWrapper } from "@/helpers/fetch-wrapper";
+import { useApi } from '#imports'
 import { toast } from "vue-sonner";
 
 interface Props {
@@ -71,7 +71,7 @@ async function handleAddTranslation() {
       const content = newContent.value[lang.code]?.trim();
       if (!content) continue;
 
-      await fetchWrapper.post(`${baseURL}/translations`, {
+      await useApi().post(`/translations`, {
         app: 'front',
         langCode: lang.code,
         section,
@@ -98,14 +98,14 @@ const handleBlur = async (translation: any, event: Event) => {
   try {
     if (translation.id) {
       if (newContent) {
-        await fetchWrapper.patch(`${baseURL}/translations/${translation.id}`, {
+        await useApi().patch(`/translations/${translation.id}`, {
           content: newContent,
         });
       } else {
-        await fetchWrapper.delete(`${baseURL}/translations/${translation.id}`);
+        await useApi().delete(`/translations/${translation.id}`);
       }
     } else if (newContent) {
-      await fetchWrapper.post(`${baseURL}/translations`, {
+      await useApi().post(`/translations`, {
         app: 'front',
         langCode: translation.langCode,
         section: translation.section,

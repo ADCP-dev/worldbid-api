@@ -1,48 +1,45 @@
-import { fetchWrapper } from "@/helpers/fetch-wrapper";
-
+/**
+ * useErrors — Error tracker composable.
+ *
+ * Migrated from fetchWrapper to useApi(). All HTTP goes through the
+ * centralized transport. The legacy imperative API (functions that
+ * resolve with data) is preserved for backward compatibility.
+ */
 export const useErrors = () => {
-  const config = useRuntimeConfig();
-  const baseUrl = `${config.public.apiUrl}${config.public.apiPrefix}`;
+  const api = useApi()
 
   const fetchErrors = async () => {
-    const data = await fetchWrapper.get(`${baseUrl}/system/errors`);
-    return data;
-  };
+    return await api.get('/system/errors')
+  }
 
   const reportError = async (error: {
-    message: string;
-    source?: string;
-    stack?: string;
-    metadata?: Record<string, unknown>;
+    message: string
+    source?: string
+    stack?: string
+    metadata?: Record<string, unknown>
   }) => {
-    await fetchWrapper.post(`${baseUrl}/system/errors`, error);
-  };
+    await api.post('/system/errors', error)
+  }
 
   const clearErrors = async () => {
-    const data = await fetchWrapper.delete(`${baseUrl}/system/errors`);
-    return data;
-  };
+    return await api.delete('/system/errors')
+  }
 
   const deleteError = async (id: string) => {
-    const data = await fetchWrapper.delete(`${baseUrl}/system/errors/${id}`);
-    return data;
-  };
+    return await api.delete(`/system/errors/${id}`)
+  }
 
   const resolveError = async (id: string) => {
-    const data = await fetchWrapper.patch(
-      `${baseUrl}/system/errors/${id}/resolve`,
-    );
-    return data;
-  };
+    return await api.patch(`/system/errors/${id}/resolve`)
+  }
 
   const clearResolvedErrors = async () => {
-    const data = await fetchWrapper.delete(`${baseUrl}/system/errors/resolved`);
-    return data;
-  };
+    return await api.delete('/system/errors/resolved')
+  }
 
   const testBackendError = async () => {
-    await fetchWrapper.get(`${baseUrl}/system/test/error-500`);
-  };
+    await api.get('/system/test/error-500')
+  }
 
   return {
     fetchErrors,
@@ -52,5 +49,5 @@ export const useErrors = () => {
     resolveError,
     clearResolvedErrors,
     testBackendError,
-  };
-};
+  }
+}

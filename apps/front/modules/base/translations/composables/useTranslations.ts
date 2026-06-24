@@ -1,37 +1,55 @@
-import { fetchWrapper } from '@/helpers/fetch-wrapper';
-
+/**
+ * useTranslations — Translations module composable.
+ *
+ * Migrated from fetchWrapper to useApi(). The legacy imperative API
+ * is preserved for backward compatibility with all call sites.
+ */
 export const useTranslations = () => {
-  const config = useRuntimeConfig();
-  const apiPrefix = config.public.apiPrefix || '/api/v1';
-  const baseUrl = `${config.public.apiUrl}${apiPrefix}/translations`;
+  const api = useApi()
 
-  const getLangs = () => fetchWrapper.get(`${baseUrl}/langs`);
-  const createLang = (body: any) => fetchWrapper.post(`${baseUrl}/langs`, body);
-  const updateLang = (id: number, body: any) => fetchWrapper.patch(`${baseUrl}/langs/${id}`, body);
-  const deleteLang = (id: number) => fetchWrapper.delete(`${baseUrl}/langs/${id}`);
+  const getLangs = () => api.get('/translations/langs')
+  const createLang = (body: any) => api.post('/translations/langs', body)
+  const updateLang = (id: number, body: any) =>
+    api.patch(`/translations/langs/${id}`, body)
+  const deleteLang = (id: number) => api.delete(`/translations/langs/${id}`)
 
   const getTranslations = async (params: any = {}) => {
     // filter undefined
-    const cleanParams = Object.fromEntries(Object.entries(params).filter(([_, v]) => v != null && v !== ''));
-    const query = new URLSearchParams(cleanParams as any).toString();
-    const { data } = await fetchWrapper.get(`${baseUrl}?${query}`);
-    return data;
-  };
+    const cleanParams = Object.fromEntries(
+      Object.entries(params).filter(([_, v]) => v != null && v !== ''),
+    )
+    const { data } = await api.get<{ data: any }>('/translations', { query: cleanParams })
+    return data
+  }
 
-  const getExactTranslation = async (app: string, section: string, key: string) => {
-    return await fetchWrapper.get(`${baseUrl}/exact?app=${app}&section=${section}&key=${key}`);
-  };
+  const getExactTranslation = async (
+    app: string,
+    section: string,
+    key: string,
+  ) => {
+    return await api.get('/translations/exact', {
+      query: { app, section, key },
+    })
+  }
 
-  const getExactTranslationByDotPath = async (app: string, dotPath: string) => {
-    return await fetchWrapper.get(`${baseUrl}/exact-by-path?app=${app}&dotPath=${dotPath}`);
-  };
+  const getExactTranslationByDotPath = async (
+    app: string,
+    dotPath: string,
+  ) => {
+    return await api.get('/translations/exact-by-path', {
+      query: { app, dotPath },
+    })
+  }
 
-  const createTranslation = (body: any) => fetchWrapper.post(baseUrl, body);
-  const updateTranslation = (id: number, body: any) => fetchWrapper.patch(`${baseUrl}/${id}`, body);
-  const deleteTranslation = (id: number) => fetchWrapper.delete(`${baseUrl}/${id}`);
-  const generateJson = () => fetchWrapper.post(`${baseUrl}/generate`);
-  const bulkTranslate = (app: string) => fetchWrapper.post(`${baseUrl}/bulk-translate?app=${app}`, {});
-  const syncTranslations = () => fetchWrapper.post(`${baseUrl}/sync`, {});
+  const createTranslation = (body: any) => api.post('/translations', body)
+  const updateTranslation = (id: number, body: any) =>
+    api.patch(`/translations/${id}`, body)
+  const deleteTranslation = (id: number) =>
+    api.delete(`/translations/${id}`)
+  const generateJson = () => api.post('/translations/generate')
+  const bulkTranslate = (app: string) =>
+    api.post(`/translations/bulk-translate`, { app })
+  const syncTranslations = () => api.post('/translations/sync')
 
   return {
     getLangs,
@@ -47,5 +65,5 @@ export const useTranslations = () => {
     generateJson,
     bulkTranslate,
     syncTranslations,
-  };
-};
+  }
+}
