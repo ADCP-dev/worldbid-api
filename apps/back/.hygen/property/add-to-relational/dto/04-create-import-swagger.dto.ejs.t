@@ -5,7 +5,6 @@ before: export class Create<%= name %>Dto
 skip_if: "} from '@nestjs/swagger'"
 ---
 <% if (isAddToDto) { -%>
-  import { 
-    // decorators here
-  } from '@nestjs/swagger';
+import {
+} from '@nestjs/swagger';
 <% } -%>

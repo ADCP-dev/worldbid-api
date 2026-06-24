@@ -22,7 +22,6 @@ after: export class <%= name %> {
     <% } else { -%>
       String,
     <% } -%>
-    ,
     nullable: <%= isNullable %>,
   })
   @Expose()

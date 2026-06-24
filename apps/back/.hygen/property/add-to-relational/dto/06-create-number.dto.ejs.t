@@ -4,6 +4,6 @@ to: src/custom/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'das
 before: "} from 'class-validator'"
 skip_if: \IsNumber,
 ---
-<% if (isAddToDto && type === 'number') { -%>
+<% if (isAddToDto && (type === 'number' || type === 'decimal')) { -%>
   IsNumber,
 <% } -%>

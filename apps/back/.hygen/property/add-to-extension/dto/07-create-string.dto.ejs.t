@@ -4,6 +4,6 @@ to: src/extensions/<%= h.inflection.transform(name, ['pluralize', 'underscore', 
 before: "} from 'class-validator'"
 skip_if: \IsString,
 ---
-<% if (isAddToDto && type === 'string') { -%>
+<% if (isAddToDto && (type === 'string' || type === 'text' || type === 'array')) { -%>
   IsString,
 <% } -%>

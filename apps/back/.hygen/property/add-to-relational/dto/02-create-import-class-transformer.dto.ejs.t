@@ -4,8 +4,7 @@ to: src/custom/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'das
 before: export class Create<%= name %>Dto
 skip_if: Transform,
 ---
-<% if (isAddToDto && kind === 'primitive' && type === 'Date') { -%>
+<% if (isAddToDto && kind === 'primitive' && (type === 'Date' || type === 'timestamp' || type === 'json' || type === 'jsonb')) { -%>
   import {
-    Transform,
   } from 'class-transformer';
 <% } -%>

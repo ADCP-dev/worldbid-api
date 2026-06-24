@@ -4,6 +4,6 @@ to: src/custom/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'das
 before: "} from 'class-transformer'"
 skip_if: \Transform,
 ---
-<% if (isAddToDto && (kind === 'primitive' && type === 'Date')) { -%>
+<% if (isAddToDto && (kind === 'primitive' && (type === 'Date' || type === 'timestamp'))) { -%>
   Transform,
 <% } -%>

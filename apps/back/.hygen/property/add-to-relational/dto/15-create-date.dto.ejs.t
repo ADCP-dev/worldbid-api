@@ -4,6 +4,6 @@ to: src/custom/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'das
 before: "} from 'class-validator'"
 skip_if: \IsDate,
 ---
-<% if (isAddToDto && type === 'Date') { -%>
+<% if (isAddToDto && (type === 'Date' || type === 'timestamp')) { -%>
   IsDate,
 <% } -%>
