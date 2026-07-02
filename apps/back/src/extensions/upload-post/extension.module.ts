@@ -6,6 +6,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UpPostEntity } from '@ext/upload-post/infrastructure/persistence/entities/up-post.entity';
 import { UpPostAnalyticsSnapshotEntity } from '@ext/upload-post/infrastructure/persistence/entities/up-post-analytics-snapshot.entity';
 import { UpPostAutodmMonitorEntity } from '@ext/upload-post/infrastructure/persistence/entities/up-post-autodm-monitor.entity';
+import { UpPostContentIdeaEntity } from '@ext/upload-post/infrastructure/persistence/entities/up-post-content-idea.entity';
 
 import { uploadPostProvider } from '@ext/upload-post/upload-post.provider';
 import { UploadPostClientService } from '@ext/upload-post/services/upload-post-client.service';
@@ -18,6 +19,8 @@ import { QueueService } from '@ext/upload-post/services/queue.service';
 import { WeeklyReportService } from '@ext/upload-post/services/weekly-report.service';
 import { PlatformsService } from '@ext/upload-post/services/platforms.service';
 import { InstagramService } from '@ext/upload-post/services/instagram.service';
+import { ContentIdeasService } from '@ext/upload-post/services/content-ideas.service';
+import { MonthlyAnalyticsService } from '@ext/upload-post/services/monthly-analytics.service';
 
 import { UploadController } from '@ext/upload-post/controllers/upload.controller';
 import { ScheduleController } from '@ext/upload-post/controllers/schedule.controller';
@@ -26,6 +29,8 @@ import { AutodmController } from '@ext/upload-post/controllers/autodm.controller
 import { WebhooksController } from '@ext/upload-post/controllers/webhooks.controller';
 import { QueueController, WeeklyReportController } from '@ext/upload-post/controllers/queue-weekly.controller';
 import { PlatformsController, InstagramController } from '@ext/upload-post/controllers/platforms-instagram.controller';
+import { ContentIdeasController } from '@ext/upload-post/controllers/content-ideas.controller';
+import { MonthlyAnalyticsController } from '@ext/upload-post/controllers/monthly-analytics.controller';
 
 // QueuedMailerService is provided globally by EmailQueueModule (@Global) — no import needed
 
@@ -36,6 +41,7 @@ import { PlatformsController, InstagramController } from '@ext/upload-post/contr
       UpPostEntity,
       UpPostAnalyticsSnapshotEntity,
       UpPostAutodmMonitorEntity,
+      UpPostContentIdeaEntity,
     ]),
   ],
   controllers: [
@@ -48,6 +54,8 @@ import { PlatformsController, InstagramController } from '@ext/upload-post/contr
     WeeklyReportController,
     PlatformsController,
     InstagramController,
+    ContentIdeasController,
+    MonthlyAnalyticsController,
   ],
   providers: [
     uploadPostProvider,
@@ -61,6 +69,8 @@ import { PlatformsController, InstagramController } from '@ext/upload-post/contr
     WeeklyReportService,
     PlatformsService,
     InstagramService,
+    ContentIdeasService,
+    MonthlyAnalyticsService,
   ],
   exports: [
     UploadPostClientService,
@@ -72,6 +82,8 @@ import { PlatformsController, InstagramController } from '@ext/upload-post/contr
     WeeklyReportService,
     PlatformsService,
     InstagramService,
+    ContentIdeasService,
+    MonthlyAnalyticsService,
   ],
 })
 export class UploadPostExtensionModule {}

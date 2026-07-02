@@ -235,6 +235,66 @@ export function useUploadPost() {
     return apiFetch('/upload-post/platforms/pinterest/boards');
   }
 
+  // ─── Content Ideas ─────────────────────────────────────────────────────
+
+  async function getIdeas() {
+    return apiFetch('/upload-post/ideas');
+  }
+
+  async function createIdea(data: {
+    title: string;
+    description?: string;
+    status?: string;
+    priority?: string;
+    platforms?: string[];
+    tags?: string[];
+    mediaUrl?: string;
+    caption?: string;
+    scheduledAt?: string;
+  }) {
+    return apiFetch('/upload-post/ideas', { method: 'POST', body: data });
+  }
+
+  async function updateIdea(id: string, data: Record<string, any>) {
+    return apiFetch(`/upload-post/ideas/${id}`, { method: 'PATCH', body: data });
+  }
+
+  async function deleteIdea(id: string) {
+    return apiFetch(`/upload-post/ideas/${id}`, { method: 'DELETE' });
+  }
+
+  async function updateIdeaStatus(id: string, status: string, order?: number) {
+    return apiFetch(`/upload-post/ideas/${id}/status`, {
+      method: 'PATCH',
+      body: { status, order },
+    });
+  }
+
+  async function reorderIdeas(orderedIds: string[]) {
+    return apiFetch('/upload-post/ideas/reorder', {
+      method: 'POST',
+      body: { orderedIds },
+    });
+  }
+
+  // ─── Monthly Analytics ──────────────────────────────────────────────────
+
+  async function getMonthlySummary(month: string) {
+    return apiFetch(`/upload-post/monthly-analytics/summary/${month}`);
+  }
+
+  async function getMonthlyHistory(months = 12) {
+    return apiFetch('/upload-post/monthly-analytics/history', { query: { months } });
+  }
+
+  async function getTopPosts(limit = 20) {
+    return apiFetch('/upload-post/monthly-analytics/top-posts', { query: { limit } });
+  }
+
+  async function getTopPostsByMonth(month: string, limit = 20) {
+    return apiFetch(`/upload-post/monthly-analytics/top-posts/${month}`, { query: { limit } });
+  }
+
   return {
     uploadVideo,
     uploadPhotos,
@@ -261,5 +321,17 @@ export function useUploadPost() {
     getFacebookPages,
     getLinkedinPages,
     getPinterestBoards,
+    // Content Ideas
+    getIdeas,
+    createIdea,
+    updateIdea,
+    deleteIdea,
+    updateIdeaStatus,
+    reorderIdeas,
+    // Monthly Analytics
+    getMonthlySummary,
+    getMonthlyHistory,
+    getTopPosts,
+    getTopPostsByMonth,
   };
 }
