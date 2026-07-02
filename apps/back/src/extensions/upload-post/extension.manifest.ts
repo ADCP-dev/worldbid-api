@@ -5,7 +5,7 @@ const manifest: ExtensionManifest = {
   version: '1.0.0',
   displayName: 'Upload-Post Social Media',
   description:
-    'Social media automation via Upload-Post API. Multi-platform publishing, scheduling, analytics, AutoDMs, FFmpeg processing, and weekly reports.',
+    'Social media automation via Upload-Post API. Multi-platform publishing, scheduling, analytics, AutoDMs, and weekly reports. Admin-only.',
   author: 'SOM-OS',
   engines: {
     foundation: '>=1.0.0',
@@ -39,10 +39,6 @@ const manifest: ExtensionManifest = {
       { method: 'POST', path: 'upload-post/autodms/resume' },
       { method: 'POST', path: 'upload-post/autodms/stop' },
       { method: 'POST', path: 'upload-post/autodms/delete' },
-      // FFmpeg
-      { method: 'POST', path: 'upload-post/ffmpeg/job' },
-      { method: 'GET', path: 'upload-post/ffmpeg/job/:jobId' },
-      { method: 'GET', path: 'upload-post/ffmpeg/usage' },
       // Webhooks
       { method: 'POST', path: 'upload-post/webhooks/configure' },
       // Queue

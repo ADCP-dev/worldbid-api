@@ -1,54 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsOptional, IsArray } from 'class-validator';
 
-export class FfmpegJobDto {
-  @ApiProperty({ required: false, description: 'Direct URL to the media file' })
-  @IsOptional()
-  @IsString()
-  fileUrl?: string;
-
-  @ApiProperty({ example: 'ffmpeg -y -i {input} -c:v libx264 -crf 23 {output}' })
-  @IsString()
-  fullCommand: string;
-
-  @ApiProperty({ example: 'mp4' })
-  @IsString()
-  outputExtension: string;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsString()
-  filename?: string;
-}
-
-export class FfmpegPresetDto {
-  @ApiProperty()
-  @IsString()
-  fileUrl: string;
-}
-
-export class FfmpegBurnTextDto {
-  @ApiProperty()
-  @IsString()
-  fileUrl: string;
-
-  @ApiProperty()
-  @IsString()
-  text: string;
-
-  @ApiProperty({ required: false, default: 48 })
-  @IsOptional()
-  @IsString()
-  fontSize?: string;
-}
-
-export class FfmpegConcatDto {
-  @ApiProperty({ type: [String] })
-  @IsArray()
-  @IsString({ each: true })
-  fileUrls: string[];
-}
-
 export class ScheduleUpdateDto {
   @ApiProperty({ required: false, description: 'ISO 8601 datetime' })
   @IsOptional()

@@ -268,42 +268,6 @@ export class UploadPostClientService {
     return this.request('POST', '/api/uploadposts/autodms/delete', { body: { monitor_id: monitorId } });
   }
 
-  // ─── FFmpeg endpoints ─────────────────────────────────────────────────
-
-  async createFfmpegJob(params: {
-    fileUrl?: string;
-    fileUrl1?: string;
-    fileBuffer?: Buffer;
-    filename?: string;
-    fullCommand: string;
-    outputExtension: string;
-  }): Promise<any> {
-    const fd = new FormData();
-    fd.append('full_command', params.fullCommand);
-    fd.append('output_extension', params.outputExtension);
-
-    if (params.fileUrl) {
-      fd.append('file', params.fileUrl);
-    } else if (params.fileBuffer && params.filename) {
-      fd.append('file', new Blob([params.fileBuffer]), params.filename);
-    }
-
-    // Second input for concat / multi-input FFmpeg operations
-    if (params.fileUrl1) {
-      fd.append('file1', params.fileUrl1);
-    }
-
-    return this.request('POST', '/api/uploadposts/ffmpeg/editor', { formData: fd });
-  }
-
-  async getFfmpegJobStatus(jobId: string): Promise<any> {
-    return this.request('GET', '/api/uploadposts/ffmpeg/status', { query: { job_id: jobId } });
-  }
-
-  async getFfmpegUsage(): Promise<any> {
-    return this.request('GET', '/api/uploadposts/ffmpeg/usage');
-  }
-
   // ─── Webhook configuration ────────────────────────────────────────────
 
   async configureWebhooks(params: {

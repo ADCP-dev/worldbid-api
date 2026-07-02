@@ -9,6 +9,9 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { Roles } from '@iam/roles/roles.decorator';
+import { RoleEnum } from '@iam/roles/roles.enum';
+import { RolesGuard } from '@iam/roles/roles.guard';
 import { PlatformsService } from '@ext/upload-post/services/platforms.service';
 import { InstagramService } from '@ext/upload-post/services/instagram.service';
 import {
@@ -19,7 +22,8 @@ import {
 
 @ApiTags('Upload-Post')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles(RoleEnum.admin)
 @Controller({ path: 'upload-post/platforms', version: '1' })
 export class PlatformsController {
   constructor(private readonly platformsService: PlatformsService) {}
@@ -49,7 +53,8 @@ export class PlatformsController {
 
 @ApiTags('Upload-Post')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles(RoleEnum.admin)
 @Controller({ path: 'upload-post/instagram', version: '1' })
 export class InstagramController {
   constructor(private readonly instagramService: InstagramService) {}

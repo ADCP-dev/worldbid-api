@@ -13,7 +13,6 @@ import { UploadService } from '@ext/upload-post/services/upload.service';
 import { ScheduleService } from '@ext/upload-post/services/schedule.service';
 import { AnalyticsService } from '@ext/upload-post/services/analytics.service';
 import { AutodmService } from '@ext/upload-post/services/autodm.service';
-import { FfmpegService } from '@ext/upload-post/services/ffmpeg.service';
 import { WebhooksService } from '@ext/upload-post/services/webhooks.service';
 import { QueueService } from '@ext/upload-post/services/queue.service';
 import { WeeklyReportService } from '@ext/upload-post/services/weekly-report.service';
@@ -24,7 +23,7 @@ import { UploadController } from '@ext/upload-post/controllers/upload.controller
 import { ScheduleController } from '@ext/upload-post/controllers/schedule.controller';
 import { AnalyticsController } from '@ext/upload-post/controllers/analytics.controller';
 import { AutodmController } from '@ext/upload-post/controllers/autodm.controller';
-import { FfmpegController, WebhooksController } from '@ext/upload-post/controllers/ffmpeg-webhooks.controller';
+import { WebhooksController } from '@ext/upload-post/controllers/webhooks.controller';
 import { QueueController, WeeklyReportController } from '@ext/upload-post/controllers/queue-weekly.controller';
 import { PlatformsController, InstagramController } from '@ext/upload-post/controllers/platforms-instagram.controller';
 
@@ -44,7 +43,6 @@ import { PlatformsController, InstagramController } from '@ext/upload-post/contr
     ScheduleController,
     AnalyticsController,
     AutodmController,
-    FfmpegController,
     WebhooksController,
     QueueController,
     WeeklyReportController,
@@ -58,7 +56,6 @@ import { PlatformsController, InstagramController } from '@ext/upload-post/contr
     ScheduleService,
     AnalyticsService,
     AutodmService,
-    FfmpegService,
     WebhooksService,
     QueueService,
     WeeklyReportService,
@@ -70,7 +67,6 @@ import { PlatformsController, InstagramController } from '@ext/upload-post/contr
     UploadService,
     AnalyticsService,
     AutodmService,
-    FfmpegService,
     WebhooksService,
     QueueService,
     WeeklyReportService,
