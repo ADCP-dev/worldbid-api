@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, IsArray, IsInt, IsBoolean, Min, Max } from 'class-validator';
+import { IsString, IsOptional, IsArray, IsInt, IsBoolean, Min } from 'class-validator';
 
 export class StartAutodmDto {
   @ApiProperty({ example: 'https://instagram.com/p/Cxxx' })

@@ -1,11 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { UploadPostClientService } from '@ext/upload-post/services/upload-post-client.service';
 import { UpPostAnalyticsSnapshotEntity } from '@ext/upload-post/infrastructure/persistence/entities/up-post-analytics-snapshot.entity';
-import { ConfigService } from '@nestjs/config';
-import { AllConfigType } from '@src/config/config.type';
 
 const ALL_PLATFORMS = [
   'instagram',
@@ -28,7 +26,6 @@ export class AnalyticsService {
     private readonly client: UploadPostClientService,
     @InjectRepository(UpPostAnalyticsSnapshotEntity)
     private readonly snapshotRepo: Repository<UpPostAnalyticsSnapshotEntity>,
-    private readonly configService: ConfigService<AllConfigType>,
   ) {}
 
   /**

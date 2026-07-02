@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, IsArray } from 'class-validator';
+import { IsString, IsOptional } from 'class-validator';
 
 export class ScheduleUpdateDto {
   @ApiProperty({ required: false, description: 'ISO 8601 datetime' })
@@ -16,19 +16,6 @@ export class ScheduleUpdateDto {
   @IsOptional()
   @IsString()
   caption?: string;
-}
-
-export class AnalyticsQueryDto {
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsString()
-  profileUsername?: string;
-
-  @ApiProperty({ required: false, type: [String] })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  platforms?: string[];
 }
 
 export class WebhookConfigureDto {

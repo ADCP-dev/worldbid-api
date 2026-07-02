@@ -16,13 +16,13 @@ import { WebhookConfigureDto } from '@ext/upload-post/dto/common.dto';
 
 @ApiTags('Upload-Post')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'), RolesGuard)
-@Roles(RoleEnum.admin)
 @Controller({ path: 'upload-post/webhooks', version: '1' })
 export class WebhooksController {
   constructor(private readonly webhooksService: WebhooksService) {}
 
   @Post('configure')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RoleEnum.admin)
   @HttpCode(HttpStatus.OK)
   configure(@Body() dto: WebhookConfigureDto) {
     return this.webhooksService.configure({
@@ -33,7 +33,7 @@ export class WebhooksController {
   }
 
   /**
-   * Inbound webhook from Upload-Post. No auth guard — public endpoint.
+   * Inbound webhook from Upload-Post. Public endpoint — no auth guard.
    * Verify with signature in production.
    */
   @Post('incoming')

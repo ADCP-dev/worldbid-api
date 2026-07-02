@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { toast } from 'vue-sonner';
 import { format } from 'date-fns';
 import Calendar from '@/modules/base/ui-app/components/calendar/Calendar.vue';
