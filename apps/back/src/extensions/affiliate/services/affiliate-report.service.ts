@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository } from 'typeorm';
 import { AffiliateReferralEntity } from '../infrastructure/persistence/entities/affiliate-referral.entity';
 import { AffiliateCommissionEntity } from '../infrastructure/persistence/entities/affiliate-commission.entity';
 import { QueuedMailerService } from '@comms/email-queue/queued-mailer.service';
@@ -50,10 +50,14 @@ export class AffiliateReportService {
         return;
       }
 
-      // New referrals this month
-      const newReferrals = await this.referralRepository.count({
-        where: { createdAt: Between(monthStart, monthEnd) },
-      });
+      // New referrals this month (use >= start AND < first of next month to avoid
+      // losing records created at 23:59:59.999)
+      const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      const newReferrals = await this.referralRepository
+        .createQueryBuilder('r')
+        .where('r.createdAt >= :start', { start: monthStart })
+        .andWhere('r.createdAt < :end', { end: nextMonthStart })
+        .getCount();
 
       // Converted referrals this month (updatedAt within this month)
       const convertedReferralsThisMonth = await this.referralRepository
@@ -114,7 +118,7 @@ Commissions paid: ${commissionsPaid}
 This report was generated automatically.`;
 
       await this.mailerService.sendMail({
-        to: 'admin@example.com', // fallback — could be made configurable
+        to: process.env.AFFILIATE_REPORT_EMAIL || 'hola@som-os.dev',
         subject: `Affiliate Monthly Report — ${monthName} ${now.getFullYear()}`,
         html,
         text,

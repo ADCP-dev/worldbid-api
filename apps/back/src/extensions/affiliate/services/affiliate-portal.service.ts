@@ -101,32 +101,24 @@ export class AffiliatePortalService {
     const partner = await this.findPartnerByUserId(userId);
 
     // Create or reuse an affiliate origin for this partner
-    const originName = `affiliate-partner-${partner.id}`;
-    let origin = await this.originRepository.findOne({
-      where: { name: originName },
-    });
-    if (!origin) {
-      origin = this.originRepository.create({
-        name: originName,
-        label: `Affiliate: ${partner.name}`,
-        type: 'affiliate',
-        isActive: true,
-        sortOrder: 100,
-        metadata: { partner_id: partner.id },
-      });
-      origin = await this.originRepository.save(origin);
-      this.logger.log(
-        `Portal: created affiliate origin id=${origin.id} for partner id=${partner.id}`,
-      );
-    }
+    const origin = await this.findOrCreateAffiliateOrigin(partner.id, partner.name);
 
-    // Create a new CRM client (status=lead via statusId, origin=referral)
+    // Resolve default status dynamically (don't hardcode id=1)
+    const defaultStatus = await this.clientRepository.manager
+      .findOne('ext_crm_status' as any, { where: { isDefault: true } } as any)
+      .catch(() => null);
+    const leadStatus = await this.clientRepository.manager
+      .findOne('ext_crm_status' as any, { where: { name: 'lead' } } as any)
+      .catch(() => null);
+    const statusId = (defaultStatus as any)?.id ?? (leadStatus as any)?.id ?? 1;
+
+    // Create a new CRM client (status resolved dynamically, origin=referral)
     const client = this.clientRepository.create({
       name: dto.client_name,
       companyName: dto.company_name ?? null,
       email: dto.email,
       phone: dto.phone ?? null,
-      statusId: 1, // lead status (default)
+      statusId,
       originId: origin.id,
       originDetail: `Affiliate referral from ${partner.name}`,
       metadata: {
@@ -159,22 +151,55 @@ export class AffiliatePortalService {
     return savedReferral;
   }
 
+  /**
+   * Shared helper: find or create an affiliate origin for a partner.
+   * Used by both portal and admin referral creation.
+   */
+  private async findOrCreateAffiliateOrigin(
+    partnerId: number,
+    partnerName: string,
+  ): Promise<CrmOriginEntity> {
+    const originName = `affiliate-partner-${partnerId}`;
+    let origin = await this.originRepository.findOne({
+      where: { name: originName },
+    });
+    if (!origin) {
+      origin = this.originRepository.create({
+        name: originName,
+        label: `Affiliate: ${partnerName}`,
+        type: 'affiliate',
+        isActive: true,
+        sortOrder: 100,
+        metadata: { partner_id: partnerId },
+      });
+      origin = await this.originRepository.save(origin);
+      this.logger.log(
+        `Created affiliate origin id=${origin.id} for partner id=${partnerId}`,
+      );
+    } else {
+      // Ensure metadata.partner_id is set
+      const meta = (origin.metadata ?? {}) as Record<string, unknown>;
+      if (meta.partner_id !== partnerId) {
+        meta.partner_id = partnerId;
+        origin.metadata = meta;
+        await this.originRepository.save(origin);
+      }
+    }
+    return origin;
+  }
+
   async getPartnerCommissions(
     userId: number,
   ): Promise<AffiliateCommissionEntity[]> {
     const partner = await this.findPartnerByUserId(userId);
-    const referrals = await this.referralRepository.find({
-      where: { partnerId: partner.id },
-      select: ['id'],
-    });
-    const referralIds = referrals.map((r) => r.id);
-    if (referralIds.length === 0) return [];
 
-    return this.commissionRepository.find({
-      where: referralIds.map((id) => ({ referralId: id })),
-      relations: ['project', 'referral'],
-      order: { createdAt: 'DESC' },
-    });
+    return this.commissionRepository
+      .createQueryBuilder('c')
+      .leftJoinAndSelect('c.project', 'project')
+      .leftJoin('c.referral', 'r')
+      .where('r.partnerId = :partnerId', { partnerId: partner.id })
+      .orderBy('c.createdAt', 'DESC')
+      .getMany();
   }
 
   async getPartnerSummary(userId: number): Promise<{

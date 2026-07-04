@@ -17,6 +17,7 @@ import { RolesGuard } from '@iam/roles/roles.guard';
 import { CurrentUser, AuthenticatedUser } from '@iam/auth/decorators/current-user.decorator';
 import { AffiliatePortalService } from '../services/affiliate-portal.service';
 import { PortalCreateReferralDto } from '../dto/portal-create-referral.dto';
+import { UpdatePortalProfileDto } from '../dto/update-portal-profile.dto';
 
 @ApiTags('Affiliate Portal')
 @ApiBearerAuth()
@@ -34,9 +35,9 @@ export class AffiliatePortalController {
   @Patch('me')
   updateProfile(
     @CurrentUser() user: AuthenticatedUser,
-    @Body() body: { name?: string; phone?: string; iban?: string },
+    @Body() dto: UpdatePortalProfileDto,
   ) {
-    return this.portalService.updatePartnerProfile(user.id, body);
+    return this.portalService.updatePartnerProfile(user.id, dto);
   }
 
   @Get('referrals')

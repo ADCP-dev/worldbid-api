@@ -119,33 +119,12 @@ export class AffiliateReferralService {
         );
       }
     } else {
-      // Auto-create an origin of type=affiliate
-      const originName = `affiliate-partner-${partner.id}`;
-      origin = await this.originRepository.findOne({
-        where: { name: originName },
+      // Auto-create an origin of type=affiliate using shared logic
+      const partner = await this.partnerRepository.findOne({
+        where: { id: dto.partnerId },
       });
-      if (!origin) {
-        origin = this.originRepository.create({
-          name: originName,
-          label: `Affiliate: ${partner.name}`,
-          type: 'affiliate',
-          isActive: true,
-          sortOrder: 100,
-          metadata: { partner_id: partner.id },
-        });
-        origin = await this.originRepository.save(origin);
-        this.logger.log(
-          `Auto-created affiliate origin id=${origin.id} for partner id=${partner.id}`,
-        );
-      } else {
-        // Ensure metadata.partner_id is set
-        const meta = (origin.metadata ?? {}) as Record<string, unknown>;
-        if (meta.partner_id !== partner.id) {
-          meta.partner_id = partner.id;
-          origin.metadata = meta;
-          await this.originRepository.save(origin);
-        }
-      }
+      // partner is already validated above, but we need it for name
+      origin = await this.findOrCreateAffiliateOrigin(dto.partnerId, partner?.name ?? `Partner ${dto.partnerId}`);
     }
 
     const referral = this.repository.create({
@@ -199,5 +178,41 @@ export class AffiliateReferralService {
     const referral = await this.findOne(id);
     await this.repository.remove(referral);
     this.logger.log(`Hard-deleted referral id=${id}`);
+  }
+
+  /**
+   * Shared helper: find or create an affiliate origin for a partner.
+   * Mirrors AffiliatePortalService.findOrCreateAffiliateOrigin.
+   */
+  private async findOrCreateAffiliateOrigin(
+    partnerId: number,
+    partnerName: string,
+  ): Promise<CrmOriginEntity> {
+    const originName = `affiliate-partner-${partnerId}`;
+    let origin = await this.originRepository.findOne({
+      where: { name: originName },
+    });
+    if (!origin) {
+      origin = this.originRepository.create({
+        name: originName,
+        label: `Affiliate: ${partnerName}`,
+        type: 'affiliate',
+        isActive: true,
+        sortOrder: 100,
+        metadata: { partner_id: partnerId },
+      });
+      origin = await this.originRepository.save(origin);
+      this.logger.log(
+        `Auto-created affiliate origin id=${origin.id} for partner id=${partnerId}`,
+      );
+    } else {
+      const meta = (origin.metadata ?? {}) as Record<string, unknown>;
+      if (meta.partner_id !== partnerId) {
+        meta.partner_id = partnerId;
+        origin.metadata = meta;
+        await this.originRepository.save(origin);
+      }
+    }
+    return origin;
   }
 }
