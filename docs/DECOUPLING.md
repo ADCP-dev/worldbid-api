@@ -720,3 +720,261 @@ const cfg = this.configService.get('my-extension', { infer: true });
 | Añadir DTO | Crear `.dto.ts` con class-validator. Importar en controller |
 | Añadir seed | Crear `seeds/seed.module.ts` con clase `*SeedModule`. Auto-discovered |
 | Cambiar tabla de entidad | `@Entity('new_table_name')` + migration. Si se referencia en manifest, actualizar |
+
+---
+
+## 14. Sidebar de Configuración del Usuario — Settings
+
+### Estructura
+
+```
+apps/front/
+├── components/settings/
+│   ├── Layout.vue           ← layout con título + sidebar + slot para contenido
+│   └── SidebarNav.vue       ← navegación lateral (items hardcoded)
+├── pages/app/settings/
+│   ├── index.vue            ← redirect automático a /app/settings/profile
+│   ├── profile.vue          ← usa SettingsLayout + SettingsProfileForm
+│   ├── plan.vue             ← usa SettingsLayout + contenido de Stripe
+│   └── stripe-test.vue      ← usa SettingsLayout + tests de Stripe
+```
+
+### Layout.vue
+
+```vue
+<template>
+  <div class="pb-16 space-y-6">
+    <h2>{{ $t('base.settings.title') }}</h2>
+    <div class="divider my-6"/>
+    <div class="flex flex-col lg:flex-row">
+      <div class="lg:w-1/6">
+        <SettingsSidebarNav />     ← navegación lateral
+      </div>
+      <div class="flex-1">
+        <slot />                   ← contenido de la página (profile, plan, etc.)
+      </div>
+    </div>
+  </div>
+</template>
+```
+
+### SidebarNav.vue — items hardcoded
+
+```typescript
+const sidebarNavItems = computed(() => [
+  { title: t('base.settings.profile.title'), href: '/app/settings/profile' },
+  { title: 'Suscripción', href: '/app/settings/plan' },
+  { title: 'Stripe Test', href: '/app/settings/stripe-test' },
+]);
+```
+
+### ⚠️ Problema actual: NO desacoplado
+
+El `SidebarNav.vue` tiene los items **hardcoded**. Si una extensión quiere añadir una página de configuración (ej: CRM quiere añadir "Configuración CRM" o Affiliate quiere añadir "Mi perfil de afiliado"), no puede inyectar items en el sidebar de settings sin tocar `SidebarNav.vue`.
+
+### Cómo desacoplarlo (propuesta)
+
+Usar el mismo patrón que el sidebar principal: `useState('settings:navItems')` que cada extensión puede inyectar via plugin.
+
+```typescript
+// components/settings/SidebarNav.vue (desacoplado)
+const baseItems = computed(() => [
+  { title: t('base.settings.profile.title'), href: '/app/settings/profile' },
+  { title: 'Suscripción', href: '/app/settings/plan' },
+]);
+
+const dynamicItems = useState<any[]>('settings:navItems', () => []);
+
+const sidebarNavItems = computed(() => [...baseItems.value, ...dynamicItems.value]);
+```
+
+```typescript
+// extensions/affiliate/plugins/settings-nav.ts
+export default defineNuxtPlugin(() => {
+  const items = useState<any[]>('settings:navItems', () => []);
+  const authStore = useAuthStore();
+
+  const addSettings = () => {
+    if (authStore.user?.role?.name !== 'affiliate') return;
+    if (items.value.find(i => i.href === '/app/portal/profile')) return;
+    items.value.push({ title: 'Mi perfil de afiliado', href: '/app/portal/profile' });
+  };
+
+  addSettings();
+  watch(() => authStore.user?.role?.name, addSettings);
+});
+```
+
+### NavUser — menú del usuario en el sidebar
+
+El componente `NavUser.vue` se muestra al pie del sidebar y tiene:
+
+```
+┌─────────────────────┐
+│ [avatar] Nombre     │  ← botón (dropdown)
+│         email       │
+├─────────────────────┤
+│ 👤 Mi cuenta        │  → /app/settings/profile
+│ 🚪 Cerrar sesión    │  → logout()
+└─────────────────────┘
+```
+
+Es **reactivo** (usa `computed` en AppSidebar), pero los items del dropdown son **hardcoded**:
+- "Mi cuenta" → `/app/settings/profile` (con `localePath`)
+- "Cerrar sesión" → `logout()`
+
+No hay inyección dinámica de items en este menú.
+
+---
+
+## 15. Dashboards — Composición desacoplable
+
+### Estado actual
+
+Cada extensión tiene su **propio dashboard independiente** en su propia página:
+
+| Dashboard | URL | Qué muestra | Desacoplado? |
+|---|---|---|---|
+| App principal | `/app` | KPIs mock (revenue, subscriptions, sales) | ❌ datos hardcoded |
+| CRM | `/app/crm` | KPIs reales (clients by status, origins, projects, interactions) | ✅ usa composable |
+| Affiliate admin | `/app/affiliate` | KPIs reales (partners, referrals, commissions, top partners) | ✅ usa composable |
+| Affiliate portal | `/app/portal` | KPIs del afiliado (pending €, approved €, paid €, referrals) | ✅ usa composable |
+| Upload-post | `/app/upload-post` | Social media analytics (snapshots, posts, scheduling) | ✅ usa composable |
+| CMS | `/app/cms` | CMS dashboard | ✅ |
+
+### ⚠️ Problema: dashboards aislados, no componibles
+
+Cada dashboard vive en su propia página. **No hay un sistema de widgets inyectables** que permita que, por ejemplo, el dashboard de CRM muestre widgets de Affiliate (comisiones pendientes, top partners).
+
+El PRD del issue #88 mencionaba:
+> "Widgets de afiliación inyectados en dashboard CRM"
+
+Pero esto no se implementó porque no hay un sistema de inyección de widgets.
+
+### Cómo desacoplarlo (propuesta)
+
+#### Patrón: `provide/inject` de widgets via plugin
+
+```typescript
+// extensions/affiliate/plugins/dashboard-widgets.ts
+export default defineNuxtPlugin(() => {
+  const authStore = useAuthStore();
+  const widgets = useState<any[]>('crm:dashboardWidgets', () => []);
+
+  const addWidgets = () => {
+    if (!authStore.isAdmin) return;
+    if (widgets.value.find(w => w.id === 'affiliate-summary')) return;
+
+    widgets.value.push({
+      id: 'affiliate-summary',
+      title: 'Afiliación',
+      type: 'stat-cards',
+      props: {
+        stats: [
+          { label: 'Partners activos', value: '—', icon: 'UserCheck' },
+          { label: 'Comisiones pendientes', value: '—', icon: 'Euro' },
+        ],
+        loadData: async (affiliate) => {
+          const dash = await affiliate.getAffiliateDashboard();
+          return [
+            { label: 'Partners activos', value: dash.activePartners, icon: 'UserCheck' },
+            { label: 'Comisiones pendientes', value: `€${dash.pendingCommissionsTotal}`, icon: 'Euro' },
+          ];
+        },
+      },
+    });
+  };
+
+  addWidgets();
+  watch(() => authStore.isAdmin, (isAdmin) => {
+    if (isAdmin) addWidgets();
+    else widgets.value = widgets.value.filter(w => w.id !== 'affiliate-summary');
+  });
+});
+```
+
+```vue
+<!-- extensions/crm/pages/app/crm/index.vue (dashboard con widgets inyectados) -->
+<script setup>
+const extensionWidgets = useState<any[]>('crm:dashboardWidgets', () => []);
+
+async function loadExtensionWidgets() {
+  for (const widget of extensionWidgets.value) {
+    if (widget.props.loadData) {
+      widget.props.loadedStats = await widget.props.loadData(useAffiliate());
+    }
+  }
+}
+
+onMounted(async () => {
+  await loadDashboard();
+  await loadExtensionWidgets();
+});
+</script>
+
+<template>
+  <!-- KPIs propios de CRM -->
+  <div class="grid grid-cols-4 gap-4">
+    <div v-for="kpi in kpis" :key="kpi.label" class="stat-card">
+      <span class="text-2xl font-bold" :class="kpi.color">{{ kpi.value }}</span>
+      <span class="text-sm opacity-70">{{ kpi.label }}</span>
+    </div>
+  </div>
+
+  <!-- Widgets inyectados por otras extensiones -->
+  <div v-for="widget in extensionWidgets" :key="widget.id" class="mt-6">
+    <h3 class="text-lg font-semibold mb-2">{{ widget.title }}</h3>
+    <div v-if="widget.type === 'stat-cards'" class="grid grid-cols-2 gap-4">
+      <div v-for="stat in widget.props.loadedStats" :key="stat.label" class="stat-card">
+        <span class="text-2xl font-bold">{{ stat.value }}</span>
+        <span class="text-sm opacity-70">{{ stat.label }}</span>
+      </div>
+    </div>
+  </div>
+</template>
+```
+
+### Ventajas del patrón
+
+1. CRM no sabe que Affiliate existe — solo lee `useState('crm:dashboardWidgets')`
+2. Affiliate inyecta widgets via plugin — si se borra, los widgets desaparecen
+3. El widget se carga solo si el admin tiene la extensión instalada
+4. Cualquier extensión nueva puede inyectar widgets sin tocar el dashboard de CRM
+
+### Dashboard principal (`/app`)
+
+Actualmente muestra **datos mock hardcoded** (Olivia Martin, Jackson Lee, etc.). Para hacerlo real:
+
+```typescript
+// pages/app/index.vue (desacoplado)
+const extensionDashboards = useState<any[]>('app:dashboardWidgets', () => []);
+
+// Cada extensión inyecta su card de resumen:
+// - CRM: total clientes, proposals activas
+// - Affiliate: comisiones pendientes, partners activos
+// - Upload-post: posts esta semana, engagement total
+// - Stripe: MRR, active subscriptions
+```
+
+---
+
+## 16. Resumen de acoplamiento por componente
+
+| Componente | Desacoplado? | Mecanismo | Cómo se extiende |
+|---|---|---|---|
+| Extensiones backend | ✅ Sí | Auto-discovery (5 fases) | Crear carpeta `extensions/<name>/` |
+| Extensiones frontend | ✅ Sí | Nuxt layers + extends array | Crear carpeta + añadir a extends |
+| Roles y redirect | ✅ Sí | `homeRoute` en DB | Añadir rol en seed, no tocar código |
+| Sidebar principal | ✅ Sí | `useState('nav:menuItems')` + plugins | Crear `plugins/nav.ts` |
+| Sidebar de settings | ❌ No | Hardcoded en `SidebarNav.vue` | Tocar el componente (propuesta: usar useState) |
+| NavUser dropdown | ❌ No | Hardcoded en `NavUser.vue` | Tocar el componente |
+| Dashboards | ⚠️ Parcial | Cada uno en su página, sin composición | Propuesta: `useState` de widgets |
+| Middlewares | ✅ Sí | Global + named, jerarquía clara | Crear `.ts` en `middleware/` |
+| Componentes UI | ✅ Sí | `@base/ui-app/` | Importar, no crear custom |
+| Seeds | ✅ Sí | Auto-discovery `*SeedModule` | Crear `seeds/seed.module.ts` |
+| Config | ✅ Sí | `registerAs()` + `AllConfigType` | Añadir a `config.type.ts` + `infrastructure.module.ts` |
+| Email notifications | ✅ Sí | `NOTIFICATION_EMAIL` global + específico | Env var en `.env` |
+| Relaciones DB | ✅ Sí | `@ManyToOne` con onDelete correcto | Declarar en entity |
+| Dependencias ext | ✅ Sí | Manifest `dependencies.extensions` | Declarar en `extension.manifest.ts` |
+| Errores de dependencia | ✅ Sí | Loader salta con warning claro | Automático |
+| Tabla de entidades | ✅ Sí | Prefijo `ext_<name>_<entity>` | Convención en `@Entity()` |
