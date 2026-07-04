@@ -1,9 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UploadPostClientService } from '@ext/upload-post/services/upload-post-client.service';
 import { UpPostAnalyticsSnapshotEntity } from '@ext/upload-post/infrastructure/persistence/entities/up-post-analytics-snapshot.entity';
 import { UpPostEntity } from '@ext/upload-post/infrastructure/persistence/entities/up-post.entity';
+import { QueuedMailerService } from '@comms/email-queue/queued-mailer.service';
+import { AllConfigType } from '@src/config/config.type';
 
 export interface MonthlySummary {
   month: string;
@@ -47,6 +51,8 @@ export class MonthlyAnalyticsService {
 
   constructor(
     private readonly client: UploadPostClientService,
+    private readonly configService: ConfigService<AllConfigType>,
+    private readonly queuedMailerService: QueuedMailerService,
     @InjectRepository(UpPostAnalyticsSnapshotEntity)
     private readonly snapshotRepo: Repository<UpPostAnalyticsSnapshotEntity>,
     @InjectRepository(UpPostEntity)
@@ -173,31 +179,151 @@ export class MonthlyAnalyticsService {
    * Get top performing posts from the local DB.
    * Sorted by views/likes/engagement if available in results JSON.
    */
-  async getTopPosts(limit = 20): Promise<UpPostEntity[]> {
-    return this.postRepo
+  async getTopPosts(limit = 20, profileUsername?: string): Promise<UpPostEntity[]> {
+    const qb = this.postRepo
       .createQueryBuilder('p')
-      .where('p.status = :status', { status: 'success' })
+      .where('p.status = :status', { status: 'success' });
+
+    if (profileUsername) {
+      qb.andWhere('p.profileUsername = :username', { username: profileUsername });
+    }
+
+    const posts = await qb
       .orderBy('p.createdAt', 'DESC')
-      .take(limit)
+      .take(limit * 3) // fetch more, then sort by engagement
       .getMany();
+
+    // Sort by engagement extracted from results JSON
+    return posts
+      .map((p) => {
+        const r = (p.results ?? {}) as Record<string, unknown>;
+        const engagement =
+          Number(r.likes ?? 0) +
+          Number(r.comments ?? 0) +
+          Number(r.shares ?? 0) +
+          Number(r.saves ?? 0);
+        return { post: p, engagement };
+      })
+      .sort((a, b) => b.engagement - a.engagement)
+      .slice(0, limit)
+      .map((x) => x.post);
   }
 
   /**
    * Get top performing posts for a specific month.
    */
-  async getTopPostsByMonth(month: string, limit = 20): Promise<UpPostEntity[]> {
+  async getTopPostsByMonth(
+    month: string,
+    limit = 20,
+    profileUsername?: string,
+  ): Promise<UpPostEntity[]> {
     const startDate = `${month}-01`;
     const [year, mon] = month.split('-').map(Number);
-    const endDay = new Date(year, mon, 0).getDate();
-    const endDate = `${month}-${String(endDay).padStart(2, '0')}`;
+    const nextMonthStart = `${year}-${String(mon + 1).padStart(2, '0')}-01`;
 
-    return this.postRepo
+    const qb = this.postRepo
       .createQueryBuilder('p')
       .where('p.status = :status', { status: 'success' })
       .andWhere('p.publishedAt >= :start', { start: startDate })
-      .andWhere('p.publishedAt <= :end', { end: endDate + ' 23:59:59' })
-      .orderBy('p.publishedAt', 'DESC')
-      .take(limit)
-      .getMany();
+      .andWhere('p.publishedAt < :nextStart', { nextStart: nextMonthStart });
+
+    if (profileUsername) {
+      qb.andWhere('p.profileUsername = :username', { username: profileUsername });
+    }
+
+    return qb.orderBy('p.publishedAt', 'DESC').take(limit).getMany();
+  }
+
+  /**
+   * Send the monthly report via email.
+   * If no month is provided, defaults to the previous month (YYYY-MM).
+   */
+  async sendMonthlyReport(month?: string): Promise<void> {
+    if (!month) {
+      const now = new Date();
+      const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      month = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`;
+    }
+
+    this.logger.log(`Generating monthly report for ${month}…`);
+
+    const summary = await this.getMonthlySummary(month);
+    const topPosts = await this.getTopPostsByMonth(month, 5);
+
+    const body = this.renderMonthlyEmailBody(month, summary, topPosts);
+
+    // Priority: extension-specific config → global NOTIFICATION_EMAIL
+    const email =
+      this.configService.get('upload-post', { infer: true })?.weeklyReportEmail ||
+      this.configService.get('app', { infer: true })?.notificationEmail;
+
+    if (!email) {
+      this.logger.warn('No weeklyReportEmail/notificationEmail configured — skipping monthly report');
+      this.logger.log(body);
+      return;
+    }
+
+    const subject = `📊 Informe Mensual Social — ${month}`;
+    await this.queuedMailerService.sendMail({ to: email, subject, text: body });
+    this.logger.log(`Monthly report sent to ${email}`);
+  }
+
+  /**
+   * Render the monthly summary as a plain-text email body.
+   */
+  private renderMonthlyEmailBody(
+    month: string,
+    summary: MonthlySummary,
+    topPosts: UpPostEntity[],
+  ): string {
+    const lines: string[] = [];
+    lines.push(`📊 Informe Mensual Social — ${month}`);
+    lines.push(`Período: ${month}`);
+    lines.push('');
+    lines.push(`Impresiones totales: ${summary.totalImpressions.toLocaleString()}`);
+    lines.push(`Crecimiento de seguidores: ${summary.totalFollowersGrowth.toLocaleString()}`);
+    lines.push('');
+    lines.push('Por plataforma:');
+    lines.push('─'.repeat(60));
+
+    for (const p of summary.platforms) {
+      lines.push(`${p.platform.toUpperCase()}`);
+      lines.push(
+        `  Followers: ${p.followersStart.toLocaleString()} → ${p.followersEnd.toLocaleString()} (${p.followersDelta >= 0 ? '+' : ''}${p.followersDelta})`,
+      );
+      lines.push(`  Reach: ${p.totalReach.toLocaleString()} | Views: ${p.totalViews.toLocaleString()}`);
+      lines.push(`  Likes: ${p.totalLikes.toLocaleString()} | Comments: ${p.totalComments.toLocaleString()}`);
+      lines.push(`  Shares: ${p.totalShares.toLocaleString()} | Saves: ${p.totalSaves.toLocaleString()}`);
+      lines.push(
+        `  Best day: ${p.bestDay ? p.bestDay.date + ' (reach ' + p.bestDay.reach.toLocaleString() + ', views ' + p.bestDay.views.toLocaleString() + ')' : '—'}`,
+      );
+      lines.push('');
+    }
+
+    lines.push('Top 5 posts:');
+    lines.push('─'.repeat(60));
+    for (const post of topPosts) {
+      lines.push(
+        `• ${post.title ?? '(sin título)'} — ${post.platform ?? '?'} — ${post.publishedAt ?? '?'}`,
+      );
+    }
+
+    return lines.join('\n');
+  }
+
+  /**
+   * Scheduled monthly report — runs on the 1st of each month at 09:00.
+   * Sends the report for the previous month.
+   */
+  @Cron('0 9 1 * *')
+  async scheduledMonthlyReport() {
+    const now = new Date();
+    const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const month = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`;
+    try {
+      await this.sendMonthlyReport(month);
+    } catch (err) {
+      this.logger.error(`scheduledMonthlyReport failed: ${err?.message ?? err}`);
+    }
   }
 }

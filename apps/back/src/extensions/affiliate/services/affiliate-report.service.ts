@@ -122,8 +122,12 @@ This report was generated automatically.`;
 
       const notificationEmail =
         this.configService.get('app', { infer: true })?.notificationEmail ||
-        process.env.AFFILIATE_REPORT_EMAIL ||
-        'hola@som-os.dev';
+        process.env.AFFILIATE_REPORT_EMAIL;
+
+      if (!notificationEmail) {
+        this.logger.warn('No notification email configured — skipping monthly report');
+        return;
+      }
 
       await this.mailerService.sendMail({
         to: notificationEmail,

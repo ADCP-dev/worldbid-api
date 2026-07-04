@@ -1,7 +1,10 @@
 import {
   Controller,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
+  Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -53,5 +56,15 @@ export class MonthlyAnalyticsController {
     @Query('limit') limit?: string,
   ) {
     return this.monthlyService.getTopPostsByMonth(month, limit ? Number(limit) : 20);
+  }
+
+  /**
+   * Trigger the monthly report email manually.
+   * If no month is provided, the previous month is used.
+   */
+  @Post('send')
+  @HttpCode(HttpStatus.OK)
+  sendMonthlyReport(@Query('month') month?: string) {
+    return this.monthlyService.sendMonthlyReport(month);
   }
 }
