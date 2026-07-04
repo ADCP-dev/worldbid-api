@@ -21,5 +21,11 @@ export default defineNuxtPlugin(() => {
   };
 
   addStorageMenu();
-  watch(() => authStore.isAdmin, (isAdmin) => { if (isAdmin) addStorageMenu(); });
+  watch(() => authStore.isAdmin, (isAdmin) => {
+    if (isAdmin) {
+      addStorageMenu();
+    } else {
+      menuItems.value = menuItems.value.filter(item => item.heading !== 'Storage');
+    }
+  });
 });

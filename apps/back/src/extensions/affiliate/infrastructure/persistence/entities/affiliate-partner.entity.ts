@@ -16,7 +16,7 @@ import { UserEntity } from '@users/infrastructure/entities/user.entity';
 import { AffiliateReferralEntity } from './affiliate-referral.entity';
 
 @Entity('ext_affiliate_partner')
-@Index(['email'])
+@Index(['email'], { unique: true })
 @Index(['userId'])
 export class AffiliatePartnerEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn()

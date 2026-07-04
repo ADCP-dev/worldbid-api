@@ -78,8 +78,6 @@ onMounted(loadData);
             <thead>
               <tr>
                 <th>Proyecto</th>
-                <th class="text-right">Importe</th>
-                <th class="text-right">Rate</th>
                 <th class="text-right">Comisión</th>
                 <th>Estado</th>
                 <th>Pagada</th>
@@ -87,17 +85,15 @@ onMounted(loadData);
             </thead>
             <tbody>
               <tr v-if="loading">
-                <td colspan="6" class="text-center py-8">
+                <td colspan="4" class="text-center py-8">
                   <span class="loading loading-spinner loading-md text-primary" />
                 </td>
               </tr>
               <tr v-else-if="commissions.length === 0">
-                <td colspan="6" class="text-center text-base-content/40 py-8">Sin comisiones</td>
+                <td colspan="4" class="text-center text-base-content/40 py-8">Sin comisiones</td>
               </tr>
               <tr v-else v-for="c in commissions" :key="c.id">
                 <td class="font-medium">{{ c.project?.name || '—' }}</td>
-                <td class="text-right">{{ formatCurrency(c.baseAmount) }}</td>
-                <td class="text-right">{{ c.rate != null ? `${c.rate}%` : '—' }}</td>
                 <td class="text-right font-semibold">{{ formatCurrency(c.commissionAmount) }}</td>
                 <td>
                   <span class="badge badge-sm" :class="STATUS_BADGE[c.status]">

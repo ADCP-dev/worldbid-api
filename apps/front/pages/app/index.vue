@@ -2,6 +2,11 @@
 import NumberFlow from "@number-flow/vue";
 import { Activity, CreditCard, DollarSign, Users } from "lucide-vue-next";
 
+definePageMeta({
+  layout: 'default',
+  middleware: ['auth', 'admin'],
+});
+
 const dataCard = ref({
   totalRevenue: 0,
   totalRevenueDesc: 0,

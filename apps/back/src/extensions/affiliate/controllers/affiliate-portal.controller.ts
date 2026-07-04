@@ -5,6 +5,7 @@ import {
   Patch,
   Body,
   Param,
+  Query,
   UseGuards,
   HttpStatus,
   HttpCode,
@@ -41,8 +42,16 @@ export class AffiliatePortalController {
   }
 
   @Get('referrals')
-  getReferrals(@CurrentUser() user: AuthenticatedUser) {
-    return this.portalService.getPartnerReferrals(user.id);
+  getReferrals(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.portalService.getPartnerReferrals(
+      user.id,
+      Number(page) || 1,
+      Number(limit) || 20,
+    );
   }
 
   @Post('referrals')

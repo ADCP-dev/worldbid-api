@@ -19,6 +19,11 @@ import UserPasswordDialog from "~/components/users/UserPasswordDialog.vue";
 import UserRoleDialog from "~/components/users/UserRoleDialog.vue";
 import TableActionMenu from "~/components/ui/TableActionMenu.vue";
 
+definePageMeta({
+  layout: 'default',
+  middleware: ['auth', 'admin'],
+});
+
 const { deleteUser } = useUsers();
 const { t } = useI18n();
 

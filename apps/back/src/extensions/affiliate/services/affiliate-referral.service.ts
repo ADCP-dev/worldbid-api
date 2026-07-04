@@ -120,10 +120,6 @@ export class AffiliateReferralService {
       }
     } else {
       // Auto-create an origin of type=affiliate using shared logic
-      const partner = await this.partnerRepository.findOne({
-        where: { id: dto.partnerId },
-      });
-      // partner is already validated above, but we need it for name
       origin = await this.findOrCreateAffiliateOrigin(dto.partnerId, partner?.name ?? `Partner ${dto.partnerId}`);
     }
 

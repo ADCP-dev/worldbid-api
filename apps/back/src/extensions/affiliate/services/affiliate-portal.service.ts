@@ -11,6 +11,7 @@ import { AffiliateReferralEntity } from '../infrastructure/persistence/entities/
 import { AffiliateCommissionEntity } from '../infrastructure/persistence/entities/affiliate-commission.entity';
 import { CrmClientEntity } from '@ext/crm/infrastructure/persistence/entities/crm-client.entity';
 import { CrmOriginEntity } from '@ext/crm/infrastructure/persistence/entities/crm-origin.entity';
+import { CrmStatusEntity } from '@ext/crm/infrastructure/persistence/entities/crm-status.entity';
 import { PortalCreateReferralDto } from '../dto/portal-create-referral.dto';
 
 @Injectable()
@@ -28,6 +29,8 @@ export class AffiliatePortalService {
     private readonly clientRepository: Repository<CrmClientEntity>,
     @InjectRepository(CrmOriginEntity)
     private readonly originRepository: Repository<CrmOriginEntity>,
+    @InjectRepository(CrmStatusEntity)
+    private readonly statusRepository: Repository<CrmStatusEntity>,
   ) {}
 
   async findPartnerByUserId(
@@ -113,52 +116,42 @@ export class AffiliatePortalService {
     // Create or reuse an affiliate origin for this partner
     const origin = await this.findOrCreateAffiliateOrigin(partner.id, partner.name);
 
-    // Resolve default status dynamically (don't hardcode id=1)
-    const defaultStatus = await this.clientRepository.manager
-      .findOne('ext_crm_status' as any, { where: { isDefault: true } } as any)
-      .catch(() => null);
-    const leadStatus = await this.clientRepository.manager
-      .findOne('ext_crm_status' as any, { where: { name: 'lead' } } as any)
-      .catch(() => null);
-    const statusId = (defaultStatus as any)?.id ?? (leadStatus as any)?.id ?? 1;
+    // Resolve default status using proper repository (not manager.findOne with string)
+    const defaultStatus = await this.statusRepository.findOne({ where: { isDefault: true } });
+    const leadStatus = await this.statusRepository.findOne({ where: { name: 'lead' } });
+    const statusId = defaultStatus?.id ?? leadStatus?.id ?? 1;
 
-    // Create a new CRM client (status resolved dynamically, origin=referral)
-    const client = this.clientRepository.create({
-      name: dto.client_name,
-      companyName: dto.company_name ?? null,
-      email: dto.email,
-      phone: dto.phone ?? null,
-      statusId,
-      originId: origin.id,
-      originDetail: `Affiliate referral from ${partner.name}`,
-      metadata: {
-        source: 'affiliate_portal',
-        partner_id: partner.id,
-        notes: dto.notes ?? null,
-      },
-      isActive: true,
-    });
-    const savedClient = await this.clientRepository.save(client);
-    this.logger.log(
-      `Portal: created client id=${savedClient.id} for partner id=${partner.id}`,
-    );
+    // Use transaction to avoid orphan client if referral creation fails
+    return this.clientRepository.manager.transaction(async (manager) => {
+      const client = manager.create(CrmClientEntity, {
+        name: dto.client_name,
+        companyName: dto.company_name ?? null,
+        email: dto.email,
+        phone: dto.phone ?? null,
+        statusId,
+        originId: origin.id,
+        originDetail: `Affiliate referral from ${partner.name}`,
+        metadata: { source: 'affiliate_portal', partner_id: partner.id, notes: dto.notes ?? null },
+        isActive: true,
+      });
+      const savedClient = await manager.save(client);
+      this.logger.log(
+        `Portal: created client id=${savedClient.id} for partner id=${partner.id}`,
+      );
 
-    // Create the affiliate_referral
-    const referral = this.referralRepository.create({
-      partnerId: partner.id,
-      clientId: savedClient.id,
-      originId: origin.id,
-      status: 'pending',
-      metadata: {
-        notes: dto.notes ?? null,
-        ...dto.metadata,
-      },
+      const referral = manager.create(AffiliateReferralEntity, {
+        partnerId: partner.id,
+        clientId: savedClient.id,
+        originId: origin.id,
+        status: 'pending',
+        metadata: { notes: dto.notes ?? null, ...dto.metadata },
+      });
+      const savedReferral = await manager.save(referral);
+      this.logger.log(
+        `Portal: created referral id=${savedReferral.id} for partner id=${partner.id}, client id=${savedClient.id}`,
+      );
+      return savedReferral;
     });
-    const savedReferral = await this.referralRepository.save(referral);
-    this.logger.log(
-      `Portal: created referral id=${savedReferral.id} for partner id=${partner.id}, client id=${savedClient.id}`,
-    );
-    return savedReferral;
   }
 
   /**

@@ -21,5 +21,11 @@ export default defineNuxtPlugin(() => {
   };
 
   addCmsMenu();
-  watch(() => authStore.isAdmin, (isAdmin) => { if (isAdmin) addCmsMenu(); });
+  watch(() => authStore.isAdmin, (isAdmin) => {
+    if (isAdmin) {
+      addCmsMenu();
+    } else {
+      menuItems.value = menuItems.value.filter(item => item.heading !== 'CMS');
+    }
+  });
 });

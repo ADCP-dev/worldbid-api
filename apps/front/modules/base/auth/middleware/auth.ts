@@ -1,6 +1,9 @@
 import { buildLoginRedirectUrl } from '@base/auth/utils/redirect'
 
-export default defineNuxtRouteMiddleware((to) => {
+export default defineNuxtRouteMiddleware(async (to) => {
+  // Skip server-side execution — auth uses localStorage which is client-only
+  if (import.meta.server) return;
+
   const authStore = useAuthStore();
   const localePath = useLocalePath();
 
@@ -13,8 +16,13 @@ export default defineNuxtRouteMiddleware((to) => {
 
   // If token is expired, try to refresh it
   if (authStore.isTokenExpired) {
-    // Let the fetch wrapper handle the token refresh automatically
-    // If refresh fails, user will be redirected to login
-    return;
+    try {
+      const result = await authStore.refreshAccessToken();
+      if (!result.success) {
+        return navigateTo(buildLoginRedirectUrl(localePath("/login"), to.fullPath));
+      }
+    } catch {
+      return navigateTo(buildLoginRedirectUrl(localePath("/login"), to.fullPath));
+    }
   }
 });

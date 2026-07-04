@@ -4,6 +4,8 @@ import {
   Post,
   Body,
   UseGuards,
+  HttpStatus,
+  HttpCode,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
@@ -38,6 +40,7 @@ export class QueueController {
   }
 
   @Post('settings')
+  @HttpCode(HttpStatus.OK)
   updateSettings(@Body() dto: UpdateQueueSettingsDto) {
     return this.queueService.updateSettings(dto as Record<string, unknown>);
   }
@@ -57,6 +60,7 @@ export class WeeklyReportController {
   }
 
   @Post('send')
+  @HttpCode(HttpStatus.OK)
   sendReport() {
     return this.reportService.sendReport();
   }

@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CrmContactEntity } from '../infrastructure/persistence/entities/crm-contact.entity';
 import { CreateContactDto } from '../dto/create-contact.dto';
+import { UpdateContactDto } from '../dto/update-contact.dto';
 
 @Injectable()
 export class CrmContactService {
@@ -31,7 +32,7 @@ export class CrmContactService {
     return saved;
   }
 
-  async update(id: number, dto: Partial<CreateContactDto>): Promise<CrmContactEntity> {
+  async update(id: number, dto: UpdateContactDto): Promise<CrmContactEntity> {
     const contact = await this.repository.findOne({ where: { id } });
     if (!contact) {
       throw new NotFoundException(`Contact with ID ${id} not found`);

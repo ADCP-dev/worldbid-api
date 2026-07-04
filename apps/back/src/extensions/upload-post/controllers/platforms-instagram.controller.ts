@@ -6,6 +6,8 @@ import {
   Body,
   Query,
   UseGuards,
+  HttpStatus,
+  HttpCode,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
@@ -41,6 +43,7 @@ export class PlatformsController {
   getGoogleBusinessLocations() { return this.platformsService.getGoogleBusinessLocations(); }
 
   @Post('google-business/locations/select')
+  @HttpCode(HttpStatus.OK)
   selectGoogleBusinessLocation(@Body() dto: GoogleBusinessSelectDto) {
     return this.platformsService.selectGoogleBusinessLocation(dto.locationId);
   }
@@ -66,11 +69,13 @@ export class InstagramController {
   getComments(@Query('postUrl') postUrl: string) { return this.instagramService.getComments(postUrl); }
 
   @Post('comments/reply')
+  @HttpCode(HttpStatus.OK)
   replyToComment(@Body() dto: InstagramCommentReplyDto) {
     return this.instagramService.replyToComment(dto.commentId, dto.message);
   }
 
   @Post('dms/send')
+  @HttpCode(HttpStatus.OK)
   sendDm(@Body() dto: InstagramDmDto) {
     return this.instagramService.sendDm(dto.username, dto.message);
   }

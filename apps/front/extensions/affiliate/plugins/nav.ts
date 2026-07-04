@@ -37,9 +37,17 @@ export default defineNuxtPlugin(() => {
 
   watch(
     () => [authStore.isAdmin, authStore.user?.role?.name],
-    () => {
-      addAdminMenu();
-      addPortalMenu();
+    ([isAdmin, roleName]) => {
+      if (isAdmin) {
+        addAdminMenu();
+      } else {
+        menuItems.value = menuItems.value.filter(item => item.heading !== 'Afiliación');
+      }
+      if (roleName === 'affiliate') {
+        addPortalMenu();
+      } else {
+        menuItems.value = menuItems.value.filter(item => item.heading !== 'Portal');
+      }
     },
   );
 });

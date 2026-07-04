@@ -45,6 +45,7 @@ export const useAuthStore = defineStore('auth', {
     },
     isAdmin: (state) => state.user?.role?.name === 'admin',
     isCustomer: (state) => state.user?.role?.name === 'customer',
+    isAffiliate: (state) => state.user?.role?.name === 'affiliate',
     fullName: (state) => {
       if (!state.user) return '';
       return `${state.user.firstName} ${state.user.lastName}`.trim();
@@ -315,5 +316,7 @@ export const useAuthStore = defineStore('auth', {
       }
     },
   },
-  persist: true,
+  persist: {
+    paths: ['token', 'refreshToken', 'tokenExpires', 'user'],
+  },
 });

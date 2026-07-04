@@ -24,6 +24,11 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return; // Allow access
   }
 
+  // Redirect affiliates to their portal instead of showing 403
+  if (authStore.user?.role?.name === 'affiliate') {
+    return navigateTo(localePath('/app/portal'));
+  }
+
   // Check if user has admin role
   if (!authStore.isAdmin) {
     throw createError({

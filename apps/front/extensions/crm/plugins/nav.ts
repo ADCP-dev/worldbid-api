@@ -17,6 +17,10 @@ export default defineNuxtPlugin(() => {
 
   addCrmMenu();
   watch(() => authStore.isAdmin, (isAdmin) => {
-    if (isAdmin) addCrmMenu();
+    if (isAdmin) {
+      addCrmMenu();
+    } else {
+      menuItems.value = menuItems.value.filter(item => item.heading !== 'CRM');
+    }
   });
 });

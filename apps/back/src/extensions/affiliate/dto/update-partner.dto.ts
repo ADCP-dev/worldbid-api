@@ -7,7 +7,9 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
+  Min,
 } from 'class-validator';
 
 /**
@@ -49,6 +51,8 @@ export class UpdatePartnerDto {
   @ApiPropertyOptional({ example: 0.05, type: Number })
   @IsOptional()
   @IsNumber()
+  @Min(0)
+  @Max(1)
   commissionRate?: number;
 
   @ApiPropertyOptional({ example: true, type: Boolean })

@@ -2,6 +2,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -56,8 +57,8 @@ export class CrmOriginService {
       where: { originId: id },
     });
     if (inUse > 0) {
-      this.logger.warn(
-        `Origin id=${id} is in use by ${inUse} client(s), deleting anyway`,
+      throw new BadRequestException(
+        `Cannot delete origin ${id}: ${inUse} clients are using it`,
       );
     }
 

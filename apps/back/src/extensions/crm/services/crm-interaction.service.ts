@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CrmInteractionEntity } from '../infrastructure/persistence/entities/crm-interaction.entity';
 import { CreateInteractionDto } from '../dto/create-interaction.dto';
+import { UpdateInteractionDto } from '../dto/update-interaction.dto';
 
 @Injectable()
 export class CrmInteractionService {
@@ -43,7 +44,7 @@ export class CrmInteractionService {
 
   async update(
     id: number,
-    dto: Partial<CreateInteractionDto>,
+    dto: UpdateInteractionDto,
   ): Promise<CrmInteractionEntity> {
     const interaction = await this.repository.findOne({ where: { id } });
     if (!interaction) {

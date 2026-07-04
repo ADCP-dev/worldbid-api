@@ -9,6 +9,7 @@ import { AffiliateCommissionEntity } from '@ext/affiliate/infrastructure/persist
 import { CrmClientEntity } from '@ext/crm/infrastructure/persistence/entities/crm-client.entity';
 import { CrmProjectEntity } from '@ext/crm/infrastructure/persistence/entities/crm-project.entity';
 import { CrmOriginEntity } from '@ext/crm/infrastructure/persistence/entities/crm-origin.entity';
+import { CrmStatusEntity } from '@ext/crm/infrastructure/persistence/entities/crm-status.entity';
 
 // IAM / Users entities (for invite() — creating portal users)
 import { UserEntity } from '@users/infrastructure/entities/user.entity';
@@ -38,6 +39,7 @@ import { AffiliatePortalController } from '@ext/affiliate/controllers/affiliate-
       CrmClientEntity,
       CrmProjectEntity,
       CrmOriginEntity,
+      CrmStatusEntity,
       // IAM / Users entities (for invite)
       UserEntity,
       RoleEntity,
