@@ -8,10 +8,7 @@ export default defineNuxtPlugin(() => {
     dashboards.value.push({
       id: 'crm',
       title: 'CRM',
-      description: 'Clientes, proyectos, interacciones y pipeline',
-      icon: 'Users',
-      link: '/app/crm',
-      color: 'primary',
+      componentName: 'CrmDashboard',
     });
   };
 

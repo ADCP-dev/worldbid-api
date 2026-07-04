@@ -8,10 +8,7 @@ export default defineNuxtPlugin(() => {
     dashboards.value.push({
       id: 'affiliate',
       title: 'Afiliación',
-      description: 'Partners, referencias y comisiones',
-      icon: 'TrendingUp',
-      link: '/app/affiliate',
-      color: 'secondary',
+      componentName: 'AffiliateDashboard',
     });
   };
 
