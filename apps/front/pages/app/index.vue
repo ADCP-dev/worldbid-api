@@ -4,73 +4,70 @@ definePageMeta({
   middleware: ['auth', 'admin'],
 });
 
-const extensionWidgets = useState<any[]>('app:dashboardWidgets', () => []);
-const widgetData = ref<Record<string, any>>({});
-const loading = ref(true);
-
-async function loadWidgets() {
-  loading.value = true;
-  for (const widget of extensionWidgets.value) {
-    try {
-      if (widget.loadData) {
-        widgetData.value[widget.id] = await widget.loadData();
-      }
-    } catch (err: any) {
-      console.error(`Failed to load widget ${widget.id}:`, err?.message);
-    }
-  }
-  loading.value = false;
+interface DashboardLink {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  link: string;
+  color: string;
 }
 
-onMounted(loadWidgets);
+const extensionDashboards = useState<DashboardLink[]>('app:dashboards', () => []);
+const localePath = useLocalePath();
+
+const icons: Record<string, any> = {
+  Users: null,
+  TrendingUp: null,
+  FileText: null,
+  Calendar: null,
+  CreditCard: null,
+};
+
+// Try to import icons — if available
+try {
+  const { Users, TrendingUp, FileText, Calendar, CreditCard } = await import('lucide-vue-next');
+  icons.Users = Users;
+  icons.TrendingUp = TrendingUp;
+  icons.FileText = FileText;
+  icons.Calendar = Calendar;
+  icons.CreditCard = CreditCard;
+} catch {
+  // Icons not available — use text fallback
+}
 </script>
 
 <template>
-  <div class="w-full flex flex-col gap-4">
+  <div class="w-full flex flex-col gap-6">
     <div class="flex flex-wrap items-center justify-between gap-2">
       <h2 class="text-2xl font-bold tracking-tight">Dashboard</h2>
     </div>
-    
-    <div v-if="loading" class="flex justify-center py-12">
-      <span class="loading loading-spinner loading-lg"></span>
+
+    <div v-if="extensionDashboards.length === 0" class="text-center py-12">
+      <p class="text-base-content/60">No hay dashboards de extensiones instalados.</p>
     </div>
 
-    <div v-else-if="extensionWidgets.length === 0" class="text-center py-12">
-      <p class="text-base-content/60">No hay widgets de extensiones instalados.</p>
-    </div>
-
-    <div v-else class="flex flex-col gap-6">
-      <div v-for="widget in extensionWidgets" :key="widget.id">
-        <h3 class="text-lg font-semibold mb-3">{{ widget.title }}</h3>
-        
-        <!-- Stat cards widget -->
-        <div v-if="widget.type === 'stat-cards'" class="grid gap-4 lg:grid-cols-4 md:grid-cols-2">
-          <div v-for="stat in (widgetData[widget.id] || [])" :key="stat.label" class="card bg-base-100 shadow-sm border">
-            <div class="card-body items-center text-center p-4">
-              <span class="text-2xl font-bold text-primary">{{ stat.value }}</span>
-              <span class="text-sm opacity-70">{{ stat.label }}</span>
+    <div v-else class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <NuxtLink
+        v-for="dash in extensionDashboards"
+        :key="dash.id"
+        :to="localePath(dash.link)"
+        class="card bg-base-100 shadow-sm border hover:shadow-md hover:border-primary/30 transition-all"
+      >
+        <div class="card-body">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center" :class="`bg-${dash.color}/10`">
+              <component :is="icons[dash.icon]" v-if="icons[dash.icon]" :class="`w-5 h-5 text-${dash.color}`" />
+              <span v-else class="text-xl">📊</span>
             </div>
+            <h3 class="card-title text-lg">{{ dash.title }}</h3>
+          </div>
+          <p class="text-sm text-base-content/60 mt-1">{{ dash.description }}</p>
+          <div class="card-actions mt-3">
+            <span class="text-sm text-primary font-medium">Ver dashboard →</span>
           </div>
         </div>
-
-        <!-- Table widget -->
-        <div v-else-if="widget.type === 'table'" class="card bg-base-100 shadow-sm border">
-          <div class="card-body p-4">
-            <table class="table table-sm">
-              <thead>
-                <tr>
-                  <th v-for="col in widget.columns" :key="col">{{ col.label }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(row, i) in (widgetData[widget.id] || [])" :key="i">
-                  <td v-for="col in widget.columns" :key="col.key">{{ row[col.key] }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
+      </NuxtLink>
     </div>
   </div>
 </template>

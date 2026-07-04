@@ -1,30 +1,23 @@
 export default defineNuxtPlugin(() => {
   const authStore = useAuthStore();
-  const widgets = useState<any[]>('app:dashboardWidgets', () => []);
+  const dashboards = useState<any[]>('app:dashboards', () => []);
 
-  const addWidgets = () => {
+  const addCrmDashboard = () => {
     if (!authStore.isAdmin) return;
-    if (widgets.value.find(w => w.id === 'crm-summary')) return;
-
-    widgets.value.push({
-      id: 'crm-summary',
+    if (dashboards.value.find(d => d.id === 'crm')) return;
+    dashboards.value.push({
+      id: 'crm',
       title: 'CRM',
-      type: 'stat-cards',
-      loadData: async () => {
-        const crm = useCrm();
-        const dash = await crm.getDashboard();
-        return [
-          { label: 'Total clientes', value: dash.totalClients ?? 0 },
-          { label: 'Clientes activos', value: dash.activeClients ?? 0 },
-          { label: 'Proyectos activos', value: dash.activeProjects ?? 0 },
-        ];
-      },
+      description: 'Clientes, proyectos, interacciones y pipeline',
+      icon: 'Users',
+      link: '/app/crm',
+      color: 'primary',
     });
   };
 
-  addWidgets();
+  addCrmDashboard();
   watch(() => authStore.isAdmin, (isAdmin) => {
-    if (isAdmin) addWidgets();
-    else widgets.value = widgets.value.filter(w => w.id !== 'crm-summary');
+    if (isAdmin) addCrmDashboard();
+    else dashboards.value = dashboards.value.filter(d => d.id !== 'crm');
   });
 });
