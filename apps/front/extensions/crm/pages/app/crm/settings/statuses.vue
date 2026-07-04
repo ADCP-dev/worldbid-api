@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, h } from 'vue';
 import { toast } from 'vue-sonner';
+import DataTable from '@base/ui-app/components/data-table/DataTable.vue';
+import FormInput from '@base/ui-app/components/form/FormInput.vue';
+import FormSwitch from '@base/ui-app/components/form/FormSwitch.vue';
 
 definePageMeta({
   layout: 'default',
@@ -20,10 +23,60 @@ const form = ref({
   label: '',
   name: '',
   color: '#3b82f6',
-  sortOrder: 0,
+  sortOrder: 0 as string | number,
   isActive: true,
   isDefault: false,
 });
+
+const columns = [
+  { accessorKey: 'label', headerName: 'Label', header: 'Label', filterType: 'string' as const },
+  { accessorKey: 'name', headerName: 'Name', header: 'Name', filterType: 'string' as const },
+  {
+    accessorKey: 'color',
+    headerName: 'Color',
+    header: 'Color',
+    enableSorting: false,
+    cell: ({ row }: any) => h('span', {
+      class: 'badge badge-sm',
+      style: { backgroundColor: row.original.color, color: '#fff' },
+    }, row.original.color),
+  },
+  { accessorKey: 'sortOrder', headerName: 'Orden', header: 'Orden', filterType: 'number' as const },
+  {
+    accessorKey: 'isActive',
+    headerName: 'Activo',
+    header: 'Activo',
+    filterType: 'boolean' as const,
+    cell: ({ row }: any) => row.original.isActive
+      ? h('span', { class: 'badge badge-xs badge-success' }, 'Sí')
+      : h('span', { class: 'badge badge-xs badge-ghost' }, 'No'),
+  },
+  {
+    accessorKey: 'isDefault',
+    headerName: 'Default',
+    header: 'Default',
+    filterType: 'boolean' as const,
+    cell: ({ row }: any) => row.original.isDefault
+      ? h('span', { class: 'badge badge-xs badge-primary' }, 'Default')
+      : h('span', { class: 'text-base-content/40' }, '—'),
+  },
+  {
+    id: 'actions',
+    headerName: 'Acciones',
+    header: 'Acciones',
+    enableSorting: false,
+    cell: ({ row }: any) => h('div', { class: 'flex items-center gap-1' }, [
+      h('button', {
+        class: 'btn btn-ghost btn-xs',
+        onClick: (e: Event) => { e.stopPropagation(); openEdit(row.original); },
+      }, 'Editar'),
+      h('button', {
+        class: 'btn btn-ghost btn-xs text-error',
+        onClick: (e: Event) => { e.stopPropagation(); remove(row.original.id); },
+      }, 'Eliminar'),
+    ]),
+  },
+];
 
 async function load() {
   loading.value = true;
@@ -115,54 +168,12 @@ onMounted(load);
     </div>
 
     <div class="card bg-base-100 shadow-sm border border-base-300">
-      <div class="card-body p-0">
-        <div class="overflow-x-auto">
-          <table class="table table-sm">
-            <thead>
-              <tr>
-                <th>Label</th>
-                <th>Name</th>
-                <th>Color</th>
-                <th>Orden</th>
-                <th>Activo</th>
-                <th>Default</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-if="loading">
-                <td colspan="7" class="text-center py-8">
-                  <span class="loading loading-spinner loading-md text-primary" />
-                </td>
-              </tr>
-              <tr v-else-if="statuses.length === 0">
-                <td colspan="7" class="text-center text-base-content/40 py-8">Sin estados</td>
-              </tr>
-              <tr v-for="status in statuses" :key="status.id">
-                <td class="font-medium">{{ status.label }}</td>
-                <td class="font-mono text-xs">{{ status.name }}</td>
-                <td>
-                  <span class="badge badge-sm" :style="{ backgroundColor: status.color, color: '#fff' }">
-                    {{ status.color }}
-                  </span>
-                </td>
-                <td>{{ status.sortOrder }}</td>
-                <td>
-                  <span v-if="status.isActive" class="badge badge-xs badge-success">Sí</span>
-                  <span v-else class="badge badge-xs badge-ghost">No</span>
-                </td>
-                <td>
-                  <span v-if="status.isDefault" class="badge badge-xs badge-primary">Default</span>
-                  <span v-else class="text-base-content/40">—</span>
-                </td>
-                <td class="text-right">
-                  <button class="btn btn-ghost btn-xs" @click="openEdit(status)">Editar</button>
-                  <button class="btn btn-ghost btn-xs text-error" @click="remove(status.id)">Eliminar</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      <div class="card-body p-6">
+        <DataTable
+          :columns="columns"
+          :data="statuses"
+          table-name="crm-statuses"
+        />
       </div>
     </div>
 
@@ -173,30 +184,17 @@ onMounted(load);
           {{ editingId ? 'Editar estado' : 'Nuevo estado' }}
         </h3>
         <div class="space-y-3">
-          <div class="form-control">
-            <label class="label"><span class="label-text">Label *</span></label>
-            <input v-model="form.label" class="input input-bordered w-full" placeholder="En discovery">
-          </div>
-          <div class="form-control">
-            <label class="label"><span class="label-text">Name (slug) *</span></label>
-            <input v-model="form.name" class="input input-bordered w-full font-mono" placeholder="discovery">
-          </div>
-          <div class="form-control">
-            <label class="label"><span class="label-text">Color</span></label>
+          <FormInput v-model="form.label" label="Label" required placeholder="En discovery" />
+          <FormInput v-model="form.name" label="Name (slug)" required placeholder="discovery" />
+          <div class="form-control w-full">
+            <label class="label">
+              <span class="label-text font-semibold">Color</span>
+            </label>
             <input v-model="form.color" type="color" class="input input-bordered w-full h-12">
           </div>
-          <div class="form-control">
-            <label class="label"><span class="label-text">Orden</span></label>
-            <input v-model="form.sortOrder" type="number" class="input input-bordered w-full">
-          </div>
-          <label class="label cursor-pointer justify-start gap-3">
-            <input v-model="form.isActive" type="checkbox" class="checkbox checkbox-sm">
-            <span class="label-text">Activo</span>
-          </label>
-          <label class="label cursor-pointer justify-start gap-3">
-            <input v-model="form.isDefault" type="checkbox" class="checkbox checkbox-sm">
-            <span class="label-text">Estado por defecto</span>
-          </label>
+          <FormInput v-model="form.sortOrder" label="Orden" type="number" />
+          <FormSwitch v-model="form.isActive" label="Activo" />
+          <FormSwitch v-model="form.isDefault" label="Estado por defecto" />
         </div>
         <div class="modal-action">
           <button class="btn" @click="isModalOpen = false">Cancelar</button>

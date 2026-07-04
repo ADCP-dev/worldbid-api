@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted, watch, h } from 'vue';
 import { toast } from 'vue-sonner';
+import DataTable from '@base/ui-app/components/data-table/DataTable.vue';
+import FormSelect from '@base/ui-app/components/form/FormSelect.vue';
+import { useTableStateStore } from '@base/ui-app/stores/useTableState';
 
 definePageMeta({
   layout: 'default',
@@ -8,12 +11,25 @@ definePageMeta({
 });
 
 const affiliate = useAffiliate();
+const tableStateStore = useTableStateStore();
 
 const loading = ref(false);
 const referrals = ref<any[]>([]);
 const partners = ref<any[]>([]);
+const total = ref(0);
 const partnerId = ref<string>('');
 const status = ref<string>('');
+
+const tableName = 'affiliate-referrals';
+
+const tableState = computed(() => {
+  const raw = (tableStateStore as Record<string, any>)[tableName] || {};
+  return {
+    pageIndex: typeof raw.pageIndex === 'number' ? raw.pageIndex : 0,
+    pageSize: typeof raw.pageSize === 'number' ? raw.pageSize : 10,
+    globalFilter: typeof raw.globalFilter === 'string' ? raw.globalFilter : '',
+  };
+});
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'Pendiente',
@@ -31,9 +47,54 @@ const STATUS_BADGE: Record<string, string> = {
   lost: 'badge-error',
 };
 
+const statusOptions = computed(() => [
+  { label: 'Todos', value: '' },
+  ...Object.entries(STATUS_LABELS).map(([value, label]) => ({ label, value })),
+]);
+
+const partnerOptions = computed(() => [
+  { label: 'Todos', value: '' },
+  ...partners.value.map((p: any) => ({ label: p.name, value: String(p.id) })),
+]);
+
 function formatDate(date: string) {
   return new Date(date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
+
+const columns = computed(() => [
+  {
+    accessorKey: 'partner',
+    headerName: 'Partner',
+    header: 'Partner',
+    filterType: 'string' as const,
+    cell: ({ row }: any) => row.original.partner?.name || '—',
+  },
+  {
+    accessorKey: 'clientName',
+    headerName: 'Cliente',
+    header: 'Cliente',
+    filterType: 'string' as const,
+    cell: ({ row }: any) => h('span', { class: 'font-medium' }, row.original.clientName || '—'),
+  },
+  {
+    accessorKey: 'status',
+    headerName: 'Estado',
+    header: 'Estado',
+    filterType: 'string' as const,
+    cell: ({ row }: any) => h(
+      'span',
+      { class: ['badge', 'badge-sm', STATUS_BADGE[row.original.status] || 'badge-ghost'] },
+      STATUS_LABELS[row.original.status] ?? row.original.status,
+    ),
+  },
+  {
+    accessorKey: 'referredAt',
+    headerName: 'Fecha',
+    header: 'Fecha',
+    filterType: 'string' as const,
+    cell: ({ row }: any) => formatDate(row.original.referredDate || row.original.createdAt),
+  },
+]);
 
 async function loadPartners() {
   try {
@@ -52,6 +113,7 @@ async function loadReferrals() {
       status.value || undefined,
     );
     referrals.value = res.data ?? res ?? [];
+    total.value = res.total ?? referrals.value.length;
   } catch (err: any) {
     toast.error('Error cargando referencias', { description: err.message });
   } finally {
@@ -67,6 +129,10 @@ onMounted(async () => {
   await loadPartners();
   await loadReferrals();
 });
+
+watch(tableState, () => {
+  loadReferrals();
+}, { deep: true });
 </script>
 
 <template>
@@ -75,57 +141,34 @@ onMounted(async () => {
 
     <!-- Filters -->
     <div class="flex flex-wrap gap-3 items-end">
-      <div class="form-control w-56">
-        <label class="label"><span class="label-text">Partner</span></label>
-        <select v-model="partnerId" class="select select-bordered w-full" @change="onFilterChange">
-          <option value="">Todos</option>
-          <option v-for="p in partners" :key="p.id" :value="p.id">{{ p.name }}</option>
-        </select>
+      <div class="w-56">
+        <FormSelect
+          v-model="partnerId"
+          label="Partner"
+          :options="partnerOptions"
+          @update:model-value="onFilterChange"
+        />
       </div>
-      <div class="form-control w-48">
-        <label class="label"><span class="label-text">Estado</span></label>
-        <select v-model="status" class="select select-bordered w-full" @change="onFilterChange">
-          <option value="">Todos</option>
-          <option v-for="(label, key) in STATUS_LABELS" :key="key" :value="key">{{ label }}</option>
-        </select>
+      <div class="w-48">
+        <FormSelect
+          v-model="status"
+          label="Estado"
+          :options="statusOptions"
+          @update:model-value="onFilterChange"
+        />
       </div>
     </div>
 
     <!-- Table -->
     <div class="card bg-base-100 shadow-sm border border-base-300">
-      <div class="card-body p-0">
-        <div class="overflow-x-auto">
-          <table class="table table-sm">
-            <thead>
-              <tr>
-                <th>Partner</th>
-                <th>Cliente</th>
-                <th>Estado</th>
-                <th>Fecha</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-if="loading">
-                <td colspan="4" class="text-center py-8">
-                  <span class="loading loading-spinner loading-md text-primary" />
-                </td>
-              </tr>
-              <tr v-else-if="referrals.length === 0">
-                <td colspan="4" class="text-center text-base-content/40 py-8">Sin referencias</td>
-              </tr>
-              <tr v-else v-for="r in referrals" :key="r.id">
-                <td>{{ r.partner?.name || '—' }}</td>
-                <td class="font-medium">{{ r.clientName || '—' }}</td>
-                <td>
-                  <span class="badge badge-sm" :class="STATUS_BADGE[r.status]">
-                    {{ STATUS_LABELS[r.status] ?? r.status }}
-                  </span>
-                </td>
-                <td>{{ formatDate(r.referredDate || r.createdAt) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      <div class="card-body p-6">
+        <DataTable
+          :columns="columns"
+          :data="referrals"
+          :total="total"
+          manual
+          :table-name="tableName"
+        />
       </div>
     </div>
   </div>

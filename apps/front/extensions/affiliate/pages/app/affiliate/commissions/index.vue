@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, computed, onMounted, watch, h } from 'vue';
 import { toast } from 'vue-sonner';
+import DataTable from '@base/ui-app/components/data-table/DataTable.vue';
+import FormSelect from '@base/ui-app/components/form/FormSelect.vue';
+import { useTableStateStore } from '@base/ui-app/stores/useTableState';
 
 definePageMeta({
   layout: 'default',
@@ -8,6 +11,7 @@ definePageMeta({
 });
 
 const affiliate = useAffiliate();
+const tableStateStore = useTableStateStore();
 
 const loading = ref(false);
 const commissions = ref<any[]>([]);
@@ -15,6 +19,18 @@ const partners = ref<any[]>([]);
 const summary = ref<any>(null);
 const partnerId = ref<string>('');
 const status = ref<string>('');
+const total = ref(0);
+
+const tableName = 'affiliate-commissions';
+
+const tableState = computed(() => {
+  const raw = (tableStateStore as Record<string, any>)[tableName] || {};
+  return {
+    pageIndex: typeof raw.pageIndex === 'number' ? raw.pageIndex : 0,
+    pageSize: typeof raw.pageSize === 'number' ? raw.pageSize : 10,
+    globalFilter: typeof raw.globalFilter === 'string' ? raw.globalFilter : '',
+  };
+});
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'Pendiente',
@@ -30,6 +46,16 @@ const STATUS_BADGE: Record<string, string> = {
   rejected: 'badge-error',
 };
 
+const statusOptions = computed(() => [
+  { label: 'Todos', value: '' },
+  ...Object.entries(STATUS_LABELS).map(([value, label]) => ({ label, value })),
+]);
+
+const partnerOptions = computed(() => [
+  { label: 'Todos', value: '' },
+  ...partners.value.map((p: any) => ({ label: p.name, value: String(p.id) })),
+]);
+
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(amount ?? 0);
 }
@@ -37,6 +63,48 @@ function formatCurrency(amount: number) {
 function formatDate(date: string) {
   return new Date(date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
+
+const columns = computed(() => [
+  {
+    accessorKey: 'partner',
+    headerName: 'Partner',
+    header: 'Partner',
+    filterType: 'string' as const,
+    cell: ({ row }: any) => row.original.partner?.name || '—',
+  },
+  {
+    accessorKey: 'project',
+    headerName: 'Proyecto',
+    header: 'Proyecto',
+    filterType: 'string' as const,
+    cell: ({ row }: any) => row.original.project?.name || '—',
+  },
+  {
+    accessorKey: 'commissionAmount',
+    headerName: 'Comisión',
+    header: 'Comisión',
+    filterType: 'string' as const,
+    cell: ({ row }: any) => h('span', { class: 'font-semibold' }, formatCurrency(row.original.commissionAmount)),
+  },
+  {
+    accessorKey: 'status',
+    headerName: 'Estado',
+    header: 'Estado',
+    filterType: 'string' as const,
+    cell: ({ row }: any) => h(
+      'span',
+      { class: ['badge', 'badge-sm', STATUS_BADGE[row.original.status] || 'badge-ghost'] },
+      STATUS_LABELS[row.original.status] ?? row.original.status,
+    ),
+  },
+  {
+    accessorKey: 'paidAt',
+    headerName: 'Pagada',
+    header: 'Pagada',
+    filterType: 'string' as const,
+    cell: ({ row }: any) => row.original.paidDate ? formatDate(row.original.paidDate) : '—',
+  },
+]);
 
 async function loadPartners() {
   try {
@@ -55,6 +123,7 @@ async function loadCommissions() {
       status.value || undefined,
     );
     commissions.value = res.data ?? res ?? [];
+    total.value = res.total ?? commissions.value.length;
   } catch (err: any) {
     toast.error('Error cargando comisiones', { description: err.message });
   } finally {
@@ -79,6 +148,10 @@ onMounted(async () => {
   await Promise.all([loadPartners(), loadSummary()]);
   await loadCommissions();
 });
+
+watch(tableState, () => {
+  loadCommissions();
+}, { deep: true });
 </script>
 
 <template>
@@ -103,63 +176,34 @@ onMounted(async () => {
 
     <!-- Filters -->
     <div class="flex flex-wrap gap-3 items-end">
-      <div class="form-control w-56">
-        <label class="label"><span class="label-text">Partner</span></label>
-        <select v-model="partnerId" class="select select-bordered w-full" @change="onFilterChange">
-          <option value="">Todos</option>
-          <option v-for="p in partners" :key="p.id" :value="p.id">{{ p.name }}</option>
-        </select>
+      <div class="w-56">
+        <FormSelect
+          v-model="partnerId"
+          label="Partner"
+          :options="partnerOptions"
+          @update:model-value="onFilterChange"
+        />
       </div>
-      <div class="form-control w-48">
-        <label class="label"><span class="label-text">Estado</span></label>
-        <select v-model="status" class="select select-bordered w-full" @change="onFilterChange">
-          <option value="">Todos</option>
-          <option v-for="(label, key) in STATUS_LABELS" :key="key" :value="key">{{ label }}</option>
-        </select>
+      <div class="w-48">
+        <FormSelect
+          v-model="status"
+          label="Estado"
+          :options="statusOptions"
+          @update:model-value="onFilterChange"
+        />
       </div>
     </div>
 
     <!-- Table -->
     <div class="card bg-base-100 shadow-sm border border-base-300">
-      <div class="card-body p-0">
-        <div class="overflow-x-auto">
-          <table class="table table-sm">
-            <thead>
-              <tr>
-                <th>Partner</th>
-                <th>Proyecto</th>
-                <th class="text-right">Base</th>
-                <th class="text-right">Rate</th>
-                <th class="text-right">Comisión</th>
-                <th>Estado</th>
-                <th>Pagada</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-if="loading">
-                <td colspan="7" class="text-center py-8">
-                  <span class="loading loading-spinner loading-md text-primary" />
-                </td>
-              </tr>
-              <tr v-else-if="commissions.length === 0">
-                <td colspan="7" class="text-center text-base-content/40 py-8">Sin comisiones</td>
-              </tr>
-              <tr v-else v-for="c in commissions" :key="c.id">
-                <td>{{ c.partner?.name || '—' }}</td>
-                <td>{{ c.project?.name || '—' }}</td>
-                <td class="text-right">{{ formatCurrency(c.baseAmount) }}</td>
-                <td class="text-right">{{ c.rate != null ? `${c.rate}%` : '—' }}</td>
-                <td class="text-right font-semibold">{{ formatCurrency(c.commissionAmount) }}</td>
-                <td>
-                  <span class="badge badge-sm" :class="STATUS_BADGE[c.status]">
-                    {{ STATUS_LABELS[c.status] ?? c.status }}
-                  </span>
-                </td>
-                <td>{{ c.paidDate ? formatDate(c.paidDate) : '—' }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      <div class="card-body p-6">
+        <DataTable
+          :columns="columns"
+          :data="commissions"
+          :total="total"
+          manual
+          :table-name="tableName"
+        />
       </div>
     </div>
   </div>

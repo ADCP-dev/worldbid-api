@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { toast } from 'vue-sonner';
+import FormInput from '@base/ui-app/components/form/FormInput.vue';
 
 definePageMeta({
   layout: 'default',
@@ -12,21 +13,17 @@ const affiliate = useAffiliate();
 const loading = ref(false);
 const saving = ref(false);
 
-const form = ref({
-  name: '',
-  phone: '',
-  iban: '',
-});
+const name = ref('');
+const phone = ref('');
+const iban = ref('');
 
 async function loadProfile() {
   loading.value = true;
   try {
     const data: any = await affiliate.getMyProfile();
-    form.value = {
-      name: data.name || '',
-      phone: data.phone || '',
-      iban: data.iban || '',
-    };
+    name.value = data.name || '';
+    phone.value = data.phone || '';
+    iban.value = data.iban || '';
   } catch (err: any) {
     toast.error('Error cargando perfil', { description: err.message });
   } finally {
@@ -35,13 +32,17 @@ async function loadProfile() {
 }
 
 async function submit() {
-  if (!form.value.name.trim()) {
+  if (!name.value.trim()) {
     toast.error('El nombre es obligatorio');
     return;
   }
   saving.value = true;
   try {
-    await affiliate.updateMyProfile({ ...form.value });
+    await affiliate.updateMyProfile({
+      name: name.value,
+      phone: phone.value,
+      iban: iban.value,
+    });
     toast.success('Perfil actualizado');
   } catch (err: any) {
     toast.error('Error guardando perfil', { description: err.message });
@@ -64,17 +65,27 @@ onMounted(loadProfile);
     <div v-else class="card bg-base-100 shadow-sm border border-base-300 max-w-2xl">
       <div class="card-body">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="form-control md:col-span-2">
-            <label class="label"><span class="label-text">Nombre *</span></label>
-            <input v-model="form.name" class="input input-bordered w-full">
+          <div class="md:col-span-2">
+            <FormInput
+              v-model="name"
+              label="Nombre"
+              placeholder="Nombre"
+              required
+            />
           </div>
-          <div class="form-control md:col-span-2">
-            <label class="label"><span class="label-text">Teléfono</span></label>
-            <input v-model="form.phone" class="input input-bordered w-full">
+          <div class="md:col-span-2">
+            <FormInput
+              v-model="phone"
+              label="Teléfono"
+              placeholder="Teléfono"
+            />
           </div>
-          <div class="form-control md:col-span-2">
-            <label class="label"><span class="label-text">IBAN</span></label>
-            <input v-model="form.iban" class="input input-bordered w-full font-mono">
+          <div class="md:col-span-2">
+            <FormInput
+              v-model="iban"
+              label="IBAN"
+              placeholder="ES00 0000 0000 0000 0000 0000"
+            />
           </div>
         </div>
         <div class="card-actions justify-end mt-4">

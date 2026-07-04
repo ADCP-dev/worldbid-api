@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { toast } from 'vue-sonner';
+import FormInput from '@base/ui-app/components/form/FormInput.vue';
 
 definePageMeta({
   layout: 'default',
@@ -11,25 +12,28 @@ const affiliate = useAffiliate();
 
 const saving = ref(false);
 
-const form = ref({
-  name: '',
-  companyName: '',
-  email: '',
-  phone: '',
-  iban: '',
-  commissionRate: '' as string | number,
-});
+const name = ref('');
+const companyName = ref('');
+const email = ref('');
+const phone = ref('');
+const iban = ref('');
+const commissionRate = ref<string | number>('');
 
 async function submit() {
-  if (!form.value.name.trim()) {
+  if (!name.value.trim()) {
     toast.error('El nombre es obligatorio');
     return;
   }
   saving.value = true;
   try {
-    const payload: Record<string, any> = { ...form.value };
-    if (payload.commissionRate === '') payload.commissionRate = null;
-    else payload.commissionRate = Number(payload.commissionRate);
+    const payload: Record<string, any> = {
+      name: name.value,
+      companyName: companyName.value,
+      email: email.value,
+      phone: phone.value,
+      iban: iban.value,
+      commissionRate: commissionRate.value === '' ? null : Number(commissionRate.value),
+    };
     const partner: any = await affiliate.createPartner(payload);
     toast.success('Partner creado');
     navigateTo(`/app/affiliate/partners/${partner.id}`);
@@ -51,30 +55,40 @@ async function submit() {
     <div class="card bg-base-100 shadow-sm border border-base-300">
       <div class="card-body">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="form-control">
-            <label class="label"><span class="label-text">Nombre *</span></label>
-            <input v-model="form.name" class="input input-bordered w-full">
-          </div>
-          <div class="form-control">
-            <label class="label"><span class="label-text">Empresa</span></label>
-            <input v-model="form.companyName" class="input input-bordered w-full">
-          </div>
-          <div class="form-control">
-            <label class="label"><span class="label-text">Email</span></label>
-            <input v-model="form.email" type="email" class="input input-bordered w-full">
-          </div>
-          <div class="form-control">
-            <label class="label"><span class="label-text">Teléfono</span></label>
-            <input v-model="form.phone" class="input input-bordered w-full">
-          </div>
-          <div class="form-control">
-            <label class="label"><span class="label-text">IBAN</span></label>
-            <input v-model="form.iban" class="input input-bordered w-full">
-          </div>
-          <div class="form-control">
-            <label class="label"><span class="label-text">Comisión (%)</span></label>
-            <input v-model="form.commissionRate" type="number" step="0.01" class="input input-bordered w-full">
-          </div>
+          <FormInput
+            v-model="name"
+            label="Nombre"
+            placeholder="Nombre del partner"
+            required
+          />
+          <FormInput
+            v-model="companyName"
+            label="Empresa"
+            placeholder="Empresa"
+          />
+          <FormInput
+            v-model="email"
+            label="Email"
+            placeholder="email@ejemplo.com"
+            type="email"
+          />
+          <FormInput
+            v-model="phone"
+            label="Teléfono"
+            placeholder="Teléfono"
+          />
+          <FormInput
+            v-model="iban"
+            label="IBAN"
+            placeholder="ES00 0000 0000 0000 0000 0000"
+          />
+          <FormInput
+            v-model="commissionRate"
+            label="Comisión (%)"
+            placeholder="0.00"
+            type="number"
+            step="0.01"
+          />
         </div>
         <div class="card-actions justify-end mt-4">
           <NuxtLink to="/app/affiliate/partners" class="btn btn-ghost">Cancelar</NuxtLink>

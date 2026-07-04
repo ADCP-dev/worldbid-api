@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { toast } from 'vue-sonner';
+import FormInput from '@base/ui-app/components/form/FormInput.vue';
+import FormSwitch from '@base/ui-app/components/form/FormSwitch.vue';
 
 definePageMeta({
   layout: 'default',
@@ -21,15 +23,13 @@ const commissions = ref<any[]>([]);
 
 const activeTab = ref<'data' | 'referrals' | 'commissions'>('data');
 
-const form = ref({
-  name: '',
-  companyName: '',
-  email: '',
-  phone: '',
-  iban: '',
-  commissionRate: '' as string | number,
-  isActive: true,
-});
+const name = ref('');
+const companyName = ref('');
+const email = ref('');
+const phone = ref('');
+const iban = ref('');
+const commissionRate = ref<string | number>('');
+const isActive = ref(true);
 
 const REFERRAL_STATUS_LABELS: Record<string, string> = {
   pending: 'Pendiente',
@@ -74,15 +74,13 @@ async function loadPartner() {
   try {
     const data = await affiliate.getPartner(partnerId.value);
     partner.value = data;
-    form.value = {
-      name: data.name || '',
-      companyName: data.companyName || '',
-      email: data.email || '',
-      phone: data.phone || '',
-      iban: data.iban || '',
-      commissionRate: data.commissionRate ?? '',
-      isActive: data.isActive ?? true,
-    };
+    name.value = data.name || '';
+    companyName.value = data.companyName || '';
+    email.value = data.email || '';
+    phone.value = data.phone || '';
+    iban.value = data.iban || '';
+    commissionRate.value = data.commissionRate ?? '';
+    isActive.value = data.isActive ?? true;
   } catch (err: any) {
     toast.error('Error cargando partner', { description: err.message });
   } finally {
@@ -109,15 +107,21 @@ async function loadCommissions() {
 }
 
 async function savePartner() {
-  if (!form.value.name.trim()) {
+  if (!name.value.trim()) {
     toast.error('El nombre es obligatorio');
     return;
   }
   saving.value = true;
   try {
-    const payload: Record<string, any> = { ...form.value };
-    if (payload.commissionRate === '') payload.commissionRate = null;
-    else payload.commissionRate = Number(payload.commissionRate);
+    const payload: Record<string, any> = {
+      name: name.value,
+      companyName: companyName.value,
+      email: email.value,
+      phone: phone.value,
+      iban: iban.value,
+      commissionRate: commissionRate.value === '' ? null : Number(commissionRate.value),
+      isActive: isActive.value,
+    };
     const updated = await affiliate.updatePartner(partnerId.value, payload);
     partner.value = updated;
     toast.success('Partner actualizado');
@@ -185,35 +189,45 @@ onMounted(async () => {
         <div class="card-body">
           <h2 class="card-title">Datos del partner</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="form-control">
-              <label class="label"><span class="label-text">Nombre *</span></label>
-              <input v-model="form.name" class="input input-bordered w-full">
-            </div>
-            <div class="form-control">
-              <label class="label"><span class="label-text">Empresa</span></label>
-              <input v-model="form.companyName" class="input input-bordered w-full">
-            </div>
-            <div class="form-control">
-              <label class="label"><span class="label-text">Email</span></label>
-              <input v-model="form.email" type="email" class="input input-bordered w-full">
-            </div>
-            <div class="form-control">
-              <label class="label"><span class="label-text">Teléfono</span></label>
-              <input v-model="form.phone" class="input input-bordered w-full">
-            </div>
-            <div class="form-control">
-              <label class="label"><span class="label-text">IBAN</span></label>
-              <input v-model="form.iban" class="input input-bordered w-full">
-            </div>
-            <div class="form-control">
-              <label class="label"><span class="label-text">Comisión (%)</span></label>
-              <input v-model="form.commissionRate" type="number" step="0.01" class="input input-bordered w-full">
-            </div>
-            <div class="form-control md:col-span-2">
-              <label class="label cursor-pointer justify-start gap-3">
-                <input v-model="form.isActive" type="checkbox" class="checkbox checkbox-sm">
-                <span class="label-text">Partner activo</span>
-              </label>
+            <FormInput
+              v-model="name"
+              label="Nombre"
+              placeholder="Nombre del partner"
+              required
+            />
+            <FormInput
+              v-model="companyName"
+              label="Empresa"
+              placeholder="Empresa"
+            />
+            <FormInput
+              v-model="email"
+              label="Email"
+              placeholder="email@ejemplo.com"
+              type="email"
+            />
+            <FormInput
+              v-model="phone"
+              label="Teléfono"
+              placeholder="Teléfono"
+            />
+            <FormInput
+              v-model="iban"
+              label="IBAN"
+              placeholder="ES00 0000 0000 0000 0000 0000"
+            />
+            <FormInput
+              v-model="commissionRate"
+              label="Comisión (%)"
+              placeholder="0.00"
+              type="number"
+              step="0.01"
+            />
+            <div class="md:col-span-2">
+              <FormSwitch
+                v-model="isActive"
+                label="Partner activo"
+              />
             </div>
           </div>
           <div class="card-actions justify-end mt-4">
@@ -272,20 +286,18 @@ onMounted(async () => {
               <thead>
                 <tr>
                   <th>Proyecto</th>
-                  <th class="text-right">Base</th>
-                  <th class="text-right">Comisión</th>
+                  <th>Comisión</th>
                   <th>Estado</th>
                   <th>Pagada</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-if="commissions.length === 0">
-                  <td colspan="5" class="text-center text-base-content/40 py-6">Sin comisiones</td>
+                  <td colspan="4" class="text-center text-base-content/40 py-6">Sin comisiones</td>
                 </tr>
                 <tr v-for="c in commissions" :key="c.id">
                   <td class="font-medium">{{ c.project?.name || '—' }}</td>
-                  <td class="text-right">{{ formatCurrency(c.baseAmount) }}</td>
-                  <td class="text-right font-semibold">{{ formatCurrency(c.commissionAmount) }}</td>
+                  <td class="font-semibold">{{ formatCurrency(c.commissionAmount) }}</td>
                   <td>
                     <span class="badge badge-sm" :class="COMMISSION_STATUS_BADGE[c.status]">
                       {{ COMMISSION_STATUS_LABELS[c.status] ?? c.status }}

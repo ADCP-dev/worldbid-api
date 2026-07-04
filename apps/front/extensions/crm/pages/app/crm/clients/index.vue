@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, h } from 'vue';
 import { toast } from 'vue-sonner';
+import DataTable from '@base/ui-app/components/data-table/DataTable.vue';
+import { useTableStateStore } from '@base/ui-app/stores/useTableState';
 
 definePageMeta({
   layout: 'default',
@@ -8,36 +10,119 @@ definePageMeta({
 });
 
 const crm = useCrm();
+const tableStateStore = useTableStateStore();
 
 const loading = ref(false);
 const clients = ref<any[]>([]);
 const statuses = ref<any[]>([]);
 const origins = ref<any[]>([]);
-
-const page = ref(1);
-const limit = ref(20);
-const totalPages = ref(1);
 const total = ref(0);
 
-const search = ref('');
-const statusId = ref<string>('');
-const originId = ref<string>('');
+const tableName = 'crm-clients';
 
-let searchTimer: any = null;
+// Reactive table state from the store (pageIndex 0-based, pageSize)
+const tableState = computed(() => {
+  const raw = (tableStateStore as Record<string, any>)[tableName] || {};
+  return {
+    pageIndex: typeof raw.pageIndex === 'number' ? raw.pageIndex : 0,
+    pageSize: typeof raw.pageSize === 'number' ? raw.pageSize : 10,
+    globalFilter: typeof raw.globalFilter === 'string' ? raw.globalFilter : '',
+    columnFilters: Array.isArray(raw.columnFilters) ? raw.columnFilters : [],
+  };
+});
+
+const statusOptions = computed(() => [
+  { label: 'Todos', value: '' },
+  ...statuses.value.map((s: any) => ({ label: s.label, value: String(s.id) })),
+]);
+
+const originOptions = computed(() => [
+  { label: 'Todos', value: '' },
+  ...origins.value.map((o: any) => ({ label: o.label, value: String(o.id) })),
+]);
+
+const columns = computed(() => [
+  { accessorKey: 'name', headerName: 'Nombre', header: 'Nombre', filterType: 'string' as const },
+  { accessorKey: 'companyName', headerName: 'Empresa', header: 'Empresa', filterType: 'string' as const },
+  {
+    accessorKey: 'email',
+    headerName: 'Email',
+    header: 'Email',
+    filterType: 'string' as const,
+  },
+  {
+    accessorKey: 'phone',
+    headerName: 'Teléfono',
+    header: 'Teléfono',
+    filterType: 'string' as const,
+  },
+  {
+    accessorKey: 'statusId',
+    headerName: 'Estado',
+    header: 'Estado',
+    filterType: 'select' as const,
+    options: statusOptions.value,
+    cell: ({ row }: any) => {
+      const s = row.original.status;
+      return s
+        ? h('span', {
+            class: 'badge badge-sm',
+            style: { backgroundColor: s.color, color: '#fff' },
+          }, s.label)
+        : h('span', { class: 'text-base-content/40' }, '—');
+    },
+  },
+  {
+    accessorKey: 'originId',
+    headerName: 'Origen',
+    header: 'Origen',
+    filterType: 'select' as const,
+    options: originOptions.value,
+    cell: ({ row }: any) => row.original.origin?.label || h('span', { class: 'text-base-content/40' }, '—'),
+  },
+  {
+    accessorKey: 'createdAt',
+    headerName: 'Creado',
+    header: 'Creado',
+    filterType: 'date' as const,
+    cell: ({ row }: any) => new Date(row.original.createdAt).toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }),
+  },
+  {
+    id: 'actions',
+    headerName: 'Acciones',
+    header: 'Acciones',
+    enableSorting: false,
+    cell: ({ row }: any) => h('button', {
+      class: 'btn btn-ghost btn-xs',
+      onClick: (e: Event) => {
+        e.stopPropagation();
+        navigateTo(`/app/crm/clients/${row.original.id}`);
+      },
+    }, 'Ver'),
+  },
+]);
 
 async function loadClients() {
   loading.value = true;
   try {
+    const s = tableState.value;
+    // Extract column filter values for statusId / originId
+    const statusFilter = s.columnFilters.find((f: any) => f.id === 'statusId');
+    const originFilter = s.columnFilters.find((f: any) => f.id === 'originId');
+
     const res: any = await crm.getClients(
-      page.value,
-      limit.value,
-      search.value || undefined,
-      statusId.value ? Number(statusId.value) : undefined,
-      originId.value ? Number(originId.value) : undefined,
+      s.pageIndex + 1,
+      s.pageSize,
+      s.globalFilter || undefined,
+      statusFilter?.value ? Number(statusFilter.value) : undefined,
+      originFilter?.value ? Number(originFilter.value) : undefined,
     );
     clients.value = res.data ?? res ?? [];
     total.value = res.total ?? clients.value.length;
-    totalPages.value = res.totalPages ?? Math.ceil(total.value / limit.value) || 1;
   } catch (err: any) {
     toast.error('Error cargando clientes', { description: err.message });
   } finally {
@@ -55,49 +140,15 @@ async function loadFilters() {
   }
 }
 
-function onSearch() {
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => {
-    page.value = 1;
-    loadClients();
-  }, 300);
-}
-
-function onFilterChange() {
-  page.value = 1;
-  loadClients();
-}
-
-function prevPage() {
-  if (page.value > 1) {
-    page.value--;
-    loadClients();
-  }
-}
-
-function nextPage() {
-  if (page.value < totalPages.value) {
-    page.value++;
-    loadClients();
-  }
-}
-
-function formatDate(date: string) {
-  return new Date(date).toLocaleDateString('es-ES', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
-}
-
-async function navigateToClient(id: number | string) {
-  await navigateTo(`/app/crm/clients/${id}`);
-}
-
 onMounted(() => {
   loadFilters();
   loadClients();
 });
+
+// Reload when table state (pagination, filters, search) changes
+watch(tableState, () => {
+  loadClients();
+}, { deep: true });
 </script>
 
 <template>
@@ -109,111 +160,16 @@ onMounted(() => {
       </NuxtLink>
     </div>
 
-    <!-- Filters -->
-    <div class="flex flex-wrap gap-3 items-end">
-      <div class="form-control flex-1 min-w-[200px]">
-        <label class="label"><span class="label-text">Buscar</span></label>
-        <input
-          v-model="search"
-          class="input input-bordered w-full"
-          placeholder="Nombre, empresa..."
-          @input="onSearch"
-        >
-      </div>
-      <div class="form-control w-48">
-        <label class="label"><span class="label-text">Estado</span></label>
-        <select
-          v-model="statusId"
-          class="select select-bordered w-full"
-          @change="onFilterChange"
-        >
-          <option value="">Todos</option>
-          <option v-for="s in statuses" :key="s.id" :value="s.id">{{ s.label }}</option>
-        </select>
-      </div>
-      <div class="form-control w-48">
-        <label class="label"><span class="label-text">Origen</span></label>
-        <select
-          v-model="originId"
-          class="select select-bordered w-full"
-          @change="onFilterChange"
-        >
-          <option value="">Todos</option>
-          <option v-for="o in origins" :key="o.id" :value="o.id">{{ o.label }}</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- Table -->
     <div class="card bg-base-100 shadow-sm border border-base-300">
-      <div class="card-body p-0">
-        <div class="overflow-x-auto">
-          <table class="table table-sm">
-            <thead>
-              <tr>
-                <th>Nombre</th>
-                <th>Empresa</th>
-                <th>Estado</th>
-                <th>Origen</th>
-                <th>Creado</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-if="loading">
-                <td colspan="5" class="text-center py-8">
-                  <span class="loading loading-spinner loading-md text-primary" />
-                </td>
-              </tr>
-              <tr v-else-if="clients.length === 0">
-                <td colspan="5" class="text-center text-base-content/40 py-8">
-                  Sin clientes
-                </td>
-              </tr>
-              <tr
-                v-else
-                v-for="client in clients"
-                :key="client.id"
-                class="hover cursor-pointer"
-                @click="navigateToClient(client.id)"
-              >
-                <td class="font-medium">{{ client.name }}</td>
-                <td>{{ client.companyName || '—' }}</td>
-                <td>
-                  <span
-                    v-if="client.status"
-                    class="badge badge-sm"
-                    :style="{ backgroundColor: client.status.color, color: '#fff' }"
-                  >
-                    {{ client.status.label }}
-                  </span>
-                  <span v-else class="text-base-content/40">—</span>
-                </td>
-                <td>{{ client.origin?.label || '—' }}</td>
-                <td>{{ formatDate(client.createdAt) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Pagination -->
-        <div class="flex items-center justify-between p-4 border-t border-base-300">
-          <span class="text-sm text-base-content/60">
-            {{ total }} clientes · Página {{ page }} de {{ totalPages }}
-          </span>
-          <div class="join">
-            <button
-              class="btn btn-sm join-item"
-              :disabled="page === 1"
-              @click="prevPage"
-            >«</button>
-            <button class="btn btn-sm join-item">{{ page }}</button>
-            <button
-              class="btn btn-sm join-item"
-              :disabled="page >= totalPages"
-              @click="nextPage"
-            >»</button>
-          </div>
-        </div>
+      <div class="card-body p-6">
+        <DataTable
+          :columns="columns"
+          :data="clients"
+          :total="total"
+          manual
+          :table-name="tableName"
+          @row-click="(row: any) => navigateTo(`/app/crm/clients/${row.id}`)"
+        />
       </div>
     </div>
   </div>

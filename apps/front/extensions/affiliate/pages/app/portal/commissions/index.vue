@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted, watch, h } from 'vue';
 import { toast } from 'vue-sonner';
+import DataTable from '@base/ui-app/components/data-table/DataTable.vue';
+import { useTableStateStore } from '@base/ui-app/stores/useTableState';
 
 definePageMeta({
   layout: 'default',
@@ -8,10 +10,23 @@ definePageMeta({
 });
 
 const affiliate = useAffiliate();
+const tableStateStore = useTableStateStore();
 
 const loading = ref(false);
 const commissions = ref<any[]>([]);
 const summary = ref<any>(null);
+const total = ref(0);
+
+const tableName = 'affiliate-portal-commissions';
+
+const tableState = computed(() => {
+  const raw = (tableStateStore as Record<string, any>)[tableName] || {};
+  return {
+    pageIndex: typeof raw.pageIndex === 'number' ? raw.pageIndex : 0,
+    pageSize: typeof raw.pageSize === 'number' ? raw.pageSize : 10,
+    globalFilter: typeof raw.globalFilter === 'string' ? raw.globalFilter : '',
+  };
+});
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'Pendiente',
@@ -35,6 +50,41 @@ function formatDate(date: string) {
   return new Date(date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
+const columns = computed(() => [
+  {
+    accessorKey: 'project',
+    headerName: 'Proyecto',
+    header: 'Proyecto',
+    filterType: 'string' as const,
+    cell: ({ row }: any) => h('span', { class: 'font-medium' }, row.original.project?.name || '—'),
+  },
+  {
+    accessorKey: 'commissionAmount',
+    headerName: 'Comisión',
+    header: 'Comisión',
+    filterType: 'string' as const,
+    cell: ({ row }: any) => h('span', { class: 'font-semibold' }, formatCurrency(row.original.commissionAmount)),
+  },
+  {
+    accessorKey: 'status',
+    headerName: 'Estado',
+    header: 'Estado',
+    filterType: 'string' as const,
+    cell: ({ row }: any) => h(
+      'span',
+      { class: ['badge', 'badge-sm', STATUS_BADGE[row.original.status] || 'badge-ghost'] },
+      STATUS_LABELS[row.original.status] ?? row.original.status,
+    ),
+  },
+  {
+    accessorKey: 'paidAt',
+    headerName: 'Pagada',
+    header: 'Pagada',
+    filterType: 'string' as const,
+    cell: ({ row }: any) => row.original.paidDate ? formatDate(row.original.paidDate) : '—',
+  },
+]);
+
 async function loadData() {
   loading.value = true;
   try {
@@ -43,6 +93,7 @@ async function loadData() {
       affiliate.getMySummary(),
     ]);
     commissions.value = (comms as any)?.data ?? comms ?? [];
+    total.value = (comms as any)?.total ?? commissions.value.length;
     summary.value = sum;
   } catch (err: any) {
     toast.error('Error cargando comisiones', { description: err.message });
@@ -52,6 +103,10 @@ async function loadData() {
 }
 
 onMounted(loadData);
+
+watch(tableState, () => {
+  loadData();
+}, { deep: true });
 </script>
 
 <template>
@@ -72,39 +127,14 @@ onMounted(loadData);
 
     <!-- Table -->
     <div class="card bg-base-100 shadow-sm border border-base-300">
-      <div class="card-body p-0">
-        <div class="overflow-x-auto">
-          <table class="table table-sm">
-            <thead>
-              <tr>
-                <th>Proyecto</th>
-                <th class="text-right">Comisión</th>
-                <th>Estado</th>
-                <th>Pagada</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-if="loading">
-                <td colspan="4" class="text-center py-8">
-                  <span class="loading loading-spinner loading-md text-primary" />
-                </td>
-              </tr>
-              <tr v-else-if="commissions.length === 0">
-                <td colspan="4" class="text-center text-base-content/40 py-8">Sin comisiones</td>
-              </tr>
-              <tr v-else v-for="c in commissions" :key="c.id">
-                <td class="font-medium">{{ c.project?.name || '—' }}</td>
-                <td class="text-right font-semibold">{{ formatCurrency(c.commissionAmount) }}</td>
-                <td>
-                  <span class="badge badge-sm" :class="STATUS_BADGE[c.status]">
-                    {{ STATUS_LABELS[c.status] ?? c.status }}
-                  </span>
-                </td>
-                <td>{{ c.paidDate ? formatDate(c.paidDate) : '—' }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      <div class="card-body p-6">
+        <DataTable
+          :columns="columns"
+          :data="commissions"
+          :total="total"
+          manual
+          :table-name="tableName"
+        />
       </div>
     </div>
   </div>

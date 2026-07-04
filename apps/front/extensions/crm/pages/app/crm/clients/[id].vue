@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue';
 import { toast } from 'vue-sonner';
+import FormInput from '@base/ui-app/components/form/FormInput.vue';
+import FormSelect from '@base/ui-app/components/form/FormSelect.vue';
+import FormTextArea from '@base/ui-app/components/form/FormTextArea.vue';
+import FormSwitch from '@base/ui-app/components/form/FormSwitch.vue';
 
 definePageMeta({
   layout: 'default',
@@ -61,7 +65,7 @@ const projects = ref<any[]>([]);
 const projectForm = ref({
   name: '',
   type: 'consulting',
-  price: '',
+  price: '' as string | number,
   status: 'pending',
   paymentStatus: 'pending',
 });
@@ -97,6 +101,32 @@ const INTERACTION_TYPE_LABELS: Record<string, string> = {
   proposal: 'Propuesta',
   other: 'Otro',
 };
+
+const statusOptions = computed(() => [
+  { label: 'Sin estado', value: '' },
+  ...statuses.value.map((s: any) => ({ label: s.label, value: s.id })),
+]);
+
+const originOptions = computed(() => [
+  { label: 'Sin origen', value: '' },
+  ...origins.value.map((o: any) => ({ label: o.label, value: o.id })),
+]);
+
+const interactionTypeOptions = computed(() =>
+  Object.entries(INTERACTION_TYPE_LABELS).map(([value, label]) => ({ value, label })),
+);
+
+const projectTypeOptions = computed(() =>
+  Object.entries(PROJECT_TYPE_LABELS).map(([value, label]) => ({ value, label })),
+);
+
+const projectStatusOptions = computed(() =>
+  Object.entries(PROJECT_STATUS_LABELS).map(([value, label]) => ({ value, label })),
+);
+
+const paymentStatusOptions = computed(() =>
+  Object.entries(PAYMENT_STATUS_LABELS).map(([value, label]) => ({ value, label })),
+);
 
 async function loadClient() {
   loading.value = true;
@@ -369,63 +399,20 @@ watch(activeTab, async (tab) => {
         <div class="card-body">
           <h2 class="card-title">Datos del cliente</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="form-control">
-              <label class="label"><span class="label-text">Nombre *</span></label>
-              <input v-model="form.name" class="input input-bordered w-full">
-            </div>
-            <div class="form-control">
-              <label class="label"><span class="label-text">Empresa</span></label>
-              <input v-model="form.companyName" class="input input-bordered w-full">
-            </div>
-            <div class="form-control">
-              <label class="label"><span class="label-text">NIF</span></label>
-              <input v-model="form.nif" class="input input-bordered w-full">
-            </div>
-            <div class="form-control">
-              <label class="label"><span class="label-text">Email</span></label>
-              <input v-model="form.email" type="email" class="input input-bordered w-full">
-            </div>
-            <div class="form-control">
-              <label class="label"><span class="label-text">Teléfono</span></label>
-              <input v-model="form.phone" class="input input-bordered w-full">
-            </div>
-            <div class="form-control">
-              <label class="label"><span class="label-text">Dirección</span></label>
-              <input v-model="form.address" class="input input-bordered w-full">
-            </div>
-            <div class="form-control">
-              <label class="label"><span class="label-text">Ciudad</span></label>
-              <input v-model="form.city" class="input input-bordered w-full">
-            </div>
-            <div class="form-control">
-              <label class="label"><span class="label-text">Región</span></label>
-              <input v-model="form.region" class="input input-bordered w-full">
-            </div>
-            <div class="form-control">
-              <label class="label"><span class="label-text">País</span></label>
-              <input v-model="form.country" class="input input-bordered w-full">
-            </div>
-            <div class="form-control">
-              <label class="label"><span class="label-text">Estado</span></label>
-              <select v-model="form.statusId" class="select select-bordered w-full">
-                <option value="">Sin estado</option>
-                <option v-for="s in statuses" :key="s.id" :value="s.id">{{ s.label }}</option>
-              </select>
-            </div>
-            <div class="form-control">
-              <label class="label"><span class="label-text">Origen</span></label>
-              <select v-model="form.originId" class="select select-bordered w-full">
-                <option value="">Sin origen</option>
-                <option v-for="o in origins" :key="o.id" :value="o.id">{{ o.label }}</option>
-              </select>
-            </div>
-            <div class="form-control">
-              <label class="label"><span class="label-text">Detalle de origen</span></label>
-              <input v-model="form.originDetail" class="input input-bordered w-full">
-            </div>
-            <div class="form-control md:col-span-2">
-              <label class="label"><span class="label-text">Metadata (JSON opcional)</span></label>
-              <textarea v-model="form.metadata" class="textarea textarea-bordered w-full font-mono" rows="4"></textarea>
+            <FormInput v-model="form.name" label="Nombre" required />
+            <FormInput v-model="form.companyName" label="Empresa" />
+            <FormInput v-model="form.nif" label="NIF" />
+            <FormInput v-model="form.email" label="Email" type="email" />
+            <FormInput v-model="form.phone" label="Teléfono" />
+            <FormInput v-model="form.address" label="Dirección" />
+            <FormInput v-model="form.city" label="Ciudad" />
+            <FormInput v-model="form.region" label="Región" />
+            <FormInput v-model="form.country" label="País" />
+            <FormSelect v-model="form.statusId" label="Estado" :options="statusOptions" />
+            <FormSelect v-model="form.originId" label="Origen" :options="originOptions" />
+            <FormInput v-model="form.originDetail" label="Detalle de origen" />
+            <div class="md:col-span-2">
+              <FormTextArea v-model="form.metadata" label="Metadata (JSON opcional)" :rows="4" />
             </div>
           </div>
           <div class="card-actions justify-end mt-4">
@@ -443,27 +430,14 @@ watch(activeTab, async (tab) => {
           <div class="card-body">
             <h2 class="card-title">Nuevo contacto</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="form-control">
-                <label class="label"><span class="label-text">Nombre *</span></label>
-                <input v-model="contactForm.name" class="input input-bordered w-full">
-              </div>
-              <div class="form-control">
-                <label class="label"><span class="label-text">Cargo</span></label>
-                <input v-model="contactForm.position" class="input input-bordered w-full">
-              </div>
-              <div class="form-control">
-                <label class="label"><span class="label-text">Email</span></label>
-                <input v-model="contactForm.email" type="email" class="input input-bordered w-full">
-              </div>
-              <div class="form-control">
-                <label class="label"><span class="label-text">Teléfono</span></label>
-                <input v-model="contactForm.phone" class="input input-bordered w-full">
-              </div>
+              <FormInput v-model="contactForm.name" label="Nombre" required />
+              <FormInput v-model="contactForm.position" label="Cargo" />
+              <FormInput v-model="contactForm.email" label="Email" type="email" />
+              <FormInput v-model="contactForm.phone" label="Teléfono" />
             </div>
-            <label class="label cursor-pointer justify-start gap-3 mt-2">
-              <input v-model="contactForm.isPrimary" type="checkbox" class="checkbox checkbox-sm">
-              <span class="label-text">Contacto principal</span>
-            </label>
+            <div class="mt-2">
+              <FormSwitch v-model="contactForm.isPrimary" label="Contacto principal" />
+            </div>
             <div class="card-actions justify-end mt-2">
               <button class="btn btn-primary btn-sm" @click="addContact">Añadir contacto</button>
             </div>
@@ -516,23 +490,13 @@ watch(activeTab, async (tab) => {
           <div class="card-body">
             <h2 class="card-title">Nueva interacción</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="form-control">
-                <label class="label"><span class="label-text">Tipo</span></label>
-                <select v-model="interactionForm.type" class="select select-bordered w-full">
-                  <option v-for="(label, value) in INTERACTION_TYPE_LABELS" :key="value" :value="value">{{ label }}</option>
-                </select>
+              <FormSelect v-model="interactionForm.type" label="Tipo" :options="interactionTypeOptions" />
+              <FormInput v-model="interactionForm.interactionDate" label="Fecha" type="text" />
+              <div class="md:col-span-2">
+                <FormInput v-model="interactionForm.subject" label="Asunto" required />
               </div>
-              <div class="form-control">
-                <label class="label"><span class="label-text">Fecha</span></label>
-                <input v-model="interactionForm.interactionDate" type="date" class="input input-bordered w-full">
-              </div>
-              <div class="form-control md:col-span-2">
-                <label class="label"><span class="label-text">Asunto *</span></label>
-                <input v-model="interactionForm.subject" class="input input-bordered w-full">
-              </div>
-              <div class="form-control md:col-span-2">
-                <label class="label"><span class="label-text">Descripción</span></label>
-                <textarea v-model="interactionForm.body" class="textarea textarea-bordered w-full" rows="3"></textarea>
+              <div class="md:col-span-2">
+                <FormTextArea v-model="interactionForm.body" label="Descripción" :rows="3" />
               </div>
             </div>
             <div class="card-actions justify-end mt-2">
@@ -577,32 +541,11 @@ watch(activeTab, async (tab) => {
           <div class="card-body">
             <h2 class="card-title">Nuevo proyecto</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="form-control">
-                <label class="label"><span class="label-text">Nombre *</span></label>
-                <input v-model="projectForm.name" class="input input-bordered w-full">
-              </div>
-              <div class="form-control">
-                <label class="label"><span class="label-text">Tipo</span></label>
-                <select v-model="projectForm.type" class="select select-bordered w-full">
-                  <option v-for="(label, value) in PROJECT_TYPE_LABELS" :key="value" :value="value">{{ label }}</option>
-                </select>
-              </div>
-              <div class="form-control">
-                <label class="label"><span class="label-text">Precio</span></label>
-                <input v-model="projectForm.price" type="number" class="input input-bordered w-full">
-              </div>
-              <div class="form-control">
-                <label class="label"><span class="label-text">Estado</span></label>
-                <select v-model="projectForm.status" class="select select-bordered w-full">
-                  <option v-for="(label, value) in PROJECT_STATUS_LABELS" :key="value" :value="value">{{ label }}</option>
-                </select>
-              </div>
-              <div class="form-control">
-                <label class="label"><span class="label-text">Estado de pago</span></label>
-                <select v-model="projectForm.paymentStatus" class="select select-bordered w-full">
-                  <option v-for="(label, value) in PAYMENT_STATUS_LABELS" :key="value" :value="value">{{ label }}</option>
-                </select>
-              </div>
+              <FormInput v-model="projectForm.name" label="Nombre" required />
+              <FormSelect v-model="projectForm.type" label="Tipo" :options="projectTypeOptions" />
+              <FormInput v-model="projectForm.price" label="Precio" type="number" />
+              <FormSelect v-model="projectForm.status" label="Estado" :options="projectStatusOptions" />
+              <FormSelect v-model="projectForm.paymentStatus" label="Estado de pago" :options="paymentStatusOptions" />
             </div>
             <div class="card-actions justify-end mt-2">
               <button class="btn btn-primary btn-sm" @click="addProject">Añadir proyecto</button>

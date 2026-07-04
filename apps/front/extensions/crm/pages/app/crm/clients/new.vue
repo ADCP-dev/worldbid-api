@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { toast } from 'vue-sonner';
+import FormInput from '@base/ui-app/components/form/FormInput.vue';
+import FormSelect from '@base/ui-app/components/form/FormSelect.vue';
+import FormTextArea from '@base/ui-app/components/form/FormTextArea.vue';
 
 definePageMeta({
   layout: 'default',
@@ -28,6 +31,16 @@ const form = ref({
   originDetail: '',
   metadata: '',
 });
+
+const statusOptions = computed(() => [
+  { label: 'Sin estado', value: '' },
+  ...statuses.value.map((s: any) => ({ label: s.label, value: s.id })),
+]);
+
+const originOptions = computed(() => [
+  { label: 'Sin origen', value: '' },
+  ...origins.value.map((o: any) => ({ label: o.label, value: o.id })),
+]);
 
 async function loadFilters() {
   try {
@@ -83,63 +96,20 @@ onMounted(loadFilters);
     <div class="card bg-base-100 shadow-sm border border-base-300">
       <div class="card-body">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="form-control">
-            <label class="label"><span class="label-text">Nombre *</span></label>
-            <input v-model="form.name" class="input input-bordered w-full">
-          </div>
-          <div class="form-control">
-            <label class="label"><span class="label-text">Empresa</span></label>
-            <input v-model="form.companyName" class="input input-bordered w-full">
-          </div>
-          <div class="form-control">
-            <label class="label"><span class="label-text">NIF</span></label>
-            <input v-model="form.nif" class="input input-bordered w-full">
-          </div>
-          <div class="form-control">
-            <label class="label"><span class="label-text">Email</span></label>
-            <input v-model="form.email" type="email" class="input input-bordered w-full">
-          </div>
-          <div class="form-control">
-            <label class="label"><span class="label-text">Teléfono</span></label>
-            <input v-model="form.phone" class="input input-bordered w-full">
-          </div>
-          <div class="form-control">
-            <label class="label"><span class="label-text">Dirección</span></label>
-            <input v-model="form.address" class="input input-bordered w-full">
-          </div>
-          <div class="form-control">
-            <label class="label"><span class="label-text">Ciudad</span></label>
-            <input v-model="form.city" class="input input-bordered w-full">
-          </div>
-          <div class="form-control">
-            <label class="label"><span class="label-text">Región</span></label>
-            <input v-model="form.region" class="input input-bordered w-full">
-          </div>
-          <div class="form-control">
-            <label class="label"><span class="label-text">País</span></label>
-            <input v-model="form.country" class="input input-bordered w-full">
-          </div>
-          <div class="form-control">
-            <label class="label"><span class="label-text">Estado</span></label>
-            <select v-model="form.statusId" class="select select-bordered w-full">
-              <option value="">Sin estado</option>
-              <option v-for="s in statuses" :key="s.id" :value="s.id">{{ s.label }}</option>
-            </select>
-          </div>
-          <div class="form-control">
-            <label class="label"><span class="label-text">Origen</span></label>
-            <select v-model="form.originId" class="select select-bordered w-full">
-              <option value="">Sin origen</option>
-              <option v-for="o in origins" :key="o.id" :value="o.id">{{ o.label }}</option>
-            </select>
-          </div>
-          <div class="form-control">
-            <label class="label"><span class="label-text">Detalle de origen</span></label>
-            <input v-model="form.originDetail" class="input input-bordered w-full">
-          </div>
-          <div class="form-control md:col-span-2">
-            <label class="label"><span class="label-text">Metadata (JSON opcional)</span></label>
-            <textarea v-model="form.metadata" class="textarea textarea-bordered w-full font-mono" rows="4"></textarea>
+          <FormInput v-model="form.name" label="Nombre" required placeholder="Nombre del cliente" />
+          <FormInput v-model="form.companyName" label="Empresa" placeholder="Empresa" />
+          <FormInput v-model="form.nif" label="NIF" placeholder="NIF" />
+          <FormInput v-model="form.email" label="Email" type="email" placeholder="email@ejemplo.com" />
+          <FormInput v-model="form.phone" label="Teléfono" placeholder="Teléfono" />
+          <FormInput v-model="form.address" label="Dirección" placeholder="Dirección" />
+          <FormInput v-model="form.city" label="Ciudad" placeholder="Ciudad" />
+          <FormInput v-model="form.region" label="Región" placeholder="Región" />
+          <FormInput v-model="form.country" label="País" placeholder="País" />
+          <FormSelect v-model="form.statusId" label="Estado" :options="statusOptions" />
+          <FormSelect v-model="form.originId" label="Origen" :options="originOptions" />
+          <FormInput v-model="form.originDetail" label="Detalle de origen" placeholder="Detalle de origen" />
+          <div class="md:col-span-2">
+            <FormTextArea v-model="form.metadata" label="Metadata (JSON opcional)" :rows="4" />
           </div>
         </div>
         <div class="card-actions justify-end mt-4">
