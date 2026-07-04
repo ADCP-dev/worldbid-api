@@ -1,0 +1,132 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, Between } from 'typeorm';
+import { AffiliateReferralEntity } from '../infrastructure/persistence/entities/affiliate-referral.entity';
+import { AffiliateCommissionEntity } from '../infrastructure/persistence/entities/affiliate-commission.entity';
+import { QueuedMailerService } from '@comms/email-queue/queued-mailer.service';
+
+@Injectable()
+export class AffiliateReportService {
+  private readonly logger = new Logger(AffiliateReportService.name);
+
+  constructor(
+    @InjectRepository(AffiliateReferralEntity)
+    private readonly referralRepository: Repository<AffiliateReferralEntity>,
+    @InjectRepository(AffiliateCommissionEntity)
+    private readonly commissionRepository: Repository<AffiliateCommissionEntity>,
+    private readonly mailerService: QueuedMailerService,
+  ) {}
+
+  /**
+   * Runs on the last days of each month at 23:00.
+   * Only sends an email if there were changes (new/updated referrals or commissions)
+   * during the current month.
+   */
+  @Cron('0 23 28-31 * *')
+  async handleMonthlyReport(): Promise<void> {
+    try {
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const monthEnd = new Date(
+        now.getFullYear(),
+        now.getMonth() + 1,
+        0,
+        23,
+        59,
+        59,
+      );
+
+      // Only run on actual last day of the month
+      const lastDayOfMonth = new Date(
+        now.getFullYear(),
+        now.getMonth() + 1,
+        0,
+      ).getDate();
+      if (now.getDate() !== lastDayOfMonth) {
+        this.logger.debug(
+          `handleMonthlyReport: skipping (today is ${now.getDate()}, last day is ${lastDayOfMonth})`,
+        );
+        return;
+      }
+
+      // New referrals this month
+      const newReferrals = await this.referralRepository.count({
+        where: { createdAt: Between(monthStart, monthEnd) },
+      });
+
+      // Converted referrals this month (updatedAt within this month)
+      const convertedReferralsThisMonth = await this.referralRepository
+        .createQueryBuilder('r')
+        .where('r.status = :status', { status: 'converted' })
+        .andWhere('r.updatedAt >= :start', { start: monthStart })
+        .andWhere('r.updatedAt <= :end', { end: monthEnd })
+        .getCount();
+
+      // Commissions approved this month
+      const commissionsApproved = await this.commissionRepository
+        .createQueryBuilder('c')
+        .where('c.status = :status', { status: 'approved' })
+        .andWhere('c.updatedAt >= :start', { start: monthStart })
+        .andWhere('c.updatedAt <= :end', { end: monthEnd })
+        .getCount();
+
+      // Commissions paid this month
+      const commissionsPaid = await this.commissionRepository
+        .createQueryBuilder('c')
+        .where('c.status = :status', { status: 'paid' })
+        .andWhere('c.paidAt >= :start', { start: monthStart })
+        .andWhere('c.paidAt <= :end', { end: monthEnd })
+        .getCount();
+
+      const totalChanges =
+        newReferrals +
+        convertedReferralsThisMonth +
+        commissionsApproved +
+        commissionsPaid;
+
+      if (totalChanges === 0) {
+        this.logger.log(
+          'handleMonthlyReport: no changes this month, skipping email',
+        );
+        return;
+      }
+
+      const monthName = now.toLocaleString('default', { month: 'long' });
+
+      const html = `
+<h2>Affiliate Monthly Report — ${monthName} ${now.getFullYear()}</h2>
+<ul>
+  <li><strong>New referrals:</strong> ${newReferrals}</li>
+  <li><strong>Converted referrals:</strong> ${convertedReferralsThisMonth}</li>
+  <li><strong>Commissions approved:</strong> ${commissionsApproved}</li>
+  <li><strong>Commissions paid:</strong> ${commissionsPaid}</li>
+</ul>
+<p>This report was generated automatically.</p>`;
+
+      const text = `Affiliate Monthly Report — ${monthName} ${now.getFullYear()}
+
+New referrals: ${newReferrals}
+Converted referrals: ${convertedReferralsThisMonth}
+Commissions approved: ${commissionsApproved}
+Commissions paid: ${commissionsPaid}
+
+This report was generated automatically.`;
+
+      await this.mailerService.sendMail({
+        to: 'admin@example.com', // fallback — could be made configurable
+        subject: `Affiliate Monthly Report — ${monthName} ${now.getFullYear()}`,
+        html,
+        text,
+      });
+
+      this.logger.log(
+        `handleMonthlyReport: sent monthly report email — newReferrals=${newReferrals}, converted=${convertedReferralsThisMonth}, approved=${commissionsApproved}, paid=${commissionsPaid}`,
+      );
+    } catch (err) {
+      this.logger.error(
+        `handleMonthlyReport failed: ${err?.message ?? err}`,
+      );
+    }
+  }
+}
