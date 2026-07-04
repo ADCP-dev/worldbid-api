@@ -4,7 +4,6 @@ import { toast } from 'vue-sonner';
 import { useI18n } from 'vue-i18n';
 
 const { t, locale } = useI18n()
-const router = useRouter();
 const authStore = useAuthStore();
 
 const name = ref('');
@@ -49,7 +48,7 @@ async function onSubmit(event: Event) {
       });
 
       const { navigateHome } = useHomeRoute();
-      navigateHome();
+      await navigateHome();
     } else {
       toast.error(t('base.auth.signUp.errorGeneric'), {
         description: result.error || t('base.auth.signUp.errorRegisterFailed'),

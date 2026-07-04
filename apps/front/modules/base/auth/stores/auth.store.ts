@@ -215,7 +215,9 @@ export const useAuthStore = defineStore('auth', {
         if (import.meta.dev) console.error('Logout error:', error);
       } finally {
         this.clearAuthData();
-        await navigateTo('/login');
+        if (import.meta.client) {
+          window.location.href = '/login';
+        }
       }
     },
 

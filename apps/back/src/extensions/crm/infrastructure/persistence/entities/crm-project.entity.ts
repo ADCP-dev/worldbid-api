@@ -14,6 +14,8 @@ import { CrmClientEntity } from './crm-client.entity';
 
 @Entity('ext_crm_project')
 @Index(['clientId'])
+@Index(['status'])
+@Index(['paymentStatus'])
 export class CrmProjectEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn()
   id: number;

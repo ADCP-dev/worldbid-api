@@ -1,10 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsEnum,
   IsInt,
   IsNotEmpty,
   IsObject,
   IsOptional,
-  IsString,
 } from 'class-validator';
 
 export class CreateCommissionDto {
@@ -20,7 +20,7 @@ export class CreateCommissionDto {
 
   @ApiPropertyOptional({ example: 'pending', type: String })
   @IsOptional()
-  @IsString()
+  @IsEnum(['pending', 'approved', 'paid'])
   status?: string;
 
   @ApiPropertyOptional({ example: {}, type: Object })

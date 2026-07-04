@@ -1,9 +1,12 @@
 import { NestFactory } from '@nestjs/core';
+import { Logger } from '@nestjs/common';
 import { RoleSeedService } from '@infra/database/seeds/role/role-seed.service';
 import { SeedModule } from '@infra/database/seeds/seed.module';
 import { StatusSeedService } from '@infra/database/seeds/status/status-seed.service';
 import { UserSeedService } from '@infra/database/seeds/user/user-seed.service';
 import { runExtensionSeeds } from '@src/core/seed-loader';
+
+const logger = new Logger('RunSeed');
 
 const runSeed = async () => {
   const app = await NestFactory.create(SeedModule);
@@ -26,7 +29,7 @@ const runSeed = async () => {
       await translationService.run();
     }
   } catch (e) {
-    console.warn('Translation seed skipped or failed:', e.message);
+    logger.warn(`Translation seed skipped or failed: ${e.message}`);
   }
 
   await app.close();

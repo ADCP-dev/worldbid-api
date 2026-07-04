@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useNavMenu } from '~/composables/useNavMenu'
 
 import NavUser from '~/components/layout/NavUser.vue'
@@ -18,15 +19,11 @@ function resolveNavItemComponent(item: NavLink | NavGroup | NavSectionTitle): an
   return resolveComponent('LayoutSidebarNavLink')
 }
 
-const user: {
-  name: string
-  email: string
-  avatar: string
-} = {
+const user = computed(() => ({
   name: ((authStore.user?.firstName || '') + ' ' + (authStore.user?.lastName || '')).trim(),
   email: authStore.user?.email || '',
   avatar: authStore.user?.photo?.path || '',
-}
+}))
 </script>
 
 <template>

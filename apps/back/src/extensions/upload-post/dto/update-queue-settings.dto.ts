@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsBoolean } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, IsInt } from 'class-validator';
 
 export class UpdateQueueSettingsDto {
   @ApiPropertyOptional({ description: 'Days to publish (comma-separated: mon,wed,fri)' })
@@ -12,10 +12,10 @@ export class UpdateQueueSettingsDto {
   @IsString()
   publishTime?: string;
 
-  @ApiPropertyOptional({ description: 'Max posts per week' })
+  @ApiPropertyOptional({ description: 'Max posts per week', type: Number })
   @IsOptional()
-  @IsString()
-  maxPerWeek?: string;
+  @IsInt()
+  maxPerWeek?: number;
 
   @ApiPropertyOptional({ description: 'Auto-skip weekends' })
   @IsOptional()

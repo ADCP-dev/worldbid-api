@@ -76,25 +76,25 @@ const columns = computed(() => [
     accessorKey: "id",
     headerName: t("base.users.table.ID"),
     header: t("base.users.table.ID"),
-    filterType: "number",
+    filterType: "number" as const,
   },
   {
     accessorKey: "firstName",
     headerName: t("base.users.table.firstName"),
     header: t("base.users.table.firstName"),
-    filterType: "string",
+    filterType: "string" as const,
   },
   {
     accessorKey: "lastName",
     headerName: t("base.users.table.lastName"),
     header: t("base.users.table.lastName"),
-    filterType: "string",
+    filterType: "string" as const,
   },
   {
     accessorKey: "email",
     headerName: t("base.users.table.email"),
     header: t("base.users.table.email"),
-    filterType: "string",
+    filterType: "string" as const,
   },
   {
     accessorKey: "role.id",
@@ -102,7 +102,7 @@ const columns = computed(() => [
     headerName: t("base.users.table.role"),
     header: t("base.users.table.role"),
     enableSorting: false,
-    filterType: "select",
+    filterType: "select" as const,
     options: [
       { value: "", label: t("base.users.table.roles.all") },
       { value: "1", label: t("base.users.table.roles.admin") },
@@ -123,7 +123,7 @@ const columns = computed(() => [
     headerName: t("base.users.table.status"),
     header: t("base.users.table.status"),
     enableSorting: false,
-    filterType: "select",
+    filterType: "select" as const,
     options: [
       { value: "", label: t("base.users.table.statuses.all") },
       { value: "1", label: t("base.users.table.statuses.active") },

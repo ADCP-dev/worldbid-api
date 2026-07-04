@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsDateString,
+  IsEnum,
   IsInt,
   IsObject,
   IsOptional,
@@ -18,7 +19,7 @@ export class UpdateInteractionDto {
     enum: ['meeting', 'call', 'email', 'whatsapp', 'note', 'other'],
   })
   @IsOptional()
-  @IsString()
+  @IsEnum(['meeting', 'call', 'email', 'whatsapp', 'note', 'other'])
   type?: string;
 
   @ApiPropertyOptional({ example: 'Initial discovery call', type: String })

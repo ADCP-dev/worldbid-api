@@ -88,7 +88,7 @@ export class CrmDashboardService {
 
     // Active projects
     const activeProjects = await this.projectRepository.count({
-      where: { status: 'active' },
+      where: { status: 'in_progress' },
     });
 
     // Projects by status

@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { toast } from 'vue-sonner';
-import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n()
-const router = useRouter()
+const localePath = useLocalePath()
 const authStore = useAuthStore()
 
 const email = ref('')
@@ -34,7 +33,7 @@ async function onSubmit(event: Event) {
 
       // Optionally redirect after a delay
       setTimeout(() => {
-        router.push('/login')
+        navigateTo(localePath('/login'))
       }, 3000)
     } else {
       toast.error(t('base.auth.forgotPassword.errorGeneric'), {

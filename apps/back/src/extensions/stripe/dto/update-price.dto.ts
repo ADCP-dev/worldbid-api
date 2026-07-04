@@ -2,12 +2,19 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsBoolean,
   IsEnum,
+  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
 } from 'class-validator';
 
 export class UpdatePriceDto {
+  @ApiPropertyOptional({ example: 'uuid-product-id', type: String })
+  @IsOptional()
+  @IsNotEmpty()
+  @IsString()
+  productId?: string;
+
   @ApiPropertyOptional({ example: 'eur', type: String })
   @IsOptional()
   @IsString()
@@ -20,7 +27,6 @@ export class UpdatePriceDto {
 
   @ApiPropertyOptional({
     enum: ['one_time', 'recurring'],
-    default: 'recurring',
   })
   @IsOptional()
   @IsEnum(['one_time', 'recurring'])

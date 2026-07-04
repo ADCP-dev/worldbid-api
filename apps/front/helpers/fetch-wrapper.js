@@ -101,7 +101,7 @@ async function handleResponse(response, originalUrl, originalOptions) {
                 Authorization: `Bearer ${token}`,
               },
             };
-            return fetch(originalUrl, newOptions).then(handleResponse);
+            return fetch(originalUrl, newOptions).then(res => handleResponse(res, originalUrl, newOptions));
           });
         }
 

@@ -1,7 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UpPostContentIdeaEntity } from '@ext/upload-post/infrastructure/persistence/entities/up-post-content-idea.entity';
+import { CreateContentIdeaDto, UpdateContentIdeaDto } from '@ext/upload-post/dto/content-idea.dto';
 
 @Injectable()
 export class ContentIdeasService {
@@ -20,32 +21,32 @@ export class ContentIdeasService {
     return this.ideaRepo.findOne({ where: { id } });
   }
 
-  async create(data: Partial<UpPostContentIdeaEntity>): Promise<UpPostContentIdeaEntity> {
+  async create(dto: CreateContentIdeaDto): Promise<UpPostContentIdeaEntity> {
     const maxOrder = await this.ideaRepo
       .createQueryBuilder('i')
       .select('MAX(i.order)', 'max')
-      .where('i.status = :status', { status: data.status ?? 'idea' })
+      .where('i.status = :status', { status: dto.status ?? 'idea' })
       .getRawOne();
 
     const entity = this.ideaRepo.create({
-      ...data,
-      order: data.order ?? (Number(maxOrder?.max ?? 0) + 1),
-      status: data.status ?? 'idea',
+      ...dto,
+      order: (dto as any).order ?? (Number(maxOrder?.max ?? 0) + 1),
+      status: dto.status ?? 'idea',
     });
     return this.ideaRepo.save(entity);
   }
 
-  async update(id: string, data: Partial<UpPostContentIdeaEntity>): Promise<UpPostContentIdeaEntity> {
+  async update(id: string, dto: UpdateContentIdeaDto): Promise<UpPostContentIdeaEntity> {
     const entity = await this.ideaRepo.findOne({ where: { id } });
-    if (!entity) throw new Error(`Content idea ${id} not found`);
+    if (!entity) throw new NotFoundException(`Content idea ${id} not found`);
 
-    Object.assign(entity, data);
+    Object.assign(entity, dto);
     return this.ideaRepo.save(entity);
   }
 
   async updateStatus(id: string, status: UpPostContentIdeaEntity['status'], newOrder?: number) {
     const entity = await this.ideaRepo.findOne({ where: { id } });
-    if (!entity) throw new Error(`Content idea ${id} not found`);
+    if (!entity) throw new NotFoundException(`Content idea ${id} not found`);
 
     const oldStatus = entity.status;
     entity.status = status;

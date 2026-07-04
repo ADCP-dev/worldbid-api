@@ -4,9 +4,11 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 
 @Entity('ext_stripe_product')
+@Index(['stripeId'])
 export class ProductEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;

@@ -130,15 +130,21 @@ export class AffiliateReferralService {
       status: dto.status ?? 'pending',
       metadata: dto.metadata ?? {},
     });
-    const saved = await this.repository.save(referral);
+
+    const saved = await this.clientRepository.manager.transaction(async (manager) => {
+      const savedReferral = await manager.save(referral);
+      if (origin) {
+        client.originId = origin.id;
+        await manager.save(client);
+      }
+      return savedReferral;
+    });
+
     this.logger.log(
       `Created referral id=${saved.id} for partner id=${dto.partnerId}, client id=${dto.clientId}`,
     );
 
-    // Update crm_client.origin_id
     if (origin) {
-      client.originId = origin.id;
-      await this.clientRepository.save(client);
       this.logger.debug(
         `Updated client id=${client.id} originId=${origin.id}`,
       );

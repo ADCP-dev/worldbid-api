@@ -1,11 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsDateString,
+  IsEnum,
   IsInt,
   IsNotEmpty,
   IsObject,
   IsOptional,
   IsString,
-  IsDateString,
 } from 'class-validator';
 
 export class CreateInteractionDto {
@@ -24,7 +25,7 @@ export class CreateInteractionDto {
     enum: ['meeting', 'call', 'email', 'whatsapp', 'note', 'other'],
   })
   @IsNotEmpty()
-  @IsString()
+  @IsEnum(['meeting', 'call', 'email', 'whatsapp', 'note', 'other'])
   type: 'meeting' | 'call' | 'email' | 'whatsapp' | 'note' | 'other';
 
   @ApiPropertyOptional({ example: 'Initial discovery call', type: String })

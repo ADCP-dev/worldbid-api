@@ -2,14 +2,17 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  OneToOne,
+  ManyToOne,
   JoinColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 import { PlanEntity } from './plan.entity';
 
 @Entity('ext_stripe_subscription')
+@Index(['userId'])
+@Index(['stripeId'])
 export class SubscriptionEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -23,7 +26,7 @@ export class SubscriptionEntity {
   @Column({ nullable: true })
   planId: string | null;
 
-  @OneToOne(() => PlanEntity)
+  @ManyToOne(() => PlanEntity, { eager: false })
   @JoinColumn({ name: 'planId' })
   plan: PlanEntity;
 

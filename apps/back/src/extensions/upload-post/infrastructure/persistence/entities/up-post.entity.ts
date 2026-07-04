@@ -12,6 +12,8 @@ import {
  * Mirrors the async job lifecycle: pending → processing → success / error.
  */
 @Entity('ext_uploadpost_post')
+@Index(['status'])
+@Index(['profileUsername'])
 export class UpPostEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;

@@ -16,9 +16,9 @@ export class CreateContentIdeaDto {
   @IsEnum(['idea', 'drafting', 'ready', 'scheduled', 'published'])
   status?: string;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({ required: false, enum: ['low', 'medium', 'high'] })
   @IsOptional()
-  @IsString()
+  @IsEnum(['low', 'medium', 'high'])
   priority?: string;
 
   @ApiProperty({ required: false, type: [String] })
@@ -65,9 +65,9 @@ export class UpdateContentIdeaDto {
   @IsEnum(['idea', 'drafting', 'ready', 'scheduled', 'published'])
   status?: string;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({ required: false, enum: ['low', 'medium', 'high'] })
   @IsOptional()
-  @IsString()
+  @IsEnum(['low', 'medium', 'high'])
   priority?: string;
 
   @ApiProperty({ required: false, type: [String] })

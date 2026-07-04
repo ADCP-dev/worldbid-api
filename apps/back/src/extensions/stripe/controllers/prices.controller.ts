@@ -17,6 +17,7 @@ import { PricesService } from '../services/prices.service';
 import { CreatePriceDto } from '../dto/create-price.dto';
 
 @ApiTags('Stripe')
+@UseGuards(AuthGuard('jwt'))
 @Controller({
   path: 'stripe/prices',
   version: '1',

@@ -1,10 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsEnum,
   IsInt,
   IsNotEmpty,
   IsObject,
   IsOptional,
-  IsString,
 } from 'class-validator';
 
 export class CreateReferralDto {
@@ -25,7 +25,7 @@ export class CreateReferralDto {
 
   @ApiPropertyOptional({ example: 'pending', type: String })
   @IsOptional()
-  @IsString()
+  @IsEnum(['pending', 'converted', 'rejected'])
   status?: string;
 
   @ApiPropertyOptional({ example: {}, type: Object })
