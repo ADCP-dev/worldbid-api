@@ -10,27 +10,25 @@ interface Item {
 const route = useRoute()
 const { t } = useI18n()
 
-const sidebarNavItems = computed<Item[]>(() => [
+// Base items (always present)
+const baseItems = computed<Item[]>(() => [
   {
     title: t('base.settings.profile.title'),
     href: '/app/settings/profile',
   },
-  {
-    title: 'Suscripción',
-    href: '/app/settings/plan',
-  },
-  {
-    title: 'Stripe Test',
-    href: '/app/settings/stripe-test',
-  },
 ])
+
+// Dynamic items injected by extensions via plugins
+const dynamicItems = useState<Item[]>('settings:navItems', () => [])
+
+const sidebarNavItems = computed<Item[]>(() => [...baseItems.value, ...dynamicItems.value])
 </script>
 
 <template>
   <nav class="flex lg:flex-col gap-1">
     <NuxtLink
       v-for="item in sidebarNavItems"
-      :key="item.title"
+      :key="item.href"
       :to="item.href"
       class="btn btn-ghost justify-start w-full text-left rounded-none rounded-r-sm border-l-1"
       :class="[route.path === item.href ? 'text-primary-content border-l-primary bg-primary/10' : 'border-l-transparent']"

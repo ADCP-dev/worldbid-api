@@ -43,6 +43,21 @@ const projectsByStatus = computed(() => dashboard.value?.projectsByStatus ?? [])
 const activeProjects = computed(() => dashboard.value?.activeProjects ?? 0);
 const recentInteractions = computed(() => dashboard.value?.recentInteractions ?? []);
 
+const extensionWidgets = useState<any[]>('crm:dashboardWidgets', () => []);
+const widgetData = ref<Record<string, any>>({});
+
+async function loadExtensionWidgets() {
+  for (const widget of extensionWidgets.value) {
+    try {
+      if (widget.loadData) {
+        widgetData.value[widget.id] = await widget.loadData();
+      }
+    } catch (err: any) {
+      // Widget failed to load — skip silently
+    }
+  }
+}
+
 async function loadDashboard() {
   loading.value = true;
   try {
@@ -56,7 +71,10 @@ async function loadDashboard() {
   }
 }
 
-onMounted(loadDashboard);
+onMounted(async () => {
+  await loadDashboard();
+  await loadExtensionWidgets();
+});
 
 function formatDate(date: string) {
   return new Date(date).toLocaleDateString('es-ES', {
@@ -197,6 +215,19 @@ const PROJECT_STATUS_LABELS: Record<string, string> = {
               </div>
             </li>
           </ul>
+        </div>
+      </div>
+
+      <!-- Widgets inyectados por otras extensiones -->
+      <div v-for="widget in extensionWidgets" :key="widget.id" class="mt-6">
+        <h3 class="text-lg font-semibold mb-3">{{ widget.title }}</h3>
+        <div v-if="widget.type === 'stat-cards'" class="grid gap-4 lg:grid-cols-4 md:grid-cols-2">
+          <div v-for="stat in (widgetData[widget.id] || [])" :key="stat.label" class="card bg-base-100 shadow-sm border">
+            <div class="card-body items-center text-center p-4">
+              <span class="text-2xl font-bold text-primary">{{ stat.value }}</span>
+              <span class="text-sm opacity-70">{{ stat.label }}</span>
+            </div>
+          </div>
         </div>
       </div>
     </template>
