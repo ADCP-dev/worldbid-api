@@ -41,6 +41,7 @@ const manifest: ExtensionManifest = {
       { method: 'POST', path: 'upload-post/autodms/delete' },
       // Webhooks
       { method: 'POST', path: 'upload-post/webhooks/configure' },
+      { method: 'POST', path: 'upload-post/webhooks/incoming' },
       // Queue
       { method: 'GET', path: 'upload-post/queue/preview' },
       { method: 'GET', path: 'upload-post/queue/next-slot' },
@@ -65,6 +66,7 @@ const manifest: ExtensionManifest = {
       // Content Ideas
       { method: 'GET', path: 'upload-post/ideas' },
       { method: 'POST', path: 'upload-post/ideas' },
+      { method: 'GET', path: 'upload-post/ideas/:id' },
       { method: 'PATCH', path: 'upload-post/ideas/:id' },
       { method: 'DELETE', path: 'upload-post/ideas/:id' },
       { method: 'PATCH', path: 'upload-post/ideas/:id/status' },
@@ -74,6 +76,11 @@ const manifest: ExtensionManifest = {
       { method: 'GET', path: 'upload-post/monthly-analytics/history' },
       { method: 'GET', path: 'upload-post/monthly-analytics/top-posts' },
       { method: 'GET', path: 'upload-post/monthly-analytics/top-posts/:month' },
+      { method: 'POST', path: 'upload-post/monthly-analytics/send' },
+      // Upload local
+      { method: 'GET', path: 'upload-post/upload/local' },
+      // AutoDM local
+      { method: 'GET', path: 'upload-post/autodms/local' },
     ],
     entities: [
       { name: 'UpPost', table: 'ext_uploadpost_post' },

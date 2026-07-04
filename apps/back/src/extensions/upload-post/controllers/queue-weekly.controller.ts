@@ -12,6 +12,7 @@ import { RoleEnum } from '@iam/roles/roles.enum';
 import { RolesGuard } from '@iam/roles/roles.guard';
 import { QueueService } from '@ext/upload-post/services/queue.service';
 import { WeeklyReportService } from '@ext/upload-post/services/weekly-report.service';
+import { UpdateQueueSettingsDto } from '@ext/upload-post/dto/update-queue-settings.dto';
 
 @ApiTags('Upload-Post')
 @ApiBearerAuth()
@@ -37,8 +38,8 @@ export class QueueController {
   }
 
   @Post('settings')
-  updateSettings(@Body() settings: Record<string, any>) {
-    return this.queueService.updateSettings(settings);
+  updateSettings(@Body() dto: UpdateQueueSettingsDto) {
+    return this.queueService.updateSettings(dto as Record<string, unknown>);
   }
 }
 

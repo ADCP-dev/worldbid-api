@@ -72,6 +72,14 @@ export class AnalyticsService {
       }
 
       const today = new Date().toISOString().slice(0, 10);
+
+      // Batch fetch existing snapshots for today (avoids N+1 queries)
+      const existingRows = await this.snapshotRepo.find({
+        where: { snapshotDate: today },
+      });
+      const existingMap = new Map(existingRows.map((r) => [r.platform, r]));
+
+      const toSave: UpPostAnalyticsSnapshotEntity[] = [];
       let saved = 0;
 
       for (const [platform, metrics] of Object.entries(data)) {
@@ -81,11 +89,7 @@ export class AnalyticsService {
 
         const m = metrics as any;
 
-        const existing = await this.snapshotRepo.findOne({
-          where: { platform, snapshotDate: today },
-        });
-
-        const row = existing ?? this.snapshotRepo.create({
+        const row = existingMap.get(platform) ?? this.snapshotRepo.create({
           platform,
           snapshotDate: today,
           profileUsername: user,
@@ -102,8 +106,13 @@ export class AnalyticsService {
         row.profileViews = Number(m.profileViews ?? 0);
         row.timeSeries = m.reach_timeseries ?? null;
 
-        await this.snapshotRepo.save(row);
+        toSave.push(row);
         saved++;
+      }
+
+      // Batch save all rows in one transaction
+      if (toSave.length > 0) {
+        await this.snapshotRepo.save(toSave);
       }
 
       this.logger.log(`Daily analytics snapshot saved (${saved} platforms)`);
@@ -125,5 +134,26 @@ export class AnalyticsService {
       .where('s.snapshotDate >= :since', { since: sinceStr })
       .orderBy('s.snapshotDate', 'ASC')
       .getMany();
+  }
+
+  /**
+   * Weekly cron: clean up snapshots older than 90 days.
+   * Runs every Sunday at 02:00.
+   */
+  @Cron('0 2 * * 0')
+  async cleanupOldSnapshots() {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 90);
+    const cutoffStr = cutoff.toISOString().slice(0, 10);
+
+    const result = await this.snapshotRepo
+      .createQueryBuilder('s')
+      .delete()
+      .where('s.snapshotDate < :cutoff', { cutoff: cutoffStr })
+      .execute();
+
+    if (result.affected && result.affected > 0) {
+      this.logger.log(`Cleaned up ${result.affected} snapshots older than ${cutoffStr}`);
+    }
   }
 }

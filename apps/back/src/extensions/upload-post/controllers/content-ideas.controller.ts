@@ -21,6 +21,7 @@ import {
   UpdateContentIdeaDto,
   ReorderIdeasDto,
 } from '@ext/upload-post/dto/content-idea.dto';
+import { UpdateContentIdeaStatusDto } from '@ext/upload-post/dto/update-content-idea-status.dto';
 
 @ApiTags('Upload-Post')
 @ApiBearerAuth()
@@ -55,12 +56,12 @@ export class ContentIdeasController {
   @HttpCode(HttpStatus.OK)
   updateStatus(
     @Param('id') id: string,
-    @Body() body: { status: string; order?: number },
+    @Body() dto: UpdateContentIdeaStatusDto,
   ) {
     return this.ideasService.updateStatus(
       id,
-      body.status as any,
-      body.order,
+      dto.status,
+      dto.order,
     );
   }
 

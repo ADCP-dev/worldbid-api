@@ -5,7 +5,6 @@ export type UploadPostConfig = {
   profileUsername?: string;
   weeklyReportCron?: string;
   weeklyReportEmail?: string;
-  weeklyReportTelegramChatId?: string;
 };
 
 export const DEFAULT_WEEKLY_REPORT_CRON = '0 9 * * 1'; // Lunes 09:00

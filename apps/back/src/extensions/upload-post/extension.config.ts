@@ -27,10 +27,6 @@ class EnvironmentVariablesValidator {
   @IsString()
   @IsOptional()
   UPLOAD_POST_WEEKLY_REPORT_EMAIL: string;
-
-  @IsString()
-  @IsOptional()
-  UPLOAD_POST_WEEKLY_REPORT_TELEGRAM_CHAT_ID: string;
 }
 
 export default registerAs<UploadPostConfig>('upload-post', () => {
@@ -44,7 +40,5 @@ export default registerAs<UploadPostConfig>('upload-post', () => {
     weeklyReportCron:
       process.env.UPLOAD_POST_WEEKLY_REPORT_CRON ?? DEFAULT_WEEKLY_REPORT_CRON,
     weeklyReportEmail: process.env.UPLOAD_POST_WEEKLY_REPORT_EMAIL,
-    weeklyReportTelegramChatId:
-      process.env.UPLOAD_POST_WEEKLY_REPORT_TELEGRAM_CHAT_ID,
   };
 });

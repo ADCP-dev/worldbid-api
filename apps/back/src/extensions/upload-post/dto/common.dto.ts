@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsString, IsOptional, IsBoolean } from 'class-validator';
 
 export class ScheduleUpdateDto {
   @ApiProperty({ required: false, description: 'ISO 8601 datetime' })
@@ -18,6 +18,28 @@ export class ScheduleUpdateDto {
   caption?: string;
 }
 
+export class WebhookEventsDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  uploadCompleted?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  socialAccountConnected?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  socialAccountDisconnected?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  socialAccountReauthRequired?: boolean;
+}
+
 export class WebhookConfigureDto {
   @ApiProperty()
   @IsString()
@@ -31,14 +53,10 @@ export class WebhookConfigureDto {
   @ApiProperty({
     required: false,
     description: 'Event filters. Omit to enable all events.',
+    type: WebhookEventsDto,
   })
   @IsOptional()
-  events?: {
-    uploadCompleted?: boolean;
-    socialAccountConnected?: boolean;
-    socialAccountDisconnected?: boolean;
-    socialAccountReauthRequired?: boolean;
-  };
+  events?: WebhookEventsDto;
 }
 
 export class InstagramCommentReplyDto {
