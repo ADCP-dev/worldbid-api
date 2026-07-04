@@ -10,4 +10,7 @@ export class RoleEntity extends EntityRelationalHelper {
 
   @Column()
   name?: string;
+
+  @Column({ type: String, nullable: true })
+  homeRoute?: string | null;
 }

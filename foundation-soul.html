@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Foundation — El Alma del Template</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      background: #020617;
+      min-height: 100vh;
+      padding: 2rem;
+      color: white;
+    }
+    .container { max-width: 1300px; margin: 0 auto; }
+    .header { margin-bottom: 2rem; }
+    .header-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }
+    .pulse-dot { width: 12px; height: 12px; background: #22d3ee; border-radius: 50%; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.025em; }
+    .subtitle { color: #94a3b8; font-size: 0.875rem; margin-left: 1.75rem; }
+    .diagram-container {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 1rem;
+      border: 1px solid #1e293b;
+      padding: 1.5rem;
+      overflow-x: auto;
+    }
+    svg { width: 100%; min-width: 1000px; display: block; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-top: 2rem; }
+    .card { background: rgba(15, 23, 42, 0.5); border-radius: 0.75rem; border: 1px solid #1e293b; padding: 1.25rem; }
+    .card-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .card-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .card-dot.cyan { background: #22d3ee; }
+    .card-dot.emerald { background: #34d399; }
+    .card-dot.violet { background: #a78bfa; }
+    .card-dot.amber { background: #fbbf24; }
+    .card-dot.rose { background: #fb7185; }
+    .card-dot.orange { background: #fb923c; }
+    .card h3 { font-size: 0.875rem; font-weight: 600; }
+    .card ul { list-style: none; color: #94a3b8; font-size: 0.75rem; }
+    .card li { margin-bottom: 0.375rem; }
+    .footer { text-align: center; margin-top: 1.5rem; color: #475569; font-size: 0.75rem; }
+    code { background: rgba(15, 23, 42, 0.7); padding: 0.1em 0.3em; border-radius: 3px; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="header-row">
+        <div class="pulse-dot"></div>
+        <h1>Foundation — El Alma del Template</h1>
+      </div>
+      <p class="subtitle">Monorepo Turborepo · Nuxt 4 + NestJS 11 · SDD + Hygen + MCPs · ADCP-dev/foundation</p>
+    </div>
+
+    <div class="diagram-container">
+      <svg viewBox="0 0 1240 760">
+        <defs>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
+          </marker>
+          <marker id="arrowhead-rose" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#fb7185" />
+          </marker>
+          <marker id="arrowhead-orange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#fb923c" />
+          </marker>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+          </pattern>
+        </defs>
+
+        <rect width="100%" height="100%" fill="url(#grid)" />
+
+        <!-- ============================================================ -->
+        <!-- Fila superior: agentes externos y entrada                    -->
+        <!-- ============================================================ -->
+
+        <!-- Usuario / Dev -->
+        <rect x="40" y="40" width="120" height="60" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="100" y="65" fill="white" font-size="11" font-weight="600" text-anchor="middle">Developer</text>
+        <text x="100" y="80" fill="#94a3b8" font-size="9" text-anchor="middle">Adrián / Joan</text>
+        <text x="100" y="93" fill="#94a3b8" font-size="8" text-anchor="middle">/sdd-new X</text>
+
+        <!-- OpenCode Agent (foundation) -->
+        <rect x="220" y="40" width="160" height="60" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="300" y="65" fill="white" font-size="11" font-weight="600" text-anchor="middle">OpenCode</text>
+        <text x="300" y="80" fill="#94a3b8" font-size="9" text-anchor="middle">Agent: foundation</text>
+        <text x="300" y="93" fill="#fb7185" font-size="8" text-anchor="middle">deepseek-v4-pro</text>
+
+        <!-- MCP Hub -->
+        <rect x="440" y="40" width="220" height="60" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="550" y="60" fill="white" font-size="11" font-weight="600" text-anchor="middle">MCP Servers</text>
+        <text x="550" y="78" fill="#94a3b8" font-size="8" text-anchor="middle">context7 · engram · tavily</text>
+        <text x="550" y="90" fill="#94a3b8" font-size="8" text-anchor="middle">nuxt-seo · postgres · stripe · playwright</text>
+
+        <!-- GitHub / gh CLI -->
+        <rect x="720" y="40" width="160" height="60" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="800" y="65" fill="white" font-size="11" font-weight="600" text-anchor="middle">GitHub</text>
+        <text x="800" y="80" fill="#94a3b8" font-size="9" text-anchor="middle">gh CLI + SSH</text>
+        <text x="800" y="93" fill="#94a3b8" font-size="8" text-anchor="middle">PR · Issues · Repo</text>
+
+        <!-- SDD Workflow Pipeline -->
+        <rect x="940" y="40" width="260" height="60" rx="8" fill="rgba(251, 146, 60, 0.15)" stroke="#fb923c" stroke-width="1.5" stroke-dasharray="6,3"/>
+        <text x="1070" y="60" fill="white" font-size="11" font-weight="600" text-anchor="middle">SDD Workflow</text>
+        <text x="1070" y="78" fill="#fb923c" font-size="8" text-anchor="middle">proposal → spec → design → tasks</text>
+        <text x="1070" y="90" fill="#fb923c" font-size="8" text-anchor="middle">apply → verify → archive</text>
+
+        <!-- Flechas fila superior -->
+        <line x1="160" y1="70" x2="218" y2="70" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrowhead-rose)"/>
+        <text x="189" y="64" fill="#94a3b8" font-size="8" text-anchor="middle">prompt</text>
+
+        <line x1="380" y1="70" x2="438" y2="70" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <text x="409" y="64" fill="#94a3b8" font-size="8" text-anchor="middle">tools</text>
+
+        <line x1="660" y1="70" x2="718" y2="70" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <text x="689" y="64" fill="#94a3b8" font-size="8" text-anchor="middle">gh auth</text>
+
+        <line x1="880" y1="70" x2="938" y2="70" stroke="#fb923c" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrowhead-orange)"/>
+        <text x="909" y="64" fill="#94a3b8" font-size="8" text-anchor="middle">state</text>
+
+        <!-- ============================================================ -->
+        <!-- Capa media: el "alma" - sistema .agents/ y generadores        -->
+        <!-- ============================================================ -->
+
+        <!-- Boundary: .agents/ SDD System -->
+        <rect x="40" y="140" width="500" height="220" rx="12" fill="rgba(251, 146, 60, 0.04)" stroke="#fb923c" stroke-width="1" stroke-dasharray="6,3"/>
+        <text x="52" y="160" fill="#fb923c" font-size="10" font-weight="600">.agents/ — Spec-Driven Development</text>
+        <text x="52" y="175" fill="#94a3b8" font-size="8">3 commands · 16 skills · 3 prompts · 1 plugin</text>
+
+        <!-- 3 Commands -->
+        <rect x="60" y="195" width="140" height="55" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="130" y="215" fill="white" font-size="10" font-weight="600" text-anchor="middle">/sdd-new</text>
+        <text x="130" y="230" fill="#94a3b8" font-size="8" text-anchor="middle">Inicia cambio</text>
+        <text x="130" y="242" fill="#94a3b8" font-size="8" text-anchor="middle">&lt;change-name&gt;</text>
+
+        <rect x="220" y="195" width="140" height="55" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="290" y="215" fill="white" font-size="10" font-weight="600" text-anchor="middle">/sdd-continue</text>
+        <text x="290" y="230" fill="#94a3b8" font-size="8" text-anchor="middle">Siguiente fase</text>
+        <text x="290" y="242" fill="#94a3b8" font-size="8" text-anchor="middle">[name]</text>
+
+        <rect x="380" y="195" width="140" height="55" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="450" y="215" fill="white" font-size="10" font-weight="600" text-anchor="middle">/sdd-ff</text>
+        <text x="450" y="230" fill="#94a3b8" font-size="8" text-anchor="middle">Fast-forward planning</text>
+        <text x="450" y="242" fill="#94a3b8" font-size="8" text-anchor="middle">proposal → tasks</text>
+
+        <!-- Skills row -->
+        <text x="60" y="278" fill="#94a3b8" font-size="8" font-weight="600">Skills SDD (sub-agentes)</text>
+        <rect x="60" y="285" width="65" height="40" rx="4" fill="rgba(251, 146, 60, 0.2)" stroke="#fb923c" stroke-width="1"/>
+        <text x="92" y="302" fill="white" font-size="9" font-weight="600" text-anchor="middle">propose</text>
+        <text x="92" y="315" fill="#94a3b8" font-size="7" text-anchor="middle">/explore</text>
+
+        <rect x="135" y="285" width="55" height="40" rx="4" fill="rgba(251, 146, 60, 0.2)" stroke="#fb923c" stroke-width="1"/>
+        <text x="162" y="302" fill="white" font-size="9" font-weight="600" text-anchor="middle">spec</text>
+
+        <rect x="200" y="285" width="55" height="40" rx="4" fill="rgba(251, 146, 60, 0.2)" stroke="#fb923c" stroke-width="1"/>
+        <text x="227" y="302" fill="white" font-size="9" font-weight="600" text-anchor="middle">design</text>
+
+        <rect x="265" y="285" width="55" height="40" rx="4" fill="rgba(251, 146, 60, 0.2)" stroke="#fb923c" stroke-width="1"/>
+        <text x="292" y="302" fill="white" font-size="9" font-weight="600" text-anchor="middle">tasks</text>
+
+        <rect x="330" y="285" width="55" height="40" rx="4" fill="rgba(251, 146, 60, 0.2)" stroke="#fb923c" stroke-width="1"/>
+        <text x="357" y="302" fill="white" font-size="9" font-weight="600" text-anchor="middle">apply</text>
+
+        <rect x="395" y="285" width="55" height="40" rx="4" fill="rgba(251, 146, 60, 0.2)" stroke="#fb923c" stroke-width="1"/>
+        <text x="422" y="302" fill="white" font-size="9" font-weight="600" text-anchor="middle">verify</text>
+
+        <rect x="460" y="285" width="60" height="40" rx="4" fill="rgba(251, 146, 60, 0.2)" stroke="#fb923c" stroke-width="1"/>
+        <text x="490" y="302" fill="white" font-size="9" font-weight="600" text-anchor="middle">archive</text>
+
+        <!-- Persistence modes -->
+        <text x="60" y="345" fill="#94a3b8" font-size="8" font-weight="600">Modos de persistencia (artifacts)</text>
+        <text x="60" y="358" fill="#fb923c" font-size="9">engram</text>
+        <text x="115" y="358" fill="#94a3b8" font-size="9">·</text>
+        <text x="125" y="358" fill="#fb923c" font-size="9">openspec</text>
+        <text x="195" y="358" fill="#94a3b8" font-size="9">·</text>
+        <text x="205" y="358" fill="#fb923c" font-size="9">hybrid</text>
+        <text x="255" y="358" fill="#94a3b8" font-size="9">·</text>
+        <text x="265" y="358" fill="#fb923c" font-size="9">none</text>
+
+        <!-- Boundary: Generadores Hygen -->
+        <rect x="560" y="140" width="290" height="220" rx="12" fill="rgba(6, 78, 59, 0.05)" stroke="#34d399" stroke-width="1" stroke-dasharray="6,3"/>
+        <text x="572" y="160" fill="#34d399" font-size="10" font-weight="600">Hygen Generators (apps/back)</text>
+        <text x="572" y="175" fill="#94a3b8" font-size="8">Nunca escribir a mano: entity, service, controller, DTO, migration</text>
+
+        <rect x="580" y="195" width="125" height="50" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="642" y="215" fill="white" font-size="10" font-weight="600" text-anchor="middle">generate:resource</text>
+        <text x="642" y="230" fill="#94a3b8" font-size="8" text-anchor="middle">--name=Product</text>
+
+        <rect x="715" y="195" width="125" height="50" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="777" y="215" fill="white" font-size="10" font-weight="600" text-anchor="middle">generate:extension</text>
+        <text x="777" y="230" fill="#94a3b8" font-size="8" text-anchor="middle">ext_&lt;name&gt;_*</text>
+
+        <rect x="580" y="260" width="125" height="50" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="642" y="280" fill="white" font-size="10" font-weight="600" text-anchor="middle">add:property</text>
+        <text x="642" y="295" fill="#94a3b8" font-size="8" text-anchor="middle">--kind=primitive|reference</text>
+
+        <rect x="715" y="260" width="125" height="50" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="777" y="280" fill="white" font-size="10" font-weight="600" text-anchor="middle">migration:generate</text>
+        <text x="777" y="295" fill="#94a3b8" font-size="8" text-anchor="middle">+ migration:run</text>
+
+        <text x="580" y="335" fill="#34d399" font-size="8" font-weight="600">+ seed · add:extension-property · maizzle:build · translation:sync</text>
+
+        <!-- Boundary: docs auto-generadas -->
+        <rect x="870" y="140" width="330" height="220" rx="12" fill="rgba(8, 51, 68, 0.05)" stroke="#22d3ee" stroke-width="1" stroke-dasharray="6,3"/>
+        <text x="882" y="160" fill="#22d3ee" font-size="10" font-weight="600">docs/ — auto-generado por sync-docs.js</text>
+        <text x="882" y="175" fill="#94a3b8" font-size="8">29 archivos · ARCHITECTURE + modules + extensions + issues</text>
+
+        <rect x="890" y="195" width="95" height="50" rx="4" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="938" y="215" fill="white" font-size="9" font-weight="600" text-anchor="middle">ARCHITECTURE</text>
+        <text x="938" y="230" fill="#94a3b8" font-size="7" text-anchor="middle">md + mermaid</text>
+
+        <rect x="995" y="195" width="95" height="50" rx="4" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="1042" y="215" fill="white" font-size="9" font-weight="600" text-anchor="middle">modules/</text>
+        <text x="1042" y="230" fill="#94a3b8" font-size="7" text-anchor="middle">auth·db·email</text>
+
+        <rect x="1100" y="195" width="90" height="50" rx="4" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="1145" y="215" fill="white" font-size="9" font-weight="600" text-anchor="middle">extensions/</text>
+        <text x="1145" y="230" fill="#94a3b8" font-size="7" text-anchor="middle">cms·stripe</text>
+
+        <rect x="890" y="260" width="95" height="50" rx="4" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="938" y="280" fill="white" font-size="9" font-weight="600" text-anchor="middle">issues/</text>
+        <text x="938" y="295" fill="#94a3b8" font-size="7" text-anchor="middle">14 abiertos</text>
+
+        <rect x="995" y="260" width="95" height="50" rx="4" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="1042" y="280" fill="white" font-size="9" font-weight="600" text-anchor="middle">TOOLS.md</text>
+        <text x="1042" y="295" fill="#94a3b8" font-size="7" text-anchor="middle">catálogo</text>
+
+        <rect x="1100" y="260" width="90" height="50" rx="4" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="1145" y="280" fill="white" font-size="9" font-weight="600" text-anchor="middle">FRONTEND</text>
+        <text x="1145" y="295" fill="#94a3b8" font-size="7" text-anchor="middle">LAYERS</text>
+
+        <text x="890" y="335" fill="#22d3ee" font-size="8" font-weight="600">+ GENERATORS · EXTENSIONS-SYSTEM · TYPESCRIPT-GUIDELINES</text>
+
+        <!-- ============================================================ -->
+        <!-- Capa inferior: las dos apps y su comunicación                 -->
+        <!-- ============================================================ -->
+
+        <!-- apps/back NestJS -->
+        <rect x="60" y="430" width="540" height="240" rx="12" fill="rgba(6, 78, 59, 0.08)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="80" y="455" fill="#34d399" font-size="13" font-weight="600">apps/back — NestJS 11 (API)</text>
+        <text x="80" y="472" fill="#94a3b8" font-size="8">port 3001 · TypeORM · Hygen · 303 .ts files</text>
+
+        <text x="80" y="495" fill="#94a3b8" font-size="8" font-weight="600">CORE MODULES (iam, users, storage, communications, error-tracker, translations, social, billing)</text>
+
+        <rect x="80" y="505" width="85" height="45" rx="4" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1"/>
+        <text x="122" y="525" fill="white" font-size="9" font-weight="600" text-anchor="middle">iam</text>
+        <text x="122" y="540" fill="#94a3b8" font-size="7" text-anchor="middle">auth·roles·api-keys</text>
+
+        <rect x="175" y="505" width="75" height="45" rx="4" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1"/>
+        <text x="212" y="525" fill="white" font-size="9" font-weight="600" text-anchor="middle">users</text>
+        <text x="212" y="540" fill="#94a3b8" font-size="7" text-anchor="middle">domain</text>
+
+        <rect x="260" y="505" width="75" height="45" rx="4" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1"/>
+        <text x="297" y="525" fill="white" font-size="9" font-weight="600" text-anchor="middle">storage</text>
+        <text x="297" y="540" fill="#94a3b8" font-size="7" text-anchor="middle">S3+local</text>
+
+        <rect x="345" y="505" width="80" height="45" rx="4" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1"/>
+        <text x="385" y="525" fill="white" font-size="9" font-weight="600" text-anchor="middle">comms</text>
+        <text x="385" y="540" fill="#94a3b8" font-size="7" text-anchor="middle">mail·queue</text>
+
+        <rect x="435" y="505" width="75" height="45" rx="4" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1"/>
+        <text x="472" y="525" fill="white" font-size="9" font-weight="600" text-anchor="middle">i18n</text>
+        <text x="472" y="540" fill="#94a3b8" font-size="7" text-anchor="middle">dynamic</text>
+
+        <rect x="520" y="505" width="70" height="45" rx="4" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1"/>
+        <text x="555" y="525" fill="white" font-size="9" font-weight="600" text-anchor="middle">error</text>
+        <text x="555" y="540" fill="#94a3b8" font-size="7" text-anchor="middle">tracker</text>
+
+        <text x="80" y="580" fill="#94a3b8" font-size="8" font-weight="600">EXTENSIONS (ext_&lt;name&gt;_* tables)</text>
+
+        <rect x="80" y="590" width="125" height="55" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="142" y="612" fill="white" font-size="11" font-weight="600" text-anchor="middle">CMS</text>
+        <text x="142" y="627" fill="#94a3b8" font-size="8" text-anchor="middle">blog·pages·media·seo</text>
+        <text x="142" y="640" fill="#a78bfa" font-size="7" text-anchor="middle">TipTap + SSG/SWR</text>
+
+        <rect x="215" y="590" width="125" height="55" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="277" y="612" fill="white" font-size="11" font-weight="600" text-anchor="middle">Stripe</text>
+        <text x="277" y="627" fill="#94a3b8" font-size="8" text-anchor="middle">suscripciones</text>
+        <text x="277" y="640" fill="#a78bfa" font-size="7" text-anchor="middle">en desarrollo</text>
+
+        <rect x="350" y="590" width="170" height="55" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="435" y="610" fill="white" font-size="10" font-weight="600" text-anchor="middle">ia / langchain</text>
+        <text x="435" y="625" fill="#94a3b8" font-size="8" text-anchor="middle">+ AWS S3 · Maizzle</text>
+        <text x="435" y="640" fill="#94a3b8" font-size="8" text-anchor="middle">+ LangGraph</text>
+
+        <rect x="80" y="655" width="500" height="20" rx="4" fill="rgba(76, 29, 149, 0.3)" stroke="#a78bfa" stroke-width="1"/>
+        <text x="80" y="668" fill="#a78bfa" font-size="8">PostgreSQL 17 (ext_blog_post, ext_cms_page, auth_user, file, lang, role, session, api_key, ...)</text>
+
+        <!-- apps/front Nuxt -->
+        <rect x="640" y="430" width="560" height="240" rx="12" fill="rgba(8, 51, 68, 0.08)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="660" y="455" fill="#22d3ee" font-size="13" font-weight="600">apps/front — Nuxt 4 (UI)</text>
+        <text x="660" y="472" fill="#94a3b8" font-size="8">port 3000 · Vue 3 · Tailwind 4 · DaisyUI 5 · 32 components</text>
+
+        <text x="660" y="495" fill="#94a3b8" font-size="8" font-weight="600">LAYERS (auto-mounted via nuxt.config)</text>
+
+        <rect x="660" y="505" width="120" height="45" rx="4" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1"/>
+        <text x="720" y="525" fill="white" font-size="9" font-weight="600" text-anchor="middle">modules/base</text>
+        <text x="720" y="540" fill="#94a3b8" font-size="7" text-anchor="middle">auth·storage·ui-app</text>
+
+        <rect x="790" y="505" width="120" height="45" rx="4" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1"/>
+        <text x="850" y="525" fill="white" font-size="9" font-weight="600" text-anchor="middle">modules/landing</text>
+        <text x="850" y="540" fill="#94a3b8" font-size="7" text-anchor="middle">componentes</text>
+
+        <rect x="920" y="505" width="120" height="45" rx="4" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1"/>
+        <text x="980" y="525" fill="white" font-size="9" font-weight="600" text-anchor="middle">extensions/cms</text>
+        <text x="980" y="540" fill="#94a3b8" font-size="7" text-anchor="middle">39 .vue</text>
+
+        <rect x="1050" y="505" width="140" height="45" rx="4" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1"/>
+        <text x="1120" y="525" fill="white" font-size="9" font-weight="600" text-anchor="middle">composables + pages</text>
+        <text x="1120" y="540" fill="#94a3b8" font-size="7" text-anchor="middle">9 .ts + 12 .vue</text>
+
+        <text x="660" y="580" fill="#94a3b8" font-size="8" font-weight="600">UI KIT (@base/ui-app/) — SIEMPRE reutilizar, NUNCA custom</text>
+
+        <rect x="660" y="590" width="100" height="55" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="710" y="612" fill="white" font-size="10" font-weight="600" text-anchor="middle">Forms</text>
+        <text x="710" y="627" fill="#94a3b8" font-size="7" text-anchor="middle">Zod + vee-validate</text>
+
+        <rect x="770" y="590" width="100" height="55" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="820" y="612" fill="white" font-size="10" font-weight="600" text-anchor="middle">Tables</text>
+        <text x="820" y="627" fill="#94a3b8" font-size="7" text-anchor="middle">TanStack Vue</text>
+
+        <rect x="880" y="590" width="100" height="55" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="930" y="612" fill="white" font-size="10" font-weight="600" text-anchor="middle">Editor</text>
+        <text x="930" y="627" fill="#94a3b8" font-size="7" text-anchor="middle">TipTap v3</text>
+
+        <rect x="990" y="590" width="100" height="55" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="1040" y="612" fill="white" font-size="10" font-weight="600" text-anchor="middle">SEO</text>
+        <text x="1040" y="627" fill="#94a3b8" font-size="7" text-anchor="middle">sitemap·og</text>
+
+        <rect x="1100" y="590" width="90" height="55" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="1145" y="612" fill="white" font-size="10" font-weight="600" text-anchor="middle">i18n</text>
+        <text x="1145" y="627" fill="#94a3b8" font-size="7" text-anchor="middle">@nuxtjs</text>
+
+        <rect x="660" y="655" width="530" height="20" rx="4" fill="rgba(76, 29, 149, 0.3)" stroke="#a78bfa" stroke-width="1"/>
+        <text x="660" y="668" fill="#a78bfa" font-size="8">Pinia (persistedstate) · TanStack vue-query · vue-i18n · vue-sonner (toasts) · driver.js (tours)</text>
+
+        <!-- Flecha back <-> front -->
+        <line x1="600" y1="550" x2="638" y2="550" stroke="#22d3ee" stroke-width="2" marker-end="url(#arrowhead)"/>
+        <text x="619" y="540" fill="#22d3ee" font-size="9" text-anchor="middle">REST</text>
+        <text x="619" y="565" fill="#94a3b8" font-size="8" text-anchor="middle">/api/v1</text>
+
+        <!-- Flechas desde SDD a apps -->
+        <path d="M 200 360 L 200 410 Q 200 420 210 420 L 330 420" fill="none" stroke="#fb923c" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrowhead-orange)"/>
+        <text x="210" y="395" fill="#fb923c" font-size="8">genera código</text>
+
+        <path d="M 480 360 L 480 410 Q 480 420 490 420 L 920 420" fill="none" stroke="#fb923c" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrowhead-orange)"/>
+        <text x="780" y="412" fill="#fb923c" font-size="8">sdd-apply → código</text>
+
+        <!-- Flecha Hygen a back -->
+        <path d="M 700 360 L 700 428" fill="none" stroke="#34d399" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrowhead)"/>
+        <text x="710" y="400" fill="#34d399" font-size="8">generators</text>
+
+        <!-- ============================================================ -->
+        <!-- Capa muy inferior: Docker + persistencia externa               -->
+        <!-- ============================================================ -->
+
+        <rect x="60" y="690" width="1160" height="22" rx="4" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1"/>
+        <text x="640" y="704" fill="#94a3b8" font-size="9" text-anchor="middle">docker-compose: postgres:17.4-alpine · redis:7-alpine · mailpit · backend (NestJS :3001) · frontend (Nuxt :3000)</text>
+
+        <!-- ============================================================ -->
+        <!-- ENTORNO HERMES (sidebar derecha)                              -->
+        <!-- ============================================================ -->
+        <rect x="40" y="725" width="1160" height="22" rx="4" fill="rgba(15, 23, 42, 0.7)" stroke="#475569" stroke-width="1"/>
+        <text x="640" y="739" fill="#94a3b8" font-size="9" text-anchor="middle">Entorno Hermes: gh 2.95.0 (~/.local/bin) · SSH persistente (ssh-agent en .bashrc) · Token fine-grained en ~/.config/gh/hosts.yml · Memoria en ~/.hermes/memories/{USER,MEMORY}.md</text>
+
+      </svg>
+    </div>
+
+    <!-- Info Cards: las 3 "almas" -->
+    <div class="cards">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot orange"></div>
+          <h3>El Alma Metodológica: SDD</h3>
+        </div>
+        <ul>
+          <li>• Spec-Driven Development con 7 fases obligatorias</li>
+          <li>• proposal → spec → design → tasks → apply → verify → archive</li>
+          <li>• 16 skills (sub-agentes), 3 commands, persistencia configurable</li>
+          <li>• OpenCode como orquestador con deepseek-v4-pro</li>
+          <li>• MCPs como herramientas: context7, engram, tavily, postgres, stripe, playwright</li>
+          <li>• Filosofía: <em>delegar primero, parar siempre, cero anti-patrones</em></li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot emerald"></div>
+          <h3>El Alma Técnica: Convención sobre Código</h3>
+        </div>
+        <ul>
+          <li>• <strong>Hygen generators</strong> — NUNCA entity/service/controller/DTO a mano</li>
+          <li>• <strong>Migraciones</strong> — solo generate + run, nunca SQL inline</li>
+          <li>• <strong>UI kit @base/ui-app/</strong> — siempre reusar, nunca custom</li>
+          <li>• <strong>Path aliases</strong> — @iam/*, @users/* (back); @/, @base, @cms (front)</li>
+          <li>• <strong>Extensions</strong> — prefijo ext_&lt;name&gt;_ en tablas</li>
+          <li>• <strong>Logger</strong> — NestJS Logger / vue-sonner, nunca console.log</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot cyan"></div>
+          <h3>El Alma Práctica: Foundation como Scaffold</h3>
+        </div>
+        <ul>
+          <li>• Es una <strong>fábrica de apps</strong>, no una app concreta</li>
+          <li>• Cada nueva app = clonar + renombrar + añadir módulos</li>
+          <li>• Stack moderno: Nuxt 4 + NestJS 11 + Postgres 17 + Redis + S3</li>
+          <li>• Multilenguaje (i18n dinámico), multitenancy via roles</li>
+          <li>• Roadmap: Stripe completo, IA, Newsletter, Incidencias, Agente RAG</li>
+          <li>• El <em>setup actual</em> (memoria + gh + SSH persistente) está en <code>~/.hermes/memories/</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="footer">
+      Foundation · ADCP-dev/foundation · 2026-06-24 · Generado por Hermes desde /workspace/foundation
+    </p>
+  </div>
+</body>
+</html>

@@ -17,6 +17,11 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return navigateTo(localePath("/login") + "?redirect=" + encodeURIComponent(to.fullPath));
   }
 
+  // Allow affiliate role to access /app/portal/*
+  if (authStore.user?.role?.name === "affiliate" && to.path.startsWith("/app/portal")) {
+    return; // Allow access
+  }
+
   // Check if user has admin role
   if (!authStore.isAdmin) {
     throw createError({

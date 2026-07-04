@@ -23,6 +23,7 @@ export class RoleSeedService {
         this.repository.create({
           id: RoleEnum.customer,
           name: 'customer',
+          homeRoute: '/app',
         }),
       );
     }
@@ -38,6 +39,23 @@ export class RoleSeedService {
         this.repository.create({
           id: RoleEnum.admin,
           name: 'admin',
+          homeRoute: '/app',
+        }),
+      );
+    }
+
+    const countAffiliate = await this.repository.count({
+      where: {
+        id: RoleEnum.affiliate,
+      },
+    });
+
+    if (!countAffiliate) {
+      await this.repository.save(
+        this.repository.create({
+          id: RoleEnum.affiliate,
+          name: 'affiliate',
+          homeRoute: '/app/portal',
         }),
       );
     }
