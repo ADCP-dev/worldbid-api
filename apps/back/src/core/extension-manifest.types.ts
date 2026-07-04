@@ -55,4 +55,8 @@ export interface ExtensionConflict {
     | 'parent_cycle';
   detail: string;
   severity: 'error' | 'warning';
+  /** Extension that has the conflict (for structured access instead of regex parsing). */
+  extension?: string;
+  /** Dependency that is missing (for missing_dependency type). */
+  missingDependency?: string;
 }

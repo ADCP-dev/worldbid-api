@@ -92,8 +92,10 @@ export function detectMissingDependencies(
       if (!available.has(dep)) {
         conflicts.push({
           type: 'missing_dependency',
-          detail: `Extension "${extName}" depends on "${dep}" which is not available`,
-          severity: 'error',
+          detail: `Extension "${extName}" requires extension "${dep}" but it is not loaded. Please ensure the "${dep}" extension is present in src/extensions/${dep}/.`,
+          severity: 'warning', // Changed from 'error' to 'warning' — missing dep skips only the dependent extension, not all
+          extension: extName,
+          missingDependency: dep,
         });
       }
     }
