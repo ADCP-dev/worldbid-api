@@ -104,6 +104,16 @@ export class AffiliateCommissionService {
       );
     }
 
+    // Check for duplicate commission (referralId + projectId)
+    const existing = await this.repository.findOne({
+      where: { referralId: dto.referralId, projectId: dto.projectId },
+    });
+    if (existing) {
+      throw new BadRequestException(
+        `Commission already exists for referral ${dto.referralId} and project ${dto.projectId}`,
+      );
+    }
+
     // Validate project is paid
     if (project.paymentStatus !== 'paid') {
       throw new BadRequestException(

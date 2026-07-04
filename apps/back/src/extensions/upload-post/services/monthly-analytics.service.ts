@@ -219,7 +219,9 @@ export class MonthlyAnalyticsService {
   ): Promise<UpPostEntity[]> {
     const startDate = `${month}-01`;
     const [year, mon] = month.split('-').map(Number);
-    const nextMonthStart = `${year}-${String(mon + 1).padStart(2, '0')}-01`;
+    const nextMonthDate = new Date(year, mon - 1, 1);
+    nextMonthDate.setMonth(nextMonthDate.getMonth() + 1);
+    const nextMonthStart = nextMonthDate.toISOString().slice(0, 10);
 
     const qb = this.postRepo
       .createQueryBuilder('p')

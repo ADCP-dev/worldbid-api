@@ -60,7 +60,18 @@ export class CrmClientService {
       ]);
     }
 
-    qb.orderBy(`client.${sort}`, order);
+    const ALLOWED_SORT_COLUMNS = [
+      'id',
+      'name',
+      'companyName',
+      'email',
+      'phone',
+      'city',
+      'createdAt',
+      'updatedAt',
+    ];
+    const safeSort = ALLOWED_SORT_COLUMNS.includes(sort) ? sort : 'createdAt';
+    qb.orderBy(`client.${safeSort}`, order);
     qb.skip((page - 1) * limit).take(limit);
 
     const [data, total] = await qb.getManyAndCount();

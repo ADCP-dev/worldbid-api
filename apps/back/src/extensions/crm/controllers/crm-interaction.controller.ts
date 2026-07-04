@@ -18,6 +18,7 @@ import { RoleEnum } from '@iam/roles/roles.enum';
 import { RolesGuard } from '@iam/roles/roles.guard';
 import { CrmInteractionService } from '../services/crm-interaction.service';
 import { CreateInteractionDto } from '../dto/create-interaction.dto';
+import { UpdateInteractionDto } from '../dto/update-interaction.dto';
 
 @ApiTags('CRM')
 @ApiBearerAuth()
@@ -52,7 +53,7 @@ export class CrmInteractionController {
   @Patch(':id')
   update(
     @Param('id') id: number,
-    @Body() dto: Partial<CreateInteractionDto>,
+    @Body() dto: UpdateInteractionDto,
   ) {
     return this.interactionService.update(Number(id), dto);
   }

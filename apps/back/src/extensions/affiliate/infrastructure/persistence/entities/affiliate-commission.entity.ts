@@ -15,6 +15,7 @@ import { AffiliateReferralEntity } from './affiliate-referral.entity';
 @Entity('ext_affiliate_commission')
 @Index(['referralId'])
 @Index(['projectId'])
+@Index(['referralId', 'projectId'], { unique: true })
 export class AffiliateCommissionEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn()
   id: number;

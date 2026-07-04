@@ -17,6 +17,7 @@ import { RoleEnum } from '@iam/roles/roles.enum';
 import { RolesGuard } from '@iam/roles/roles.guard';
 import { CrmContactService } from '../services/crm-contact.service';
 import { CreateContactDto } from '../dto/create-contact.dto';
+import { UpdateContactDto } from '../dto/update-contact.dto';
 
 @ApiTags('CRM')
 @ApiBearerAuth()
@@ -41,7 +42,7 @@ export class CrmContactController {
   @Patch(':id')
   update(
     @Param('id') id: number,
-    @Body() dto: Partial<CreateContactDto>,
+    @Body() dto: UpdateContactDto,
   ) {
     return this.contactService.update(Number(id), dto);
   }

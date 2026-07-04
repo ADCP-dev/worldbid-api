@@ -5,14 +5,23 @@ import {
   Get,
   HttpException,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
+import { Roles } from '@iam/roles/roles.decorator';
+import { RoleEnum } from '@iam/roles/roles.enum';
+import { RolesGuard } from '@iam/roles/roles.guard';
 
 /**
  * Entorno de pruebas de pagos con Stripe.
  * Simula el comportamiento real de Stripe según el número de tarjeta usado.
+ * Admin-only — these endpoints should never be public.
  */
 @ApiTags('Stripe Test')
+@ApiBearerAuth()
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles(RoleEnum.admin)
 @Controller({
   path: 'stripe/test',
   version: '1',

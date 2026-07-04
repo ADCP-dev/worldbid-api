@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsDateString,
+  IsEnum,
   IsInt,
   IsNotEmpty,
   IsNumber,
@@ -33,14 +34,14 @@ export class CreateProjectDto {
   @IsNumber()
   price?: number;
 
-  @ApiPropertyOptional({ example: 'quoted', type: String })
+  @ApiPropertyOptional({ example: 'quoted', type: String, enum: ['quoted', 'approved', 'in_progress', 'delivered', 'cancelled'] })
   @IsOptional()
-  @IsString()
+  @IsEnum(['quoted', 'approved', 'in_progress', 'delivered', 'cancelled'])
   status?: string;
 
-  @ApiPropertyOptional({ example: 'pending', type: String })
+  @ApiPropertyOptional({ example: 'pending', type: String, enum: ['pending', 'partial', 'paid', 'refunded'] })
   @IsOptional()
-  @IsString()
+  @IsEnum(['pending', 'partial', 'paid', 'refunded'])
   paymentStatus?: string;
 
   @ApiPropertyOptional({ example: '2025-02-01', type: String })

@@ -8,6 +8,7 @@ import {
   Req,
   UnauthorizedException,
   Logger,
+  RawBodyRequest,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
@@ -17,7 +18,7 @@ import { RolesGuard } from '@iam/roles/roles.guard';
 import { ConfigService } from '@nestjs/config';
 import { WebhooksService } from '@ext/upload-post/services/webhooks.service';
 import { WebhookConfigureDto } from '@ext/upload-post/dto/common.dto';
-import { createHmac } from 'crypto';
+import { createHmac, timingSafeEqual } from 'crypto';
 import { Request } from 'express';
 
 const webhookLogger = new Logger('WebhooksController');
@@ -49,7 +50,10 @@ export class WebhooksController {
    */
   @Post('incoming')
   @HttpCode(HttpStatus.OK)
-  handleIncoming(@Req() req: Request, @Body() payload: any) {
+  handleIncoming(
+    @Req() req: RawBodyRequest<Request>,
+    @Body() payload: any,
+  ) {
     const secret = this.configService.get('upload-post', { infer: true })?.webhookSecret;
 
     if (secret) {
@@ -59,10 +63,21 @@ export class WebhooksController {
         throw new UnauthorizedException('Missing signature header');
       }
 
-      const rawBody = JSON.stringify(payload);
+      const rawBody: Buffer | undefined = req.rawBody;
+      if (!rawBody) {
+        webhookLogger.warn('Webhook incoming: raw body not available');
+        throw new UnauthorizedException('Missing raw body');
+      }
+
       const expected = createHmac('sha256', secret).update(rawBody).digest('hex');
 
-      if (signature !== expected) {
+      // Timing-safe comparison to prevent timing attacks
+      const sigBuffer = Buffer.from(signature);
+      const expectedBuffer = Buffer.from(expected);
+      if (
+        sigBuffer.length !== expectedBuffer.length ||
+        !timingSafeEqual(sigBuffer, expectedBuffer)
+      ) {
         webhookLogger.warn('Webhook incoming: invalid signature');
         throw new UnauthorizedException('Invalid webhook signature');
       }

@@ -14,6 +14,7 @@ interface User {
   email: string;
   role: {
     name: string;
+    homeRoute?: string;
   };
   photo?: {
     path: string;
@@ -42,14 +43,8 @@ export const useAuthStore = defineStore('auth', {
       if (!state.tokenExpires) return true;
       return Date.now() >= state.tokenExpires;
     },
-    isAdmin: (state) => {
-      const role = state.user?.role?.name || [];
-      return role === 'admin';
-    },
-    isCustomer: (state) => {
-      const role = state.user?.role?.name || [];
-      return role === 'customer';
-    },
+    isAdmin: (state) => state.user?.role?.name === 'admin',
+    isCustomer: (state) => state.user?.role?.name === 'customer',
     fullName: (state) => {
       if (!state.user) return '';
       return `${state.user.firstName} ${state.user.lastName}`.trim();

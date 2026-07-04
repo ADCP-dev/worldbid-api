@@ -1,4 +1,9 @@
 <script setup lang="ts">
+definePageMeta({
+  layout: 'default',
+  middleware: ['auth', 'admin'],
+});
+
 import { useTranslations } from "../../../../composables/useTranslations";
 import { ref, onMounted } from "vue";
 import DeleteButton from "@/modules/base/ui-app/components/data-table/buttons/DeleteButton.vue";

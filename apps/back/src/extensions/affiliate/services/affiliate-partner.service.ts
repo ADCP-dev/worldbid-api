@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindOptionsWhere, ILike } from 'typeorm';
+import { randomBytes } from 'crypto';
 import * as bcrypt from 'bcryptjs';
 import { AffiliatePartnerEntity } from '../infrastructure/persistence/entities/affiliate-partner.entity';
 import { UserEntity } from '@users/infrastructure/entities/user.entity';
@@ -115,12 +116,14 @@ export class AffiliatePartnerService {
       where: { email: partner.email },
     });
 
+    let tempPassword: string | null = null;
+
     if (!user) {
       const affiliateRole = await this.roleRepository.findOne({
         where: { id: RoleEnum.affiliate },
       });
 
-      const tempPassword = Math.random().toString(36).slice(-12);
+      tempPassword = randomBytes(12).toString('base64url').slice(0, 16);
       const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
       user = this.userRepository.create({
@@ -143,13 +146,24 @@ export class AffiliatePartnerService {
 
     // Send welcome / reset email
     try {
+      const passwordSection =
+        tempPassword !== null
+          ? `<p>Your temporary password is: <strong>${tempPassword}</strong></p>
+<p>Please log in and change your password immediately.</p>`
+          : `<p>You can log in with your existing credentials.</p>`;
+
       await this.mailerService.sendMail({
         to: partner.email,
         subject: 'Welcome to the Affiliate Program',
         html: `<p>Hello ${partner.name},</p>
 <p>You have been invited to the affiliate program. You can now log in to the portal.</p>
-<p>Email: ${partner.email}</p>`,
-        text: `Hello ${partner.name},\n\nYou have been invited to the affiliate program. You can now log in to the portal.\nEmail: ${partner.email}`,
+<p>Email: ${partner.email}</p>
+${passwordSection}`,
+        text: `Hello ${partner.name},\n\nYou have been invited to the affiliate program. You can now log in to the portal.\nEmail: ${partner.email}${
+          tempPassword !== null
+            ? `\n\nYour temporary password is: ${tempPassword}\nPlease log in and change your password immediately.`
+            : ''
+        }`,
       });
       this.logger.log(`Invitation email sent to ${partner.email}`);
     } catch (err) {
