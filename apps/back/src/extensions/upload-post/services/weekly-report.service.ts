@@ -227,7 +227,10 @@ export class WeeklyReportService {
     const report = await this.generate();
     const body = this.renderEmailBody(report);
 
-    const email = this.configService.get('upload-post', { infer: true })?.weeklyReportEmail;
+    // Priority: extension-specific config → global NOTIFICATION_EMAIL → fallback
+    const email =
+      this.configService.get('upload-post', { infer: true })?.weeklyReportEmail ||
+      this.configService.get('app', { infer: true })?.notificationEmail;
     if (email) {
       try {
         await this.queuedMailerService.sendMail({

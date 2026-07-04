@@ -1,10 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AffiliateReferralEntity } from '../infrastructure/persistence/entities/affiliate-referral.entity';
 import { AffiliateCommissionEntity } from '../infrastructure/persistence/entities/affiliate-commission.entity';
 import { QueuedMailerService } from '@comms/email-queue/queued-mailer.service';
+import { AllConfigType } from '@src/config/config.type';
 
 @Injectable()
 export class AffiliateReportService {
@@ -16,6 +18,7 @@ export class AffiliateReportService {
     @InjectRepository(AffiliateCommissionEntity)
     private readonly commissionRepository: Repository<AffiliateCommissionEntity>,
     private readonly mailerService: QueuedMailerService,
+    private readonly configService: ConfigService<AllConfigType>,
   ) {}
 
   /**
@@ -117,8 +120,13 @@ Commissions paid: ${commissionsPaid}
 
 This report was generated automatically.`;
 
+      const notificationEmail =
+        this.configService.get('app', { infer: true })?.notificationEmail ||
+        process.env.AFFILIATE_REPORT_EMAIL ||
+        'hola@som-os.dev';
+
       await this.mailerService.sendMail({
-        to: process.env.AFFILIATE_REPORT_EMAIL || 'hola@som-os.dev',
+        to: notificationEmail,
         subject: `Affiliate Monthly Report — ${monthName} ${now.getFullYear()}`,
         html,
         text,
