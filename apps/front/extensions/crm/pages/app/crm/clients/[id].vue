@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { toast } from 'vue-sonner';
 
 definePageMeta({
@@ -154,8 +154,8 @@ async function loadInteractions() {
 
 async function loadProjects() {
   try {
-    const all: any[] = await crm.getProjects();
-    projects.value = (all ?? []).filter((p) => String(p.clientId) === String(clientId.value));
+    const all: any[] = await crm.getProjects(clientId.value);
+    projects.value = all ?? [];
   } catch (err: any) {
     toast.error('Error cargando proyectos', { description: err.message });
   }
@@ -290,9 +290,21 @@ function formatDate(date: string) {
   });
 }
 
+// Track which tabs have already been loaded to avoid duplicate fetches
+const loadedTabs = ref<Set<string>>(new Set());
+
 onMounted(async () => {
   await Promise.all([loadClient(), loadFilters()]);
-  await Promise.all([loadContacts(), loadInteractions(), loadProjects()]);
+  // Only load the default tab data on mount; others load lazily on demand
+  loadedTabs.value.add('data');
+});
+
+watch(activeTab, async (tab) => {
+  if (loadedTabs.value.has(tab)) return;
+  loadedTabs.value.add(tab);
+  if (tab === 'contacts') await loadContacts();
+  else if (tab === 'interactions') await loadInteractions();
+  else if (tab === 'projects') await loadProjects();
 });
 </script>
 

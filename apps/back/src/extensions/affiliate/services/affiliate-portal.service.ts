@@ -65,13 +65,23 @@ export class AffiliatePortalService {
 
   async getPartnerReferrals(
     userId: number,
-  ): Promise<AffiliateReferralEntity[]> {
+    page = 1,
+    limit = 20,
+  ): Promise<{
+    data: AffiliateReferralEntity[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     const partner = await this.findPartnerByUserId(userId);
-    return this.referralRepository.find({
+    const [data, total] = await this.referralRepository.findAndCount({
       where: { partnerId: partner.id },
       relations: ['client'],
       order: { referredAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+    return { data, total, page, limit };
   }
 
   async getPartnerReferral(

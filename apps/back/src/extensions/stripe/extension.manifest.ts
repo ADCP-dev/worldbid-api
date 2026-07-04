@@ -38,6 +38,10 @@ const manifest: ExtensionManifest = {
       { method: 'DELETE', path: 'stripe/subscriptions/:id' },
       { method: 'POST', path: 'stripe/webhooks' },
       { method: 'POST', path: 'stripe/test/payment' },
+      { method: 'GET', path: 'stripe/test/payments' },
+      { method: 'POST', path: 'stripe/test/subscription' },
+      { method: 'POST', path: 'stripe/test/webhook/simulate' },
+      { method: 'GET', path: 'stripe/test/methods' },
     ],
     entities: [
       { name: 'Product', table: 'ext_stripe_product' },

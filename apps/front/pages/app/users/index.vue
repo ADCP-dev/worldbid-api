@@ -60,7 +60,7 @@ const handleDelete = async (user: any) => {
       toast.success(t("base.users.messages.deleteSuccess"));
       refreshTable();
     } catch (error: any) {
-      console.error(error);
+      if (import.meta.dev) console.error(error);
       toast.error(t("base.users.messages.deleteError"));
     }
   }

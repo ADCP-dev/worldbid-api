@@ -67,7 +67,7 @@ async function loadSummary() {
     summary.value = await affiliate.getCommissionSummary();
   } catch (err: any) {
     // Non-fatal
-    console.error('Error cargando resumen', err);
+    if (import.meta.dev) console.error('Error cargando resumen', err);
   }
 }
 

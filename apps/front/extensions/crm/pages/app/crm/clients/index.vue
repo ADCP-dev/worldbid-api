@@ -90,8 +90,8 @@ function formatDate(date: string) {
   });
 }
 
-function navigateToClient(id: number | string) {
-  navigateTo(`/app/crm/clients/${id}`);
+async function navigateToClient(id: number | string) {
+  await navigateTo(`/app/crm/clients/${id}`);
 }
 
 onMounted(() => {

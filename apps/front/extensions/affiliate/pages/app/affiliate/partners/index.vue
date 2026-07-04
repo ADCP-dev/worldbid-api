@@ -31,8 +31,8 @@ function onSearch() {
   searchTimer = setTimeout(loadPartners, 300);
 }
 
-function navigateToPartner(id: number | string) {
-  navigateTo(`/app/affiliate/partners/${id}`);
+async function navigateToPartner(id: number | string) {
+  await navigateTo(`/app/affiliate/partners/${id}`);
 }
 
 function formatRate(rate: number) {

@@ -62,12 +62,13 @@ export class AffiliateReportService {
         .andWhere('r.createdAt < :end', { end: nextMonthStart })
         .getCount();
 
-      // Converted referrals this month (updatedAt within this month)
+      // Converted referrals this month (updatedAt within this month).
+      // Use < nextMonthStart to avoid losing records updated at 23:59:59.999.
       const convertedReferralsThisMonth = await this.referralRepository
         .createQueryBuilder('r')
         .where('r.status = :status', { status: 'converted' })
         .andWhere('r.updatedAt >= :start', { start: monthStart })
-        .andWhere('r.updatedAt <= :end', { end: monthEnd })
+        .andWhere('r.updatedAt < :nextStart', { nextStart: nextMonthStart })
         .getCount();
 
       // Commissions approved this month
@@ -75,7 +76,7 @@ export class AffiliateReportService {
         .createQueryBuilder('c')
         .where('c.status = :status', { status: 'approved' })
         .andWhere('c.updatedAt >= :start', { start: monthStart })
-        .andWhere('c.updatedAt <= :end', { end: monthEnd })
+        .andWhere('c.updatedAt < :nextStart', { nextStart: nextMonthStart })
         .getCount();
 
       // Commissions paid this month
@@ -83,7 +84,7 @@ export class AffiliateReportService {
         .createQueryBuilder('c')
         .where('c.status = :status', { status: 'paid' })
         .andWhere('c.paidAt >= :start', { start: monthStart })
-        .andWhere('c.paidAt <= :end', { end: monthEnd })
+        .andWhere('c.paidAt < :nextStart', { nextStart: nextMonthStart })
         .getCount();
 
       const totalChanges =

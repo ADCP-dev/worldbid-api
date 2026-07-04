@@ -4,21 +4,20 @@
  * All endpoints require admin role — backend enforces @Roles(RoleEnum.admin).
  */
 
-const API_PREFIX = '/api/v1';
-
 function useApi() {
   const config = useRuntimeConfig();
   const authStore = useAuthStore();
   const baseUrl = config.public.apiUrl as string;
+  const apiPrefix = (config.public.apiPrefix as string) || '/api/v1';
 
   async function apiFetch<T>(path: string, options: any = {}): Promise<T> {
-    const token = authStore.token;
-    const res = await $fetch<T>(`${baseUrl}${API_PREFIX}${path}`, {
+    const headers: Record<string, string> = { ...options.headers };
+    if (authStore.token) {
+      headers.Authorization = `Bearer ${authStore.token}`;
+    }
+    const res = await $fetch<T>(`${baseUrl}${apiPrefix}${path}`, {
       ...options,
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-        ...options.headers,
-      },
+      headers,
     });
     return res as T;
   }

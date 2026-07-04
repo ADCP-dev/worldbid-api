@@ -211,7 +211,7 @@ export const useAuthStore = defineStore('auth', {
           });
         }
       } catch (error: unknown) {
-        console.error('Logout error:', error);
+        if (import.meta.dev) console.error('Logout error:', error);
       } finally {
         this.clearAuthData();
         await navigateTo('/login');
@@ -260,7 +260,7 @@ export const useAuthStore = defineStore('auth', {
 
         return { success: true, token: result.token };
       } catch (error: unknown) {
-        console.error('Token refresh failed:', error);
+        if (import.meta.dev) console.error('Token refresh failed:', error);
         this.logout();
         return {
           success: false,

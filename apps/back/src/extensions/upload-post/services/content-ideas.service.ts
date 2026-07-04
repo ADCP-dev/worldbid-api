@@ -78,8 +78,10 @@ export class ContentIdeasService {
    * Receives an ordered array of IDs and updates their order field.
    */
   async reorder(orderedIds: string[]): Promise<void> {
-    for (let i = 0; i < orderedIds.length; i++) {
-      await this.ideaRepo.update({ id: orderedIds[i] }, { order: i + 1 });
-    }
+    await this.ideaRepo.manager.transaction(async (manager) => {
+      for (let i = 0; i < orderedIds.length; i++) {
+        await manager.update(this.ideaRepo.target, { id: orderedIds[i] }, { order: i + 1 });
+      }
+    });
   }
 }

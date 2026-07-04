@@ -8,7 +8,7 @@ export default defineNuxtPlugin(async () => {
       try {
         await authStore.refreshAccessToken();
       } catch (error) {
-        console.error("Failed to refresh token on startup:", error);
+        if (import.meta.dev) console.error("Failed to refresh token on startup:", error);
         authStore.logout();
       }
     } else {
@@ -21,7 +21,7 @@ export default defineNuxtPlugin(async () => {
       try {
         await authStore.getMe();
       } catch (error) {
-        console.error("Failed to fetch user data on startup:", error);
+        if (import.meta.dev) console.error("Failed to fetch user data on startup:", error);
       }
     }
   }

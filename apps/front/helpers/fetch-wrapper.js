@@ -72,7 +72,12 @@ function authHeader(url) {
 
 async function handleResponse(response, originalUrl, originalOptions) {
   const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch (e) {
+    data = { message: text };
+  }
 
   if (!response.ok) {
     const authStore = useAuthStore();
@@ -138,7 +143,7 @@ async function handleResponse(response, originalUrl, originalOptions) {
     // Handle other error statuses
     if (response.status === 403 && authStore.isAuthenticated) {
       // Forbidden - user doesn't have permission
-      console.warn('Access forbidden:', data?.message || 'Insufficient permissions');
+      if (import.meta.dev) console.warn('Access forbidden:', data?.message || 'Insufficient permissions');
     }
 
     const error = new Error(data?.message || response.statusText || 'Request failed');

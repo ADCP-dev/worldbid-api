@@ -30,12 +30,34 @@ export class CrmSeedService {
     ];
 
     for (const s of statuses) {
-      const exists = await this.statusRepository.count({
+      const existing = await this.statusRepository.findOne({
         where: { name: s.name },
       });
-      if (!exists) {
+      if (!existing) {
         await this.statusRepository.save(this.statusRepository.create(s));
         this.logger.log(`Seeded status: ${s.name}`);
+      } else {
+        let changed = false;
+        if (existing.label !== s.label) {
+          existing.label = s.label;
+          changed = true;
+        }
+        if (existing.color !== s.color) {
+          existing.color = s.color;
+          changed = true;
+        }
+        if (existing.sortOrder !== s.sortOrder) {
+          existing.sortOrder = s.sortOrder;
+          changed = true;
+        }
+        if (existing.isDefault !== s.isDefault) {
+          existing.isDefault = s.isDefault;
+          changed = true;
+        }
+        if (changed) {
+          await this.statusRepository.save(existing);
+          this.logger.log(`Updated status: ${s.name}`);
+        }
       }
     }
   }
@@ -52,12 +74,26 @@ export class CrmSeedService {
     ];
 
     for (const o of origins) {
-      const exists = await this.originRepository.count({
+      const existing = await this.originRepository.findOne({
         where: { name: o.name },
       });
-      if (!exists) {
+      if (!existing) {
         await this.originRepository.save(this.originRepository.create(o));
         this.logger.log(`Seeded origin: ${o.name}`);
+      } else {
+        let changed = false;
+        if (existing.label !== o.label) {
+          existing.label = o.label;
+          changed = true;
+        }
+        if (existing.sortOrder !== o.sortOrder) {
+          existing.sortOrder = o.sortOrder;
+          changed = true;
+        }
+        if (changed) {
+          await this.originRepository.save(existing);
+          this.logger.log(`Updated origin: ${o.name}`);
+        }
       }
     }
   }
