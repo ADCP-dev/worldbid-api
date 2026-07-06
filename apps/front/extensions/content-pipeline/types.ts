@@ -137,6 +137,8 @@ export interface Draft {
   socialVariants?: Record<string, unknown>[];
   images?: Record<string, unknown>[];
   affiliateLinks?: Record<string, unknown>[];
+  videos?: Record<string, unknown>[];
+  carousels?: Record<string, unknown>[];
   generationLog?: Record<string, unknown>;
   status?: string;
   reviewNotes?: string | null;
@@ -249,4 +251,142 @@ export interface DataTableRow<T = Record<string, unknown>> {
 
 export interface CellContext<T = Record<string, unknown>> {
   row: DataTableRow<T>;
+}
+
+// ─── Video Jobs ───────────────────────────────────────────────────────
+
+export interface VideoJobEnqueueResult {
+  jobId: string;
+  status: string;
+}
+
+export interface VideoJobResult {
+  videoPath: string;
+  durationSec: number;
+  sizeBytes: number;
+  ctaVideoUrl?: string;
+  templateType?: string;
+  carouselHtml?: string[];
+  postText?: string;
+}
+
+export interface VideoJobStatus {
+  jobId: string;
+  state: string; // 'waiting' | 'active' | 'completed' | 'failed' | 'delayed'
+  result?: VideoJobResult;
+  failedReason?: string;
+}
+
+// ─── Video Templates ──────────────────────────────────────────────────
+
+export type TemplateType =
+  | 'before-after'
+  | 'product-showcase'
+  | 'presentation'
+  | 'tutorial'
+  | 'case-study'
+  | 'faq'
+  | 'comparison'
+  | 'timeline'
+  | 'problem-solution'
+  | 'quote-insight'
+  | 'custom';
+
+export type SlotType =
+  | 'before'
+  | 'after'
+  | 'front'
+  | 'back'
+  | 'feature'
+  | 'title'
+  | 'agenda'
+  | 'content'
+  | 'summary'
+  | 'hook'
+  | 'step'
+  | 'result'
+  | 'problem'
+  | 'solution'
+  | 'implementation'
+  | 'metric'
+  | 'testimonial'
+  | 'cta'
+  | 'question'
+  | 'answer'
+  | 'feature-a'
+  | 'feature-b'
+  | 'verdict'
+  | 'milestone'
+  | 'current-state'
+  | 'why-fail'
+  | 'approach'
+  | 'how-it-works'
+  | 'quote'
+  | 'context'
+  | 'expansion'
+  | 'takeaway';
+
+export interface TemplateSlot {
+  position: number;
+  slotType: SlotType;
+  label: string;
+  acceptImage?: boolean;
+  required?: boolean;
+}
+
+export interface VideoTemplate {
+  type: TemplateType;
+  name: string;
+  description: string;
+  slots: TemplateSlot[];
+  defaultTransitions: string[];
+  defaultSlideDurationSec: number;
+  appendCtaVideo: boolean;
+  ctaVideoUrl?: string;
+  format: 'portrait' | 'vertical';
+}
+
+export interface SlotFill {
+  imageUrl?: string;
+  slide?: Record<string, unknown>;
+}
+
+export interface GenerateTemplatePayload {
+  template: TemplateType;
+  format?: 'portrait' | 'vertical';
+  transitions?: string[];
+  ctaVideoUrl?: string;
+  slots: Record<number, SlotFill>;
+}
+
+// ─── CTA Videos ───────────────────────────────────────────────────────
+
+export interface CtaVideo {
+  id: string;
+  name: string;
+  url: string;
+  format?: string;
+  durationSec?: number | null;
+  isActive: boolean;
+  description?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateCtaVideoPayload {
+  name: string;
+  url: string;
+  format?: string;
+  durationSec?: number;
+  isActive?: boolean;
+  description?: string;
+}
+
+export interface UpdateCtaVideoPayload {
+  name?: string;
+  url?: string;
+  format?: string;
+  durationSec?: number;
+  isActive?: boolean;
+  description?: string;
 }

@@ -6,12 +6,15 @@
 
 import type {
   ApiFetchOptions,
+  CreateCtaVideoPayload,
   CreateIdeaPayload,
   CreateProjectPayload,
+  CtaVideo,
   DashboardData,
   DashboardSummary,
   Draft,
   GenerateDraftPayload,
+  GenerateTemplatePayload,
   Idea,
   MetricsSnapshot,
   PaginatedResponse,
@@ -19,9 +22,13 @@ import type {
   ProjectMetrics,
   RejectDraftPayload,
   ResearchIdeasPayload,
+  UpdateCtaVideoPayload,
   UpdateDraftPayload,
   UpdateIdeaPayload,
   UpdateProjectPayload,
+  VideoJobEnqueueResult,
+  VideoJobStatus,
+  VideoTemplate,
 } from '../types';
 
 function useApi() {
@@ -158,6 +165,62 @@ export function useContentPipeline() {
     return apiFetch<DashboardData | DashboardSummary>('/content-pipeline/metrics/dashboard');
   }
 
+  // ─── Video Generation (async) ────────────────────────────────────────
+
+  async function generateVideo(draftId: string): Promise<VideoJobEnqueueResult> {
+    return apiFetch<VideoJobEnqueueResult>(`/content-pipeline/drafts/${draftId}/generate-video`, { method: 'POST' });
+  }
+
+  async function generateCarouselVideo(
+    draftId: string,
+    options?: { format?: 'portrait' | 'vertical'; transitions?: string[] },
+  ): Promise<VideoJobEnqueueResult> {
+    return apiFetch<VideoJobEnqueueResult>(`/content-pipeline/drafts/${draftId}/generate-carousel-video`, {
+      method: 'POST',
+      body: options ?? {},
+    });
+  }
+
+  async function getVideoJobStatus(jobId: string): Promise<VideoJobStatus> {
+    return apiFetch<VideoJobStatus>(`/content-pipeline/video-jobs/${jobId}`);
+  }
+
+  // ─── Templates ────────────────────────────────────────────────────────
+
+  async function listTemplates(): Promise<VideoTemplate[]> {
+    return apiFetch<VideoTemplate[]>('/content-pipeline/templates');
+  }
+
+  async function getTemplate(type: string): Promise<VideoTemplate> {
+    return apiFetch<VideoTemplate>(`/content-pipeline/templates/${type}`);
+  }
+
+  async function generateFromTemplate(data: GenerateTemplatePayload): Promise<VideoJobEnqueueResult> {
+    return apiFetch<VideoJobEnqueueResult>('/content-pipeline/templates/generate', { method: 'POST', body: data });
+  }
+
+  // ─── CTA Videos ───────────────────────────────────────────────────────
+
+  async function listCtaVideos(): Promise<CtaVideo[]> {
+    return apiFetch<CtaVideo[]>('/content-pipeline/cta-videos');
+  }
+
+  async function getActiveCtaVideo(): Promise<CtaVideo | null> {
+    return apiFetch<CtaVideo | null>('/content-pipeline/cta-videos/active');
+  }
+
+  async function createCtaVideo(data: CreateCtaVideoPayload): Promise<CtaVideo> {
+    return apiFetch<CtaVideo>('/content-pipeline/cta-videos', { method: 'POST', body: data });
+  }
+
+  async function updateCtaVideo(id: string, data: UpdateCtaVideoPayload): Promise<CtaVideo> {
+    return apiFetch<CtaVideo>(`/content-pipeline/cta-videos/${id}`, { method: 'PATCH', body: data });
+  }
+
+  async function deleteCtaVideo(id: string): Promise<void> {
+    return apiFetch<void>(`/content-pipeline/cta-videos/${id}`, { method: 'DELETE' });
+  }
+
   return {
     // Projects
     getProjects,
@@ -182,5 +245,19 @@ export function useContentPipeline() {
     // Metrics
     getMetrics,
     getDashboard,
+    // Video Generation
+    generateVideo,
+    generateCarouselVideo,
+    getVideoJobStatus,
+    // Templates
+    listTemplates,
+    getTemplate,
+    generateFromTemplate,
+    // CTA Videos
+    listCtaVideos,
+    getActiveCtaVideo,
+    createCtaVideo,
+    updateCtaVideo,
+    deleteCtaVideo,
   };
 }

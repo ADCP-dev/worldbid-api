@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, onUnmounted } from 'vue';
 import { z } from 'zod';
 import { toast } from 'vue-sonner';
-import { Check, X, Send, ArrowLeft } from 'lucide-vue-next';
+import { Check, X, Send, ArrowLeft, Video, Film } from 'lucide-vue-next';
 import RichEditor from '@base/ui-app/components/rich-editor/RichEditor.vue';
 import FormInput from '@base/ui-app/components/form/FormInput.vue';
 import FormTextArea from '@base/ui-app/components/form/FormTextArea.vue';
@@ -44,7 +44,80 @@ const isPublished = computed(() => draft.value?.status === 'published');
 
 const socialVariants = computed(() => draft.value?.socialVariants ?? []);
 const images = computed(() => draft.value?.images ?? []);
+const videos = computed(() => draft.value?.videos ?? []);
 const ideaTitle = computed(() => draft.value?.idea?.title || draft.value?.title || 'Untitled draft');
+
+// ─── Video generation ────────────────────────────────────────────────────
+
+const generatingVideo = ref(false);
+const generatingCarousel = ref(false);
+const activeJobId = ref<string | null>(null);
+const jobPollInterval = ref<ReturnType<typeof setInterval> | null>(null);
+
+function errorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  return String(err);
+}
+
+function stopJobPolling() {
+  if (jobPollInterval.value) {
+    clearInterval(jobPollInterval.value);
+    jobPollInterval.value = null;
+  }
+}
+
+async function startJobPolling(jobId: string) {
+  stopJobPolling();
+  jobPollInterval.value = setInterval(async () => {
+    try {
+      const status = await cp.getVideoJobStatus(jobId);
+      if (status.state === 'completed') {
+        stopJobPolling();
+        activeJobId.value = null;
+        toast.success('Video generation completed');
+        await loadDraft();
+      } else if (status.state === 'failed') {
+        stopJobPolling();
+        activeJobId.value = null;
+        toast.error('Video generation failed', { description: status.failedReason || undefined });
+      }
+    } catch (err: unknown) {
+      stopJobPolling();
+      activeJobId.value = null;
+      toast.error('Job polling error', { description: errorMessage(err) });
+    }
+  }, 3000);
+}
+
+async function handleGenerateVideo() {
+  generatingVideo.value = true;
+  try {
+    const result = await cp.generateVideo(draftId.value);
+    activeJobId.value = result.jobId;
+    toast.success('Video generation queued', { description: result.jobId });
+    startJobPolling(result.jobId);
+  } catch (err: unknown) {
+    toast.error('Error starting video generation', { description: errorMessage(err) });
+  } finally {
+    generatingVideo.value = false;
+  }
+}
+
+async function handleGenerateCarousel() {
+  generatingCarousel.value = true;
+  try {
+    const result = await cp.generateCarouselVideo(draftId.value);
+    activeJobId.value = result.jobId;
+    toast.success('Carousel video generation queued', { description: result.jobId });
+    startJobPolling(result.jobId);
+  } catch (err: unknown) {
+    toast.error('Error starting carousel video', { description: errorMessage(err) });
+  } finally {
+    generatingCarousel.value = false;
+  }
+}
+
+onUnmounted(stopJobPolling);
 
 async function loadDraft() {
   loading.value = true;
@@ -342,6 +415,71 @@ const statusBadgeClass: Record<string, string> = {
                     class="w-full h-32 object-cover"
                   >
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Video Generation -->
+          <div class="card bg-base-100 shadow-sm border border-base-300">
+            <div class="card-body">
+              <h2 class="card-title">Video Generation</h2>
+              <!-- If draft has videos, show them -->
+              <div v-if="videos.length > 0" class="space-y-2">
+                <div
+                  v-for="(video, idx) in videos"
+                  :key="idx"
+                  class="card card-compact bg-base-200"
+                >
+                  <div class="card-body">
+                    <div class="flex items-center gap-2">
+                      <Video class="w-4 h-4 text-primary" />
+                      <span class="text-sm font-medium">
+                        {{ video.path || video.videoPath || `Video ${idx + 1}` }}
+                      </span>
+                    </div>
+                    <div class="flex gap-3 text-xs text-base-content/60">
+                      <span v-if="video.durationSec != null">Duration: {{ video.durationSec }}s</span>
+                      <span v-if="video.sizeBytes != null">Size: {{ video.sizeBytes }} B</span>
+                    </div>
+                    <a
+                      v-if="typeof (video.path ?? video.videoPath) === 'string'"
+                      :href="String(video.path ?? video.videoPath)"
+                      target="_blank"
+                      class="link link-primary text-xs"
+                    >
+                      Open video
+                    </a>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="text-sm text-base-content/40 py-2">
+                No videos generated yet.
+              </div>
+              <!-- Generate buttons -->
+              <div class="flex gap-2 mt-2">
+                <button
+                  class="btn btn-primary btn-sm"
+                  :disabled="generatingVideo"
+                  @click="handleGenerateVideo"
+                >
+                  <Video class="w-4 h-4" />
+                  Generate Video
+                </button>
+                <button
+                  class="btn btn-outline btn-sm"
+                  :disabled="generatingCarousel"
+                  @click="handleGenerateCarousel"
+                >
+                  <Film class="w-4 h-4" />
+                  Carousel Video
+                </button>
+              </div>
+              <!-- If job was enqueued, show jobId + link to video-jobs page -->
+              <div v-if="activeJobId" class="mt-2 text-sm">
+                <span class="text-base-content/60">Job: </span>
+                <NuxtLink to="/app/content-pipeline/video-jobs" class="link link-primary">
+                  {{ activeJobId }}
+                </NuxtLink>
               </div>
             </div>
           </div>
