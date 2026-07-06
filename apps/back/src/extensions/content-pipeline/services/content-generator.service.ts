@@ -4,6 +4,7 @@ import { AllConfigType } from '@src/config/config.type';
 import { ContentPipelineConfig } from '@ext/content-pipeline/config/content-pipeline-config.type';
 import { ContentPipelineProjectEntity } from '@ext/content-pipeline/infrastructure/persistence/entities/project.entity';
 import { ContentPipelineIdeaEntity } from '@ext/content-pipeline/infrastructure/persistence/entities/idea.entity';
+import { DesignSystemLoaderService } from '@ext/content-pipeline/services/design-system-loader.service';
 
 export interface SocialVariant {
   platform: string;
@@ -43,6 +44,7 @@ export class ContentGeneratorService {
 
   constructor(
     private readonly configService: ConfigService<AllConfigType>,
+    private readonly designSystemLoader: DesignSystemLoaderService,
   ) {
     this.cfg = this.configService.get('content-pipeline', { infer: true }) ?? null;
   }
@@ -73,6 +75,10 @@ export class ContentGeneratorService {
     const timeoutMs = this.cfg!.ollamaTimeoutMs ?? 60_000;
 
     const systemPrompt = this.buildSystemPrompt(project, idea.contentType);
+    const designDoc = await this.designSystemLoader.getDesignDoc();
+    const fullSystemPrompt = designDoc
+      ? `${systemPrompt}\n\n## BRAND DESIGN SYSTEM\nFollow these design guidelines for tone, style, and visual consistency:\n\n${designDoc}`
+      : systemPrompt;
     const userPrompt = this.buildUserPrompt(project, idea);
 
     const controller = new AbortController();
@@ -89,7 +95,7 @@ export class ContentGeneratorService {
         body: JSON.stringify({
           model,
           messages: [
-            { role: 'system', content: systemPrompt },
+            { role: 'system', content: fullSystemPrompt },
             { role: 'user', content: userPrompt },
           ],
           temperature: 0.7,

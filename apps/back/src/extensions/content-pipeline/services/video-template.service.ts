@@ -26,6 +26,11 @@ export type TemplateType =
   | 'presentation'
   | 'tutorial'
   | 'case-study'
+  | 'faq'
+  | 'comparison'
+  | 'timeline'
+  | 'problem-solution'
+  | 'quote-insight'
   | 'custom';
 
 export type SlotType =
@@ -46,7 +51,21 @@ export type SlotType =
   | 'implementation'
   | 'metric'
   | 'testimonial'
-  | 'cta';
+  | 'cta'
+  | 'question'
+  | 'answer'
+  | 'feature-a'
+  | 'feature-b'
+  | 'verdict'
+  | 'milestone'
+  | 'current-state'
+  | 'why-fail'
+  | 'approach'
+  | 'how-it-works'
+  | 'quote'
+  | 'context'
+  | 'expansion'
+  | 'takeaway';
 
 export interface TemplateSlot {
   /** Position in the sequence (0-based). */
@@ -308,12 +327,214 @@ const CASE_STUDY_TEMPLATE: VideoTemplate = {
   format: 'vertical',
 };
 
+const FAQ_TEMPLATE: VideoTemplate = {
+  type: 'faq',
+  name: 'FAQ',
+  description:
+    'Tres preguntas frecuentes con sus respuestas. CTA al final. Mínimo 1 Q/A.',
+  slots: [
+    {
+      position: 0,
+      slotType: 'question',
+      label: 'Pregunta frecuente 1',
+      required: true,
+    },
+    {
+      position: 1,
+      slotType: 'answer',
+      label: 'Respuesta 1',
+      required: true,
+    },
+    {
+      position: 2,
+      slotType: 'question',
+      label: 'Pregunta frecuente 2',
+    },
+    {
+      position: 3,
+      slotType: 'answer',
+      label: 'Respuesta 2',
+    },
+    {
+      position: 4,
+      slotType: 'question',
+      label: 'Pregunta frecuente 3',
+    },
+    {
+      position: 5,
+      slotType: 'answer',
+      label: 'Respuesta 3',
+    },
+  ],
+  defaultTransitions: ['fade', 'slideleft', 'fade', 'slideleft', 'fade'],
+  defaultSlideDurationSec: 3,
+  appendCtaVideo: true,
+  format: 'vertical',
+};
+
+const COMPARISON_TEMPLATE: VideoTemplate = {
+  type: 'comparison',
+  name: 'Comparativa',
+  description:
+    'Comparativa X vs Y: hook → características A → características B → veredicto. CTA al final.',
+  slots: [
+    {
+      position: 0,
+      slotType: 'hook',
+      label: 'Comparativa: X vs Y',
+      required: true,
+    },
+    {
+      position: 1,
+      slotType: 'feature-a',
+      label: 'Opción A — Características',
+      required: true,
+    },
+    {
+      position: 2,
+      slotType: 'feature-b',
+      label: 'Opción B — Características',
+      required: true,
+    },
+    {
+      position: 3,
+      slotType: 'verdict',
+      label: 'Veredicto',
+      required: true,
+    },
+  ],
+  defaultTransitions: ['slideleft', 'slideright', 'circleopen', 'fade'],
+  defaultSlideDurationSec: 3.5,
+  appendCtaVideo: true,
+  format: 'vertical',
+};
+
+const TIMELINE_TEMPLATE: VideoTemplate = {
+  type: 'timeline',
+  name: 'Línea de tiempo',
+  description:
+    'Hitos cronológicos: hito inicial → 2-3 hitos → estado actual. CTA al final.',
+  slots: [
+    {
+      position: 0,
+      slotType: 'title',
+      label: 'Hito inicial',
+      required: true,
+    },
+    {
+      position: 1,
+      slotType: 'milestone',
+      label: 'Hito 2',
+      required: true,
+    },
+    {
+      position: 2,
+      slotType: 'milestone',
+      label: 'Hito 3',
+    },
+    {
+      position: 3,
+      slotType: 'milestone',
+      label: 'Hito 4',
+    },
+    {
+      position: 4,
+      slotType: 'current-state',
+      label: 'Estado actual',
+      required: true,
+    },
+  ],
+  defaultTransitions: ['wipeup', 'slideleft', 'wipeup', 'fade'],
+  defaultSlideDurationSec: 3,
+  appendCtaVideo: true,
+  format: 'vertical',
+};
+
+const PROBLEM_SOLUTION_TEMPLATE: VideoTemplate = {
+  type: 'problem-solution',
+  name: 'Problema / Solución',
+  description:
+    'Problema → por qué fallan las soluciones actuales → nuestro enfoque → cómo funciona. CTA al final.',
+  slots: [
+    {
+      position: 0,
+      slotType: 'problem',
+      label: 'El problema',
+      required: true,
+    },
+    {
+      position: 1,
+      slotType: 'why-fail',
+      label: 'Por qué las soluciones actuales fallan',
+      required: true,
+    },
+    {
+      position: 2,
+      slotType: 'approach',
+      label: 'Nuestro enfoque',
+      required: true,
+    },
+    {
+      position: 3,
+      slotType: 'how-it-works',
+      label: 'Cómo funciona',
+      required: true,
+    },
+  ],
+  defaultTransitions: ['fade', 'slideleft', 'circleopen', 'fade'],
+  defaultSlideDurationSec: 3.5,
+  appendCtaVideo: true,
+  format: 'vertical',
+};
+
+const QUOTE_INSIGHT_TEMPLATE: VideoTemplate = {
+  type: 'quote-insight',
+  name: 'Cita / Insight',
+  description:
+    'Cita o insight → contexto → desarrollo de la idea → takeaway. CTA al final.',
+  slots: [
+    {
+      position: 0,
+      slotType: 'quote',
+      label: 'Cita/Insight',
+      required: true,
+    },
+    {
+      position: 1,
+      slotType: 'context',
+      label: 'Contexto',
+      required: true,
+    },
+    {
+      position: 2,
+      slotType: 'expansion',
+      label: 'Desarrollo de la idea',
+      required: true,
+    },
+    {
+      position: 3,
+      slotType: 'takeaway',
+      label: 'Takeaway',
+      required: true,
+    },
+  ],
+  defaultTransitions: ['fade', 'fade', 'slideleft', 'fade'],
+  defaultSlideDurationSec: 4,
+  appendCtaVideo: true,
+  format: 'vertical',
+};
+
 const PREDEFINED_TEMPLATES: Record<Exclude<TemplateType, 'custom'>, VideoTemplate> = {
   'before-after': BEFORE_AFTER_TEMPLATE,
   'product-showcase': PRODUCT_SHOWCASE_TEMPLATE,
   presentation: PRESENTATION_TEMPLATE,
   tutorial: TUTORIAL_TEMPLATE,
   'case-study': CASE_STUDY_TEMPLATE,
+  faq: FAQ_TEMPLATE,
+  comparison: COMPARISON_TEMPLATE,
+  timeline: TIMELINE_TEMPLATE,
+  'problem-solution': PROBLEM_SOLUTION_TEMPLATE,
+  'quote-insight': QUOTE_INSIGHT_TEMPLATE,
 };
 
 const VALID_TEMPLATE_TYPES = new Set<string>(Object.keys(PREDEFINED_TEMPLATES));
@@ -322,7 +543,7 @@ VALID_TEMPLATE_TYPES.add('custom');
 /**
  * Video Template System.
  *
- * Manages 5 predefined video templates that structure content slides into
+ * Manages 10 predefined video templates that structure content slides into
  * specific narrative arcs and always append a pre-configured CTA video clip
  * at the end (unless disabled).
  *
@@ -657,6 +878,20 @@ export class VideoTemplateService {
       metric: 'metric',
       testimonial: 'testimonial',
       cta: 'cta',
+      question: 'hook',
+      answer: 'context',
+      'feature-a': 'step',
+      'feature-b': 'step',
+      verdict: 'summary',
+      milestone: 'step',
+      'current-state': 'summary',
+      'why-fail': 'context',
+      approach: 'hook',
+      'how-it-works': 'step',
+      quote: 'hook',
+      context: 'context',
+      expansion: 'step',
+      takeaway: 'summary',
     };
     return map[slotType] ?? 'context';
   }

@@ -41,6 +41,8 @@ CONTENT_PIPELINE_CHROMIUM_PATH=/home/hermeswebui/.hermes/home/.cache/ms-playwrig
 CONTENT_PIPELINE_CHROMIUM_LIB_DIR=/home/hermeswebui/.hermes/home/.local/lib/usr/lib/x86_64-linux-gnu
 # Video templates — CTA clip appended to every template video (optional)
 CONTENT_PIPELINE_CTA_VIDEO_PATH=/data/cta/cta-clip.mp4
+# Design system injection — DESIGN.md / BRAND.md injected into LLM prompts (optional)
+CONTENT_PIPELINE_DESIGN_DOC_PATH=/data/brand/DESIGN.md
 ```
 
 ## API Endpoints
@@ -113,7 +115,8 @@ CONTENT_PIPELINE_CTA_VIDEO_PATH=/data/cta/cta-clip.mp4
 | VideoGeneratorService | FFmpeg MP4 from images + ASS subtitles + xfade hyperframe transitions |
 | HtmlRendererService | Chromium headless HTML → PNG screenshots |
 | CarouselGeneratorService | Branded HTML carousel slides (SOM-OS design system) |
-| VideoTemplateService | Predefined video templates with CTA video concatenation |
+| VideoTemplateService | 10 predefined video templates with CTA video concatenation |
+| DesignSystemLoaderService | Loads DESIGN.md from disk and injects brand guidelines into LLM prompts |
 | MetricsService | Metrics tracking, snapshots, cleanup |
 
 ## Video Generation
@@ -284,7 +287,7 @@ Body (all optional):
 
 ## Video Templates
 
-The `VideoTemplateService` provides 5 predefined video templates that structure content into narrative arcs. Every template appends a pre-configured CTA video clip at the end (unless disabled).
+The `VideoTemplateService` provides 10 predefined video templates that structure content into narrative arcs. Every template appends a pre-configured CTA video clip at the end (unless disabled).
 
 ### Template types
 
@@ -295,6 +298,11 @@ The `VideoTemplateService` provides 5 predefined video templates that structure 
 | `presentation` | Título → Agenda → 3 Contenidos → Resumen | title, agenda, content×3, summary | fade, slideleft, slideright, fade, wipeup |
 | `tutorial` | Hook → Paso 1-3 → Resultado | hook, step×3, result (img or text) | fade, slideleft, slideup, circleopen, fade |
 | `case-study` | Problema → Solución → Implementación → Resultados → Testimonio | problem, solution, implementation, metric, testimonial | fade, slideleft, wipeup, circleopen, fade |
+| `faq` | 3 preguntas frecuentes con sus respuestas | question, answer, question, answer, question, answer | fade, slideleft, fade, slideleft, fade |
+| `comparison` | Hook → Opción A → Opción B → Veredicto | hook, feature-a, feature-b, verdict | slideleft, slideright, circleopen, fade |
+| `timeline` | Hito inicial → 2-3 hitos → Estado actual | title, milestone, milestone, milestone, current-state | wipeup, slideleft, wipeup, fade |
+| `problem-solution` | Problema → Por qué fallan → Enfoque → Cómo funciona | problem, why-fail, approach, how-it-works | fade, slideleft, circleopen, fade |
+| `quote-insight` | Cita → Contexto → Desarrollo → Takeaway | quote, context, expansion, takeaway | fade, fade, slideleft, fade |
 
 Each slot accepts either:
 - An **image URL** (for image-based slots like `front`, `back`, `before`, `after`, `result`)
@@ -380,6 +388,70 @@ Response:
 | Env var | Default | Description |
 |---------|---------|-------------|
 | `CONTENT_PIPELINE_CTA_VIDEO_PATH` | *(none)* | Path to pre-configured CTA video clip (MP4) |
+
+## Design System Injection
+
+The `DesignSystemLoaderService` reads a brand design document (DESIGN.md, BRAND.md, or any markdown file) from disk and injects its content into LLM prompts after the main generation instructions. This ensures all generated content follows consistent brand tone, voice, and visual style.
+
+### Configuration
+
+```bash
+# .env
+CONTENT_PIPELINE_DESIGN_DOC_PATH=/data/brand/DESIGN.md
+```
+
+| Env var | Default | Description |
+|---------|---------|-------------|
+| `CONTENT_PIPELINE_DESIGN_DOC_PATH` | *(none)* | Path to a markdown file with brand guidelines, injected into LLM system prompts |
+
+When not set, the LLM prompt works without the design doc injection — generation proceeds normally with the default system prompt only.
+
+### How it works
+
+1. `ContentGeneratorService` builds the standard system prompt (brand voice, audience, language, content type)
+2. `DesignSystemLoaderService.getDesignDoc()` reads the configured file from disk
+3. If a doc is loaded, it is appended to the system prompt under a `## BRAND DESIGN SYSTEM` section:
+   ```
+   {standard system prompt}
+
+   ## BRAND DESIGN SYSTEM
+   Follow these design guidelines for tone, style, and visual consistency:
+
+   {DESIGN.md content}
+   ```
+4. The combined prompt is sent to the LLM (Ollama Cloud)
+
+### File format
+
+Any markdown file works — `DESIGN.md`, `BRAND.md`, or a custom name. The file should contain brand guidelines the LLM should follow: tone of voice, vocabulary, formatting conventions, visual style cues, do/don't lists, etc. The raw markdown is injected as-is.
+
+### Cache behavior
+
+- The file is read **once** on first access and cached in memory
+- Subsequent calls return the cached content (no disk I/O)
+- If the file changes on disk, call `DesignSystemLoaderService.reload()` to clear the cache — the next `getDesignDoc()` call re-reads the file
+- If the file cannot be read (missing, permissions), a warning is logged and the cache is set to empty string — generation continues without injection
+
+### Example DESIGN.md
+
+```markdown
+# SOM-OS Brand Guidelines
+
+## Tone
+- Direct, technical, no fluff
+- Spanish (Spain) primary, English secondary
+- Address the reader as "tú"
+
+## Style
+- Short paragraphs (max 3 lines)
+- Bold for key terms on first use
+- No emojis in blog content; allowed in social captions
+
+## Visual
+- Dark backgrounds (#07070a)
+- Accent color: #b56cff
+- Headings: Inter Tight, body: Inter
+```
 
 ## Frontend
 

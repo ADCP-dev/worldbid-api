@@ -27,6 +27,11 @@ export class GenerateFromTemplateDto {
     'presentation',
     'tutorial',
     'case-study',
+    'faq',
+    'comparison',
+    'timeline',
+    'problem-solution',
+    'quote-insight',
     'custom',
   ])
   template!: string;

@@ -23,4 +23,6 @@ export type ContentPipelineConfig = {
   llmApiKey?: string;
   /** Path to a pre-configured CTA video clip (MP4) appended by VideoTemplateService. */
   ctaVideoPath?: string;
+  /** Path to DESIGN.md or brand document injected into LLM prompts for style consistency. */
+  designDocPath?: string;
 };

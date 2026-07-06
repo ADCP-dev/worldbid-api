@@ -26,6 +26,7 @@ import { VideoGeneratorService } from '@ext/content-pipeline/services/video-gene
 import { HtmlRendererService } from '@ext/content-pipeline/services/html-renderer.service';
 import { CarouselGeneratorService } from '@ext/content-pipeline/services/carousel-generator.service';
 import { VideoTemplateService } from '@ext/content-pipeline/services/video-template.service';
+import { DesignSystemLoaderService } from '@ext/content-pipeline/services/design-system-loader.service';
 import { MetricsService } from '@ext/content-pipeline/services/metrics.service';
 
 import { ProjectController } from '@ext/content-pipeline/controllers/project.controller';
@@ -67,6 +68,7 @@ import { TemplateController } from '@ext/content-pipeline/controllers/template.c
     HtmlRendererService,
     CarouselGeneratorService,
     VideoTemplateService,
+    DesignSystemLoaderService,
     MetricsService,
   ],
   exports: [
@@ -84,6 +86,7 @@ import { TemplateController } from '@ext/content-pipeline/controllers/template.c
     HtmlRendererService,
     CarouselGeneratorService,
     VideoTemplateService,
+    DesignSystemLoaderService,
     MetricsService,
   ],
 })
