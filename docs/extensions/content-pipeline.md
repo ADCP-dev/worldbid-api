@@ -1,3 +1,12 @@
+---
+id: "content-pipeline"
+name: "Content Pipeline"
+type: "extension"
+parent: null
+dependencies: ["auth"]
+entities: ["CpProject", "CpIdea", "CpDraft", "CpMetrics"]
+---
+
 # Content Pipeline Extension
 
 Autonomous content generation pipeline: research → ideas → drafts → publish. Multi-nicho. Integrates optionally with CMS, Upload-Post, and Affiliate extensions.

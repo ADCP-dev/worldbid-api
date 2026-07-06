@@ -1,3 +1,12 @@
+---
+id: "upload-post"
+name: "Upload Post"
+type: "extension"
+parent: null
+dependencies: ["auth"]
+entities: ["UpPost", "UpPostAnalyticsSnapshot", "UpPostAutodmMonitor", "UpPostContentIdea"]
+---
+
 # Upload-Post — Social Media Automation
 
 > Extension for the Upload-Post API. Multi-platform publishing, scheduling, analytics, AutoDMs, and weekly reports for SOM-OS. **Admin-only access.**

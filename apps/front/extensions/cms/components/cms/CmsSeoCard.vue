@@ -4,7 +4,7 @@ import FormInput from "@base/ui-app/components/form/FormInput.vue";
 import FormTextArea from "@base/ui-app/components/form/FormTextArea.vue";
 import FormMultipleSelect from "@base/ui-app/components/form/FormMultipleSelect.vue";
 import FormSelect from "@base/ui-app/components/form/FormSelect.vue";
-import { fetchWrapper } from "@/helpers/fetch-wrapper";
+import { useApi } from '#imports'
 
 export interface SeoCardModel {
   metaTitle: string;
@@ -149,7 +149,7 @@ watch(
 
     isFetchingTemplate.value = true;
     try {
-      const result = await fetchWrapper.get(`${baseUrl}/cms/seo/template/${newType}`);
+      const result = await useApi().get(`/cms/seo/template/${newType}`);
       jsonLdTemplate.value = result;
     } catch (e) {
       templateFetchError.value = e instanceof Error ? e.message : "Error fetching template";

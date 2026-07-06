@@ -4,6 +4,6 @@ to: src/custom/<%= h.inflection.transform(name, ['pluralize', 'underscore', 'das
 before: "} from 'class-validator'"
 skip_if: \ValidateNested,
 ---
-<% if (isAddToDto && kind === 'primitive') { -%>
+<% if (isAddToDto && kind === 'primitive' && (type === 'json' || type === 'jsonb')) { -%>
   ValidateNested,
 <% } -%>

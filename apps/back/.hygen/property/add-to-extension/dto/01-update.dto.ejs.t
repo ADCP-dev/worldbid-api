@@ -7,7 +7,7 @@ after: // <update-properties />
 <% if (isAddToDto) { -%>
   @ApiProperty({
     required: false,
-    type: () => 
+    type: () =>
       <% if (kind === 'primitive') { -%>
         <% if (type === 'string' || type === 'text' || type === 'uuid' || type === 'enum') { -%>
           String,
@@ -30,9 +30,6 @@ after: // <update-properties />
         <% } -%>
       <% } -%>
   })
-<% } -%>
-
-<% if (isAddToDto) { -%>
   @IsOptional()
   <% if (kind === 'primitive') { -%>
     <% if (type === 'string' || type === 'text') { -%>
@@ -44,7 +41,7 @@ after: // <update-properties />
     <% } else if (type === 'boolean') { -%>
       @IsBoolean()
     <% } else if (type === 'Date' || type === 'timestamp') { -%>
-      @Transform(({ value }) => value ? new Date(value) : null)
+      @Transform(({ value }) => (value ? new Date(value) : null))
       @IsDate()
     <% } else if (type === 'json' || type === 'jsonb') { -%>
       @ValidateNested()
@@ -62,22 +59,15 @@ after: // <update-properties />
       @IsUUID()
     <% } -%>
   <% } -%>
-<% } -%>
-
-<% if (kind === 'reference' || kind === 'duplication') { -%>
-  <% if (referenceType === 'oneToMany' || referenceType === 'manyToMany') { -%>
-  <%= property %>Ids<% if (!isAddToDto || isOptional) { -%>?<% } -%>: string[] <% if (isNullable) { -%> | null<% } -%>;
+  <% if (kind === 'reference' || kind === 'duplication') { -%>
+    <% if (referenceType === 'oneToMany' || referenceType === 'manyToMany') { -%>
+  <%= property %>Ids?: string[] <% if (isNullable) { -%> | null<% } -%>;
+    <% } else { -%>
+  <%= property %>Id?: string <% if (isNullable) { -%> | null<% } -%>;
+    <% } -%>
+  <% } else if (type === 'json' || type === 'jsonb') { -%>
+  <%= property %>?: Record<string, any> <% if (isNullable) { -%> | null<% } -%>;
   <% } else { -%>
-  <%= property %>Id<% if (!isAddToDto || isOptional) { -%>?<% } -%>: string <% if (isNullable) { -%> | null<% } -%>;
-  <% } -%>
-<% } else { -%>
-  <% if (type === 'json' || type === 'jsonb') { -%>
-  <%= property %><% if (!isAddToDto || isOptional) { -%>?<% } -%>: Record<string, any> <% if (isNullable) { -%> | null<% } -%>;
-  <% } else if (type === 'array') { -%>
-  <%= property %><% if (!isAddToDto || isOptional) { -%>?<% } -%>: string <% if (isNullable) { -%> | null<% } -%>;
-  <% } else if (type === 'enum') { -%>
-  <%= property %><% if (!isAddToDto || isOptional) { -%>?<% } -%>: string <% if (isNullable) { -%> | null<% } -%>;
-  <% } else { -%>
-  <%= property %><% if (!isAddToDto || isOptional) { -%>?<% } -%>: <%= type %> <% if (isNullable) { -%> | null<% } -%>;
+  <%= property %>?: <% if (type === 'string' || type === 'text' || type === 'uuid' || type === 'enum' || type === 'array') { -%>string<% } else if (type === 'number' || type === 'decimal') { -%>number<% } else if (type === 'boolean') { -%>boolean<% } else if (type === 'Date' || type === 'timestamp') { -%>Date<% } -%> <% if (isNullable) { -%> | null<% } -%>;
   <% } -%>
 <% } -%>

@@ -63,3 +63,12 @@ graphify-out/.needs_update
 # OpenCode generated config
 .agents/generated.json
 .playwright-mcp
+
+# Engram local memory
+.engram/
+
+# Backup files
+*.bak
+
+# Frontend helpers (legacy JS, migrated to TS composables)
+apps/front/helpers/*.js

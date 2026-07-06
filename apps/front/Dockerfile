@@ -1,43 +1,31 @@
-ARG NODE_VERSION=22.15.0
+# Build Stage
+# Build context: apps/front/ (as set in Coolify)
+# This Dockerfile works standalone — no monorepo workspace files needed
+# since apps/front has zero local workspace dependencies.
 
-# Create build stage
-FROM node:${NODE_VERSION}-slim AS build
-
-# Install pnpm
-RUN npm install -g pnpm@9.0.0
-
-# Set shamefully-hoist to true for better dependency resolution
-RUN pnpm config set shamefully-hoist true
-
-# Set the working directory inside the container
+FROM node:22-alpine AS build
 WORKDIR /app
 
-# Copy package.json
-COPY package.json ./
+RUN corepack enable
 
-# Install dependencies - pnpm will create a new lockfile
-RUN pnpm install
-
-# Copy the rest of the application files to the working directory
+# Copy everything (context = apps/front/)
 COPY . ./
 
-# Generate static files (SPA)
-RUN pnpm run generate
+# Install deps (postinstall runs `nuxt prepare`, needs source → COPY first)
+RUN pnpm install --no-frozen-lockfile
 
-# Production stage - use simple Node.js static server
-FROM node:${NODE_VERSION}-slim
+# Build the Nuxt app → outputs .output/
+RUN pnpm run build
 
-# Install serve
-RUN npm install -g serve
-
-# Set the working directory inside the container
+# Production Stage
+FROM node:22-alpine
 WORKDIR /app
 
-# Copy the generated static files from build stage
-COPY --from=build /app/dist ./
+COPY --from=build /app/.output/ ./
 
-# Expose the port the application will run on
-EXPOSE 3000
+ENV PORT=80
+ENV HOST=0.0.0.0
 
-# Start static server
-CMD ["serve", "-s", ".", "-l", "3000"]
+EXPOSE 80
+
+CMD ["node", "/app/server/index.mjs"]

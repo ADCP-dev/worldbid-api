@@ -1,5 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import tailwindcss from '@tailwindcss/vite';
+import { SUPPORTED_LOCALES, DEFAULT_LOCALE, localizedRoutes } from './config/i18n-constants';
 
 function getI18nFiles(_langCode: string) {
   return ['dynamic-loader.ts'];
@@ -8,7 +9,11 @@ function getI18nFiles(_langCode: string) {
 export default defineNuxtConfig(
   {
     compatibilityDate: '2024-11-01',
+<<<<<<< HEAD
+    extends: ['./modules/landing', './modules/base', './extensions/cms', './extensions/analytics'],
+=======
     extends: ['./modules/landing', './modules/base', './extensions/cms', './extensions/upload-post', './extensions/crm', './extensions/affiliate', './extensions/content-pipeline', './extensions/autonomous-agent', './extensions/stripe'],
+>>>>>>> 3aded1db4c5a7ba899a388bdcca402c0f4116137
     devtools: { enabled: true },
     ssr: true,
 
@@ -47,6 +52,7 @@ export default defineNuxtConfig(
         mainAppRoute: process.env.MAIN_APP_ROUTE || '/app',
         apiUrl: process.env.API_URL || 'http://localhost:3001',
         apiPrefix: process.env.API_PREFIX || '/api/v1',
+        calendlyUrl: process.env.CALENDLY_URL || '',
         env: process.env.ENV || 'development',
       },
     },
@@ -133,10 +139,13 @@ export default defineNuxtConfig(
       lazy: true,
       strategy: 'prefix_except_default',
       defaultLocale: 'es',
+      compilation: {
+        strictMessage: false,
+      },
       locales: [
-        { code: 'es', iso: 'es-ES', name: 'Español', files: ['dynamic-loader.ts'] },
-        { code: 'en', iso: 'en-US', name: 'English', files: ['dynamic-loader.ts'] },
-      ],
+        { code: 'es', iso: 'es-ES', name: 'Español', files: ['es.json'] },
+        { code: 'en', iso: 'en-US', name: 'English', files: ['en.json'] },
+      ].filter((l) => SUPPORTED_LOCALES.includes(l.code as typeof SUPPORTED_LOCALES[number])),
       vueI18n: './i18n.config.ts',
       detectBrowserLanguage: {
         useCookie: true,
@@ -150,7 +159,7 @@ export default defineNuxtConfig(
     },
 
     site: {
-      url: process.env.FRONTEND_URL || 'http://localhost:3000',
+      url: process.env.COOLIFY_URL || process.env.NUXT_PUBLIC_APP_URL || process.env.FRONTEND_URL || 'http://localhost:3000',
       name: process.env.APP_NAME || 'Foundation',
     },
 
@@ -162,15 +171,41 @@ export default defineNuxtConfig(
       '/en/blog/category/**': {
         redirect: { to: '/en/blog/c/**', statusCode: 301 },
       },
-      // Public CMS routes - prerender at build time (default locale, no prefix)
-      '/blog': { prerender: true },
-      '/blog/**': { prerender: true },
-      '/page/**': { prerender: true },
-      // Public CMS routes - prerender for non-default locales (e.g., /en/blog)
-      '/en/blog': { prerender: true },
-      '/en/blog/**': { prerender: true },
-      '/en/page/**': { prerender: true },
+      // Public CMS routes - NOT prerendered (require backend API, not available at build time)
+      // Pages render client-side with empty/loading state when backend is unreachable
+      '/blog/**': { prerender: false },
+      '/page/**': { prerender: false },
+      '/en/blog/**': { prerender: false },
+      '/en/page/**': { prerender: false },
       '/en': { prerender: true },
+
+      '/': { prerender: true },
+      // ...Object.fromEntries(
+      //   localizedRoutes(['/calculadoras', '/calculadoras/**']).map((path) => [
+      //     path,
+      //     { prerender: true },
+      //   ]),
+      // ),
+
+      // Long-lived cache for static assets (fonts, images, logos)
+      '/fonts/**': {
+        headers: { 'Cache-Control': 'public, max-age=31536000, immutable' },
+      },
+      '/imgs/**': {
+        headers: { 'Cache-Control': 'public, max-age=31536000, immutable' },
+      },
+      '/images/**': {
+        headers: { 'Cache-Control': 'public, max-age=31536000, immutable' },
+      },
+      '/logo.webp': {
+        headers: { 'Cache-Control': 'public, max-age=31536000, immutable' },
+      },
+      '/favicon.ico': {
+        headers: { 'Cache-Control': 'public, max-age=31536000, immutable' },
+      },
+
+
+
       // Fallback: generate on demand if not prerendered
       '/**': { prerender: false },
     },
@@ -180,6 +215,7 @@ export default defineNuxtConfig(
         '/api/sitemap/blog',
         '/api/sitemap/cms-pages',
         '/api/sitemap/categories',
+        '/api/sitemap/calculators',
       ],
       exclude: [
         '/app/**',
@@ -194,6 +230,12 @@ export default defineNuxtConfig(
         '/404',
         '/500',
         '/503',
+        '/privacy',
+        '/terms',
+        '/success',
+        '/en/privacy',
+        '/en/terms',
+        '/en/success',
       ],
       autoLastmod: true,
       credits: false,
@@ -203,7 +245,9 @@ export default defineNuxtConfig(
     preset: 'static',
     prerender: {
       crawlLinks: true,
-      routes: ['/', '/en/', '/blog', '/en/blog'],
+      // Seeds generated programmatically from SUPPORTED_LOCALES.
+      // crawlLinks discovers all linked sub-pages from these seeds.
+      routes: localizedRoutes(['/']),
       failOnError: false,
     },
   },

@@ -1,5 +1,4 @@
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { fetchWrapper } from '@/helpers/fetch-wrapper'
 
 export interface CmsCategory {
   id: string
@@ -17,8 +16,7 @@ export interface CmsCategoryTree extends CmsCategory {
 
 export function useCmsCategories() {
   const queryClient = useQueryClient()
-  const runtimeConfig = useRuntimeConfig()
-  const baseUrl = `${runtimeConfig.public.apiUrl}${runtimeConfig.public.apiPrefix}`
+  const api = useApi()
   const categories = ref<CmsCategory[]>([])
   const currentCategory = ref<CmsCategory | null>(null)
   const categoryTree = ref<CmsCategoryTree[]>([])
@@ -31,10 +29,9 @@ export function useCmsCategories() {
     try {
       const result = await queryClient.fetchQuery({
         queryKey: ['cms', 'blog', 'categories', lang],
-        queryFn: () =>
-          fetchWrapper.get(`${baseUrl}/cms/blog/categories/public?lang=${lang}`),
+        queryFn: () => api.get<CmsCategory[] | { data: CmsCategory[] }>('/cms/blog/categories/public', { query: { lang } }),
       })
-      categories.value = result.data || result
+      categories.value = (result as { data?: CmsCategory[] }).data || (result as CmsCategory[])
       return result
     } catch (e) {
       error.value =
@@ -51,8 +48,7 @@ export function useCmsCategories() {
     try {
       currentCategory.value = await queryClient.fetchQuery({
         queryKey: ['cms', 'blog', 'categories', id, lang],
-        queryFn: () =>
-          fetchWrapper.get(`${baseUrl}/cms/blog/categories/${id}?lang=${lang}`),
+        queryFn: () => api.get<CmsCategory>(`/cms/blog/categories/${id}`, { query: { lang } }),
       })
       return currentCategory.value
     } catch (e) {
@@ -66,7 +62,7 @@ export function useCmsCategories() {
   const createCategoryMutation = useMutation({
     mutationFn: (data: Partial<CmsCategory> & { tagIds?: string[]; lang?: string }) => {
       const { lang = 'es', ...body } = data
-      return fetchWrapper.post(`${baseUrl}/cms/blog/categories?lang=${lang}`, body)
+      return api.post<CmsCategory>('/cms/blog/categories', { ...body, lang })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cms', 'blog', 'categories'] })
@@ -79,7 +75,7 @@ export function useCmsCategories() {
     loading.value = true
     error.value = null
     try {
-      const result = await createCategoryMutation.mutateAsync(data)
+      const result = (await createCategoryMutation.mutateAsync(data)) as CmsCategory
       categories.value.unshift(result)
       return result
     } catch (e) {
@@ -99,10 +95,7 @@ export function useCmsCategories() {
       data: Partial<CmsCategory> & { tagIds?: string[]; lang?: string }
     }) => {
       const { lang = 'es', ...body } = data
-      return fetchWrapper.patch(
-        `${baseUrl}/cms/blog/categories/${id}?lang=${lang}`,
-        body,
-      )
+      return api.patch<CmsCategory>(`/cms/blog/categories/${id}`, { ...body, lang })
     },
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['cms', 'blog', 'categories'] })
@@ -119,7 +112,7 @@ export function useCmsCategories() {
     loading.value = true
     error.value = null
     try {
-      const result = await updateCategoryMutation.mutateAsync({ id, data })
+      const result = (await updateCategoryMutation.mutateAsync({ id, data })) as CmsCategory
       const index = categories.value.findIndex((c) => c.id === id)
       if (index !== -1) categories.value[index] = result
       if (currentCategory.value?.id === id) {
@@ -135,8 +128,7 @@ export function useCmsCategories() {
   }
 
   const deleteCategoryMutation = useMutation({
-    mutationFn: (id: string) =>
-      fetchWrapper.delete(`${baseUrl}/cms/blog/categories/${id}`),
+    mutationFn: (id: string) => api.delete(`/cms/blog/categories/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cms', 'blog', 'categories'] })
     },

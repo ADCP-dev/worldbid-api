@@ -9,6 +9,7 @@ import { FilesS3Module } from '@storage/files/infrastructure/uploader/s3/files.m
 import { FilesS3PresignedModule } from '@storage/files/infrastructure/uploader/s3-presigned/files.module';
 import { FileCleanupCronService } from '@storage/files/infrastructure/cron/file-cleanup.cron';
 import { IsEntityTableConstraint } from '@infra/utils/validators/is-entity-table.validator';
+import { ErrorTrackerModule } from '@src/modules/error-tracker/error-tracker.module';
 
 @Module({})
 export class FilesModule {
@@ -24,7 +25,7 @@ export class FilesModule {
 
     return {
       module: FilesModule,
-      imports: [FilePersistenceModule, uploaderModule],
+      imports: [FilePersistenceModule, uploaderModule, ErrorTrackerModule],
       providers: [
         FilesService,
         FileCleanupCronService,

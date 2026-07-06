@@ -1,26 +1,27 @@
-import { useQuery } from '@tanstack/vue-query';
-import { fetchWrapper } from '@/helpers/fetch-wrapper';
-import type { Ref } from 'vue';
-import type { FileType } from '../types';
+import { useQuery } from '@tanstack/vue-query'
+import type { Ref } from 'vue'
+import type { FileType } from '../types'
 
+/**
+ * useStorageFiles — list files with optional filters.
+ * Migrated from fetchWrapper to useApi().
+ */
 export function useStorageFiles(filters?: Ref<Record<string, unknown>>) {
-  const config = useRuntimeConfig();
-  const baseURL = `${config.public.apiUrl}${config.public.apiPrefix}`;
+  const api = useApi()
 
   return useQuery({
     queryKey: ['storage', 'files', filters?.value],
     queryFn: async () => {
-      const params = new URLSearchParams();
+      const params: Record<string, string> = {}
       if (filters?.value) {
         for (const [key, val] of Object.entries(filters.value)) {
           if (val !== undefined && val !== null && val !== '') {
-            params.set(key, String(val));
+            params[key] = String(val)
           }
         }
       }
-      const query = params.toString();
-      return fetchWrapper.get(`${baseURL}/files${query ? '?' + query : ''}`);
+      return api.get<FileType[]>('/files', { query: params })
     },
     staleTime: 1000 * 60 * 2,
-  });
+  })
 }

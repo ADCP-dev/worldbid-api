@@ -1,5 +1,4 @@
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { fetchWrapper } from '@/helpers/fetch-wrapper'
 
 export interface CmsPage {
   id: string
@@ -49,8 +48,7 @@ export interface CmsSeoMetadata {
 
 export function useCmsPages() {
   const queryClient = useQueryClient()
-  const runtimeConfig = useRuntimeConfig()
-  const baseUrl = `${runtimeConfig.public.apiUrl}${runtimeConfig.public.apiPrefix}`
+  const api = useApi()
   const pages = ref<CmsPage[]>([])
   const currentPage = ref<CmsPageWithTranslations | null>(null)
   const loading = ref(false)
@@ -62,17 +60,18 @@ export function useCmsPages() {
     loading.value = true
     error.value = null
     try {
-      const params = new URLSearchParams()
-      if (query.page) params.append('page', String(query.page))
-      if (query.limit) params.append('limit', String(query.limit))
-      if (query.published !== undefined)
-        params.append('isPublished', String(query.published))
-
       const result = await queryClient.fetchQuery({
         queryKey: ['cms', 'pages', query],
-        queryFn: () => fetchWrapper.get(`${baseUrl}/cms/pages?${params}`),
+        queryFn: () =>
+          api.get<CmsPage[] | { data: CmsPage[] }>('/cms/pages', {
+            query: {
+              page: query.page,
+              limit: query.limit,
+              isPublished: query.published,
+            },
+          }),
       })
-      pages.value = result.data ?? result
+      pages.value = (result as { data?: CmsPage[] }).data ?? (result as CmsPage[])
       return result
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Error fetching pages'
@@ -88,7 +87,7 @@ export function useCmsPages() {
     try {
       currentPage.value = await queryClient.fetchQuery({
         queryKey: ['cms', 'pages', id],
-        queryFn: () => fetchWrapper.get(`${baseUrl}/cms/pages/${id}`),
+        queryFn: () => api.get<CmsPageWithTranslations>(`/cms/pages/${id}`),
       })
       return currentPage.value
     } catch (e) {
@@ -101,7 +100,7 @@ export function useCmsPages() {
 
   const createPageMutation = useMutation({
     mutationFn: (data: Partial<CmsPage>) =>
-      fetchWrapper.post(`${baseUrl}/cms/pages`, data),
+      api.post<CmsPage>('/cms/pages', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cms', 'pages'] })
     },
@@ -111,7 +110,7 @@ export function useCmsPages() {
     loading.value = true
     error.value = null
     try {
-      const result = await createPageMutation.mutateAsync(data)
+      const result = (await createPageMutation.mutateAsync(data)) as CmsPage
       pages.value.unshift(result)
       return result
     } catch (e) {
@@ -124,7 +123,7 @@ export function useCmsPages() {
 
   const updatePageMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<CmsPage> }) =>
-      fetchWrapper.patch(`${baseUrl}/cms/pages/${id}`, data),
+      api.patch<CmsPage>(`/cms/pages/${id}`, data),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['cms', 'pages'] })
       queryClient.invalidateQueries({ queryKey: ['cms', 'pages', variables.id] })
@@ -135,7 +134,7 @@ export function useCmsPages() {
     loading.value = true
     error.value = null
     try {
-      const result = await updatePageMutation.mutateAsync({ id, data })
+      const result = (await updatePageMutation.mutateAsync({ id, data })) as CmsPage
       const index = pages.value.findIndex((p) => p.id === id)
       if (index !== -1) pages.value[index] = result
       return result
@@ -148,8 +147,7 @@ export function useCmsPages() {
   }
 
   const deletePageMutation = useMutation({
-    mutationFn: (id: string) =>
-      fetchWrapper.delete(`${baseUrl}/cms/pages/${id}`),
+    mutationFn: (id: string) => api.delete(`/cms/pages/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cms', 'pages'] })
     },
@@ -177,7 +175,7 @@ export function useCmsPages() {
       id: string
       isPublished: boolean
     }) =>
-      fetchWrapper.patch(`${baseUrl}/cms/pages/${id}/publish`, { isPublished }),
+      api.patch<CmsPage>(`/cms/pages/${id}/publish`, { isPublished }),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['cms', 'pages'] })
       queryClient.invalidateQueries({ queryKey: ['cms', 'pages', variables.id] })
@@ -188,7 +186,7 @@ export function useCmsPages() {
     loading.value = true
     error.value = null
     try {
-      const result = await publishPageMutation.mutateAsync({ id, isPublished })
+      const result = (await publishPageMutation.mutateAsync({ id, isPublished })) as CmsPage
       const index = pages.value.findIndex((p) => p.id === id)
       if (index !== -1) pages.value[index] = result
       return result
@@ -207,8 +205,7 @@ export function useCmsPages() {
     }: {
       pageIds: string[]
       parentId: string | null
-    }) =>
-      fetchWrapper.put(`${baseUrl}/cms/pages/reorder`, { pageIds, parentId }),
+    }) => api.put('/cms/pages/reorder', { pageIds, parentId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cms', 'pages'] })
     },
@@ -234,7 +231,7 @@ export function useCmsPages() {
     try {
       return await queryClient.fetchQuery({
         queryKey: ['cms', 'seo', pageId, lang],
-        queryFn: () => fetchWrapper.get(`${baseUrl}/cms/seo/${pageId}?lang=${lang}`),
+        queryFn: () => api.get(`/cms/seo/${pageId}`, { query: { lang } }),
       })
     } catch (e) {
       return null
@@ -250,8 +247,7 @@ export function useCmsPages() {
       pageId: string
       seo: Partial<CmsSeoMetadata>
       lang: string
-    }) =>
-      fetchWrapper.patch(`${baseUrl}/cms/seo/${pageId}?lang=${lang}`, seo),
+    }) => api.patch(`/cms/seo/${pageId}`, { ...seo, lang }),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({
         queryKey: ['cms', 'seo', variables.pageId, variables.lang],
@@ -279,9 +275,13 @@ export function useCmsPages() {
 
   const fetchTranslations = async (category: string, lang: string = 'es') => {
     try {
-      const result = await fetchWrapper.get(
-        `${baseUrl}/translations?filter[category]=${encodeURIComponent(category)}&filter[lang]=${lang}&limit=100`,
-      )
+      const result = await api.get<{ data: any[] }>('/translations', {
+        query: {
+          'filter[category]': category,
+          'filter[lang]': lang,
+          limit: 100,
+        },
+      })
       // Transform grouped response into a flat map: { key: { value: content } }
       const items = result.data || []
       const map: Record<string, { value: string }> = {}
@@ -305,7 +305,7 @@ export function useCmsPages() {
     value: string,
   ) => {
     try {
-      return await fetchWrapper.post(`${baseUrl}/translations`, {
+      return await api.post('/translations', {
         app: 'front',
         category,
         langCode: lang,
@@ -329,7 +329,7 @@ export function useCmsPages() {
     lang: string,
     items: BatchTranslationItem[],
   ) => {
-    return await fetchWrapper.post(`${baseUrl}/translations/dynamic/batch`, {
+    return await api.post('/translations/dynamic/batch', {
       category,
       lang,
       translations: items,
@@ -343,15 +343,17 @@ export function useCmsPages() {
     loading.value = true
     error.value = null
     try {
-      const params = new URLSearchParams()
-      params.append('filter[entityName]', entityName)
-      if (query.page) params.append('page', String(query.page))
-      if (query.limit) params.append('limit', String(query.limit))
-      if (query.search) params.append('search', query.search)
-
       const result = await queryClient.fetchQuery({
         queryKey: ['cms', 'translations', entityName, query],
-        queryFn: () => fetchWrapper.get(`${baseUrl}/translations?${params.toString()}`),
+        queryFn: () =>
+          api.get('/translations', {
+            query: {
+              'filter[entityName]': entityName,
+              page: query.page,
+              limit: query.limit,
+              search: query.search,
+            },
+          }),
       })
       return result
     } catch (e) {

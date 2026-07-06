@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { useContainer } from 'class-validator';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 import validationOptions from '@infra/utils/validation-options';
 import { AllConfigType } from './config/config.type';
@@ -25,16 +26,36 @@ async function bootstrap() {
   useContainer(app.select(AppModule), { fallbackOnErrors: true });
   const configService = app.get(ConfigService<AllConfigType>);
 
+  const singularDomain = configService.get('app.frontendDomain', {
+    infer: true,
+  });
+  const pluralDomainsCsv = configService.get('app.frontendDomains', {
+    infer: true,
+  });
+
+  const allowedOrigins = [
+    ...(pluralDomainsCsv
+      ? pluralDomainsCsv
+          .split(',')
+          .map((d) => d.trim())
+          .filter(Boolean)
+      : []),
+    ...(singularDomain ? [singularDomain] : []),
+    'http://localhost:3000',
+    'http://localhost:3001',
+  ];
+
   app.enableCors({
-    origin: [
-      configService.getOrThrow('app.frontendDomain', { infer: true }),
-      'http://localhost:3000',
-      'http://localhost:3001',
-    ],
+    origin: allowedOrigins,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     allowedHeaders: 'Content-Type, Accept, Authorization',
     credentials: true,
   });
+
+  // helmet sets sensible security headers (HSTS, X-Frame-Options,
+  // X-Content-Type-Options, Referrer-Policy, ...). Apply after
+  // enableCors so the CORS preflight still works for the front-end.
+  app.use(helmet());
 
   app.enableShutdownHooks();
   app.setGlobalPrefix(
@@ -50,9 +71,11 @@ async function bootstrap() {
     new ValidationPipe({
       ...validationOptions,
       transform: true,
-      transformOptions: {
-        enableImplicitConversion: true,
-      },
+      // enableImplicitConversion: removed. With it on, class-transformer
+      // converts "123" -> 123 silently, masking type mismatches on
+      // bodies (e.g. a string slipping past @IsNumber). If any
+      // controller needs implicit conversion for a query DTO, attach
+      // a local ValidationPipe with this option on that route instead.
     }),
   );
   app.useGlobalInterceptors(
@@ -77,8 +100,13 @@ async function bootstrap() {
     })
     .build();
 
-  const document = SwaggerModule.createDocument(app, options);
-  SwaggerModule.setup('docs', app, document);
+  // Swagger exposes every endpoint, DTO, and auth flow. Keep it gated
+  // behind a non-production NODE_ENV so the public deployment doesn't
+  // hand an attacker a free enumeration map.
+  if (process.env.NODE_ENV !== 'production') {
+    const document = SwaggerModule.createDocument(app, options);
+    SwaggerModule.setup('docs', app, document);
+  }
 
   const errorTrackerService = app.get(ErrorTrackerService);
   app.useGlobalFilters(new GlobalExceptionFilter(errorTrackerService));
@@ -94,7 +122,7 @@ async function bootstrap() {
   });
 
   process.on('uncaughtException', (error: Error) => {
-    errorTrackerService
+    void errorTrackerService
       .logError({
         message: error.message,
         source: 'NestJS Process - uncaughtException',

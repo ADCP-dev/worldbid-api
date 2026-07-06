@@ -1,70 +1,68 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query';
-import { fetchWrapper } from '@/helpers/fetch-wrapper';
-import StripeService from '@/services/stripe.service';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 
+/**
+ * useSubscription — TanStack Query composable for Stripe subscription state.
+ *
+ * All HTTP goes through useApi() so auth token + 401-refresh is centralized.
+ */
 export function useSubscriptionQuery(userId: string | number = 'me') {
-  const stripeService = new StripeService();
-  const baseURL = stripeService.apiUrl;
-
+  const api = useApi()
   return useQuery({
     queryKey: ['subscription', userId],
-    queryFn: () => fetchWrapper.get(`${baseURL}/stripe/subscriptions/${userId}`),
-  });
+    queryFn: () => api.get(`/stripe/subscriptions/${userId}`),
+  })
 }
 
 export function usePlansQuery() {
-  const stripeService = new StripeService();
-
+  const api = useApi()
   return useQuery({
     queryKey: ['stripe', 'plans'],
-    queryFn: () => stripeService.getPlans(),
-  });
+    queryFn: () => api.get('/stripe/plans'),
+  })
 }
 
 export function useCheckoutMutation() {
-  const queryClient = useQueryClient();
-  const stripeService = new StripeService();
-
+  const api = useApi()
   return useMutation({
-    mutationFn: (planId: string) => stripeService.createCheckoutSession(planId),
+    mutationFn: (planId: string) =>
+      api.post<{ url: string }>('/stripe/checkout', { planId }),
     onSuccess: (data) => {
       if (data.url) {
-        window.location.href = data.url;
+        window.location.href = data.url
       }
     },
-  });
+  })
 }
 
 export function useCancelMutation() {
-  const queryClient = useQueryClient();
-  const stripeService = new StripeService();
-
+  const api = useApi()
+  const qc = useQueryClient()
   return useMutation({
-    mutationFn: (subscriptionId: string) => stripeService.cancelSubscription(subscriptionId),
+    mutationFn: (subscriptionId: string) =>
+      api.delete(`/stripe/subscriptions/${subscriptionId}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['subscription'] });
+      qc.invalidateQueries({ queryKey: ['subscription'] })
     },
-  });
+  })
 }
 
 export function useResumeMutation() {
-  const queryClient = useQueryClient();
-  const stripeService = new StripeService();
-
+  const api = useApi()
+  const qc = useQueryClient()
   return useMutation({
-    mutationFn: (subscriptionId: string) => stripeService.resumeSubscription(subscriptionId),
+    mutationFn: (subscriptionId: string) =>
+      api.patch(`/stripe/subscriptions/${subscriptionId}/resume`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['subscription'] });
+      qc.invalidateQueries({ queryKey: ['subscription'] })
     },
-  });
+  })
 }
 
 export function useInvoicesQuery() {
-  const stripeService = new StripeService();
-
+  const api = useApi()
   return useQuery({
     queryKey: ['stripe', 'invoices'],
-    queryFn: () => stripeService.getInvoices(),
+    queryFn: () => api.get('/stripe/invoices'),
     staleTime: 60_000,
-  });
+  })
 }

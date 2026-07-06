@@ -2,7 +2,6 @@ import type { CmsTag } from '../types/cms';
 import type { RobotsPolicy } from '../types/seo';
 
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
-import { fetchWrapper } from '@/helpers/fetch-wrapper';
 
 export type { CmsTag };
 
@@ -52,8 +51,7 @@ export interface FetchPostsPublicParams {
 
 export function useCmsBlogPosts() {
   const queryClient = useQueryClient();
-  const runtimeConfig = useRuntimeConfig();
-  const baseUrl = `${runtimeConfig.public.apiUrl}${runtimeConfig.public.apiPrefix}`;
+  const api = useApi();
   const posts = ref<CmsBlogPost[]>([]);
   const currentPost = ref<CmsBlogPostWithTranslations | null>(null);
   const loading = ref(false);
@@ -65,17 +63,11 @@ export function useCmsBlogPosts() {
     loading.value = true;
     error.value = null;
     try {
-      const params = new URLSearchParams();
-      if (query.page) params.append('page', String(query.page));
-      if (query.limit) params.append('limit', String(query.limit));
-      if (query.published !== undefined)
-        params.append('published', String(query.published));
-
       const result = await queryClient.fetchQuery({
         queryKey: ['cms', 'blog', 'posts', query],
-        queryFn: () => fetchWrapper.get(`${baseUrl}/cms/blog/posts?${params}`),
+        queryFn: () => api.get<{ data?: CmsBlogPost[] } | CmsBlogPost[]>('/cms/blog/posts', { query }),
       });
-      posts.value = result.data || result;
+      posts.value = (result as { data?: CmsBlogPost[] }).data || (result as CmsBlogPost[]);
       return result;
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Error fetching posts';
@@ -89,22 +81,11 @@ export function useCmsBlogPosts() {
     loading.value = true;
     error.value = null;
     try {
-      const params = new URLSearchParams();
-      if (query.lang) params.append('lang', query.lang);
-      if (query.page) params.append('page', String(query.page));
-      if (query.limit) params.append('limit', String(query.limit));
-      if (query.search) params.append('search', query.search);
-      if (query.categoryId) params.append('categoryId', query.categoryId);
-      if (query.tags?.length) {
-        params.append('tagSlugs', query.tags.join(','));
-      }
-
       const result = await queryClient.fetchQuery({
         queryKey: ['cms', 'blog', 'posts', 'public', query],
-        queryFn: () =>
-          fetchWrapper.get(`${baseUrl}/cms/blog/posts/public?${params}`),
+        queryFn: () => api.get<{ data?: CmsBlogPost[] } | CmsBlogPost[]>('/cms/blog/posts/public', { query }),
       });
-      posts.value = result.data || result;
+      posts.value = (result as { data?: CmsBlogPost[] }).data || (result as CmsBlogPost[]);
       return result;
     } catch (e) {
       error.value =
@@ -121,7 +102,7 @@ export function useCmsBlogPosts() {
     try {
       currentPost.value = await queryClient.fetchQuery({
         queryKey: ['cms', 'blog', 'posts', id],
-        queryFn: () => fetchWrapper.get(`${baseUrl}/cms/blog/posts/${id}`),
+        queryFn: () => api.get<CmsBlogPostWithTranslations>(`/cms/blog/posts/${id}`),
       });
       return currentPost.value;
     } catch (e) {
@@ -134,7 +115,7 @@ export function useCmsBlogPosts() {
 
   const createPostMutation = useMutation({
     mutationFn: (data: Partial<CmsBlogPost>) =>
-      fetchWrapper.post(`${baseUrl}/cms/blog/posts`, data),
+      api.post<CmsBlogPost>('/cms/blog/posts', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cms', 'blog', 'posts'] });
     },
@@ -144,7 +125,7 @@ export function useCmsBlogPosts() {
     loading.value = true;
     error.value = null;
     try {
-      const result = await createPostMutation.mutateAsync(data);
+      const result = (await createPostMutation.mutateAsync(data)) as CmsBlogPost;
       posts.value.unshift(result);
       return result;
     } catch (e) {
@@ -157,7 +138,7 @@ export function useCmsBlogPosts() {
 
   const updatePostMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<CmsBlogPost> }) =>
-      fetchWrapper.patch(`${baseUrl}/cms/blog/posts/${id}`, data),
+      api.patch<CmsBlogPost>(`/cms/blog/posts/${id}`, data),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['cms', 'blog', 'posts'] });
       queryClient.invalidateQueries({
@@ -170,7 +151,7 @@ export function useCmsBlogPosts() {
     loading.value = true;
     error.value = null;
     try {
-      const result = await updatePostMutation.mutateAsync({ id, data });
+      const result = (await updatePostMutation.mutateAsync({ id, data })) as CmsBlogPost;
       const index = posts.value.findIndex((p) => p.id === id);
       if (index !== -1) posts.value[index] = result;
       return result;
@@ -183,8 +164,7 @@ export function useCmsBlogPosts() {
   };
 
   const deletePostMutation = useMutation({
-    mutationFn: (id: string) =>
-      fetchWrapper.delete(`${baseUrl}/cms/blog/posts/${id}`),
+    mutationFn: (id: string) => api.delete(`/cms/blog/posts/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cms', 'blog', 'posts'] });
     },
@@ -206,9 +186,7 @@ export function useCmsBlogPosts() {
 
   const publishPostMutation = useMutation({
     mutationFn: ({ id, isPublished }: { id: string; isPublished: boolean }) =>
-      fetchWrapper.patch(`${baseUrl}/cms/blog/posts/${id}/publish`, {
-        isPublished,
-      }),
+      api.patch<CmsBlogPost>(`/cms/blog/posts/${id}/publish`, { isPublished }),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['cms', 'blog', 'posts'] });
       queryClient.invalidateQueries({
@@ -221,7 +199,7 @@ export function useCmsBlogPosts() {
     loading.value = true;
     error.value = null;
     try {
-      const result = await publishPostMutation.mutateAsync({ id, isPublished });
+      const result = (await publishPostMutation.mutateAsync({ id, isPublished })) as CmsBlogPost;
       const index = posts.value.findIndex((p) => p.id === id);
       if (index !== -1) posts.value[index] = result;
       return result;
@@ -239,8 +217,7 @@ export function useCmsBlogPosts() {
     try {
       const result = await queryClient.fetchQuery({
         queryKey: ['cms', 'blog', 'posts', id, 'preview'],
-        queryFn: () =>
-          fetchWrapper.get(`${baseUrl}/cms/blog/posts/${id}/preview`),
+        queryFn: () => api.get(`/cms/blog/posts/${id}/preview`),
       });
       return result;
     } catch (e) {
@@ -253,8 +230,8 @@ export function useCmsBlogPosts() {
 
   const fetchTranslations = async (entityId: string, lang: string = 'es') => {
     try {
-      return await fetchWrapper.get(
-        `${baseUrl}/translations/dynamic/${lang}/BlogPost/${entityId}`,
+      return await api.get(
+        `/translations/dynamic/${lang}/BlogPost/${entityId}`,
       );
     } catch (e) {
       return null;
@@ -268,7 +245,7 @@ export function useCmsBlogPosts() {
     value: string,
   ) => {
     try {
-      return await fetchWrapper.post(`${baseUrl}/translations`, {
+      return await api.post('/translations', {
         entityName: 'BlogPost',
         entityId,
         langCode: lang,
@@ -284,8 +261,7 @@ export function useCmsBlogPosts() {
     try {
       return await queryClient.fetchQuery({
         queryKey: ['cms', 'seo', pageId, lang],
-        queryFn: () =>
-          fetchWrapper.get(`${baseUrl}/cms/seo/${pageId}?lang=${lang}`),
+        queryFn: () => api.get(`/cms/seo/${pageId}`, { query: { lang } }),
       });
     } catch (e) {
       return null;
@@ -301,9 +277,7 @@ export function useCmsBlogPosts() {
       return await queryClient.fetchQuery({
         queryKey: ['cms', 'seo', entityName, entityId, lang],
         queryFn: () =>
-          fetchWrapper.get(
-            `${baseUrl}/cms/seo/${entityName}/${entityId}?lang=${lang}`,
-          ),
+          api.get(`/cms/seo/${entityName}/${entityId}`, { query: { lang } }),
       });
     } catch (e) {
       return null;
@@ -324,7 +298,7 @@ export function useCmsBlogPosts() {
         canonicalUrl?: string;
       };
       lang: string;
-    }) => fetchWrapper.patch(`${baseUrl}/cms/seo/${pageId}?lang=${lang}`, seo),
+    }) => api.patch(`/cms/seo/${pageId}`, { ...seo, lang }),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({
         queryKey: ['cms', 'seo', variables.pageId, variables.lang],
@@ -357,10 +331,7 @@ export function useCmsBlogPosts() {
 
   const fetchMediaByEntity = async (entityName: string, entityId: string) => {
     try {
-      const params = new URLSearchParams();
-      params.append('entityName', entityName);
-      params.append('entityId', entityId);
-      return await fetchWrapper.get(`${baseUrl}/cms/media?${params}`);
+      return await api.get('/cms/media', { query: { entityName, entityId } });
     } catch (e) {
       return null;
     }
@@ -377,7 +348,7 @@ export function useCmsBlogPosts() {
     lang: string,
     items: BatchTranslationItem[],
   ) => {
-    return await fetchWrapper.post(`${baseUrl}/translations/dynamic/batch`, {
+    return await api.post('/translations/dynamic/batch', {
       entityName: 'BlogPost',
       entityId: postId,
       lang,
@@ -392,20 +363,15 @@ export function useCmsBlogPosts() {
     loading.value = true;
     error.value = null;
     try {
-      const params = new URLSearchParams();
-      params.append('categoryId', categoryId);
-      if (query.page) params.append('page', String(query.page));
-      if (query.limit) params.append('limit', String(query.limit));
-      if (query.lang) params.append('lang', query.lang);
-
       const result = await queryClient.fetchQuery({
         queryKey: ['cms', 'blog', 'posts', 'category', categoryId, query],
         queryFn: () =>
-          fetchWrapper.get(
-            `${baseUrl}/cms/blog/posts/public/category/${categoryId}?${params}`,
+          api.get<{ data?: CmsBlogPost[] } | CmsBlogPost[]>(
+            `/cms/blog/posts/public/category/${categoryId}`,
+            { query },
           ),
       });
-      posts.value = result.data || result;
+      posts.value = (result as { data?: CmsBlogPost[] }).data || (result as CmsBlogPost[]);
       return result;
     } catch (e) {
       error.value =

@@ -42,7 +42,7 @@ import {
   Merge,
   SplitSquareHorizontal,
 } from "lucide-vue-next";
-import { fetchWrapper } from "@/helpers/fetch-wrapper";
+// fetchWrapper removed: use useApi() directly if you need HTTP.
 import { useAuthStore } from "#imports";
 
 const props = defineProps({

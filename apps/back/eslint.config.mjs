@@ -46,6 +46,12 @@ export default [
       'require-await': 'off',
       '@typescript-eslint/require-await': 'error',
       '@typescript-eslint/no-floating-promises': 'error',
+      // Use the NestJS Logger service for any persistent logging. console.log
+      // shows up in stdout where no one will ever read it. console.warn and
+      // console.error are still permitted as a quick escape hatch when the
+      // Logger is not available (e.g. CLI scripts that are not part of the
+      // NestJS lifecycle).
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
       'no-restricted-syntax': [
         'error',
         {
