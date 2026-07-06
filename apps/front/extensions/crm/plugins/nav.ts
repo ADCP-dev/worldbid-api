@@ -12,6 +12,7 @@ export default defineNuxtPlugin(() => {
       items: [
         { title: 'Dashboard', icon: 'LayoutDashboard', link: '/app/crm' },
         { title: 'Clientes', icon: 'Users', link: '/app/crm/clients' },
+        { title: 'Proyectos', icon: 'Briefcase', link: '/app/crm/projects' },
         { title: 'Configuración', icon: 'Settings', link: '/app/crm/settings/statuses' },
       ],
     });

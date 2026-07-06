@@ -58,21 +58,20 @@ interface WeeklyReport {
   generatedAt: string;
 }
 
-const API_PREFIX = '/api/v1';
-
 function useApi() {
   const config = useRuntimeConfig();
   const authStore = useAuthStore();
   const baseUrl = config.public.apiUrl as string;
+  const apiPrefix = (config.public.apiPrefix as string) || '/api/v1';
 
   async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
-    const token = authStore.token;
-    const res = await $fetch<T>(`${baseUrl}${API_PREFIX}${path}`, {
+    const headers: Record<string, string> = { ...(options.headers ?? {}) };
+    if (authStore.token) {
+      headers.Authorization = `Bearer ${authStore.token}`;
+    }
+    const res = await $fetch<T>(`${baseUrl}${apiPrefix}${path}`, {
       ...options,
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-        ...(options.headers ?? {}),
-      },
+      headers,
     });
     return res as T;
   }
@@ -133,6 +132,86 @@ export function useUploadPost() {
 
   async function getLocalPosts() {
     return apiFetch('/upload-post/upload/local');
+  }
+
+  async function getUploadHistory() {
+    return apiFetch('/upload-post/upload/history');
+  }
+
+  // ─── Webhooks ─────────────────────────────────────────────────────────
+
+  async function configureWebhooks(data: {
+    webhookUrl: string;
+    telegramChatId?: string;
+    events?: {
+      uploadCompleted?: boolean;
+      socialAccountConnected?: boolean;
+      socialAccountDisconnected?: boolean;
+      socialAccountReauthRequired?: boolean;
+    };
+  }) {
+    return apiFetch('/upload-post/webhooks/configure', { method: 'POST', body: data });
+  }
+
+  // ─── Queue Settings ──────────────────────────────────────────────────
+
+  async function getQueueSettings() {
+    return apiFetch('/upload-post/queue/settings');
+  }
+
+  async function updateQueueSettings(data: {
+    publishDays?: string;
+    publishTime?: string;
+    maxPerWeek?: number;
+    skipWeekends?: boolean;
+    timezone?: string;
+  }) {
+    return apiFetch('/upload-post/queue/settings', { method: 'POST', body: data });
+  }
+
+  // ─── Platforms (extended) ─────────────────────────────────────────────
+
+  async function getGoogleBusinessLocations() {
+    return apiFetch('/upload-post/platforms/google-business/locations');
+  }
+
+  async function selectGoogleBusinessLocation(locationId: string) {
+    return apiFetch('/upload-post/platforms/google-business/locations/select', {
+      method: 'POST',
+      body: { locationId },
+    });
+  }
+
+  async function getRedditDetailedPost(postId: string) {
+    return apiFetch(`/upload-post/platforms/reddit/detailed-posts/${postId}`);
+  }
+
+  // ─── Instagram ─────────────────────────────────────────────────────────
+
+  async function getInstagramMedia() {
+    return apiFetch('/upload-post/instagram/media');
+  }
+
+  async function getInstagramComments(postUrl: string) {
+    return apiFetch('/upload-post/instagram/comments', { query: { postUrl } });
+  }
+
+  async function replyInstagramComment(commentId: string, message: string) {
+    return apiFetch('/upload-post/instagram/comments/reply', {
+      method: 'POST',
+      body: { commentId, message },
+    });
+  }
+
+  async function sendInstagramDm(username: string, message: string) {
+    return apiFetch('/upload-post/instagram/dms/send', {
+      method: 'POST',
+      body: { username, message },
+    });
+  }
+
+  async function getInstagramConversations() {
+    return apiFetch('/upload-post/instagram/dms/conversations');
   }
 
   // ─── Schedule ─────────────────────────────────────────────────────────
@@ -303,6 +382,28 @@ export function useUploadPost() {
     uploadText,
     getUploadStatus,
     getLocalPosts,
+    getUploadHistory,
+    // Webhooks
+    configureWebhooks,
+    // Queue
+    getQueuePreview,
+    getQueueNextSlot,
+    getQueueSettings,
+    updateQueueSettings,
+    // Platforms
+    getFacebookPages,
+    getLinkedinPages,
+    getPinterestBoards,
+    getGoogleBusinessLocations,
+    selectGoogleBusinessLocation,
+    getRedditDetailedPost,
+    // Instagram
+    getInstagramMedia,
+    getInstagramComments,
+    replyInstagramComment,
+    sendInstagramDm,
+    getInstagramConversations,
+    // Schedule
     getScheduled,
     updateScheduled,
     cancelScheduled,
@@ -318,11 +419,6 @@ export function useUploadPost() {
     stopAutodm,
     deleteAutodm,
     getLocalMonitors,
-    getQueuePreview,
-    getQueueNextSlot,
-    getFacebookPages,
-    getLinkedinPages,
-    getPinterestBoards,
     // Content Ideas
     getIdeas,
     createIdea,

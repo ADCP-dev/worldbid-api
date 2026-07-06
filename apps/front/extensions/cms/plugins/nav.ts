@@ -16,6 +16,7 @@ export default defineNuxtPlugin(() => {
         { title: "Blog", icon: "BookOpen", link: "/app/cms/blog/posts" },
         { title: "Categorías", icon: "Folder", link: "/app/cms/blog/categories" },
         { title: "Etiquetas", icon: "Tag", link: "/app/cms/tags" },
+        { title: "Media", icon: "Image", link: "/app/cms/media" },
       ],
     });
   };
