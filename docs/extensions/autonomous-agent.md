@@ -1,3 +1,12 @@
+---
+id: "autonomous-agent"
+name: "Autonomous Agent"
+type: "extension"
+parent: null
+dependencies: ["auth", "content-pipeline"]
+entities: ["AaConfig", "AaRun"]
+---
+
 # Autonomous Agent Extension
 
 Bucle autónomo que schedula, ejecuta, monitoriza, y aprende del pipeline de contenido. Coordina content-pipeline via BullMQ + @Cron. Feedback loop: métricas → research.

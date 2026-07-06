@@ -409,12 +409,14 @@ Docs en `docs/`. Docs pa contexto y teoría. Skills pa acción.
 | `docs/modules/storage.md` | File Storage |
 | `docs/modules/translations.md` | i18n Translations |
 | `docs/modules/webhooks.md` | Webhooks |
-| `docs/extensions/autonomous-agent.md` | autonomous-agent |
+| `docs/extensions/affiliate.md` | Affiliate Program |
+| `docs/extensions/autonomous-agent.md` | Autonomous Agent |
 | `docs/extensions/cms-audit.md` | CMS Audit & Gap Analysis |
 | `docs/extensions/cms.md` | CMS |
-| `docs/extensions/content-pipeline.md` | content-pipeline |
+| `docs/extensions/content-pipeline.md` | Content Pipeline |
+| `docs/extensions/crm.md` | CRM |
 | `docs/extensions/stripe.md` | Stripe Billing |
-| `docs/extensions/upload-post.md` | upload-post |
+| `docs/extensions/upload-post.md` | Upload Post |
 | `docs/DECOUPLING.md` | DECOUPLING |
 | `docs/EXTENSIONS-SYSTEM.md` | EXTENSIONS-SYSTEM |
 | `docs/FRONTEND-LAYERS.md` | FRONTEND-LAYERS |
