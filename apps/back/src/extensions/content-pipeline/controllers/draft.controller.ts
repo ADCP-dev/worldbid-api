@@ -16,6 +16,7 @@ import { Roles } from '@iam/roles/roles.decorator';
 import { RoleEnum } from '@iam/roles/roles.enum';
 import { RolesGuard } from '@iam/roles/roles.guard';
 import { DraftService } from '@ext/content-pipeline/services/draft.service';
+import { VideoQueueService } from '@ext/content-pipeline/services/video-queue.service';
 import { UpdateDraftDto } from '@ext/content-pipeline/dto/update-draft.dto';
 import { RejectDraftDto } from '@ext/content-pipeline/dto/reject-draft.dto';
 import { GenerateCarouselVideoDto } from '@ext/content-pipeline/dto/generate-carousel-video.dto';
@@ -26,7 +27,10 @@ import { GenerateCarouselVideoDto } from '@ext/content-pipeline/dto/generate-car
 @Roles(RoleEnum.admin)
 @Controller({ path: 'content-pipeline', version: '1' })
 export class DraftController {
-  constructor(private readonly draftService: DraftService) {}
+  constructor(
+    private readonly draftService: DraftService,
+    private readonly videoQueueService: VideoQueueService,
+  ) {}
 
   @Get('projects/:projectId/drafts')
   @ApiQuery({ name: 'page', required: false, type: Number })
@@ -75,17 +79,25 @@ export class DraftController {
   }
 
   @Post('drafts/:id/generate-video')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.ACCEPTED)
   generateVideo(@Param('id') id: string) {
-    return this.draftService.generateVideo(id);
+    return this.videoQueueService.enqueueGenerateVideo(id);
   }
 
   @Post('drafts/:id/generate-carousel-video')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.ACCEPTED)
   generateCarouselVideo(
     @Param('id') id: string,
     @Body() dto: GenerateCarouselVideoDto,
   ) {
-    return this.draftService.generateCarouselVideo(id, dto);
+    return this.videoQueueService.enqueueGenerateCarouselVideo(id, {
+      format: dto.format,
+      transitions: dto.transitions,
+    });
+  }
+
+  @Get('video-jobs/:jobId')
+  getVideoJobStatus(@Param('jobId') jobId: string) {
+    return this.videoQueueService.getJobStatus(jobId);
   }
 }

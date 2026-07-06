@@ -19,6 +19,7 @@ import {
   VideoTemplateService,
 } from '@ext/content-pipeline/services/video-template.service';
 import type { TemplateType } from '@ext/content-pipeline/services/video-template.service';
+import { VideoQueueService } from '@ext/content-pipeline/services/video-queue.service';
 import { GenerateFromTemplateDto } from '@ext/content-pipeline/dto/generate-from-template.dto';
 
 @ApiTags('Content-Pipeline')
@@ -27,7 +28,10 @@ import { GenerateFromTemplateDto } from '@ext/content-pipeline/dto/generate-from
 @Roles(RoleEnum.admin)
 @Controller({ path: 'content-pipeline/templates', version: '1' })
 export class TemplateController {
-  constructor(private readonly videoTemplateService: VideoTemplateService) {}
+  constructor(
+    private readonly videoTemplateService: VideoTemplateService,
+    private readonly videoQueueService: VideoQueueService,
+  ) {}
 
   @Get()
   listTemplates() {
@@ -48,8 +52,28 @@ export class TemplateController {
   }
 
   @Post('generate')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.ACCEPTED)
   generateFromTemplate(@Body() dto: GenerateFromTemplateDto) {
-    return this.videoTemplateService.generateFromDto(dto);
+    const slots: Record<number, { imageUrl?: string; slide?: Record<string, unknown> }> = {};
+    if (dto.slots) {
+      for (const [key, val] of Object.entries(dto.slots)) {
+        const pos = Number(key);
+        if (Number.isNaN(pos) || !val) continue;
+        slots[pos] = {
+          imageUrl: val.imageUrl,
+          slide: val.slide,
+        };
+      }
+    }
+    return this.videoQueueService.enqueueGenerateTemplate({
+      templateType: dto.template,
+      slots,
+      options: {
+        format: dto.format,
+        transitions: dto.transitions,
+        ctaVideoUrl: dto.ctaVideoUrl,
+        slideDurationSec: dto.slideDurationSec,
+      },
+    });
   }
 }

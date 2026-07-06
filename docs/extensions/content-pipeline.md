@@ -81,8 +81,9 @@ CONTENT_PIPELINE_DESIGN_DOC_PATH=/data/brand/DESIGN.md
 | POST | `content-pipeline/drafts/:id/approve` | Approve draft |
 | POST | `content-pipeline/drafts/:id/reject` | Reject draft |
 | POST | `content-pipeline/drafts/:id/publish` | Publish draft (CMS + Upload-Post) |
-| POST | `content-pipeline/drafts/:id/generate-video` | Generate 9:16 MP4 from draft images |
-| POST | `content-pipeline/drafts/:id/generate-carousel-video` | Generate carousel HTML → PNG → MP4 with hyperframes |
+| POST | `content-pipeline/drafts/:id/generate-video` | Enqueue 9:16 MP4 generation (returns jobId, HTTP 202) |
+| POST | `content-pipeline/drafts/:id/generate-carousel-video` | Enqueue carousel HTML → PNG → MP4 generation (returns jobId, HTTP 202) |
+| GET | `content-pipeline/video-jobs/:jobId` | Poll async video job status |
 
 ### Video Templates
 
@@ -119,6 +120,79 @@ CONTENT_PIPELINE_DESIGN_DOC_PATH=/data/brand/DESIGN.md
 | DesignSystemLoaderService | Loads DESIGN.md from disk and injects brand guidelines into LLM prompts |
 | MetricsService | Metrics tracking, snapshots, cleanup |
 
+## Async Video Generation
+
+The three video-generation endpoints are **asynchronous** — they no longer block the HTTP request for the 30-60s the FFmpeg/Chromium pipeline takes. Instead, they enqueue a BullMQ job and return immediately.
+
+### Endpoints
+
+| Method | Path | Response |
+|--------|------|----------|
+| POST | `content-pipeline/drafts/:id/generate-video` | HTTP 202 `{ jobId, status: "queued" }` |
+| POST | `content-pipeline/drafts/:id/generate-carousel-video` | HTTP 202 `{ jobId, status: "queued" }` |
+| POST | `content-pipeline/templates/generate` | HTTP 202 `{ jobId, status: "queued" }` |
+| GET | `content-pipeline/video-jobs/:jobId` | `{ jobId, state, result?, failedReason? }` |
+
+### How it works
+
+1. POST endpoint enqueues a job onto the `content-pipeline-video` BullMQ queue (registered alongside the existing `content-pipeline` queue) and returns `{ jobId, status: "queued" }` with HTTP 202 (Accepted).
+2. A `VideoJobProcessor` worker (`@Processor` / `WorkerHost`) consumes jobs in the background and delegates the actual work to `DraftService` (`generateVideo` / `generateCarouselVideo`) or `VideoTemplateService` (`generateFromTemplate`) — the same services the synchronous controllers used previously, so behavior is unchanged.
+3. Client polls `GET /content-pipeline/video-jobs/:jobId` for status.
+
+### Job states
+
+The `state` field follows BullMQ lifecycle:
+
+| State | Meaning |
+|-------|---------|
+| `waiting` / `delayed` | Job queued, waiting for a worker |
+| `active` | Worker is processing the job |
+| `completed` | Job finished successfully — `result` is populated |
+| `failed` | Job failed (after retries) — `failedReason` is populated |
+| `completed` (with retry) | If a transient failure occurs (chromium timeout, download fail), BullMQ retries up to 3 times with exponential backoff (10s base) |
+
+### Completed response
+
+When `state === "completed"`, the response includes `result`:
+
+```json
+{
+  "jobId": "abc123",
+  "state": "completed",
+  "result": {
+    "videoPath": "/tmp/cp-video-out-xxx/output.mp4",
+    "durationSec": 9,
+    "sizeBytes": 407000,
+    "ctaVideoUrl": "/data/cta/cta-clip.mp4",
+    "templateType": "before-after",
+    "carouselHtml": ["<!doctype html>..."],
+    "postText": "Mira esta transformación..."
+  }
+}
+```
+
+### Failed response
+
+When `state === "failed"`, the response includes `failedReason`:
+
+```json
+{
+  "jobId": "abc123",
+  "state": "failed",
+  "failedReason": "Draft abc has no images — generate images first"
+}
+```
+
+### Side effects on the draft entity
+
+For `generate-video` and `generate-carousel-video` jobs, the `DraftService` also persists the result into the draft entity's jsonb fields (`videos`, `carousels`) — exactly as before. So once the job is `completed`, `GET /content-pipeline/drafts/:id` will also show the new video/carousel entries. Template generation is stateless (no draft entity).
+
+### Retry policy
+
+- 3 attempts with exponential backoff (10s base delay)
+- Completed jobs retained for 24h, failed jobs for 7 days
+- Transient failures (chromium timeout, image download fail, FFmpeg error) are auto-retried
+
 ## Video Generation
 
 The `VideoGeneratorService` produces a 9:16 (1080x1920) MP4 video from a draft's images using FFmpeg. It is designed for short-form video platforms (Reels, Shorts, TikTok).
@@ -143,13 +217,13 @@ The video generator uses FFmpeg's `xfade` filter for smooth transitions between 
 - Global fade in (0.5s at start) + fade out (0.5s at end)
 - Offset for each xfade: `i * slideDuration - transitionDuration`
 
-### Endpoint
+### Endpoint (async)
 
 ```http
 POST /v1/content-pipeline/drafts/:id/generate-video
 ```
 
-Generates a video from the draft's images. Requires at least one hero or content image. Returns the updated draft with the new video entry in `videos`.
+Enqueues a video generation job for the draft's images. Requires at least one hero or content image. Returns `{ jobId, status: "queued" }` with HTTP 202. Poll `GET /v1/content-pipeline/video-jobs/:jobId` for completion — when `completed`, `result` contains `videoPath`, `durationSec`, `sizeBytes`. The draft entity's `videos` jsonb field is also populated when the job completes.
 
 ### Draft.videos format
 
@@ -241,11 +315,13 @@ async renderToPng(params: {
 
 The full orchestrated pipeline: draft content → carousel HTML → PNG screenshots → MP4 with xfade hyperframes.
 
-### Endpoint
+### Endpoint (async)
 
 ```http
 POST /v1/content-pipeline/drafts/:id/generate-carousel-video
 ```
+
+Enqueues the full carousel → video pipeline. Returns `{ jobId, status: "queued" }` with HTTP 202. Poll `GET /v1/content-pipeline/video-jobs/:jobId` for completion — when `completed`, `result` contains `videoPath`, `durationSec`, `sizeBytes`, and `postText`. The draft entity's `videos` and `carousels` jsonb fields are also populated when the job completes.
 
 Body (all optional):
 
@@ -331,7 +407,7 @@ ffmpeg -i content.mp4 -i cta.mp4 \
 - `offset = content_duration - transition_duration` (ffprobe probes content duration first)
 - Result: smooth fade between last frame of content and first frame of CTA
 
-### Endpoints
+### Endpoints (generate is async)
 
 ```http
 GET /v1/content-pipeline/templates
@@ -339,7 +415,9 @@ GET /v1/content-pipeline/templates/:type
 POST /v1/content-pipeline/templates/generate
 ```
 
-### Generate from template
+The POST `generate` endpoint enqueues a job and returns `{ jobId, status: "queued" }` with HTTP 202. Poll `GET /v1/content-pipeline/video-jobs/:jobId` for completion — when `completed`, `result` contains the full `TemplateVideoResult`. Template generation is stateless (no draft entity is updated).
+
+### Generate from template (async)
 
 ```json
 POST /v1/content-pipeline/templates/generate

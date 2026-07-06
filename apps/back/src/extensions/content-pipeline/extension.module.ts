@@ -29,6 +29,8 @@ import { CarouselGeneratorService } from '@ext/content-pipeline/services/carouse
 import { VideoTemplateService } from '@ext/content-pipeline/services/video-template.service';
 import { CtaVideoService } from '@ext/content-pipeline/services/cta-video.service';
 import { MetricsService } from '@ext/content-pipeline/services/metrics.service';
+import { VideoJobProcessor, CONTENT_PIPELINE_VIDEO_QUEUE } from '@ext/content-pipeline/services/video-job.processor';
+import { VideoQueueService } from '@ext/content-pipeline/services/video-queue.service';
 
 import { ProjectController } from '@ext/content-pipeline/controllers/project.controller';
 import { IdeaController } from '@ext/content-pipeline/controllers/idea.controller';
@@ -40,7 +42,10 @@ import { CtaVideoController } from '@ext/content-pipeline/controllers/cta-video.
 @Module({
   imports: [
     ConfigModule,
-    BullModule.registerQueue({ name: 'content-pipeline' }),
+    BullModule.registerQueue(
+      { name: 'content-pipeline' },
+      { name: CONTENT_PIPELINE_VIDEO_QUEUE },
+    ),
     TypeOrmModule.forFeature([
       ContentPipelineProjectEntity,
       ContentPipelineIdeaEntity,
@@ -74,6 +79,8 @@ import { CtaVideoController } from '@ext/content-pipeline/controllers/cta-video.
     VideoTemplateService,
     CtaVideoService,
     MetricsService,
+    VideoJobProcessor,
+    VideoQueueService,
   ],
   exports: [
     CONTENT_PIPELINE_PROVIDER,
@@ -92,6 +99,7 @@ import { CtaVideoController } from '@ext/content-pipeline/controllers/cta-video.
     VideoTemplateService,
     CtaVideoService,
     MetricsService,
+    VideoQueueService,
   ],
 })
 export class ContentPipelineExtensionModule {}
