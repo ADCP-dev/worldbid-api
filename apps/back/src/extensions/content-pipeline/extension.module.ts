@@ -7,6 +7,7 @@ import { ContentPipelineProjectEntity } from '@ext/content-pipeline/infrastructu
 import { ContentPipelineIdeaEntity } from '@ext/content-pipeline/infrastructure/persistence/entities/idea.entity';
 import { ContentPipelineDraftEntity } from '@ext/content-pipeline/infrastructure/persistence/entities/draft.entity';
 import { ContentPipelineMetricsEntity } from '@ext/content-pipeline/infrastructure/persistence/entities/metrics.entity';
+import { ContentPipelineCtaVideoEntity } from '@ext/content-pipeline/infrastructure/persistence/entities/cta-video.entity';
 
 import {
   contentPipelineProvider,
@@ -26,7 +27,7 @@ import { VideoGeneratorService } from '@ext/content-pipeline/services/video-gene
 import { HtmlRendererService } from '@ext/content-pipeline/services/html-renderer.service';
 import { CarouselGeneratorService } from '@ext/content-pipeline/services/carousel-generator.service';
 import { VideoTemplateService } from '@ext/content-pipeline/services/video-template.service';
-import { DesignSystemLoaderService } from '@ext/content-pipeline/services/design-system-loader.service';
+import { CtaVideoService } from '@ext/content-pipeline/services/cta-video.service';
 import { MetricsService } from '@ext/content-pipeline/services/metrics.service';
 
 import { ProjectController } from '@ext/content-pipeline/controllers/project.controller';
@@ -34,6 +35,7 @@ import { IdeaController } from '@ext/content-pipeline/controllers/idea.controlle
 import { DraftController } from '@ext/content-pipeline/controllers/draft.controller';
 import { MetricsController } from '@ext/content-pipeline/controllers/metrics.controller';
 import { TemplateController } from '@ext/content-pipeline/controllers/template.controller';
+import { CtaVideoController } from '@ext/content-pipeline/controllers/cta-video.controller';
 
 @Module({
   imports: [
@@ -44,6 +46,7 @@ import { TemplateController } from '@ext/content-pipeline/controllers/template.c
       ContentPipelineIdeaEntity,
       ContentPipelineDraftEntity,
       ContentPipelineMetricsEntity,
+      ContentPipelineCtaVideoEntity,
     ]),
   ],
   controllers: [
@@ -52,6 +55,7 @@ import { TemplateController } from '@ext/content-pipeline/controllers/template.c
     DraftController,
     MetricsController,
     TemplateController,
+    CtaVideoController,
   ],
   providers: [
     contentPipelineProvider,
@@ -68,7 +72,7 @@ import { TemplateController } from '@ext/content-pipeline/controllers/template.c
     HtmlRendererService,
     CarouselGeneratorService,
     VideoTemplateService,
-    DesignSystemLoaderService,
+    CtaVideoService,
     MetricsService,
   ],
   exports: [
@@ -86,7 +90,7 @@ import { TemplateController } from '@ext/content-pipeline/controllers/template.c
     HtmlRendererService,
     CarouselGeneratorService,
     VideoTemplateService,
-    DesignSystemLoaderService,
+    CtaVideoService,
     MetricsService,
   ],
 })

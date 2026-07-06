@@ -38,7 +38,7 @@ export class GenerateFromTemplateDto {
 
   @IsOptional()
   @IsString()
-  ctaVideoPath?: string;
+  ctaVideoUrl?: string;
 
   @IsOptional()
   @IsIn(['portrait', 'vertical'])

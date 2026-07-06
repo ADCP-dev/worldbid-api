@@ -41,19 +41,13 @@ class EnvironmentVariablesValidator {
   CONTENT_PIPELINE_FFMPEG_PATH: string;
 
   @IsString() @IsOptional()
-  CONTENT_PIPELINE_FONT_PATH: string;
+  CONTENT_PIPELINE_FONT_URL: string;
 
   @IsString() @IsOptional()
   CONTENT_PIPELINE_CHROMIUM_PATH: string;
 
   @IsString() @IsOptional()
-  CONTENT_PIPELINE_CHROMIUM_LIB_DIR: string;
-
-  @IsString() @IsOptional()
-  CONTENT_PIPELINE_CTA_VIDEO_PATH: string;
-
-  @IsString() @IsOptional()
-  CONTENT_PIPELINE_DESIGN_DOC_PATH: string;
+  CONTENT_PIPELINE_CTA_VIDEO_URL: string;
 }
 
 export default registerAs<ContentPipelineConfig>('content-pipeline', () => {
@@ -78,19 +72,14 @@ export default registerAs<ContentPipelineConfig>('content-pipeline', () => {
       process.env.WAVESPEED_BASE_URL ?? 'https://api.wavespeed.ai',
     notificationEmail: process.env.CONTENT_PIPELINE_NOTIFICATION_EMAIL,
     llmApiKey: process.env.OLLAMA_API_KEY,
+    // Docker-native defaults: ffmpeg + chromium preinstalled via apk add.
     ffmpegPath:
-      process.env.CONTENT_PIPELINE_FFMPEG_PATH ??
-      '/home/hermeswebui/.local/bin/ffmpeg',
-    fontPath:
-      process.env.CONTENT_PIPELINE_FONT_PATH ??
-      '/home/hermeswebui/.local/share/fonts/DejaVuSans-Bold.ttf',
+      process.env.CONTENT_PIPELINE_FFMPEG_PATH ?? '/usr/bin/ffmpeg',
+    // Font is now a public URL (CDN/S3) — no default, user provides one.
+    fontUrl: process.env.CONTENT_PIPELINE_FONT_URL,
     chromiumPath:
-      process.env.CONTENT_PIPELINE_CHROMIUM_PATH ??
-      '/home/hermeswebui/.hermes/home/.cache/ms-playwright/chromium_headless_shell-1228/chrome-headless-shell-linux64/chrome-headless-shell',
-    chromiumLibDir:
-      process.env.CONTENT_PIPELINE_CHROMIUM_LIB_DIR ??
-      '/home/hermeswebui/.hermes/home/.local/lib/usr/lib/x86_64-linux-gnu',
-    ctaVideoPath: process.env.CONTENT_PIPELINE_CTA_VIDEO_PATH,
-    designDocPath: process.env.CONTENT_PIPELINE_DESIGN_DOC_PATH,
+      process.env.CONTENT_PIPELINE_CHROMIUM_PATH ?? '/usr/bin/chromium-browser',
+    // CTA video is now a URL (S3 presigned or public) — no default.
+    ctaVideoUrl: process.env.CONTENT_PIPELINE_CTA_VIDEO_URL,
   };
 });

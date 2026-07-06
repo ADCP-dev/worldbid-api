@@ -45,6 +45,13 @@ const manifest: ExtensionManifest = {
       { method: 'GET', path: 'content-pipeline/templates' },
       { method: 'GET', path: 'content-pipeline/templates/:type' },
       { method: 'POST', path: 'content-pipeline/templates/generate' },
+      // CTA videos
+      { method: 'GET', path: 'content-pipeline/cta-videos' },
+      { method: 'GET', path: 'content-pipeline/cta-videos/active' },
+      { method: 'GET', path: 'content-pipeline/cta-videos/:id' },
+      { method: 'POST', path: 'content-pipeline/cta-videos' },
+      { method: 'PATCH', path: 'content-pipeline/cta-videos/:id' },
+      { method: 'DELETE', path: 'content-pipeline/cta-videos/:id' },
       // Metrics
       { method: 'GET', path: 'content-pipeline/projects/:id/metrics' },
       { method: 'GET', path: 'content-pipeline/metrics/dashboard' },
@@ -54,6 +61,7 @@ const manifest: ExtensionManifest = {
       { name: 'CpIdea', table: 'ext_cp_idea' },
       { name: 'CpDraft', table: 'ext_cp_draft' },
       { name: 'CpMetrics', table: 'ext_cp_metrics' },
+      { name: 'CpCtaVideo', table: 'ext_cp_cta_video' },
     ],
     seeds: false,
     config: ['content-pipeline'],

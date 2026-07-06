@@ -10,12 +10,8 @@ import type { ContentPipelineConfig } from '@ext/content-pipeline/config/content
 
 const execFileAsync = promisify(execFile);
 
-/** Default path to the Playwright bundled chrome-headless-shell binary. */
-const DEFAULT_CHROMIUM_PATH =
-  '/home/hermeswebui/.hermes/home/.cache/ms-playwright/chromium_headless_shell-1228/chrome-headless-shell-linux64/chrome-headless-shell';
-/** Default path to the shared libraries directory for LD_LIBRARY_PATH. */
-const DEFAULT_CHROMIUM_LIB_DIR =
-  '/home/hermeswebui/.hermes/home/.local/lib/usr/lib/x86_64-linux-gnu';
+/** Default path to the Chromium binary preinstalled in the Alpine Docker image. */
+const DEFAULT_CHROMIUM_PATH = '/usr/bin/chromium-browser';
 
 const SCREENSHOT_TIMEOUT_MS = 30_000;
 const DEFAULT_WIDTH = 1080;
@@ -33,26 +29,27 @@ export interface RenderToPngParams {
 }
 
 /**
- * Renders HTML strings to PNG images using Chromium headless
- * (Playwright's bundled chrome-headless-shell). Each HTML document is
- * written to a temp file and screenshotted via `--screenshot` flag.
+ * Renders HTML strings to PNG images using Chromium headless.
  *
- * Sets `LD_LIBRARY_PATH` to `chromiumLibDir` so the bundled chromium can
- * find its shared libraries on the Foundation host.
+ * In the Docker image, Chromium is preinstalled via `apk add chromium` and
+ * its shared libraries are resolved by the system loader — no `LD_LIBRARY_PATH`
+ * override is needed (unlike the previous Playwright bundled binary on the
+ * Foundation host).
+ *
+ * Each HTML document is written to a temp file and screenshotted via the
+ * `--screenshot` flag.
  */
 @Injectable()
 export class HtmlRendererService {
   private readonly logger = new Logger(HtmlRendererService.name);
   private readonly cfg: ContentPipelineConfig | null;
   private readonly chromiumPath: string;
-  private readonly chromiumLibDir: string;
 
   constructor(
     private readonly configService: ConfigService<AllConfigType>,
   ) {
     this.cfg = this.configService.get('content-pipeline', { infer: true }) ?? null;
     this.chromiumPath = this.cfg?.chromiumPath ?? DEFAULT_CHROMIUM_PATH;
-    this.chromiumLibDir = this.cfg?.chromiumLibDir ?? DEFAULT_CHROMIUM_LIB_DIR;
   }
 
   get isConfigured(): boolean {
@@ -117,10 +114,6 @@ export class HtmlRendererService {
               `file://${htmlPath}`,
             ],
             {
-              env: {
-                ...process.env,
-                LD_LIBRARY_PATH: this.chromiumLibDir,
-              },
               signal: controller.signal,
               maxBuffer: 10 * 1024 * 1024,
             },

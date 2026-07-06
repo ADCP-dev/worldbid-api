@@ -18,6 +18,7 @@ import {
   VideoGeneratorService,
 } from '@ext/content-pipeline/services/video-generator.service';
 import type { VideoSlide } from '@ext/content-pipeline/services/video-generator.service';
+import { CtaVideoService } from '@ext/content-pipeline/services/cta-video.service';
 import type { GenerateFromTemplateDto } from '@ext/content-pipeline/dto/generate-from-template.dto';
 
 export type TemplateType =
@@ -88,7 +89,7 @@ export interface VideoTemplate {
   defaultTransitions: string[];
   defaultSlideDurationSec: number;
   appendCtaVideo: boolean;
-  ctaVideoPath?: string;
+  ctaVideoUrl?: string;
   format: 'portrait' | 'vertical';
 }
 
@@ -101,7 +102,7 @@ export interface TemplateFillData {
   slots: { [position: number]: TemplateFillSlotContent };
   transitions?: string[];
   slideDurationSec?: number;
-  ctaVideoPath?: string;
+  ctaVideoUrl?: string;
   format?: 'portrait' | 'vertical';
 }
 
@@ -111,7 +112,7 @@ export interface TemplateVideoResult {
   sizeBytes: number;
   carouselHtml: string[];
   postText: string;
-  ctaVideoPath: string;
+  ctaVideoUrl: string;
   templateType: TemplateType;
 }
 
@@ -554,14 +555,15 @@ VALID_TEMPLATE_TYPES.add('custom');
 export class VideoTemplateService {
   private readonly logger = new Logger(VideoTemplateService.name);
   private readonly cfg: ContentPipelineConfig | null;
-  /** Runtime override for the global CTA video path (set via setCtaVideo). */
-  private ctaVideoPathOverride: string | null = null;
+  /** Runtime override for the global CTA video URL (set via setCtaVideo). */
+  private ctaVideoUrlOverride: string | null = null;
 
   constructor(
     private readonly configService: ConfigService<AllConfigType>,
     private readonly carouselGeneratorService: CarouselGeneratorService,
     private readonly htmlRendererService: HtmlRendererService,
     private readonly videoGeneratorService: VideoGeneratorService,
+    private readonly ctaVideoService: CtaVideoService,
   ) {
     this.cfg = this.configService.get('content-pipeline', { infer: true }) ?? null;
   }
@@ -591,22 +593,24 @@ export class VideoTemplateService {
   }
 
   /**
-   * Set the global CTA video path at runtime (overrides config).
-   * The path must be an existing MP4 file. Stored once and reused.
+   * Set the global CTA video URL at runtime (overrides config + DB).
+   * The URL must point to an existing MP4 (S3 presigned or public).
    */
-  setCtaVideo(path: string): void {
-    this.ctaVideoPathOverride = path;
-    this.logger.log(`CTA video path override set: ${path}`);
+  setCtaVideo(url: string): void {
+    this.ctaVideoUrlOverride = url;
+    this.logger.log(`CTA video URL override set: ${url}`);
   }
 
   /**
-   * Return the CTA video path: runtime override → template override → global config.
-   * Returns empty string if no CTA video is configured.
+   * Return the CTA video URL: runtime override → template override →
+   * global config → active CTA video in DB. Returns empty string if none.
    */
-  getCtaVideoPath(templateOverride?: string): string {
-    if (this.ctaVideoPathOverride) return this.ctaVideoPathOverride;
+  async getCtaVideoUrl(templateOverride?: string): Promise<string> {
+    if (this.ctaVideoUrlOverride) return this.ctaVideoUrlOverride;
     if (templateOverride) return templateOverride;
-    return this.cfg?.ctaVideoPath ?? '';
+    if (this.cfg?.ctaVideoUrl) return this.cfg.ctaVideoUrl;
+    // Fallback: query the active CTA video from the DB.
+    return this.ctaVideoService.findActiveUrl();
   }
 
   /**
@@ -750,20 +754,20 @@ export class VideoTemplateService {
     let finalVideoPath = contentVideo.videoPath;
     let finalDuration = contentVideo.durationSec;
     let finalSize = contentVideo.sizeBytes;
-    let ctaVideoPath = '';
+    let ctaVideoUrl = '';
 
     if (tpl.appendCtaVideo) {
-      ctaVideoPath =
-        fillData.ctaVideoPath ??
-        this.getCtaVideoPath(tpl.ctaVideoPath);
-      if (ctaVideoPath) {
+      ctaVideoUrl =
+        fillData.ctaVideoUrl ??
+        (await this.getCtaVideoUrl(tpl.ctaVideoUrl));
+      if (ctaVideoUrl) {
         this.logger.log(
-          `Concatenating CTA video: ${ctaVideoPath} after content (${contentVideo.durationSec}s)`,
+          `Concatenating CTA video: ${ctaVideoUrl} after content (${contentVideo.durationSec}s)`,
         );
         const ctaOutDir = await mkdtemp(join(tmpdir(), 'cp-tpl-final-'));
         const finalVideo = await this.videoGeneratorService.concatWithCta({
           contentVideoPath: contentVideo.videoPath,
-          ctaVideoPath,
+          ctaVideoUrl,
           outputDir: ctaOutDir,
           transitionDuration: 0.5,
         });
@@ -772,7 +776,7 @@ export class VideoTemplateService {
         finalSize = finalVideo.sizeBytes;
       } else {
         this.logger.warn(
-          `Template ${tpl.type} has appendCtaVideo=true but no CTA video path is configured — skipping CTA`,
+          `Template ${tpl.type} has appendCtaVideo=true but no CTA video URL is configured — skipping CTA`,
         );
       }
     }
@@ -787,7 +791,7 @@ export class VideoTemplateService {
       sizeBytes: finalSize,
       carouselHtml,
       postText,
-      ctaVideoPath,
+      ctaVideoUrl,
       templateType: tpl.type,
     };
   }
@@ -801,7 +805,7 @@ export class VideoTemplateService {
       slots: {},
       transitions: dto.transitions,
       slideDurationSec: dto.slideDurationSec,
-      ctaVideoPath: dto.ctaVideoPath,
+      ctaVideoUrl: dto.ctaVideoUrl,
       format: dto.format,
     };
     if (dto.slots) {

@@ -1,6 +1,7 @@
 FROM node:22.16.0-alpine
 
-RUN apk add --no-cache bash
+RUN apk add --no-cache bash \
+    ffmpeg chromium nss freetype harfbuzz ca-certificates ttf-freefont font-noto
 RUN npm i -g @nestjs/cli typescript ts-node
 
 COPY package*.json /tmp/app/

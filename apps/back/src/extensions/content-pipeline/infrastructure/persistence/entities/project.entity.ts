@@ -63,6 +63,10 @@ export class ContentPipelineProjectEntity extends EntityRelationalHelper {
   @Column({ type: 'varchar', length: 20, default: 'active' })
   status: string; // "active" | "paused" | "archived"
 
+  /** Brand design system document (DESIGN.md content) injected into LLM prompts. */
+  @Column({ type: 'text', nullable: true })
+  designDoc: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

@@ -93,11 +93,16 @@ export class CreateProjectDto {
   @IsObject()
   autoPublish?: { blog: boolean; social: boolean };
 
-  @ApiPropertyOptional({
-    enum: ['active', 'paused', 'archived'],
-    default: 'active',
-  })
+  @ApiPropertyOptional({ enum: ['active', 'paused', 'archived'], default: 'active' })
   @IsOptional()
   @IsIn(['active', 'paused', 'archived'])
   status?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Brand design system document (DESIGN.md content) injected into LLM prompts.',
+  })
+  @IsOptional()
+  @IsString()
+  designDoc?: string;
 }

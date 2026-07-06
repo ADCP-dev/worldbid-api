@@ -33,11 +33,8 @@ export interface GeneratedVideo {
   sizeBytes: number;
 }
 
-/** Default path to the static FFmpeg binary on the Foundation host. */
-const DEFAULT_FFMPEG_PATH = '/home/hermeswebui/.local/bin/ffmpeg';
-/** Default path to the bold DejaVu Sans TTF used for subtitle overlays. */
-const DEFAULT_FONT_PATH =
-  '/home/hermeswebui/.local/share/fonts/DejaVuSans-Bold.ttf';
+/** Default path to the FFmpeg binary preinstalled in the Alpine Docker image. */
+const DEFAULT_FFMPEG_PATH = '/usr/bin/ffmpeg';
 const DEFAULT_SLIDE_DURATION_SEC = 3;
 const DEFAULT_TRANSITION_DURATION = 0.4;
 const DEFAULT_TRANSITION = 'fade';
@@ -55,20 +52,23 @@ const FONT_SIZE = 72;
  * a filtergraph (scale → crop → fade → concat → subtitles), and runs FFmpeg.
  *
  * Designed for short-form video platforms (Reels, Shorts, TikTok).
+ *
+ * Docker-native: FFmpeg is preinstalled at `/usr/bin/ffmpeg` via `apk add ffmpeg`.
+ * The font is a public URL (CDN/S3) downloaded once per process and cached.
  */
 @Injectable()
 export class VideoGeneratorService {
   private readonly logger = new Logger(VideoGeneratorService.name);
   private readonly cfg: ContentPipelineConfig | null;
   private readonly ffmpegPath: string;
-  private readonly fontPath: string;
+  /** Cached local path to the downloaded font (downloaded once per process). */
+  private cachedFontPath: string | null = null;
 
   constructor(
     private readonly configService: ConfigService<AllConfigType>,
   ) {
     this.cfg = this.configService.get('content-pipeline', { infer: true }) ?? null;
     this.ffmpegPath = this.cfg?.ffmpegPath ?? DEFAULT_FFMPEG_PATH;
-    this.fontPath = this.cfg?.fontPath ?? DEFAULT_FONT_PATH;
   }
 
   get isConfigured(): boolean {
@@ -123,18 +123,22 @@ export class VideoGeneratorService {
         imagePaths.push(imgPath);
       }
 
-      // 2. Build ASS subtitle file (if enabled)
+      // 2. Resolve font (URL → temp file, cached per process) before subtitles
+      const fontPath = enableSubtitles ? await this.resolveFontFile() : '';
+
+      // 3. Build ASS subtitle file (if enabled)
       const assPath = join(workDir, 'overlay.ass');
       if (enableSubtitles) {
         const assContent = this.buildAssFile(slides, slideDuration, textOverlay);
         await writeFile(assPath, assContent, 'utf8');
       }
 
-      // 3. Build FFmpeg filtergraph (xfade hyperframe transitions)
+      // 4. Build FFmpeg filtergraph (xfade hyperframe transitions)
       const filterGraph = this.buildFilterGraph(
         slides.length,
         slideDuration,
         assPath,
+        fontPath,
         transitions,
         enableSubtitles,
       );
@@ -238,7 +242,8 @@ export class VideoGeneratorService {
    */
   async concatWithCta(params: {
     contentVideoPath: string;
-    ctaVideoPath: string;
+    /** S3 presigned/public URL or local file path to the CTA clip. */
+    ctaVideoUrl: string;
     outputDir?: string;
     transitionDuration?: number;
   }): Promise<GeneratedVideo> {
@@ -250,12 +255,18 @@ export class VideoGeneratorService {
     if (!params.contentVideoPath) {
       throw new Error('concatWithCta: contentVideoPath is required');
     }
-    if (!params.ctaVideoPath) {
-      throw new Error('concatWithCta: ctaVideoPath is required');
+    if (!params.ctaVideoUrl) {
+      throw new Error('concatWithCta: ctaVideoUrl is required');
     }
 
+    // Resolve the CTA video URL to a local path (download if it's a URL).
+    const ctaLocalPath = await this.resolveAssetToLocal(
+      params.ctaVideoUrl,
+      'cta-video',
+    );
+
     this.logger.log(
-      `Concatenating CTA: content=${params.contentVideoPath}, cta=${params.ctaVideoPath}, transition=${transitionDur}s`,
+      `Concatenating CTA: content=${params.contentVideoPath}, cta=${params.ctaVideoUrl} → ${ctaLocalPath}, transition=${transitionDur}s`,
     );
 
     const controller = new AbortController();
@@ -284,7 +295,7 @@ export class VideoGeneratorService {
         '-i',
         params.contentVideoPath,
         '-i',
-        params.ctaVideoPath,
+        ctaLocalPath,
         '-filter_complex',
         `[0:v][1:v]xfade=transition=fade:duration=${transitionDur}:offset=${offset}[vfinal]`,
         '-map',
@@ -357,6 +368,67 @@ export class VideoGeneratorService {
   private deriveFfprobePath(): string {
     const dir = dirname(this.ffmpegPath);
     return join(dir, 'ffprobe');
+  }
+
+  /**
+   * Resolve the configured font URL to a local file path.
+   * - If the URL is a local path (starts with `/`), use it directly.
+   * - Otherwise download from the URL once per process and cache the temp path.
+   * Throws if no font URL is configured.
+   */
+  private async resolveFontFile(): Promise<string> {
+    if (this.cachedFontPath) return this.cachedFontPath;
+
+    const fontUrl = this.cfg?.fontUrl;
+    if (!fontUrl) {
+      throw new Error(
+        'No font URL configured (CONTENT_PIPELINE_FONT_URL) — cannot generate video subtitles',
+      );
+    }
+
+    // Local path — use directly.
+    if (fontUrl.startsWith('/')) {
+      this.cachedFontPath = fontUrl;
+      return fontUrl;
+    }
+
+    // Download from URL to a temp file (cached for the process lifetime).
+    const tmpFont = join(tmpdir(), `cp-font-${Date.now()}.ttf`);
+    const res = await fetch(fontUrl);
+    if (!res.ok) {
+      throw new Error(
+        `Font download failed: ${res.status} ${res.statusText} (${fontUrl})`,
+      );
+    }
+    await writeFile(tmpFont, Buffer.from(await res.arrayBuffer()));
+    this.cachedFontPath = tmpFont;
+    this.logger.log(`Downloaded font from ${fontUrl} → ${tmpFont} (cached)`);
+    return tmpFont;
+  }
+
+  /**
+   * Resolve a URL-or-local-path asset to a local file path.
+   * - Local path (starts with `/`) → used directly.
+   * - URL (starts with `http`) → downloaded to a temp file.
+   * - Other strings → assumed local, used directly.
+   */
+  private async resolveAssetToLocal(
+    urlOrPath: string,
+    prefix: string,
+  ): Promise<string> {
+    if (urlOrPath.startsWith('/')) return urlOrPath;
+    if (!urlOrPath.startsWith('http')) return urlOrPath;
+
+    const tmpFile = join(tmpdir(), `cp-${prefix}-${Date.now()}.mp4`);
+    const res = await fetch(urlOrPath);
+    if (!res.ok) {
+      throw new Error(
+        `Asset download failed: ${res.status} ${res.statusText} (${urlOrPath})`,
+      );
+    }
+    await writeFile(tmpFile, Buffer.from(await res.arrayBuffer()));
+    this.logger.debug(`Downloaded asset ${urlOrPath} → ${tmpFile}`);
+    return tmpFile;
   }
 
   /** Probe a video file duration (seconds) using ffprobe. */
@@ -518,6 +590,7 @@ export class VideoGeneratorService {
     slideCount: number,
     slideDuration: number,
     assPath: string,
+    fontPath: string,
     transitions: string[],
     enableSubtitles: boolean,
   ): string {
@@ -563,7 +636,7 @@ export class VideoGeneratorService {
     // Subtitles overlay (ASS file + font directory for libass)
     if (enableSubtitles) {
       const escapedAssPath = this.escapeFilterPath(assPath);
-      const escapedFontDir = this.escapeFilterPath(dirname(this.fontPath));
+      const escapedFontDir = this.escapeFilterPath(dirname(fontPath));
       parts.push(
         `[vfx]subtitles=${escapedAssPath}:fontsdir=${escapedFontDir}:force_style='Fontname=${FONT_NAME}'[vfinal]`,
       );
