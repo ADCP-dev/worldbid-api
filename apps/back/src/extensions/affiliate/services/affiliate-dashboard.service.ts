@@ -79,7 +79,7 @@ export class AffiliateDashboardService {
       .where('c.status = :status', { status: 'paid' })
       .groupBy('p.id')
       .addGroupBy('p.name')
-      .orderBy('totalRevenue', 'DESC')
+      .orderBy('COALESCE(SUM(c.commissionAmount), 0)', 'DESC')
       .limit(5)
       .getRawMany<{
         partnerId: number;

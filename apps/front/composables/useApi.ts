@@ -55,7 +55,14 @@ export function useApi() {
       if (s) url += (path.includes('?') ? '&' : '?') + s
     }
 
-    const isAuthEndpoint = path.startsWith('/auth/')
+    // "Auth endpoint" = endpoints that authenticate (login, register, refresh,
+    // confirm, forgot, reset). They do NOT need the Authorization header and
+    // a 401 from them means invalid credentials (not a stale token to refresh).
+    // /auth/me and /auth/logout DO require the JWT — exclude them.
+    const isAuthEndpoint =
+      path.startsWith('/auth/') &&
+      !path.startsWith('/auth/me') &&
+      !path.startsWith('/auth/logout')
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...((extraHeaders as Record<string, string>) ?? {}),
