@@ -16,6 +16,10 @@ import type { MyColumnDef } from "./types";
 // useApi replaces the old fetchWrapper. Imported via #imports.
 import DataTableComboboxFilter from "./filters/DataTableComboboxFilter.vue";
 
+// Instantiate the centralized HTTP client. `api` is used by fetchData()
+// when the table is backed by an endpoint.
+const api = useApi();
+
 
 interface TableState {
   sorting: ColumnSort[];
