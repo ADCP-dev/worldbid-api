@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch, h } from 'vue';
 import { toast } from 'vue-sonner';
 import DataTable from '@base/ui-app/components/data-table/DataTable.vue';
 import { useTableStateStore } from '@base/ui-app/stores/useTableState';
+import type { CellContext, ConfigEntity, ProjectEntity } from '@/extensions/autonomous-agent/types';
 
 definePageMeta({
   layout: 'default',
@@ -14,14 +15,14 @@ const cp = useContentPipeline();
 const tableStateStore = useTableStateStore();
 
 const loading = ref(false);
-const configs = ref<any[]>([]);
+const configs = ref<ConfigEntity[]>([]);
 const total = ref(0);
-const projects = ref<any[]>([]);
+const projects = ref<ProjectEntity[]>([]);
 
 const tableName = 'autonomous-agent-configs';
 
 const tableState = computed(() => {
-  const raw = (tableStateStore as Record<string, any>)[tableName] || {};
+  const raw = (tableStateStore as Record<string, unknown>)[tableName] as Record<string, unknown> | undefined || {};
   return {
     pageIndex: typeof raw.pageIndex === 'number' ? raw.pageIndex : 0,
     pageSize: typeof raw.pageSize === 'number' ? raw.pageSize : 10,
@@ -52,7 +53,7 @@ const columns = computed(() => [
     header: 'Project',
     filterType: 'select' as const,
     options: projectOptions.value,
-    cell: ({ row }: any) => projectName(row.original.projectId),
+    cell: ({ row }: CellContext<ConfigEntity>) => projectName(row.original.projectId ?? ''),
   },
   {
     accessorKey: 'status',
@@ -60,7 +61,7 @@ const columns = computed(() => [
     header: 'Status',
     filterType: 'select' as const,
     options: statusOptions,
-    cell: ({ row }: any) =>
+    cell: ({ row }: CellContext<ConfigEntity>) =>
       h(
         'span',
         {
@@ -76,7 +77,7 @@ const columns = computed(() => [
     headerName: 'Research Cron',
     header: 'Research Cron',
     filterType: 'string' as const,
-    cell: ({ row }: any) =>
+    cell: ({ row }: CellContext<ConfigEntity>) =>
       h('span', { class: 'font-mono text-xs' }, row.original.researchCron || '—'),
   },
   {
@@ -89,7 +90,7 @@ const columns = computed(() => [
       { label: 'Yes', value: 'true' },
       { label: 'No', value: 'false' },
     ],
-    cell: ({ row }: any) =>
+    cell: ({ row }: CellContext<ConfigEntity>) =>
       row.original.autoApproveIdeas
         ? h('span', { class: 'badge badge-xs badge-success' }, 'Yes')
         : h('span', { class: 'badge badge-xs badge-ghost' }, 'No'),
@@ -104,7 +105,7 @@ const columns = computed(() => [
       { label: 'Yes', value: 'true' },
       { label: 'No', value: 'false' },
     ],
-    cell: ({ row }: any) =>
+    cell: ({ row }: CellContext<ConfigEntity>) =>
       row.original.autoApproveDrafts
         ? h('span', { class: 'badge badge-xs badge-success' }, 'Yes')
         : h('span', { class: 'badge badge-xs badge-ghost' }, 'No'),
@@ -113,10 +114,11 @@ const columns = computed(() => [
 
 async function loadProjects() {
   try {
-    const res: any = await cp.getProjects(1, 200);
-    projects.value = res.data ?? res ?? [];
-  } catch (err: any) {
-    toast.error('Error loading projects', { description: err.message });
+    const res = await cp.getProjects(1, 200);
+    projects.value = 'data' in res ? (res.data ?? []) : (res ?? []);
+  } catch (err: unknown) {
+    if (err instanceof Error) toast.error('Error loading projects', { description: err.message });
+    else toast.error('Error loading projects');
   }
 }
 
@@ -124,11 +126,12 @@ async function loadConfigs() {
   loading.value = true;
   try {
     const s = tableState.value;
-    const res: any = await aa.getConfigs(s.pageIndex + 1, s.pageSize, s.globalFilter || undefined);
-    configs.value = res.data ?? res ?? [];
-    total.value = res.total ?? configs.value.length;
-  } catch (err: any) {
-    toast.error('Error loading configs', { description: err.message });
+    const res = await aa.getConfigs(s.pageIndex + 1, s.pageSize, s.globalFilter || undefined);
+    configs.value = 'data' in res ? (res.data ?? []) : (res ?? []);
+    total.value = 'total' in res ? (res.total ?? configs.value.length) : configs.value.length;
+  } catch (err: unknown) {
+    if (err instanceof Error) toast.error('Error loading configs', { description: err.message });
+    else toast.error('Error loading configs');
   } finally {
     loading.value = false;
   }
@@ -161,7 +164,7 @@ watch(tableState, () => {
           :total="total"
           manual
           :table-name="tableName"
-          @row-click="(row: any) => navigateTo(`/app/autonomous-agent/configs/${row.id}`)"
+          @row-click="(row: DataTableRow<ConfigEntity>) => navigateTo(`/app/autonomous-agent/configs/${row.id}`)"
         />
       </div>
     </div>

@@ -4,7 +4,7 @@
  * All endpoints require admin role — backend enforces @Roles(RoleEnum.admin).
  */
 
-import type { ApiFetchOptions, PaginatedResponse } from '../types';
+import type { ApiFetchOptions, AutonomousConfigPayload, ConfigEntity, PaginatedResponse, RunEntity } from '../types';
 
 function useApi() {
   const config = useRuntimeConfig();
@@ -35,34 +35,34 @@ export function useAutonomousAgent() {
 
   // ─── Configs ─────────────────────────────────────────────────────────
 
-  async function getConfigs(page = 1, limit = 20, search?: string) {
+  async function getConfigs(page = 1, limit = 20, search?: string): Promise<PaginatedResponse<ConfigEntity> | ConfigEntity[]> {
     const query: Record<string, unknown> = { page, limit };
     if (search) query.search = search;
-    return apiFetch('/autonomous-agent/configs', { query });
+    return apiFetch<PaginatedResponse<ConfigEntity> | ConfigEntity[]>('/autonomous-agent/configs', { query });
   }
 
-  async function createConfig(data: Record<string, unknown>) {
-    return apiFetch('/autonomous-agent/configs', { method: 'POST', body: data });
+  async function createConfig(data: AutonomousConfigPayload): Promise<ConfigEntity> {
+    return apiFetch<ConfigEntity>('/autonomous-agent/configs', { method: 'POST', body: data });
   }
 
-  async function getConfig(id: number | string) {
-    return apiFetch(`/autonomous-agent/configs/${id}`);
+  async function getConfig(id: number | string): Promise<ConfigEntity> {
+    return apiFetch<ConfigEntity>(`/autonomous-agent/configs/${id}`);
   }
 
-  async function updateConfig(id: number | string, data: Record<string, unknown>) {
-    return apiFetch(`/autonomous-agent/configs/${id}`, { method: 'PATCH', body: data });
+  async function updateConfig(id: number | string, data: AutonomousConfigPayload): Promise<ConfigEntity> {
+    return apiFetch<ConfigEntity>(`/autonomous-agent/configs/${id}`, { method: 'PATCH', body: data });
   }
 
-  async function pauseConfig(id: number | string) {
-    return apiFetch(`/autonomous-agent/configs/${id}/pause`, { method: 'POST' });
+  async function pauseConfig(id: number | string): Promise<ConfigEntity> {
+    return apiFetch<ConfigEntity>(`/autonomous-agent/configs/${id}/pause`, { method: 'POST' });
   }
 
-  async function resumeConfig(id: number | string) {
-    return apiFetch(`/autonomous-agent/configs/${id}/resume`, { method: 'POST' });
+  async function resumeConfig(id: number | string): Promise<ConfigEntity> {
+    return apiFetch<ConfigEntity>(`/autonomous-agent/configs/${id}/resume`, { method: 'POST' });
   }
 
-  async function deleteConfig(id: number | string) {
-    return apiFetch(`/autonomous-agent/configs/${id}`, { method: 'DELETE' });
+  async function deleteConfig(id: number | string): Promise<void> {
+    return apiFetch<void>(`/autonomous-agent/configs/${id}`, { method: 'DELETE' });
   }
 
   // ─── Runs ────────────────────────────────────────────────────────────
@@ -71,16 +71,16 @@ export function useAutonomousAgent() {
     page = 1,
     limit = 20,
     filters?: { projectId?: string; runType?: string; status?: string },
-  ) {
+  ): Promise<PaginatedResponse<RunEntity> | RunEntity[]> {
     const query: Record<string, unknown> = { page, limit };
     if (filters?.projectId) query.projectId = filters.projectId;
     if (filters?.runType) query.runType = filters.runType;
     if (filters?.status) query.status = filters.status;
-    return apiFetch<PaginatedResponse<unknown>>('/autonomous-agent/runs', { query });
+    return apiFetch<PaginatedResponse<RunEntity> | RunEntity[]>('/autonomous-agent/runs', { query });
   }
 
-  async function getRun(id: number | string) {
-    return apiFetch(`/autonomous-agent/runs/${id}`);
+  async function getRun(id: number | string): Promise<RunEntity> {
+    return apiFetch<RunEntity>(`/autonomous-agent/runs/${id}`);
   }
 
   return {

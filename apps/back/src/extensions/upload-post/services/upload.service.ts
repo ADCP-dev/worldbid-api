@@ -72,9 +72,9 @@ export class UploadService {
       await this.postRepo.save(saved);
 
       return { localId: saved.id, ...result };
-    } catch (err: any) {
+    } catch (err: unknown) {
       saved.status = 'error';
-      saved.errorMessage = err.message;
+      saved.errorMessage = err instanceof Error ? err.message : String(err);
       await this.postRepo.save(saved);
       throw err;
     }
@@ -119,9 +119,9 @@ export class UploadService {
       saved.status = 'processing';
       await this.postRepo.save(saved);
       return { localId: saved.id, ...result };
-    } catch (err: any) {
+    } catch (err: unknown) {
       saved.status = 'error';
-      saved.errorMessage = err.message;
+      saved.errorMessage = err instanceof Error ? err.message : String(err);
       await this.postRepo.save(saved);
       throw err;
     }

@@ -4,6 +4,7 @@ import { toast } from 'vue-sonner';
 import { z } from 'zod';
 import FormInput from '@base/ui-app/components/form/FormInput.vue';
 import FormSwitch from '@base/ui-app/components/form/FormSwitch.vue';
+import type { AutonomousConfigPayload, ConfigEntity, ProjectEntity } from '@/extensions/autonomous-agent/types';
 
 definePageMeta({
   layout: 'default',
@@ -19,8 +20,8 @@ const configId = computed(() => route.params.id as string);
 const loading = ref(false);
 const saving = ref(false);
 const toggling = ref(false);
-const config = ref<any>(null);
-const project = ref<any>(null);
+const config = ref<ConfigEntity | null>(null);
+const project = ref<ProjectEntity | null>(null);
 
 const cronRegex = /^(\*|(\d+|\*\/\d+|\d+-\d+|\d+(,\d+)*)(\/\d+)?)(\s+(\d+|\*\/\d+|\d+-\d+|\d+(,\d+)*)(\/\d+)?){4}$/;
 const cronOptional = z
@@ -85,8 +86,9 @@ async function loadConfig() {
         project.value = { id: data.projectId, name: `#${data.projectId}` };
       }
     }
-  } catch (err: any) {
-    toast.error('Error loading config', { description: err.message });
+  } catch (err: unknown) {
+    if (err instanceof Error) toast.error('Error loading config', { description: err.message });
+    else toast.error('Error loading config');
   } finally {
     loading.value = false;
   }
@@ -110,7 +112,7 @@ async function saveConfig() {
 
   saving.value = true;
   try {
-    const payload: Record<string, any> = {
+    const payload: AutonomousConfigPayload = {
       researchCron: result.data.researchCron || undefined,
       generateCron: result.data.generateCron || undefined,
       publishCron: result.data.publishCron || undefined,
@@ -124,8 +126,9 @@ async function saveConfig() {
     const updated = await aa.updateConfig(configId.value, payload);
     config.value = updated;
     toast.success('Config updated');
-  } catch (err: any) {
-    toast.error('Error saving config', { description: err.message });
+  } catch (err: unknown) {
+    if (err instanceof Error) toast.error('Error saving config', { description: err.message });
+    else toast.error('Error saving config');
   } finally {
     saving.value = false;
   }
@@ -141,8 +144,9 @@ async function togglePause() {
       config.value = await aa.pauseConfig(configId.value);
       toast.success('Config paused');
     }
-  } catch (err: any) {
-    toast.error('Error toggling config state', { description: err.message });
+  } catch (err: unknown) {
+    if (err instanceof Error) toast.error('Error toggling config state', { description: err.message });
+    else toast.error('Error toggling config state');
   } finally {
     toggling.value = false;
   }
@@ -154,8 +158,9 @@ async function deleteConfig() {
     await aa.deleteConfig(configId.value);
     toast.success('Config deleted');
     navigateTo('/app/autonomous-agent/configs');
-  } catch (err: any) {
-    toast.error('Error deleting config', { description: err.message });
+  } catch (err: unknown) {
+    if (err instanceof Error) toast.error('Error deleting config', { description: err.message });
+    else toast.error('Error deleting config');
   }
 }
 

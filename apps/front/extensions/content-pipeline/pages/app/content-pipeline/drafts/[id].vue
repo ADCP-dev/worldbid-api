@@ -6,6 +6,7 @@ import { Check, X, Send, ArrowLeft } from 'lucide-vue-next';
 import RichEditor from '@base/ui-app/components/rich-editor/RichEditor.vue';
 import FormInput from '@base/ui-app/components/form/FormInput.vue';
 import FormTextArea from '@base/ui-app/components/form/FormTextArea.vue';
+import type { Draft } from '@/extensions/content-pipeline/types';
 
 definePageMeta({
   layout: 'default',
@@ -20,7 +21,7 @@ const draftId = computed(() => route.params.id as string);
 const loading = ref(false);
 const saving = ref(false);
 const acting = ref(false);
-const draft = ref<any>(null);
+const draft = ref<Draft | null>(null);
 const blogContent = ref('');
 const seoTitle = ref('');
 const seoDescription = ref('');
@@ -56,8 +57,9 @@ async function loadDraft() {
     seoKeywords.value = Array.isArray(data.seoMetadata?.keywords)
       ? data.seoMetadata.keywords.join(', ')
       : data.seoMetadata?.keywords || '';
-  } catch (err: any) {
-    toast.error('Error loading draft', { description: err.message });
+  } catch (err: unknown) {
+    if (err instanceof Error) toast.error('Error loading draft', { description: err.message });
+    else toast.error('Error loading draft');
   } finally {
     loading.value = false;
   }
@@ -94,8 +96,9 @@ async function saveContent() {
       },
     });
     toast.success('Draft saved');
-  } catch (err: any) {
-    toast.error('Error saving draft', { description: err.message });
+  } catch (err: unknown) {
+    if (err instanceof Error) toast.error('Error saving draft', { description: err.message });
+    else toast.error('Error saving draft');
   } finally {
     saving.value = false;
   }
@@ -107,8 +110,9 @@ async function handleApprove() {
     await cp.approveDraft(draftId.value);
     toast.success('Draft approved');
     await loadDraft();
-  } catch (err: any) {
-    toast.error('Error approving draft', { description: err.message });
+  } catch (err: unknown) {
+    if (err instanceof Error) toast.error('Error approving draft', { description: err.message });
+    else toast.error('Error approving draft');
   } finally {
     acting.value = false;
   }
@@ -121,8 +125,9 @@ async function handleReject() {
     await cp.rejectDraft(draftId.value, { reason });
     toast.success('Draft rejected');
     await loadDraft();
-  } catch (err: any) {
-    toast.error('Error rejecting draft', { description: err.message });
+  } catch (err: unknown) {
+    if (err instanceof Error) toast.error('Error rejecting draft', { description: err.message });
+    else toast.error('Error rejecting draft');
   } finally {
     acting.value = false;
   }
@@ -135,8 +140,9 @@ async function handlePublish() {
     await cp.publishDraft(draftId.value);
     toast.success('Draft published');
     await loadDraft();
-  } catch (err: any) {
-    toast.error('Error publishing draft', { description: err.message });
+  } catch (err: unknown) {
+    if (err instanceof Error) toast.error('Error publishing draft', { description: err.message });
+    else toast.error('Error publishing draft');
   } finally {
     acting.value = false;
   }

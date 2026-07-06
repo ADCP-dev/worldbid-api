@@ -72,8 +72,8 @@ async function loadIdeas() {
   loading.value = true;
   try {
     ideas.value = await getIdeas();
-  } catch (err: any) {
-    toast.error('Error cargando ideas', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error cargando ideas', { description: err instanceof Error ? err.message : 'Error' });
   } finally {
     loading.value = false;
   }
@@ -128,8 +128,8 @@ async function handleCreate() {
     isCreateModalOpen.value = false;
     createForm.value = { title: '', description: '', platforms: [], tags: [], priority: 'medium', status: 'idea' };
     await loadIdeas();
-  } catch (err: any) {
-    toast.error('Error', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error', { description: err instanceof Error ? err.message : 'Error' });
   }
 }
 
@@ -139,8 +139,8 @@ async function handleUpdateTaskState({ taskId, newStateId }: { taskId: string; n
     // Optimistic update
     const idea = ideas.value.find((i) => i.id === taskId);
     if (idea) idea.status = newStateId;
-  } catch (err: any) {
-    toast.error('Error moviendo idea', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error moviendo idea', { description: err instanceof Error ? err.message : 'Error' });
     await loadIdeas();
   }
 }
@@ -150,8 +150,8 @@ async function handleUpdateTitle({ taskId, title }: { taskId: string; title: str
     await updateIdea(taskId, { title });
     const idea = ideas.value.find((i) => i.id === taskId);
     if (idea) idea.title = title;
-  } catch (err: any) {
-    toast.error('Error', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error', { description: err instanceof Error ? err.message : 'Error' });
   }
 }
 
@@ -161,8 +161,8 @@ async function handleDelete(taskId: string) {
     ideas.value = ideas.value.filter((i) => i.id !== taskId);
     isDetailModalOpen.value = false;
     toast.success('Idea eliminada');
-  } catch (err: any) {
-    toast.error('Error', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error', { description: err instanceof Error ? err.message : 'Error' });
   }
 }
 

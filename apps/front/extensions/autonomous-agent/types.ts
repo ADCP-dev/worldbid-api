@@ -23,6 +23,7 @@ export interface RunEntity {
   id: string;
   configId: string;
   status: string;
+  runType?: string;
   startedAt: string;
   finishedAt: string | null;
   result: Record<string, unknown> | null;
@@ -32,13 +33,24 @@ export interface RunEntity {
 
 export interface ConfigEntity {
   id: string;
-  name: string;
-  enabled: boolean;
-  cron: string;
-  projectId: string | null;
-  options: Record<string, unknown>;
-  createdAt: string;
-  updatedAt: string;
+  name?: string;
+  enabled?: boolean;
+  cron?: string;
+  projectId: string | number | null;
+  options?: Record<string, unknown>;
+  createdAt?: string;
+  updatedAt?: string;
+  status?: string;
+  lastRunAt?: string | null;
+  researchCron?: string | null;
+  generateCron?: string | null;
+  publishCron?: string | null;
+  metricsCron?: string | null;
+  autoApproveIdeas?: boolean;
+  autoApproveDrafts?: boolean;
+  notifyEmail?: boolean;
+  notifyTelegram?: boolean;
+  telegramChatId?: string | null;
 }
 
 export interface ProjectEntity {
@@ -65,6 +77,19 @@ export interface ConfigPayload {
   name: string;
   enabled: boolean;
   cron: string;
-  projectId?: string | null;
+  projectId?: string | number | null;
   options: Record<string, unknown>;
+}
+
+export interface AutonomousConfigPayload {
+  projectId?: number;
+  researchCron?: string;
+  generateCron?: string;
+  publishCron?: string;
+  metricsCron?: string;
+  autoApproveIdeas?: boolean;
+  autoApproveDrafts?: boolean;
+  notifyEmail?: boolean;
+  notifyTelegram?: boolean;
+  telegramChatId?: string;
 }
