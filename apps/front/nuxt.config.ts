@@ -139,8 +139,8 @@ export default defineNuxtConfig(
         strictMessage: false,
       },
       locales: [
-        { code: 'es', iso: 'es-ES', name: 'Español', files: ['es.json'] },
-        { code: 'en', iso: 'en-US', name: 'English', files: ['en.json'] },
+        { code: 'es', iso: 'es-ES', name: 'Español', files: ['dynamic-loader.ts'] },
+        { code: 'en', iso: 'en-US', name: 'English', files: ['dynamic-loader.ts'] },
       ].filter((l) => SUPPORTED_LOCALES.includes(l.code as typeof SUPPORTED_LOCALES[number])),
       vueI18n: './i18n.config.ts',
       detectBrowserLanguage: {

@@ -3,8 +3,6 @@ import type { RobotsPolicy } from '../types/seo';
 
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 
-export type { CmsTag };
-
 export interface CmsBlogPost {
   id: string;
   slug: string;
