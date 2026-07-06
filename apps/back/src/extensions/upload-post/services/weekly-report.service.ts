@@ -72,7 +72,7 @@ export class WeeklyReportService {
       prevByPlatform.set(s.platform, arr);
     }
 
-    const platforms = [];
+    const platforms: WeeklyReport['platforms'] = [];
     let totalImpressions = 0;
 
     for (const [platform, snapshots] of byPlatform) {
@@ -80,12 +80,17 @@ export class WeeklyReportService {
       const prevSnapshots = prevByPlatform.get(platform) ?? [];
       // Previous week's latest snapshot (or fallback to current if no history)
       const prevLatest = prevSnapshots[prevSnapshots.length - 1];
-      const prevFollowers = prevLatest ? Number(prevLatest.followers) : Number(latest.followers);
+      const prevFollowers = prevLatest
+        ? Number(prevLatest.followers)
+        : Number(latest.followers);
 
       const reach = snapshots.reduce((sum, s) => sum + Number(s.reach), 0);
       const views = snapshots.reduce((sum, s) => sum + Number(s.views), 0);
       const likes = snapshots.reduce((sum, s) => sum + Number(s.likes), 0);
-      const comments = snapshots.reduce((sum, s) => sum + Number(s.comments), 0);
+      const comments = snapshots.reduce(
+        (sum, s) => sum + Number(s.comments),
+        0,
+      );
       const shares = snapshots.reduce((sum, s) => sum + Number(s.shares), 0);
       const saves = snapshots.reduce((sum, s) => sum + Number(s.saves), 0);
 
@@ -139,7 +144,7 @@ export class WeeklyReportService {
       throw new Error('Analytics API returned no data');
     }
 
-    const platforms = [];
+    const platforms: WeeklyReport['platforms'] = [];
     let totalImpressions = 0;
 
     for (const [platform, m] of Object.entries(data)) {
@@ -191,20 +196,28 @@ export class WeeklyReportService {
     lines.push(`📊 Informe Semanal de Redes Sociales — SOM-OS`);
     lines.push(`Período: ${report.period.start} → ${report.period.end}`);
     lines.push('');
-    lines.push(`Impresiones totales: ${report.totalImpressions.toLocaleString()}`);
+    lines.push(
+      `Impresiones totales: ${report.totalImpressions.toLocaleString()}`,
+    );
     lines.push(`Plataforma destacada: ${report.topPlatform}`);
     lines.push('');
     lines.push('Por plataforma:');
     lines.push('─'.repeat(60));
 
     for (const p of report.platforms) {
+      lines.push(`${p.platform.toUpperCase()}`);
       lines.push(
-        `${p.platform.toUpperCase()}`,
+        `  Followers: ${p.followers.toLocaleString()} (${p.followersDelta >= 0 ? '+' : ''}${p.followersDelta})`,
       );
-      lines.push(`  Followers: ${p.followers.toLocaleString()} (${p.followersDelta >= 0 ? '+' : ''}${p.followersDelta})`);
-      lines.push(`  Reach: ${p.reach.toLocaleString()} | Views: ${p.views.toLocaleString()}`);
-      lines.push(`  Likes: ${p.likes.toLocaleString()} | Comments: ${p.comments.toLocaleString()}`);
-      lines.push(`  Shares: ${p.shares.toLocaleString()} | Saves: ${p.saves.toLocaleString()}`);
+      lines.push(
+        `  Reach: ${p.reach.toLocaleString()} | Views: ${p.views.toLocaleString()}`,
+      );
+      lines.push(
+        `  Likes: ${p.likes.toLocaleString()} | Comments: ${p.comments.toLocaleString()}`,
+      );
+      lines.push(
+        `  Shares: ${p.shares.toLocaleString()} | Saves: ${p.saves.toLocaleString()}`,
+      );
       lines.push('');
     }
 
@@ -237,7 +250,8 @@ export class WeeklyReportService {
 
     // Priority: extension-specific config → global NOTIFICATION_EMAIL → fallback
     const email =
-      this.configService.get('upload-post', { infer: true })?.weeklyReportEmail ||
+      this.configService.get('upload-post', { infer: true })
+        ?.weeklyReportEmail ||
       this.configService.get('app', { infer: true })?.notificationEmail;
     if (email) {
       try {

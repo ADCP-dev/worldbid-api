@@ -1,9 +1,10 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiPropertyOptional, ApiHideProperty } from '@nestjs/swagger';
 import {
   IsString,
   IsOptional,
   IsBoolean,
   IsIn,
+  IsObject,
   MaxLength,
 } from 'class-validator';
 
@@ -70,4 +71,13 @@ export class UpdateConfigDto {
   @IsOptional()
   @IsIn(['active', 'paused', 'archived'])
   status?: string;
+
+  /**
+   * System-managed feedback loop state. Not exposed in admin APIs —
+   * only written internally by FeedbackService.
+   */
+  @ApiHideProperty()
+  @IsOptional()
+  @IsObject()
+  feedbackData?: Record<string, unknown>;
 }

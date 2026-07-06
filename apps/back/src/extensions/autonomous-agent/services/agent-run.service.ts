@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AaRunEntity } from '@ext/autonomous-agent/infrastructure/persistence/entities/aa-run.entity';
@@ -24,9 +20,7 @@ export class AgentRunService {
    * Paginated list with optional filters (projectId, runType, status).
    * Returns `{ data, total, page, limit }`.
    */
-  async findAll(
-    params: FindAllRunDto = {},
-  ): Promise<{
+  async findAll(params: FindAllRunDto = {}): Promise<{
     data: AaRunEntity[];
     total: number;
     page: number;

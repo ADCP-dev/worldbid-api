@@ -6,7 +6,7 @@
 
 import type { ApiFetchOptions } from '@/extensions/upload-post/types';
 
-interface UploadPostScheduled {
+export interface UploadPostScheduled {
   job_id: string;
   scheduled_date: string;
   title?: string;
@@ -16,7 +16,7 @@ interface UploadPostScheduled {
   status?: string;
 }
 
-interface UploadPostAnalytics {
+export interface UploadPostAnalytics {
   [platform: string]: {
     followers?: number;
     reach?: number;
@@ -31,7 +31,7 @@ interface UploadPostAnalytics {
   };
 }
 
-interface AutodmMonitor {
+export interface AutodmMonitor {
   monitor_id: string;
   post_url: string;
   reply_message: string;
@@ -40,7 +40,7 @@ interface AutodmMonitor {
   expires_at?: string;
 }
 
-interface WeeklyReport {
+export interface WeeklyReport {
   period: { start: string; end: string };
   platforms: Array<{
     platform: string;

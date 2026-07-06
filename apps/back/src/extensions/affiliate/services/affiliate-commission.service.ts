@@ -27,21 +27,29 @@ export class AffiliateCommissionService {
     private readonly projectRepository: Repository<CrmProjectEntity>,
   ) {}
 
-  async findAll(params: {
-    page?: number;
-    limit?: number;
-    partnerId?: number;
-    status?: string;
-    dateFrom?: string;
-    dateTo?: string;
-  } = {}): Promise<{
+  async findAll(
+    params: {
+      page?: number;
+      limit?: number;
+      partnerId?: number;
+      status?: string;
+      dateFrom?: string;
+      dateTo?: string;
+    } = {},
+  ): Promise<{
     data: AffiliateCommissionEntity[];
     total: number;
     page: number;
     limit: number;
   }> {
-    const { page = 1, limit = 20, partnerId, status, dateFrom, dateTo } =
-      params;
+    const {
+      page = 1,
+      limit = 20,
+      partnerId,
+      status,
+      dateFrom,
+      dateTo,
+    } = params;
 
     const qb = this.repository.createQueryBuilder('commission');
     qb.leftJoinAndSelect('commission.referral', 'referral');
@@ -99,9 +107,7 @@ export class AffiliateCommissionService {
       where: { id: dto.projectId },
     });
     if (!project) {
-      throw new NotFoundException(
-        `Project with ID ${dto.projectId} not found`,
-      );
+      throw new NotFoundException(`Project with ID ${dto.projectId} not found`);
     }
 
     // Check for duplicate commission (referralId + projectId)
@@ -123,9 +129,7 @@ export class AffiliateCommissionService {
 
     const baseAmount = Number(project.price ?? 0);
     const commissionRate = Number(referral.partner.commissionRate);
-    const commissionAmount = Number(
-      (baseAmount * commissionRate).toFixed(2),
-    );
+    const commissionAmount = Number((baseAmount * commissionRate).toFixed(2));
 
     const commission = this.repository.create({
       referralId: dto.referralId,

@@ -31,17 +31,21 @@ import { AUTONOMOUS_AGENT_QUEUE } from '@ext/autonomous-agent/services/pipeline-
  * from TypeOrmModule.forFeature — FeedbackService then degrades to a
  * no-op via its @Optional() repository injection.
  */
-let ContentPipelineMetricsEntity: Type<unknown> | EntitySchema<unknown> | undefined;
+let ContentPipelineMetricsEntity:
+  | Type<unknown>
+  | EntitySchema<unknown>
+  | undefined;
 try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires, no-restricted-syntax
   ContentPipelineMetricsEntity =
-    require('../content-pipeline/infrastructure/persistence/entities/metrics.entity')
-      .ContentPipelineMetricsEntity;
+    require('../content-pipeline/infrastructure/persistence/entities/metrics.entity').ContentPipelineMetricsEntity;
 } catch {
   // content-pipeline extension not present — feedback loop becomes a no-op.
 }
 
-const entityTokens: (Type<unknown> | EntitySchema<unknown>)[] = [AaConfigEntity, AaRunEntity];
+const entityTokens: (Type<unknown> | EntitySchema<unknown>)[] = [
+  AaConfigEntity,
+  AaRunEntity,
+];
 if (ContentPipelineMetricsEntity) {
   entityTokens.push(ContentPipelineMetricsEntity);
 }

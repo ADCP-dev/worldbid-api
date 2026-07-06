@@ -7,6 +7,44 @@ definePageMeta({
   middleware: ['auth', 'admin'],
 });
 
+interface MonthlyPlatform {
+  platform: string;
+  followersEnd?: number;
+  followersDelta?: number;
+  bestDay?: { date?: string; reach?: number };
+  totalReach?: number;
+  totalViews?: number;
+  totalLikes?: number;
+  totalComments?: number;
+  totalShares?: number;
+  totalSaves?: number;
+}
+interface MonthlySummary {
+  platforms: MonthlyPlatform[];
+  totalImpressions?: number;
+  totalFollowersGrowth?: number;
+}
+interface HistoryPlatform {
+  platform: string;
+  followers?: number;
+  reach?: number;
+  views?: number;
+  engagement?: number;
+}
+interface HistoryEntry {
+  month: string;
+  totalImpressions?: number;
+  followersGrowth?: number;
+  platforms: HistoryPlatform[];
+}
+interface TopPost {
+  id: string;
+  title?: string;
+  platforms?: string[];
+  status?: string;
+  publishedAt?: string;
+}
+
 const {
   getMonthlySummary,
   getMonthlyHistory,
@@ -23,9 +61,9 @@ const currentMonth = ref(
   `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`,
 );
 
-const summary = ref<any>(null);
-const history = ref<any[]>([]);
-const topPosts = ref<any[]>([]);
+const summary = ref<MonthlySummary | null>(null);
+const history = ref<HistoryEntry[]>([]);
+const topPosts = ref<TopPost[]>([]);
 
 const monthOptions = computed(() => {
   const opts: { label: string; value: string }[] = [];

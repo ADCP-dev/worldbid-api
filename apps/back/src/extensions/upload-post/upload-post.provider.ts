@@ -12,12 +12,16 @@ export const UPLOAD_POST_PROVIDER = 'UPLOAD_POST_CLIENT';
  */
 export const uploadPostProvider = {
   provide: UPLOAD_POST_PROVIDER,
-  useFactory: (configService: ConfigService<AllConfigType>): UploadPostConfig | null => {
+  useFactory: (
+    configService: ConfigService<AllConfigType>,
+  ): UploadPostConfig | null => {
     const cfg = configService.get('upload-post', { infer: true });
 
     if (!cfg?.apiKey) {
       const logger = new Logger('UploadPostProvider');
-      logger.warn('UPLOAD_POST_API_KEY not configured — extension will be inert');
+      logger.warn(
+        'UPLOAD_POST_API_KEY not configured — extension will be inert',
+      );
       return null;
     }
 

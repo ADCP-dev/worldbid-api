@@ -2,7 +2,9 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsOptional, IsBoolean, IsInt } from 'class-validator';
 
 export class UpdateQueueSettingsDto {
-  @ApiPropertyOptional({ description: 'Days to publish (comma-separated: mon,wed,fri)' })
+  @ApiPropertyOptional({
+    description: 'Days to publish (comma-separated: mon,wed,fri)',
+  })
   @IsOptional()
   @IsString()
   publishDays?: string;

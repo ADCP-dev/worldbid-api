@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CrmContactEntity } from '../infrastructure/persistence/entities/crm-contact.entity';
@@ -28,7 +24,9 @@ export class CrmContactService {
   async create(dto: CreateContactDto): Promise<CrmContactEntity> {
     const contact = this.repository.create(dto);
     const saved = await this.repository.save(contact);
-    this.logger.log(`Created contact id=${saved.id} for client=${dto.clientId}`);
+    this.logger.log(
+      `Created contact id=${saved.id} for client=${dto.clientId}`,
+    );
     return saved;
   }
 

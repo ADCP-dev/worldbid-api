@@ -34,12 +34,20 @@ export class CreateProjectDto {
   @IsNumber()
   price?: number;
 
-  @ApiPropertyOptional({ example: 'quoted', type: String, enum: ['quoted', 'approved', 'in_progress', 'delivered', 'cancelled'] })
+  @ApiPropertyOptional({
+    example: 'quoted',
+    type: String,
+    enum: ['quoted', 'approved', 'in_progress', 'delivered', 'cancelled'],
+  })
   @IsOptional()
   @IsEnum(['quoted', 'approved', 'in_progress', 'delivered', 'cancelled'])
   status?: string;
 
-  @ApiPropertyOptional({ example: 'pending', type: String, enum: ['pending', 'partial', 'paid', 'refunded'] })
+  @ApiPropertyOptional({
+    example: 'pending',
+    type: String,
+    enum: ['pending', 'partial', 'paid', 'refunded'],
+  })
   @IsOptional()
   @IsEnum(['pending', 'partial', 'paid', 'refunded'])
   paymentStatus?: string;

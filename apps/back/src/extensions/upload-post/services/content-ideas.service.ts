@@ -1,8 +1,11 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, type DeepPartial } from 'typeorm';
 import { UpPostContentIdeaEntity } from '@ext/upload-post/infrastructure/persistence/entities/up-post-content-idea.entity';
-import { CreateContentIdeaDto, UpdateContentIdeaDto } from '@ext/upload-post/dto/content-idea.dto';
+import {
+  CreateContentIdeaDto,
+  UpdateContentIdeaDto,
+} from '@ext/upload-post/dto/content-idea.dto';
 
 @Injectable()
 export class ContentIdeasService {
@@ -28,15 +31,19 @@ export class ContentIdeasService {
       .where('i.status = :status', { status: dto.status ?? 'idea' })
       .getRawOne();
 
+    const status = dto.status ?? 'idea';
     const entity = this.ideaRepo.create({
       ...dto,
-      order: (dto as any).order ?? (Number(maxOrder?.max ?? 0) + 1),
-      status: dto.status ?? 'idea',
-    });
+      order: dto.order ?? Number(maxOrder?.max ?? 0) + 1,
+      status: status as UpPostContentIdeaEntity['status'],
+    } as DeepPartial<UpPostContentIdeaEntity>);
     return this.ideaRepo.save(entity);
   }
 
-  async update(id: string, dto: UpdateContentIdeaDto): Promise<UpPostContentIdeaEntity> {
+  async update(
+    id: string,
+    dto: UpdateContentIdeaDto,
+  ): Promise<UpPostContentIdeaEntity> {
     const entity = await this.ideaRepo.findOne({ where: { id } });
     if (!entity) throw new NotFoundException(`Content idea ${id} not found`);
 
@@ -44,7 +51,11 @@ export class ContentIdeasService {
     return this.ideaRepo.save(entity);
   }
 
-  async updateStatus(id: string, status: UpPostContentIdeaEntity['status'], newOrder?: number) {
+  async updateStatus(
+    id: string,
+    status: UpPostContentIdeaEntity['status'],
+    newOrder?: number,
+  ) {
     const entity = await this.ideaRepo.findOne({ where: { id } });
     if (!entity) throw new NotFoundException(`Content idea ${id} not found`);
 
@@ -81,7 +92,11 @@ export class ContentIdeasService {
   async reorder(orderedIds: string[]): Promise<void> {
     await this.ideaRepo.manager.transaction(async (manager) => {
       for (let i = 0; i < orderedIds.length; i++) {
-        await manager.update(this.ideaRepo.target, { id: orderedIds[i] }, { order: i + 1 });
+        await manager.update(
+          this.ideaRepo.target,
+          { id: orderedIds[i] },
+          { order: i + 1 },
+        );
       }
     });
   }

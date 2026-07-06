@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, IsArray, IsInt, IsBoolean, Min } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsArray,
+  IsInt,
+  IsBoolean,
+  Min,
+} from 'class-validator';
 
 export class StartAutodmDto {
   @ApiProperty({ example: 'https://instagram.com/p/Cxxx' })
@@ -21,7 +28,11 @@ export class StartAutodmDto {
   @Min(15)
   monitoringInterval?: number;
 
-  @ApiProperty({ required: false, type: [String], description: 'Keywords to filter comments' })
+  @ApiProperty({
+    required: false,
+    type: [String],
+    description: 'Keywords to filter comments',
+  })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })

@@ -24,9 +24,7 @@ export class ProjectService {
    * Paginated list with optional search (name | slug) and filters
    * (status, niche). Returns `{ data, total, page, limit }`.
    */
-  async findAll(
-    params: FindAllProjectDto = {},
-  ): Promise<{
+  async findAll(params: FindAllProjectDto = {}): Promise<{
     data: ContentPipelineProjectEntity[];
     total: number;
     page: number;

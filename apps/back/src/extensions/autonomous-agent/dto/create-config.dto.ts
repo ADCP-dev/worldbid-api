@@ -4,13 +4,13 @@ import {
   IsOptional,
   IsBoolean,
   IsIn,
-  IsUuid,
+  IsUUID,
   MaxLength,
 } from 'class-validator';
 
 export class CreateConfigDto {
   @ApiProperty({ example: '11111111-1111-1111-1111-111111111111' })
-  @IsUuid()
+  @IsUUID()
   projectId: string;
 
   @ApiPropertyOptional({ example: '0 9 * * *', default: '0 9 * * *' })

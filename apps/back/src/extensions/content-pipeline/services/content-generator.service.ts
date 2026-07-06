@@ -41,10 +41,9 @@ export class ContentGeneratorService {
   private readonly logger = new Logger(ContentGeneratorService.name);
   private readonly cfg: ContentPipelineConfig | null;
 
-  constructor(
-    private readonly configService: ConfigService<AllConfigType>,
-  ) {
-    this.cfg = this.configService.get('content-pipeline', { infer: true }) ?? null;
+  constructor(private readonly configService: ConfigService<AllConfigType>) {
+    this.cfg =
+      this.configService.get('content-pipeline', { infer: true }) ?? null;
   }
 
   get isConfigured(): boolean {
@@ -57,7 +56,9 @@ export class ContentGeneratorService {
   ): Promise<GenerationResult> {
     const startedAt = Date.now();
     if (!this.isConfigured) {
-      this.logger.warn('Ollama API key/baseUrl not configured — skipping generation');
+      this.logger.warn(
+        'Ollama API key/baseUrl not configured — skipping generation',
+      );
       return {
         blogContent: '',
         socialVariants: [],
@@ -115,7 +116,9 @@ export class ContentGeneratorService {
       if ((err as Error)?.name === 'AbortError') {
         this.logger.error(`Ollama request timed out after ${timeoutMs}ms`);
       } else {
-        this.logger.error(`Ollama request failed: ${(err as Error)?.message ?? err}`);
+        this.logger.error(
+          `Ollama request failed: ${(err as Error)?.message ?? err}`,
+        );
       }
       return this.emptyResult(model, startedAt);
     } finally {
@@ -164,8 +167,7 @@ export class ContentGeneratorService {
         'Write a listicle: intro + numbered items (5-10), each with a heading and 2-3 paragraphs.',
       guide:
         'Write a how-to guide: intro, prerequisites, numbered steps, troubleshooting, conclusion.',
-      tips:
-        'Write a tips post: intro + 5-8 actionable tips, each with a heading and explanation.',
+      tips: 'Write a tips post: intro + 5-8 actionable tips, each with a heading and explanation.',
     };
 
     return [
@@ -218,12 +220,16 @@ export class ContentGeneratorService {
           return {
             blogContent: String(obj.blogContent),
             socialVariants: Array.isArray(obj.socialVariants)
-              ? obj.socialVariants.map(this.normalizeVariant.bind(this)).filter(Boolean)
+              ? obj.socialVariants
+                  .map(this.normalizeVariant.bind(this))
+                  .filter(Boolean)
               : [],
           };
         }
       } catch {
-        this.logger.warn('LLM returned malformed JSON — falling back to raw content');
+        this.logger.warn(
+          'LLM returned malformed JSON — falling back to raw content',
+        );
       }
     }
 

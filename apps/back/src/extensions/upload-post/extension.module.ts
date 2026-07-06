@@ -27,8 +27,14 @@ import { ScheduleController } from '@ext/upload-post/controllers/schedule.contro
 import { AnalyticsController } from '@ext/upload-post/controllers/analytics.controller';
 import { AutodmController } from '@ext/upload-post/controllers/autodm.controller';
 import { WebhooksController } from '@ext/upload-post/controllers/webhooks.controller';
-import { QueueController, WeeklyReportController } from '@ext/upload-post/controllers/queue-weekly.controller';
-import { PlatformsController, InstagramController } from '@ext/upload-post/controllers/platforms-instagram.controller';
+import {
+  QueueController,
+  WeeklyReportController,
+} from '@ext/upload-post/controllers/queue-weekly.controller';
+import {
+  PlatformsController,
+  InstagramController,
+} from '@ext/upload-post/controllers/platforms-instagram.controller';
 import { ContentIdeasController } from '@ext/upload-post/controllers/content-ideas.controller';
 import { MonthlyAnalyticsController } from '@ext/upload-post/controllers/monthly-analytics.controller';
 

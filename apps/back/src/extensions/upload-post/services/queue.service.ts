@@ -19,7 +19,7 @@ export class QueueService {
     return this.client.getQueueSettings();
   }
 
-  async updateSettings(settings: Record<string, any>) {
+  async updateSettings(settings: Record<string, unknown>) {
     return this.client.updateQueueSettings(settings);
   }
 }

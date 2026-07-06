@@ -100,11 +100,13 @@ export class AnalyticsService {
           reach_timeseries?: Array<{ date: string; value: number }>;
         };
 
-        const row = existingMap.get(platform) ?? this.snapshotRepo.create({
-          platform,
-          snapshotDate: today,
-          profileUsername: user,
-        });
+        const row =
+          existingMap.get(platform) ??
+          this.snapshotRepo.create({
+            platform,
+            snapshotDate: today,
+            profileUsername: user,
+          });
 
         row.followers = Number(m.followers ?? 0);
         row.reach = Number(m.reach ?? 0);
@@ -137,7 +139,9 @@ export class AnalyticsService {
   /**
    * Get the last N days of snapshots for the weekly report.
    */
-  async getSnapshotsForLastDays(days: number): Promise<UpPostAnalyticsSnapshotEntity[]> {
+  async getSnapshotsForLastDays(
+    days: number,
+  ): Promise<UpPostAnalyticsSnapshotEntity[]> {
     const since = new Date();
     since.setDate(since.getDate() - days);
     const sinceStr = since.toISOString().slice(0, 10);
@@ -166,7 +170,9 @@ export class AnalyticsService {
       .execute();
 
     if (result.affected && result.affected > 0) {
-      this.logger.log(`Cleaned up ${result.affected} snapshots older than ${cutoffStr}`);
+      this.logger.log(
+        `Cleaned up ${result.affected} snapshots older than ${cutoffStr}`,
+      );
     }
   }
 }

@@ -1,10 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsEnum,
-  IsNotEmpty,
-  IsObject,
-  IsOptional,
-} from 'class-validator';
+import { IsEnum, IsNotEmpty, IsObject, IsOptional } from 'class-validator';
 
 export class UpdateCommissionDto {
   @ApiPropertyOptional({

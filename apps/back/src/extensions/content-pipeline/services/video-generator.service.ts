@@ -64,10 +64,9 @@ export class VideoGeneratorService {
   /** Cached local path to the downloaded font (downloaded once per process). */
   private cachedFontPath: string | null = null;
 
-  constructor(
-    private readonly configService: ConfigService<AllConfigType>,
-  ) {
-    this.cfg = this.configService.get('content-pipeline', { infer: true }) ?? null;
+  constructor(private readonly configService: ConfigService<AllConfigType>) {
+    this.cfg =
+      this.configService.get('content-pipeline', { infer: true }) ?? null;
     this.ffmpegPath = this.cfg?.ffmpegPath ?? DEFAULT_FFMPEG_PATH;
   }
 
@@ -129,7 +128,11 @@ export class VideoGeneratorService {
       // 3. Build ASS subtitle file (if enabled)
       const assPath = join(workDir, 'overlay.ass');
       if (enableSubtitles) {
-        const assContent = this.buildAssFile(slides, slideDuration, textOverlay);
+        const assContent = this.buildAssFile(
+          slides,
+          slideDuration,
+          textOverlay,
+        );
         await writeFile(assPath, assContent, 'utf8');
       }
 
@@ -611,7 +614,8 @@ export class VideoGeneratorService {
     } else {
       let prevLabel = 'v0';
       for (let i = 1; i < slideCount; i++) {
-        const trans = transitions[(i - 1) % transitions.length] ?? DEFAULT_TRANSITION;
+        const trans =
+          transitions[(i - 1) % transitions.length] ?? DEFAULT_TRANSITION;
         const offset = i * slideDuration - transitionDur;
         const outLabel = i === slideCount - 1 ? 'vxfin' : `x${i}`;
         parts.push(

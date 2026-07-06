@@ -15,7 +15,10 @@ import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '@iam/roles/roles.decorator';
 import { RoleEnum } from '@iam/roles/roles.enum';
 import { RolesGuard } from '@iam/roles/roles.guard';
-import { CurrentUser, AuthenticatedUser } from '@iam/auth/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  AuthenticatedUser,
+} from '@iam/auth/decorators/current-user.decorator';
 import { AffiliatePortalService } from '../services/affiliate-portal.service';
 import { PortalCreateReferralDto } from '../dto/portal-create-referral.dto';
 import { UpdatePortalProfileDto } from '../dto/update-portal-profile.dto';
@@ -64,10 +67,7 @@ export class AffiliatePortalController {
   }
 
   @Get('referrals/:id')
-  getReferral(
-    @CurrentUser() user: AuthenticatedUser,
-    @Param('id') id: number,
-  ) {
+  getReferral(@CurrentUser() user: AuthenticatedUser, @Param('id') id: number) {
     return this.portalService.getPartnerReferral(user.id, Number(id));
   }
 

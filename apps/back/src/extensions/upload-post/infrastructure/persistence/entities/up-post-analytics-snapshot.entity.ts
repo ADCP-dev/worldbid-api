@@ -53,7 +53,7 @@ export class UpPostAnalyticsSnapshotEntity {
   profileViews: number;
 
   @Column({ type: 'jsonb', nullable: true })
-  timeSeries: Array<{ date: string; value: number }>;
+  timeSeries: Array<{ date: string; value: number }> | null;
 
   @CreateDateColumn()
   createdAt: Date;

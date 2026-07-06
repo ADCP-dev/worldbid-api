@@ -4,6 +4,7 @@ import { ContentPipelineDraftEntity } from '@ext/content-pipeline/infrastructure
 import { ContentPipelineProjectEntity } from '@ext/content-pipeline/infrastructure/persistence/entities/project.entity';
 import { BlogPostsService } from '@ext/cms/blog/posts/posts.service';
 import { UploadPostClientService } from '@ext/upload-post/services/upload-post-client.service';
+import type { UploadResponse } from '@ext/upload-post/services/upload-post-client.service';
 
 interface SocialVariant {
   platform: string;
@@ -46,7 +47,8 @@ export class PublishingService {
 
   /** Lazily resolve the CMS BlogPostsService if the cms extension is loaded. */
   private getBlogPostsService(): BlogPostsService | null {
-    if (this.blogPostsService !== undefined) return this.blogPostsService ?? null;
+    if (this.blogPostsService !== undefined)
+      return this.blogPostsService ?? null;
     try {
       this.blogPostsService = this.moduleRef.get(BlogPostsService, {
         strict: false,
@@ -59,7 +61,8 @@ export class PublishingService {
 
   /** Lazily resolve the UploadPostClientService if upload-post is loaded. */
   private getUploadPostClient(): UploadPostClientService | null {
-    if (this.uploadPostClient !== undefined) return this.uploadPostClient ?? null;
+    if (this.uploadPostClient !== undefined)
+      return this.uploadPostClient ?? null;
     try {
       this.uploadPostClient = this.moduleRef.get(UploadPostClientService, {
         strict: false,
@@ -98,7 +101,9 @@ export class PublishingService {
       try {
         const blogPosts = this.getBlogPostsService();
         if (!blogPosts) {
-          this.logger.warn('CMS extension not available — skipping blog publish');
+          this.logger.warn(
+            'CMS extension not available — skipping blog publish',
+          );
           return result;
         }
         const seo = (draft.seoMetadata ?? {}) as {
@@ -118,15 +123,17 @@ export class PublishingService {
 
         result.blogPostId = created?.id;
         result.blogPostUrl = created?.slug ? `/blog${created.slug}` : undefined;
-        this.logger.log(`Published draft ${draft.id} to CMS as post ${created?.id}`);
+        this.logger.log(
+          `Published draft ${draft.id} to CMS as post ${created?.id}`,
+        );
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        this.logger.error(
-          `CMS publish failed for draft ${draft.id}: ${msg}`,
-        );
+        this.logger.error(`CMS publish failed for draft ${draft.id}: ${msg}`);
       }
     } else if (!cmsCfg.enabled) {
-      this.logger.debug(`Project "${project.name}" CMS disabled — skipping blog publish`);
+      this.logger.debug(
+        `Project "${project.name}" CMS disabled — skipping blog publish`,
+      );
     } else {
       this.logger.warn('CMS extension not available — skipping blog publish');
     }
@@ -139,10 +146,16 @@ export class PublishingService {
     };
     const variants = (draft.socialVariants ?? []) as unknown as SocialVariant[];
 
-    if (this.hasUploadPost && socialCfg.profileUsername && variants.length > 0) {
+    if (
+      this.hasUploadPost &&
+      socialCfg.profileUsername &&
+      variants.length > 0
+    ) {
       const uploadPost = this.getUploadPostClient();
       if (!uploadPost) {
-        this.logger.warn('Upload-Post extension not available — skipping social publish');
+        this.logger.warn(
+          'Upload-Post extension not available — skipping social publish',
+        );
         return result;
       }
       const user = socialCfg.profileUsername;
@@ -164,13 +177,13 @@ export class PublishingService {
               asyncUpload: true,
             });
           } else if (variant.mediaType === 'text') {
-            postResult = await uploadPost.uploadText({
+            postResult = (await uploadPost.uploadText({
               user,
               platforms,
               text: variant.caption,
               scheduledDate: scheduledAt,
               asyncUpload: true,
-            });
+            })) as UploadResponse;
           } else {
             postResult = await uploadPost.uploadPhotos({
               user,
@@ -207,7 +220,9 @@ export class PublishingService {
         });
       }
       if (!this.hasUploadPost) {
-        this.logger.warn('Upload-Post extension not available — skipping social publish');
+        this.logger.warn(
+          'Upload-Post extension not available — skipping social publish',
+        );
       }
     }
 

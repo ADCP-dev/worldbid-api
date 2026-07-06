@@ -42,9 +42,12 @@ export class WebhooksService {
     const events: Record<string, boolean> = {};
     if (params.events) {
       events.upload_completed = params.events.uploadCompleted ?? true;
-      events.social_account_connected = params.events.socialAccountConnected ?? true;
-      events.social_account_disconnected = params.events.socialAccountDisconnected ?? true;
-      events.social_account_reauth_required = params.events.socialAccountReauthRequired ?? true;
+      events.social_account_connected =
+        params.events.socialAccountConnected ?? true;
+      events.social_account_disconnected =
+        params.events.socialAccountDisconnected ?? true;
+      events.social_account_reauth_required =
+        params.events.socialAccountReauthRequired ?? true;
     }
 
     return this.client.configureWebhooks({
@@ -58,7 +61,10 @@ export class WebhooksService {
    * Handle incoming webhook payload from Upload-Post.
    * Called by the controller's POST handler.
    */
-  handleWebhookEvent(payload: WebhookPayload): { received: boolean; event: string } {
+  handleWebhookEvent(payload: WebhookPayload): {
+    received: boolean;
+    event: string;
+  } {
     const event = payload?.event ?? 'unknown';
     this.logger.log(`Webhook received: ${event}`);
 
@@ -77,7 +83,9 @@ export class WebhooksService {
         );
         break;
       case 'social_account_connected':
-        this.logger.log(`Social account connected: ${payload?.platform} / ${payload?.account_name}`);
+        this.logger.log(
+          `Social account connected: ${payload?.platform} / ${payload?.account_name}`,
+        );
         break;
       default:
         this.logger.log(`Unhandled event: ${event}`);

@@ -12,7 +12,9 @@ export const CONTENT_PIPELINE_PROVIDER = 'CONTENT_PIPELINE_CONFIG';
  */
 export const contentPipelineProvider = {
   provide: CONTENT_PIPELINE_PROVIDER,
-  useFactory: (configService: ConfigService<AllConfigType>): ContentPipelineConfig | null => {
+  useFactory: (
+    configService: ConfigService<AllConfigType>,
+  ): ContentPipelineConfig | null => {
     const cfg = configService.get('content-pipeline', { infer: true });
     if (!cfg?.llmApiKey) {
       new Logger('ContentPipelineProvider').warn(

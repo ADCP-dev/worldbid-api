@@ -27,9 +27,7 @@ export class AgentConfigService {
    * Paginated list with optional filters (projectId, status).
    * Returns `{ data, total, page, limit }`.
    */
-  async findAll(
-    params: FindAllConfigDto = {},
-  ): Promise<{
+  async findAll(params: FindAllConfigDto = {}): Promise<{
     data: AaConfigEntity[];
     total: number;
     page: number;
@@ -99,10 +97,14 @@ export class AgentConfigService {
 
     const entity = this.repo.create({
       projectId: dto.projectId,
-      researchCron: dto.researchCron ?? defaults?.defaultResearchCron ?? '0 9 * * *',
-      generateCron: dto.generateCron ?? defaults?.defaultGenerateCron ?? '0 10 * * *',
-      publishCron: dto.publishCron ?? defaults?.defaultPublishCron ?? '0 18 * * *',
-      metricsCron: dto.metricsCron ?? defaults?.defaultMetricsCron ?? '0 9 * * 1',
+      researchCron:
+        dto.researchCron ?? defaults?.defaultResearchCron ?? '0 9 * * *',
+      generateCron:
+        dto.generateCron ?? defaults?.defaultGenerateCron ?? '0 10 * * *',
+      publishCron:
+        dto.publishCron ?? defaults?.defaultPublishCron ?? '0 18 * * *',
+      metricsCron:
+        dto.metricsCron ?? defaults?.defaultMetricsCron ?? '0 9 * * 1',
       autoApproveIdeas: dto.autoApproveIdeas ?? false,
       autoApproveDrafts: dto.autoApproveDrafts ?? false,
       notifyEmail: dto.notifyEmail ?? true,
@@ -111,7 +113,9 @@ export class AgentConfigService {
       status: dto.status ?? 'active',
     });
     const saved = await this.repo.save(entity);
-    this.logger.log(`Created config id=${saved.id} projectId=${saved.projectId}`);
+    this.logger.log(
+      `Created config id=${saved.id} projectId=${saved.projectId}`,
+    );
     return saved;
   }
 

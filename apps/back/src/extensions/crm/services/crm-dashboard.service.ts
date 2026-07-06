@@ -10,8 +10,19 @@ import { CrmOriginEntity } from '../infrastructure/persistence/entities/crm-orig
 export interface CrmDashboardResult {
   totalClients: number;
   activeClients: number;
-  clientsByStatus: { statusId: number; statusName: string; label: string; color: string; count: number }[];
-  clientsByOrigin: { originId: number; originName: string; label: string; count: number }[];
+  clientsByStatus: {
+    statusId: number;
+    statusName: string;
+    label: string;
+    color: string;
+    count: number;
+  }[];
+  clientsByOrigin: {
+    originId: number;
+    originName: string;
+    label: string;
+    count: number;
+  }[];
   activeProjects: number;
   projectsByStatus: { status: string; count: number }[];
   recentInteractions: CrmInteractionEntity[];

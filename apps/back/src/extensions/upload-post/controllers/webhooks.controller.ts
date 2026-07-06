@@ -55,12 +55,18 @@ export class WebhooksController {
     @Req() req: RawBodyRequest<Request>,
     @Body() payload: WebhookPayload,
   ) {
-    const secret = this.configService.get('upload-post', { infer: true })?.webhookSecret;
+    const secret = this.configService.get('upload-post', {
+      infer: true,
+    })?.webhookSecret;
 
     if (secret) {
-      const signature = req.headers['x-upload-post-signature'] as string | undefined;
+      const signature = req.headers['x-upload-post-signature'] as
+        | string
+        | undefined;
       if (!signature) {
-        webhookLogger.warn('Webhook incoming: missing X-Upload-Post-Signature header');
+        webhookLogger.warn(
+          'Webhook incoming: missing X-Upload-Post-Signature header',
+        );
         throw new UnauthorizedException('Missing signature header');
       }
 
@@ -70,7 +76,9 @@ export class WebhooksController {
         throw new UnauthorizedException('Missing raw body');
       }
 
-      const expected = createHmac('sha256', secret).update(rawBody).digest('hex');
+      const expected = createHmac('sha256', secret)
+        .update(rawBody)
+        .digest('hex');
 
       // Timing-safe comparison to prevent timing attacks
       const sigBuffer = Buffer.from(signature);

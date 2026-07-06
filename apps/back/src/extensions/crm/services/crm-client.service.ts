@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindOptionsWhere, ILike } from 'typeorm';
 import { CrmClientEntity } from '../infrastructure/persistence/entities/crm-client.entity';
@@ -18,15 +14,22 @@ export class CrmClientService {
     private readonly repository: Repository<CrmClientEntity>,
   ) {}
 
-  async findAll(params: {
-    page?: number;
-    limit?: number;
-    search?: string;
-    statusId?: number;
-    originId?: number;
-    sort?: string;
-    order?: 'ASC' | 'DESC';
-  } = {}): Promise<{ data: CrmClientEntity[]; total: number; page: number; limit: number }> {
+  async findAll(
+    params: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      statusId?: number;
+      originId?: number;
+      sort?: string;
+      order?: 'ASC' | 'DESC';
+    } = {},
+  ): Promise<{
+    data: CrmClientEntity[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     const {
       page = 1,
       limit = 20,

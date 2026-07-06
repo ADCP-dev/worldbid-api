@@ -12,9 +12,7 @@ import { AffiliateDashboardService } from '../services/affiliate-dashboard.servi
 @Roles(RoleEnum.admin)
 @Controller({ path: 'affiliate/dashboard', version: '1' })
 export class AffiliateDashboardController {
-  constructor(
-    private readonly dashboardService: AffiliateDashboardService,
-  ) {}
+  constructor(private readonly dashboardService: AffiliateDashboardService) {}
 
   @Get()
   getDashboard() {

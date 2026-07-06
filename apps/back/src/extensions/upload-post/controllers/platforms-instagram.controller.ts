@@ -31,16 +31,24 @@ export class PlatformsController {
   constructor(private readonly platformsService: PlatformsService) {}
 
   @Get('facebook/pages')
-  getFacebookPages() { return this.platformsService.getFacebookPages(); }
+  getFacebookPages() {
+    return this.platformsService.getFacebookPages();
+  }
 
   @Get('linkedin/pages')
-  getLinkedinPages() { return this.platformsService.getLinkedinPages(); }
+  getLinkedinPages() {
+    return this.platformsService.getLinkedinPages();
+  }
 
   @Get('pinterest/boards')
-  getPinterestBoards() { return this.platformsService.getPinterestBoards(); }
+  getPinterestBoards() {
+    return this.platformsService.getPinterestBoards();
+  }
 
   @Get('google-business/locations')
-  getGoogleBusinessLocations() { return this.platformsService.getGoogleBusinessLocations(); }
+  getGoogleBusinessLocations() {
+    return this.platformsService.getGoogleBusinessLocations();
+  }
 
   @Post('google-business/locations/select')
   @HttpCode(HttpStatus.OK)
@@ -63,10 +71,14 @@ export class InstagramController {
   constructor(private readonly instagramService: InstagramService) {}
 
   @Get('media')
-  getMedia() { return this.instagramService.getMedia(); }
+  getMedia() {
+    return this.instagramService.getMedia();
+  }
 
   @Get('comments')
-  getComments(@Query('postUrl') postUrl: string) { return this.instagramService.getComments(postUrl); }
+  getComments(@Query('postUrl') postUrl: string) {
+    return this.instagramService.getComments(postUrl);
+  }
 
   @Post('comments/reply')
   @HttpCode(HttpStatus.OK)
@@ -81,5 +93,7 @@ export class InstagramController {
   }
 
   @Get('dms/conversations')
-  getConversations() { return this.instagramService.getConversations(); }
+  getConversations() {
+    return this.instagramService.getConversations();
+  }
 }

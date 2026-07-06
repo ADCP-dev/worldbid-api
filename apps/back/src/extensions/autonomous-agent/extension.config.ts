@@ -4,22 +4,28 @@ import validateConfig from '@infra/utils/validate-config';
 import { AutonomousAgentConfig } from '@ext/autonomous-agent/config/autonomous-agent-config.type';
 
 class EnvironmentVariablesValidator {
-  @IsString() @IsOptional()
+  @IsString()
+  @IsOptional()
   AUTONOMOUS_AGENT_QUEUE_PREFIX: string;
 
-  @IsString() @IsOptional()
+  @IsString()
+  @IsOptional()
   AUTONOMOUS_AGENT_RESEARCH_CRON: string;
 
-  @IsString() @IsOptional()
+  @IsString()
+  @IsOptional()
   AUTONOMOUS_AGENT_GENERATE_CRON: string;
 
-  @IsString() @IsOptional()
+  @IsString()
+  @IsOptional()
   AUTONOMOUS_AGENT_PUBLISH_CRON: string;
 
-  @IsString() @IsOptional()
+  @IsString()
+  @IsOptional()
   AUTONOMOUS_AGENT_METRICS_CRON: string;
 
-  @IsString() @IsOptional()
+  @IsString()
+  @IsOptional()
   AUTONOMOUS_AGENT_NOTIFICATION_EMAIL: string;
 }
 

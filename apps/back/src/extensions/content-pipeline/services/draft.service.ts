@@ -7,13 +7,14 @@ import { join } from 'node:path';
 import { ContentPipelineDraftEntity } from '@ext/content-pipeline/infrastructure/persistence/entities/draft.entity';
 import { UpdateDraftDto } from '@ext/content-pipeline/dto/update-draft.dto';
 import { ProjectService } from '@ext/content-pipeline/services/project.service';
-import { PublishingService, PublishResult } from '@ext/content-pipeline/services/publishing.service';
+import {
+  PublishingService,
+  PublishResult,
+} from '@ext/content-pipeline/services/publishing.service';
 import { VideoGeneratorService } from '@ext/content-pipeline/services/video-generator.service';
 import type { VideoSlide } from '@ext/content-pipeline/services/video-generator.service';
 import { HtmlRendererService } from '@ext/content-pipeline/services/html-renderer.service';
-import {
-  CarouselGeneratorService,
-} from '@ext/content-pipeline/services/carousel-generator.service';
+import { CarouselGeneratorService } from '@ext/content-pipeline/services/carousel-generator.service';
 import type {
   CarouselSlide,
   GenerateCarouselParams,
@@ -53,7 +54,9 @@ export class DraftService {
       ...data,
     });
     const saved = await this.repo.save(entity);
-    this.logger.log(`Created draft id=${saved.id} projectId=${saved.projectId}`);
+    this.logger.log(
+      `Created draft id=${saved.id} projectId=${saved.projectId}`,
+    );
     return saved;
   }
 
@@ -102,7 +105,10 @@ export class DraftService {
   }
 
   /** Mark draft rejected with optional reviewer notes. */
-  async reject(id: string, reason?: string): Promise<ContentPipelineDraftEntity> {
+  async reject(
+    id: string,
+    reason?: string,
+  ): Promise<ContentPipelineDraftEntity> {
     const draft = await this.findById(id);
     draft.status = 'rejected';
     draft.reviewNotes = reason ?? null;
@@ -115,7 +121,9 @@ export class DraftService {
    * Publish an approved draft to CMS + social via PublishingService.
    * Requires the draft to be in 'approved' status.
    */
-  async publish(id: string): Promise<{ draft: ContentPipelineDraftEntity; result: PublishResult }> {
+  async publish(
+    id: string,
+  ): Promise<{ draft: ContentPipelineDraftEntity; result: PublishResult }> {
     const draft = await this.findById(id);
     if (draft.status !== 'approved') {
       throw new NotFoundException(
@@ -142,7 +150,9 @@ export class DraftService {
     } catch (err) {
       draft.status = 'approved'; // rollback to approved so it can be retried
       await this.repo.save(draft);
-      this.logger.error(`Publish failed for draft ${id}: ${(err as Error)?.message ?? err}`);
+      this.logger.error(
+        `Publish failed for draft ${id}: ${(err as Error)?.message ?? err}`,
+      );
       throw err;
     }
   }
@@ -194,7 +204,9 @@ export class DraftService {
       );
     }
 
-    this.logger.log(`Generating video for draft ${id}: ${slides.length} slides`);
+    this.logger.log(
+      `Generating video for draft ${id}: ${slides.length} slides`,
+    );
     const result = await this.videoGeneratorService.generateVideo({ slides });
 
     const videos = Array.isArray(draft.videos) ? [...draft.videos] : [];
@@ -247,9 +259,10 @@ export class DraftService {
       slides: carouselContent.slides,
       format,
     };
-    const carousel = await this.carouselGeneratorService.generateCarouselSlides(
-      carouselParams,
-    );
+    const carousel =
+      await this.carouselGeneratorService.generateCarouselSlides(
+        carouselParams,
+      );
 
     // 3. Render HTML slides → PNG screenshots.
     const renderOutDir = await mkdtemp(join(tmpdir(), 'cp-carousel-png-'));
@@ -264,7 +277,10 @@ export class DraftService {
     // 4. Build VideoSlide[] from PNGs + slide text overlays.
     const videoSlides: VideoSlide[] = pngPaths.map((p, i) => ({
       imageUrl: p,
-      text: carouselContent.slides[i]?.title ?? carouselContent.slides[i]?.body ?? '',
+      text:
+        carouselContent.slides[i]?.title ??
+        carouselContent.slides[i]?.body ??
+        '',
     }));
 
     // 5. Generate MP4 with xfade hyperframe transitions.
@@ -275,7 +291,9 @@ export class DraftService {
     });
 
     // 6. Store carousel metadata in draft.carousels.
-    const carousels = Array.isArray(draft.carousels) ? [...draft.carousels] : [];
+    const carousels = Array.isArray(draft.carousels)
+      ? [...draft.carousels]
+      : [];
     carousels.push({
       pngDir: renderOutDir,
       slidesCount: carousel.htmlContents.length,
@@ -312,11 +330,14 @@ export class DraftService {
    * Looks for a carousel-type socialVariant first, then falls back to deriving
    * slides from the blog content headings.
    */
-  private extractCarouselContent(
-    draft: ContentPipelineDraftEntity,
-  ): { title: string; slides: CarouselSlide[] } {
+  private extractCarouselContent(draft: ContentPipelineDraftEntity): {
+    title: string;
+    slides: CarouselSlide[];
+  } {
     // Check for a carousel-type socialVariant with structured slides.
-    const variants = Array.isArray(draft.socialVariants) ? draft.socialVariants : [];
+    const variants = Array.isArray(draft.socialVariants)
+      ? draft.socialVariants
+      : [];
     for (const v of variants) {
       const mediaType = v['mediaType'];
       if (mediaType !== 'carousel') continue;
@@ -349,13 +370,18 @@ export class DraftService {
       mono: typeof obj['mono'] === 'string' ? obj['mono'] : undefined,
       title: typeof obj['title'] === 'string' ? obj['title'] : undefined,
       body: typeof obj['body'] === 'string' ? obj['body'] : undefined,
-      stepNumber: typeof obj['stepNumber'] === 'string' ? obj['stepNumber'] : undefined,
-      metricValue: typeof obj['metricValue'] === 'string' ? obj['metricValue'] : undefined,
-      metricLabel: typeof obj['metricLabel'] === 'string' ? obj['metricLabel'] : undefined,
+      stepNumber:
+        typeof obj['stepNumber'] === 'string' ? obj['stepNumber'] : undefined,
+      metricValue:
+        typeof obj['metricValue'] === 'string' ? obj['metricValue'] : undefined,
+      metricLabel:
+        typeof obj['metricLabel'] === 'string' ? obj['metricLabel'] : undefined,
       quote: typeof obj['quote'] === 'string' ? obj['quote'] : undefined,
-      quoteAuthor: typeof obj['quoteAuthor'] === 'string' ? obj['quoteAuthor'] : undefined,
+      quoteAuthor:
+        typeof obj['quoteAuthor'] === 'string' ? obj['quoteAuthor'] : undefined,
       ctaText: typeof obj['ctaText'] === 'string' ? obj['ctaText'] : undefined,
-      ctaButton: typeof obj['ctaButton'] === 'string' ? obj['ctaButton'] : undefined,
+      ctaButton:
+        typeof obj['ctaButton'] === 'string' ? obj['ctaButton'] : undefined,
     };
   }
 
@@ -390,12 +416,10 @@ export class DraftService {
       stepNum++;
       const heading = m[1]?.trim() ?? '';
       // Find the paragraph after this heading
-      const headingIdx = lines.findIndex(
-        (l) => l.trim() === `## ${heading}`,
-      );
-      const after = lines.slice(headingIdx + 1).find(
-        (l) => l.trim() && !l.startsWith('#'),
-      );
+      const headingIdx = lines.findIndex((l) => l.trim() === `## ${heading}`);
+      const after = lines
+        .slice(headingIdx + 1)
+        .find((l) => l.trim() && !l.startsWith('#'));
       slides.push({
         type: 'step',
         mono: `STEP ${String(stepNum).padStart(2, '0')}`,

@@ -1,9 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import type { Queue } from 'bullmq';
-import {
-  CONTENT_PIPELINE_VIDEO_QUEUE,
-} from '@ext/content-pipeline/services/video-job.processor';
+import { CONTENT_PIPELINE_VIDEO_QUEUE } from '@ext/content-pipeline/services/video-job.processor';
 import type {
   VideoJobData,
   VideoJobResult,

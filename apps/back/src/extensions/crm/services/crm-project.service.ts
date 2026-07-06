@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CrmProjectEntity } from '../infrastructure/persistence/entities/crm-project.entity';
@@ -25,7 +21,9 @@ export class CrmProjectService {
     });
   }
 
-  async findAll(params: { clientId?: number } = {}): Promise<CrmProjectEntity[]> {
+  async findAll(
+    params: { clientId?: number } = {},
+  ): Promise<CrmProjectEntity[]> {
     const where: { clientId?: number } = {};
     if (params.clientId) {
       where.clientId = params.clientId;
@@ -50,7 +48,9 @@ export class CrmProjectService {
   async create(dto: CreateProjectDto): Promise<CrmProjectEntity> {
     const project = this.repository.create(dto);
     const saved = await this.repository.save(project);
-    this.logger.log(`Created project id=${saved.id} for client=${dto.clientId}`);
+    this.logger.log(
+      `Created project id=${saved.id} for client=${dto.clientId}`,
+    );
     return saved;
   }
 

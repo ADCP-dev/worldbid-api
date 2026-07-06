@@ -6,22 +6,25 @@ import { UploadPostConfig } from '@ext/upload-post/config/upload-post-config.typ
 // Shapes traced from consuming services (upload.service.ts, analytics.service.ts,
 // weekly-report.service.ts, autodm.service.ts) and frontend composables.
 
-interface UploadResponse {
+export interface UploadResponse {
   request_id: string;
   job_id?: string | null;
   [key: string]: unknown;
 }
 
-interface UploadStatusResponse {
+export interface UploadStatusResponse {
   status?: string;
   success?: boolean;
   error?: string;
   message?: string;
-  results?: Record<string, { success: boolean; url?: string; error?: string; publishId?: string }>;
+  results?: Record<
+    string,
+    { success: boolean; url?: string; error?: string; publishId?: string }
+  >;
   [key: string]: unknown;
 }
 
-interface PlatformMetrics {
+export interface PlatformMetrics {
   followers?: number;
   reach?: number;
   views?: number;
@@ -34,9 +37,9 @@ interface PlatformMetrics {
   reach_timeseries?: Array<{ date: string; value: number }>;
 }
 
-type AnalyticsResponse = Record<string, PlatformMetrics | unknown>;
+export type AnalyticsResponse = Record<string, PlatformMetrics | unknown>;
 
-interface ScheduledPost {
+export interface ScheduledPost {
   job_id: string;
   scheduled_date: string;
   title?: string;
@@ -46,18 +49,18 @@ interface ScheduledPost {
   status?: string;
 }
 
-interface ScheduledPostsResponse {
+export interface ScheduledPostsResponse {
   posts: ScheduledPost[];
   [key: string]: unknown;
 }
 
-interface AutodmStartResponse {
+export interface AutodmStartResponse {
   monitor_id?: string;
   id?: string;
   [key: string]: unknown;
 }
 
-interface AutodmMonitor {
+export interface AutodmMonitor {
   monitor_id: string;
   post_url?: string;
   reply_message?: string;
@@ -67,19 +70,19 @@ interface AutodmMonitor {
   trigger_keywords?: string[];
 }
 
-interface AutodmStatusResponse {
+export interface AutodmStatusResponse {
   monitors?: AutodmMonitor[];
   [key: string]: unknown;
 }
 
-interface AutodmLog {
+export interface AutodmLog {
   timestamp?: string;
   username?: string;
   comment?: string;
   dm_sent?: boolean;
 }
 
-interface AutodmLogsResponse {
+export interface AutodmLogsResponse {
   logs?: AutodmLog[];
   [key: string]: unknown;
 }
@@ -137,7 +140,11 @@ export class UploadPostClientService {
 
     let res: Response;
     if (opts.formData) {
-      res = await fetch(url.toString(), { method, headers, body: opts.formData });
+      res = await fetch(url.toString(), {
+        method,
+        headers,
+        body: opts.formData,
+      });
     } else if (opts.body) {
       headers['Content-Type'] = 'application/json';
       res = await fetch(url.toString(), {
@@ -162,7 +169,9 @@ export class UploadPostClientService {
         (data !== null && typeof data === 'object' && 'message' in data
           ? String((data as { message: unknown }).message)
           : null) ?? text;
-      this.logger.error(`Upload-Post API ${method} ${path} → ${res.status}: ${message}`);
+      this.logger.error(
+        `Upload-Post API ${method} ${path} → ${res.status}: ${message}`,
+      );
       throw new HttpException(message, res.status);
     }
 
@@ -198,21 +207,33 @@ export class UploadPostClientService {
     if (params.scheduledDate) fd.append('scheduled_date', params.scheduledDate);
     if (params.asyncUpload) fd.append('async_upload', 'true');
     if (params.thumbUrl) fd.append('thumb_url', params.thumbUrl);
-    if (params.facebookMediaType) fd.append('facebook_media_type', params.facebookMediaType);
-    if (params.youtubeCategory) fd.append('youtube_category', params.youtubeCategory);
-    if (params.youtubeTags) for (const t of params.youtubeTags) fd.append('youtube_tags[]', t);
-    if (params.pinterestBoard) fd.append('pinterest_board', params.pinterestBoard);
-    if (params.redditSubreddit) fd.append('reddit_subreddit', params.redditSubreddit);
+    if (params.facebookMediaType)
+      fd.append('facebook_media_type', params.facebookMediaType);
+    if (params.youtubeCategory)
+      fd.append('youtube_category', params.youtubeCategory);
+    if (params.youtubeTags)
+      for (const t of params.youtubeTags) fd.append('youtube_tags[]', t);
+    if (params.pinterestBoard)
+      fd.append('pinterest_board', params.pinterestBoard);
+    if (params.redditSubreddit)
+      fd.append('reddit_subreddit', params.redditSubreddit);
     if (params.redditTitle) fd.append('reddit_title', params.redditTitle);
-    if (params.blueskyLanguage) fd.append('bluesky_language', params.blueskyLanguage);
+    if (params.blueskyLanguage)
+      fd.append('bluesky_language', params.blueskyLanguage);
 
     if (params.videoUrl) {
       fd.append('video', params.videoUrl);
     } else if (params.videoBuffer && params.videoFilename) {
-      fd.append('video', new Blob([params.videoBuffer], { type: 'video/mp4' }), params.videoFilename);
+      fd.append(
+        'video',
+        new Blob([params.videoBuffer], { type: 'video/mp4' }),
+        params.videoFilename,
+      );
     }
 
-    return this.request<UploadResponse>('POST', '/api/upload', { formData: fd });
+    return this.request<UploadResponse>('POST', '/api/upload', {
+      formData: fd,
+    });
   }
 
   async uploadPhotos(params: {
@@ -237,11 +258,17 @@ export class UploadPostClientService {
       for (const url of params.photoUrls) fd.append('photos[]', url);
     } else if (params.photoBuffers) {
       for (const p of params.photoBuffers) {
-        fd.append('photos[]', new Blob([p.buffer], { type: 'image/jpeg' }), p.filename);
+        fd.append(
+          'photos[]',
+          new Blob([p.buffer], { type: 'image/jpeg' }),
+          p.filename,
+        );
       }
     }
 
-    return this.request<UploadResponse>('POST', '/api/upload_photos', { formData: fd });
+    return this.request<UploadResponse>('POST', '/api/upload_photos', {
+      formData: fd,
+    });
   }
 
   async uploadText(params: {
@@ -264,13 +291,20 @@ export class UploadPostClientService {
     });
   }
 
-  async getUploadStatus(identifier: { requestId?: string; jobId?: string }): Promise<UploadStatusResponse> {
-    return this.request<UploadStatusResponse>('GET', '/api/uploadposts/status', {
-      query: {
-        request_id: identifier.requestId,
-        job_id: identifier.jobId,
+  async getUploadStatus(identifier: {
+    requestId?: string;
+    jobId?: string;
+  }): Promise<UploadStatusResponse> {
+    return this.request<UploadStatusResponse>(
+      'GET',
+      '/api/uploadposts/status',
+      {
+        query: {
+          request_id: identifier.requestId,
+          job_id: identifier.jobId,
+        },
       },
-    });
+    );
   }
 
   async getUploadHistory(): Promise<unknown> {
@@ -280,11 +314,19 @@ export class UploadPostClientService {
   // ─── Schedule endpoints ───────────────────────────────────────────────
 
   async getScheduledPosts(): Promise<ScheduledPostsResponse> {
-    return this.request<ScheduledPostsResponse>('GET', '/api/uploadposts/schedule');
+    return this.request<ScheduledPostsResponse>(
+      'GET',
+      '/api/uploadposts/schedule',
+    );
   }
 
-  async updateScheduledPost(jobId: string, updates: Record<string, unknown>): Promise<unknown> {
-    return this.request('PATCH', `/api/uploadposts/schedule/${jobId}`, { body: updates });
+  async updateScheduledPost(
+    jobId: string,
+    updates: Record<string, unknown>,
+  ): Promise<unknown> {
+    return this.request('PATCH', `/api/uploadposts/schedule/${jobId}`, {
+      body: updates,
+    });
   }
 
   async deleteScheduledPost(jobId: string): Promise<unknown> {
@@ -293,14 +335,24 @@ export class UploadPostClientService {
 
   // ─── Analytics endpoints ──────────────────────────────────────────────
 
-  async getAnalytics(profileUsername: string, platforms: string[]): Promise<AnalyticsResponse> {
-    return this.request<AnalyticsResponse>('GET', `/api/analytics/${profileUsername}`, {
-      query: { platforms: platforms.join(',') },
-    });
+  async getAnalytics(
+    profileUsername: string,
+    platforms: string[],
+  ): Promise<AnalyticsResponse> {
+    return this.request<AnalyticsResponse>(
+      'GET',
+      `/api/analytics/${profileUsername}`,
+      {
+        query: { platforms: platforms.join(',') },
+      },
+    );
   }
 
   async getTotalImpressions(profileUsername: string): Promise<unknown> {
-    return this.request('GET', `/api/uploadposts/total-impressions/${profileUsername}`);
+    return this.request(
+      'GET',
+      `/api/uploadposts/total-impressions/${profileUsername}`,
+    );
   }
 
   async getPostAnalytics(requestId: string): Promise<unknown> {
@@ -320,33 +372,55 @@ export class UploadPostClientService {
     monitoringInterval?: number;
     triggerKeywords?: string[];
   }): Promise<AutodmStartResponse> {
-    return this.request<AutodmStartResponse>('POST', '/api/uploadposts/autodms/start', { body: params });
+    return this.request<AutodmStartResponse>(
+      'POST',
+      '/api/uploadposts/autodms/start',
+      { body: params },
+    );
   }
 
-  async getAutodmStatus(includeInactive = false): Promise<AutodmStatusResponse> {
-    return this.request<AutodmStatusResponse>('GET', '/api/uploadposts/autodms/status', {
-      query: { include_inactive: includeInactive },
-    });
+  async getAutodmStatus(
+    includeInactive = false,
+  ): Promise<AutodmStatusResponse> {
+    return this.request<AutodmStatusResponse>(
+      'GET',
+      '/api/uploadposts/autodms/status',
+      {
+        query: { include_inactive: includeInactive },
+      },
+    );
   }
 
   async getAutodmLogs(monitorId: string): Promise<AutodmLogsResponse> {
-    return this.request<AutodmLogsResponse>('GET', '/api/uploadposts/autodms/logs', { query: { monitor_id: monitorId } });
+    return this.request<AutodmLogsResponse>(
+      'GET',
+      '/api/uploadposts/autodms/logs',
+      { query: { monitor_id: monitorId } },
+    );
   }
 
   async pauseAutodmMonitor(monitorId: string): Promise<unknown> {
-    return this.request('POST', '/api/uploadposts/autodms/pause', { body: { monitor_id: monitorId } });
+    return this.request('POST', '/api/uploadposts/autodms/pause', {
+      body: { monitor_id: monitorId },
+    });
   }
 
   async resumeAutodmMonitor(monitorId: string): Promise<unknown> {
-    return this.request('POST', '/api/uploadposts/autodms/resume', { body: { monitor_id: monitorId } });
+    return this.request('POST', '/api/uploadposts/autodms/resume', {
+      body: { monitor_id: monitorId },
+    });
   }
 
   async stopAutodmMonitor(monitorId: string): Promise<unknown> {
-    return this.request('POST', '/api/uploadposts/autodms/stop', { body: { monitor_id: monitorId } });
+    return this.request('POST', '/api/uploadposts/autodms/stop', {
+      body: { monitor_id: monitorId },
+    });
   }
 
   async deleteAutodmMonitor(monitorId: string): Promise<unknown> {
-    return this.request('POST', '/api/uploadposts/autodms/delete', { body: { monitor_id: monitorId } });
+    return this.request('POST', '/api/uploadposts/autodms/delete', {
+      body: { monitor_id: monitorId },
+    });
   }
 
   // ─── Webhook configuration ────────────────────────────────────────────
@@ -356,7 +430,9 @@ export class UploadPostClientService {
     events?: Record<string, boolean>;
     telegramChatId?: string;
   }): Promise<unknown> {
-    return this.request('POST', '/api/uploadposts/users/notifications', { body: params });
+    return this.request('POST', '/api/uploadposts/users/notifications', {
+      body: params,
+    });
   }
 
   // ─── Queue endpoints ──────────────────────────────────────────────────
@@ -373,8 +449,12 @@ export class UploadPostClientService {
     return this.request('GET', '/api/uploadposts/queue/settings');
   }
 
-  async updateQueueSettings(settings: Record<string, unknown>): Promise<unknown> {
-    return this.request('POST', '/api/uploadposts/queue/settings', { body: settings });
+  async updateQueueSettings(
+    settings: Record<string, unknown>,
+  ): Promise<unknown> {
+    return this.request('POST', '/api/uploadposts/queue/settings', {
+      body: settings,
+    });
   }
 
   // ─── Platform metadata ────────────────────────────────────────────────
@@ -396,13 +476,20 @@ export class UploadPostClientService {
   }
 
   async selectGoogleBusinessLocation(locationId: string): Promise<unknown> {
-    return this.request('POST', '/api/uploadposts/google-business/locations/select', {
-      body: { location_id: locationId },
-    });
+    return this.request(
+      'POST',
+      '/api/uploadposts/google-business/locations/select',
+      {
+        body: { location_id: locationId },
+      },
+    );
   }
 
   async getRedditDetailedPost(postId: string): Promise<unknown> {
-    return this.request('GET', `/api/uploadposts/reddit/detailed-posts/${postId}`);
+    return this.request(
+      'GET',
+      `/api/uploadposts/reddit/detailed-posts/${postId}`,
+    );
   }
 
   // ─── Instagram endpoints ──────────────────────────────────────────────
@@ -412,16 +499,24 @@ export class UploadPostClientService {
   }
 
   async getInstagramComments(postUrl: string): Promise<unknown> {
-    return this.request('GET', '/api/uploadposts/comments', { query: { post_url: postUrl } });
+    return this.request('GET', '/api/uploadposts/comments', {
+      query: { post_url: postUrl },
+    });
   }
 
-  async replyToInstagramComment(commentId: string, message: string): Promise<unknown> {
+  async replyToInstagramComment(
+    commentId: string,
+    message: string,
+  ): Promise<unknown> {
     return this.request('POST', '/api/uploadposts/comments/reply', {
       body: { comment_id: commentId, message },
     });
   }
 
-  async sendInstagramDm(params: { username: string; message: string }): Promise<unknown> {
+  async sendInstagramDm(params: {
+    username: string;
+    message: string;
+  }): Promise<unknown> {
     return this.request('POST', '/api/uploadposts/dms/send', { body: params });
   }
 

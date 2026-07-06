@@ -22,11 +22,41 @@ export class CrmSeedService {
 
   private async seedStatuses() {
     const statuses = [
-      { name: 'lead', label: 'Lead', color: '#6c8cff', sortOrder: 1, isDefault: true },
-      { name: 'discovery', label: 'Discovery', color: '#36c2a8', sortOrder: 2, isDefault: false },
-      { name: 'proposed', label: 'Proposed', color: '#f5a623', sortOrder: 3, isDefault: false },
-      { name: 'active', label: 'Active', color: '#3cb878', sortOrder: 4, isDefault: false },
-      { name: 'churned', label: 'Churned', color: '#e0604e', sortOrder: 5, isDefault: false },
+      {
+        name: 'lead',
+        label: 'Lead',
+        color: '#6c8cff',
+        sortOrder: 1,
+        isDefault: true,
+      },
+      {
+        name: 'discovery',
+        label: 'Discovery',
+        color: '#36c2a8',
+        sortOrder: 2,
+        isDefault: false,
+      },
+      {
+        name: 'proposed',
+        label: 'Proposed',
+        color: '#f5a623',
+        sortOrder: 3,
+        isDefault: false,
+      },
+      {
+        name: 'active',
+        label: 'Active',
+        color: '#3cb878',
+        sortOrder: 4,
+        isDefault: false,
+      },
+      {
+        name: 'churned',
+        label: 'Churned',
+        color: '#e0604e',
+        sortOrder: 5,
+        isDefault: false,
+      },
     ];
 
     for (const s of statuses) {

@@ -28,7 +28,10 @@ const manifest: ExtensionManifest = {
       { method: 'DELETE', path: 'upload-post/schedule/:jobId' },
       // Analytics
       { method: 'GET', path: 'upload-post/analytics/:profileUsername' },
-      { method: 'GET', path: 'upload-post/analytics/total-impressions/:profileUsername' },
+      {
+        method: 'GET',
+        path: 'upload-post/analytics/total-impressions/:profileUsername',
+      },
       { method: 'GET', path: 'upload-post/analytics/post/:requestId' },
       { method: 'GET', path: 'upload-post/analytics/platform-metrics' },
       // AutoDM
@@ -54,9 +57,18 @@ const manifest: ExtensionManifest = {
       { method: 'GET', path: 'upload-post/platforms/facebook/pages' },
       { method: 'GET', path: 'upload-post/platforms/linkedin/pages' },
       { method: 'GET', path: 'upload-post/platforms/pinterest/boards' },
-      { method: 'GET', path: 'upload-post/platforms/google-business/locations' },
-      { method: 'POST', path: 'upload-post/platforms/google-business/locations/select' },
-      { method: 'GET', path: 'upload-post/platforms/reddit/detailed-posts/:postId' },
+      {
+        method: 'GET',
+        path: 'upload-post/platforms/google-business/locations',
+      },
+      {
+        method: 'POST',
+        path: 'upload-post/platforms/google-business/locations/select',
+      },
+      {
+        method: 'GET',
+        path: 'upload-post/platforms/reddit/detailed-posts/:postId',
+      },
       // Instagram
       { method: 'GET', path: 'upload-post/instagram/media' },
       { method: 'GET', path: 'upload-post/instagram/comments' },
@@ -84,7 +96,10 @@ const manifest: ExtensionManifest = {
     ],
     entities: [
       { name: 'UpPost', table: 'ext_uploadpost_post' },
-      { name: 'UpPostAnalyticsSnapshot', table: 'ext_uploadpost_analytics_snapshot' },
+      {
+        name: 'UpPostAnalyticsSnapshot',
+        table: 'ext_uploadpost_analytics_snapshot',
+      },
       { name: 'UpPostAutodmMonitor', table: 'ext_uploadpost_autodm_monitor' },
       { name: 'UpPostContentIdea', table: 'ext_uploadpost_content_idea' },
     ],

@@ -26,10 +26,9 @@ export class ImageGeneratorService {
   private readonly logger = new Logger(ImageGeneratorService.name);
   private readonly cfg: ContentPipelineConfig | null;
 
-  constructor(
-    private readonly configService: ConfigService<AllConfigType>,
-  ) {
-    this.cfg = this.configService.get('content-pipeline', { infer: true }) ?? null;
+  constructor(private readonly configService: ConfigService<AllConfigType>) {
+    this.cfg =
+      this.configService.get('content-pipeline', { infer: true }) ?? null;
   }
 
   get isConfigured(): boolean {
@@ -46,7 +45,9 @@ export class ImageGeneratorService {
     niche?: string;
   }): Promise<GeneratedImage[]> {
     if (!this.isConfigured) {
-      this.logger.warn('WaveSpeed API key not configured — returning empty images');
+      this.logger.warn(
+        'WaveSpeed API key not configured — returning empty images',
+      );
       return [];
     }
 
@@ -63,7 +64,14 @@ export class ImageGeneratorService {
 
     const jobs: Array<Promise<GeneratedImage | null>> = [
       this.generateOne(baseUrl, apiKey, model, heroPrompt, '1024x576', 'hero'),
-      this.generateOne(baseUrl, apiKey, model, contentPrompt, '1024x1024', 'content'),
+      this.generateOne(
+        baseUrl,
+        apiKey,
+        model,
+        contentPrompt,
+        '1024x1024',
+        'content',
+      ),
     ];
 
     const results = await Promise.allSettled(jobs);
@@ -72,7 +80,9 @@ export class ImageGeneratorService {
       if (r.status === 'fulfilled' && r.value) images.push(r.value);
     }
 
-    this.logger.log(`Generated ${images.length}/2 images for "${params.title}"`);
+    this.logger.log(
+      `Generated ${images.length}/2 images for "${params.title}"`,
+    );
     return images;
   }
 
@@ -120,7 +130,10 @@ export class ImageGeneratorService {
       return {
         url,
         type,
-        alt: type === 'hero' ? `Hero image for ${prompt.slice(0, 60)}` : `Content image`,
+        alt:
+          type === 'hero'
+            ? `Hero image for ${prompt.slice(0, 60)}`
+            : `Content image`,
         width,
         height,
       };
@@ -128,7 +141,9 @@ export class ImageGeneratorService {
       if ((err as Error)?.name === 'AbortError') {
         this.logger.error(`WaveSpeed ${type} request timed out`);
       } else {
-        this.logger.error(`WaveSpeed ${type} failed: ${(err as Error)?.message ?? err}`);
+        this.logger.error(
+          `WaveSpeed ${type} failed: ${(err as Error)?.message ?? err}`,
+        );
       }
       return null;
     } finally {

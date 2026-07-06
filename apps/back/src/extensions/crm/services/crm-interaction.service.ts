@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CrmInteractionEntity } from '../infrastructure/persistence/entities/crm-interaction.entity';
@@ -22,7 +18,12 @@ export class CrmInteractionService {
     clientId: number,
     page = 1,
     limit = 20,
-  ): Promise<{ data: CrmInteractionEntity[]; total: number; page: number; limit: number }> {
+  ): Promise<{
+    data: CrmInteractionEntity[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     const [data, total] = await this.repository.findAndCount({
       where: { clientId },
       order: { interactionDate: 'DESC' },

@@ -14,9 +14,7 @@ import type {
   BrandConfig,
 } from '@ext/content-pipeline/services/carousel-generator.service';
 import { HtmlRendererService } from '@ext/content-pipeline/services/html-renderer.service';
-import {
-  VideoGeneratorService,
-} from '@ext/content-pipeline/services/video-generator.service';
+import { VideoGeneratorService } from '@ext/content-pipeline/services/video-generator.service';
 import type { VideoSlide } from '@ext/content-pipeline/services/video-generator.service';
 import { CtaVideoService } from '@ext/content-pipeline/services/cta-video.service';
 import type { GenerateFromTemplateDto } from '@ext/content-pipeline/dto/generate-from-template.dto';
@@ -244,8 +242,7 @@ const PRESENTATION_TEMPLATE: VideoTemplate = {
 const TUTORIAL_TEMPLATE: VideoTemplate = {
   type: 'tutorial',
   name: 'Tutorial',
-  description:
-    'Hook → Paso 1 → Paso 2 → Paso 3 → Resultado. CTA al final.',
+  description: 'Hook → Paso 1 → Paso 2 → Paso 3 → Resultado. CTA al final.',
   slots: [
     {
       position: 0,
@@ -525,7 +522,10 @@ const QUOTE_INSIGHT_TEMPLATE: VideoTemplate = {
   format: 'vertical',
 };
 
-const PREDEFINED_TEMPLATES: Record<Exclude<TemplateType, 'custom'>, VideoTemplate> = {
+const PREDEFINED_TEMPLATES: Record<
+  Exclude<TemplateType, 'custom'>,
+  VideoTemplate
+> = {
   'before-after': BEFORE_AFTER_TEMPLATE,
   'product-showcase': PRODUCT_SHOWCASE_TEMPLATE,
   presentation: PRESENTATION_TEMPLATE,
@@ -565,7 +565,8 @@ export class VideoTemplateService {
     private readonly videoGeneratorService: VideoGeneratorService,
     private readonly ctaVideoService: CtaVideoService,
   ) {
-    this.cfg = this.configService.get('content-pipeline', { infer: true }) ?? null;
+    this.cfg =
+      this.configService.get('content-pipeline', { infer: true }) ?? null;
   }
 
   /**
@@ -633,7 +634,8 @@ export class VideoTemplateService {
     const fillData = params.fillData ?? { slots: {} };
     const brand = params.brandConfig ?? SOM_OS_BRAND;
     const format = fillData.format ?? tpl.format;
-    const slideDuration = fillData.slideDurationSec ?? tpl.defaultSlideDurationSec;
+    const slideDuration =
+      fillData.slideDurationSec ?? tpl.defaultSlideDurationSec;
     const transitions = fillData.transitions ?? tpl.defaultTransitions;
 
     this.logger.log(
@@ -684,12 +686,13 @@ export class VideoTemplateService {
     let carouselHtml: string[] = [];
     let postText = '';
     if (carouselSlides.length > 0) {
-      const carousel = await this.carouselGeneratorService.generateCarouselSlides({
-        title: tpl.name,
-        slides: carouselSlides,
-        brandConfig: brand,
-        format,
-      });
+      const carousel =
+        await this.carouselGeneratorService.generateCarouselSlides({
+          title: tpl.name,
+          slides: carouselSlides,
+          brandConfig: brand,
+          format,
+        });
       carouselHtml = carousel.htmlContents;
       postText = carousel.postText;
     }
@@ -758,8 +761,7 @@ export class VideoTemplateService {
 
     if (tpl.appendCtaVideo) {
       ctaVideoUrl =
-        fillData.ctaVideoUrl ??
-        (await this.getCtaVideoUrl(tpl.ctaVideoUrl));
+        fillData.ctaVideoUrl ?? (await this.getCtaVideoUrl(tpl.ctaVideoUrl));
       if (ctaVideoUrl) {
         this.logger.log(
           `Concatenating CTA video: ${ctaVideoUrl} after content (${contentVideo.durationSec}s)`,
@@ -800,7 +802,9 @@ export class VideoTemplateService {
    * Adapter for the controller DTO: converts the loose DTO into the internal
    * TemplateFillData structure expected by generateFromTemplate.
    */
-  async generateFromDto(dto: GenerateFromTemplateDto): Promise<TemplateVideoResult> {
+  async generateFromDto(
+    dto: GenerateFromTemplateDto,
+  ): Promise<TemplateVideoResult> {
     const fillData: TemplateFillData = {
       slots: {},
       transitions: dto.transitions,
@@ -839,7 +843,10 @@ export class VideoTemplateService {
    * Maps template slotTypes to CarouselSlide types when the caller did not
    * provide a `type` field on the slide.
    */
-  private normalizeSlide(raw: CarouselSlide, slot: TemplateSlot): CarouselSlide {
+  private normalizeSlide(
+    raw: CarouselSlide,
+    slot: TemplateSlot,
+  ): CarouselSlide {
     const base: CarouselSlide = { ...raw };
     if (!base.type || !this.isCarouselType(base.type)) {
       base.type = this.slotToCarouselType(slot.slotType);
@@ -860,9 +867,7 @@ export class VideoTemplateService {
   }
 
   /** Map a template slotType to the closest CarouselSlide type. */
-  private slotToCarouselType(
-    slotType: SlotType,
-  ): CarouselSlide['type'] {
+  private slotToCarouselType(slotType: SlotType): CarouselSlide['type'] {
     const map: Record<SlotType, CarouselSlide['type']> = {
       before: 'context',
       after: 'context',

@@ -58,11 +58,7 @@ export class ContentIdeasController {
     @Param('id') id: string,
     @Body() dto: UpdateContentIdeaStatusDto,
   ) {
-    return this.ideasService.updateStatus(
-      id,
-      dto.status,
-      dto.order,
-    );
+    return this.ideasService.updateStatus(id, dto.status, dto.order);
   }
 
   @Post('reorder')

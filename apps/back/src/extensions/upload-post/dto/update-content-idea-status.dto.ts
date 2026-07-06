@@ -1,10 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsString,
-  IsOptional,
-  IsEnum,
-  IsInt,
-} from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsInt } from 'class-validator';
 
 export class UpdateContentIdeaStatusDto {
   @ApiProperty({
@@ -12,7 +7,7 @@ export class UpdateContentIdeaStatusDto {
     description: 'New status for the content idea',
   })
   @IsEnum(['idea', 'drafting', 'ready', 'scheduled', 'published'])
-  status: string;
+  status: 'idea' | 'drafting' | 'ready' | 'scheduled' | 'published';
 
   @ApiPropertyOptional({ type: Number, description: 'Sort order' })
   @IsOptional()

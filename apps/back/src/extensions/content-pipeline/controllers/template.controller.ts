@@ -15,9 +15,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '@iam/roles/roles.decorator';
 import { RoleEnum } from '@iam/roles/roles.enum';
 import { RolesGuard } from '@iam/roles/roles.guard';
-import {
-  VideoTemplateService,
-} from '@ext/content-pipeline/services/video-template.service';
+import { VideoTemplateService } from '@ext/content-pipeline/services/video-template.service';
 import type { TemplateType } from '@ext/content-pipeline/services/video-template.service';
 import { VideoQueueService } from '@ext/content-pipeline/services/video-queue.service';
 import { GenerateFromTemplateDto } from '@ext/content-pipeline/dto/generate-from-template.dto';
@@ -54,7 +52,10 @@ export class TemplateController {
   @Post('generate')
   @HttpCode(HttpStatus.ACCEPTED)
   generateFromTemplate(@Body() dto: GenerateFromTemplateDto) {
-    const slots: Record<number, { imageUrl?: string; slide?: Record<string, unknown> }> = {};
+    const slots: Record<
+      number,
+      { imageUrl?: string; slide?: Record<string, unknown> }
+    > = {};
     if (dto.slots) {
       for (const [key, val] of Object.entries(dto.slots)) {
         const pos = Number(key);

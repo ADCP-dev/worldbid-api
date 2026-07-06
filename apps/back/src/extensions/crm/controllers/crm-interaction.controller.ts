@@ -45,16 +45,16 @@ export class CrmInteractionController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  create(@Param('clientId') clientId: number, @Body() dto: CreateInteractionDto) {
+  create(
+    @Param('clientId') clientId: number,
+    @Body() dto: CreateInteractionDto,
+  ) {
     dto.clientId = Number(clientId);
     return this.interactionService.create(dto);
   }
 
   @Patch(':id')
-  update(
-    @Param('id') id: number,
-    @Body() dto: UpdateInteractionDto,
-  ) {
+  update(@Param('id') id: number, @Body() dto: UpdateInteractionDto) {
     return this.interactionService.update(Number(id), dto);
   }
 

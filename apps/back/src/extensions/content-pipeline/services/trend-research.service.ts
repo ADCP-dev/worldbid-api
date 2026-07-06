@@ -41,10 +41,9 @@ export class TrendResearchService {
   private readonly logger = new Logger(TrendResearchService.name);
   private readonly cfg: ContentPipelineConfig | null;
 
-  constructor(
-    private readonly configService: ConfigService<AllConfigType>,
-  ) {
-    this.cfg = this.configService.get('content-pipeline', { infer: true }) ?? null;
+  constructor(private readonly configService: ConfigService<AllConfigType>) {
+    this.cfg =
+      this.configService.get('content-pipeline', { infer: true }) ?? null;
   }
 
   get isConfigured(): boolean {
@@ -55,9 +54,13 @@ export class TrendResearchService {
    * Research trending topics for a project niche via Tavily.
    * Returns structured ideas with research data.
    */
-  async research(project: ContentPipelineProjectEntity): Promise<ResearchResult> {
+  async research(
+    project: ContentPipelineProjectEntity,
+  ): Promise<ResearchResult> {
     if (!this.isConfigured) {
-      this.logger.warn('Tavily API key not configured — returning empty research');
+      this.logger.warn(
+        'Tavily API key not configured — returning empty research',
+      );
       return { ideas: [] };
     }
 
@@ -84,13 +87,21 @@ export class TrendResearchService {
     const ranked = this.rankResults(allResults, keywords);
 
     // Generate structured ideas from top results
-    const ideas = ranked.slice(0, maxIdeas).map((r) => this.resultToIdea(r, project));
+    const ideas = ranked
+      .slice(0, maxIdeas)
+      .map((r) => this.resultToIdea(r, project));
 
-    this.logger.log(`Research for project "${project.name}": ${ideas.length} ideas generated`);
+    this.logger.log(
+      `Research for project "${project.name}": ${ideas.length} ideas generated`,
+    );
     return { ideas };
   }
 
-  private buildResearchQueries(niche: string, keywords: string[], language: string): string[] {
+  private buildResearchQueries(
+    niche: string,
+    keywords: string[],
+    language: string,
+  ): string[] {
     const langSuffix = language === 'es' ? 'España 2025 2026' : '2025 2026';
     const baseQueries = [
       `${niche} trending topics ${langSuffix}`,
@@ -100,7 +111,9 @@ export class TrendResearchService {
 
     // Add keyword-specific queries
     if (keywords.length > 0) {
-      baseQueries.push(`${keywords.slice(0, 3).join(' ')} popular content ${langSuffix}`);
+      baseQueries.push(
+        `${keywords.slice(0, 3).join(' ')} popular content ${langSuffix}`,
+      );
     }
 
     return baseQueries;
@@ -183,11 +196,20 @@ export class TrendResearchService {
     // Guess content type from title
     const titleLower = title.toLowerCase();
     let contentType = 'tips';
-    if (titleLower.includes('receta') || titleLower.includes('recipe')) contentType = 'recipe';
-    else if (titleLower.includes('compar') || titleLower.includes('best') || titleLower.includes('mejor')) contentType = 'comparison';
-    else if (titleLower.includes('review') || titleLower.includes('analisis')) contentType = 'review';
-    else if (titleLower.includes('guia') || titleLower.includes('guide')) contentType = 'guide';
-    else if (titleLower.match(/\d+\s+(recetas|tips|trucos|formas)/)) contentType = 'listicle';
+    if (titleLower.includes('receta') || titleLower.includes('recipe'))
+      contentType = 'recipe';
+    else if (
+      titleLower.includes('compar') ||
+      titleLower.includes('best') ||
+      titleLower.includes('mejor')
+    )
+      contentType = 'comparison';
+    else if (titleLower.includes('review') || titleLower.includes('analisis'))
+      contentType = 'review';
+    else if (titleLower.includes('guia') || titleLower.includes('guide'))
+      contentType = 'guide';
+    else if (titleLower.match(/\d+\s+(recetas|tips|trucos|formas)/))
+      contentType = 'listicle';
 
     return {
       title: title.substring(0, 500),

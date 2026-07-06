@@ -1,18 +1,12 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-import { Injectable, Logger, ModuleRef, Type } from '@nestjs/common';
+import { Injectable, Logger, Type } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { AgentRunService } from '@ext/autonomous-agent/services/agent-run.service';
 import { AUTONOMOUS_AGENT_QUEUE } from '@ext/autonomous-agent/services/pipeline-orchestrator.service';
-import {
-  TrendResearchService,
-  ResearchResult,
-} from '@ext/content-pipeline/services/trend-research.service';
-import {
-  ContentGeneratorService,
-} from '@ext/content-pipeline/services/content-generator.service';
-import {
-  PublishingService,
-} from '@ext/content-pipeline/services/publishing.service';
+import { TrendResearchService } from '@ext/content-pipeline/services/trend-research.service';
+import { ContentGeneratorService } from '@ext/content-pipeline/services/content-generator.service';
+import { PublishingService } from '@ext/content-pipeline/services/publishing.service';
 import { MetricsService } from '@ext/content-pipeline/services/metrics.service';
 import { ProjectService } from '@ext/content-pipeline/services/project.service';
 import { IdeaService } from '@ext/content-pipeline/services/idea.service';
@@ -105,9 +99,7 @@ export class AutonomousAgentJobProcessor extends WorkerHost {
           output,
         });
       }
-      this.logger.log(
-        `Job ${job.id} (${type}) completed for run ${runId}`,
-      );
+      this.logger.log(`Job ${job.id} (${type}) completed for run ${runId}`);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       this.logger.error(
@@ -133,10 +125,11 @@ export class AutonomousAgentJobProcessor extends WorkerHost {
   //  Phase handlers
   // ───────────────────────────────────────────────────────────────────────
 
-  private async handleResearch(projectId: string): Promise<ResearchResult> {
-    const trendResearch = this.resolve<TrendResearchService>(
-      TrendResearchService,
-    );
+  private async handleResearch(
+    projectId: string,
+  ): Promise<Record<string, unknown>> {
+    const trendResearch =
+      this.resolve<TrendResearchService>(TrendResearchService);
     const projectService = this.resolve<ProjectService>(ProjectService);
 
     if (!trendResearch) {
@@ -158,7 +151,10 @@ export class AutonomousAgentJobProcessor extends WorkerHost {
       throw new Error(`Project ${projectId} not found for research`);
     }
 
-    return trendResearch.research(project);
+    return trendResearch.research(project) as unknown as Record<
+      string,
+      unknown
+    >;
   }
 
   private async handleGenerate(
@@ -222,9 +218,8 @@ export class AutonomousAgentJobProcessor extends WorkerHost {
     projectId: string,
     draftId: string,
   ): Promise<Record<string, unknown>> {
-    const publishingService = this.resolve<PublishingService>(
-      PublishingService,
-    );
+    const publishingService =
+      this.resolve<PublishingService>(PublishingService);
     const projectService = this.resolve<ProjectService>(ProjectService);
     const draftService = this.resolve<DraftService>(DraftService);
 

@@ -4,49 +4,64 @@ import validateConfig from '@infra/utils/validate-config';
 import type { ContentPipelineConfig } from '@ext/content-pipeline/config/content-pipeline-config.type';
 
 class EnvironmentVariablesValidator {
-  @IsString() @IsOptional()
+  @IsString()
+  @IsOptional()
   TAVILY_API_KEY: string;
 
-  @IsString() @IsOptional()
+  @IsString()
+  @IsOptional()
   TAVILY_BASE_URL: string;
 
-  @IsString() @IsOptional()
+  @IsString()
+  @IsOptional()
   TAVILY_MAX_RESULTS: string;
 
-  @IsString() @IsOptional()
+  @IsString()
+  @IsOptional()
   OLLAMA_BASE_URL: string;
 
-  @IsString() @IsOptional()
+  @IsString()
+  @IsOptional()
   OLLAMA_MODEL: string;
 
-  @IsString() @IsOptional()
+  @IsString()
+  @IsOptional()
   OLLAMA_API_KEY: string;
 
-  @IsString() @IsOptional()
+  @IsString()
+  @IsOptional()
   WAVESPEED_API_KEY: string;
 
-  @IsString() @IsOptional()
+  @IsString()
+  @IsOptional()
   WAVESPEED_DEFAULT_MODEL: string;
 
-  @IsString() @IsOptional()
+  @IsString()
+  @IsOptional()
   WAVESPEED_BASE_URL: string;
 
-  @IsString() @IsOptional()
+  @IsString()
+  @IsOptional()
   CONTENT_PIPELINE_MAX_IDEAS: string;
 
-  @IsString() @IsOptional()
+  @IsString()
+  @IsOptional()
   CONTENT_PIPELINE_NOTIFICATION_EMAIL: string;
 
-  @IsString() @IsOptional()
+  @IsString()
+  @IsOptional()
   CONTENT_PIPELINE_FFMPEG_PATH: string;
 
-  @IsString() @IsOptional()
+  @IsString()
+  @IsOptional()
   CONTENT_PIPELINE_FONT_URL: string;
 
-  @IsString() @IsOptional()
+  @IsString()
+  @IsOptional()
   CONTENT_PIPELINE_CHROMIUM_PATH: string;
 
-  @IsString() @IsOptional()
+  @IsString()
+  @IsOptional()
   CONTENT_PIPELINE_CTA_VIDEO_URL: string;
 }
 
@@ -73,8 +88,7 @@ export default registerAs<ContentPipelineConfig>('content-pipeline', () => {
     notificationEmail: process.env.CONTENT_PIPELINE_NOTIFICATION_EMAIL,
     llmApiKey: process.env.OLLAMA_API_KEY,
     // Docker-native defaults: ffmpeg + chromium preinstalled via apk add.
-    ffmpegPath:
-      process.env.CONTENT_PIPELINE_FFMPEG_PATH ?? '/usr/bin/ffmpeg',
+    ffmpegPath: process.env.CONTENT_PIPELINE_FFMPEG_PATH ?? '/usr/bin/ffmpeg',
     // Font is now a public URL (CDN/S3) — no default, user provides one.
     fontUrl: process.env.CONTENT_PIPELINE_FONT_URL,
     chromiumPath:

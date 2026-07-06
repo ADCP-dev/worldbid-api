@@ -150,9 +150,7 @@ export class SchedulerService {
         if (config.metricsCron && config.metricsCron !== fired) continue;
 
         // Enqueue the metrics-gathering job.
-        await this.pipelineOrchestratorService.enqueueMetrics(
-          config.projectId,
-        );
+        await this.pipelineOrchestratorService.enqueueMetrics(config.projectId);
 
         // Run the feedback loop and emit the weekly report.
         try {

@@ -45,10 +45,9 @@ export class HtmlRendererService {
   private readonly cfg: ContentPipelineConfig | null;
   private readonly chromiumPath: string;
 
-  constructor(
-    private readonly configService: ConfigService<AllConfigType>,
-  ) {
-    this.cfg = this.configService.get('content-pipeline', { infer: true }) ?? null;
+  constructor(private readonly configService: ConfigService<AllConfigType>) {
+    this.cfg =
+      this.configService.get('content-pipeline', { infer: true }) ?? null;
     this.chromiumPath = this.cfg?.chromiumPath ?? DEFAULT_CHROMIUM_PATH;
   }
 
@@ -87,10 +86,7 @@ export class HtmlRendererService {
           htmlDir,
           `slide-${String(i).padStart(3, '0')}.html`,
         );
-        const pngPath = join(
-          outDir,
-          `slide-${String(i).padStart(3, '0')}.png`,
-        );
+        const pngPath = join(outDir, `slide-${String(i).padStart(3, '0')}.png`);
         await writeFile(htmlPath, html, 'utf8');
 
         const controller = new AbortController();
@@ -132,19 +128,15 @@ export class HtmlRendererService {
         }
       }
 
-      this.logger.log(
-        `Rendered ${pngPaths.length} PNGs to ${outDir}`,
-      );
+      this.logger.log(`Rendered ${pngPaths.length} PNGs to ${outDir}`);
       return pngPaths;
     } finally {
       // Clean up HTML temp files — keep PNGs (in outDir)
-      rm(htmlDir, { recursive: true, force: true }).catch(
-        (err: unknown) => {
-          this.logger.warn(
-            `Failed to clean HTML temp dir ${htmlDir}: ${err instanceof Error ? err.message : String(err)}`,
-          );
-        },
-      );
+      rm(htmlDir, { recursive: true, force: true }).catch((err: unknown) => {
+        this.logger.warn(
+          `Failed to clean HTML temp dir ${htmlDir}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      });
     }
   }
 }

@@ -30,12 +30,14 @@ export class AffiliateReferralService {
     private readonly originRepository: Repository<CrmOriginEntity>,
   ) {}
 
-  async findAll(params: {
-    page?: number;
-    limit?: number;
-    partnerId?: number;
-    status?: string;
-  } = {}): Promise<{
+  async findAll(
+    params: {
+      page?: number;
+      limit?: number;
+      partnerId?: number;
+      status?: string;
+    } = {},
+  ): Promise<{
     data: AffiliateReferralEntity[];
     total: number;
     page: number;
@@ -84,9 +86,7 @@ export class AffiliateReferralService {
       where: { id: dto.partnerId },
     });
     if (!partner) {
-      throw new NotFoundException(
-        `Partner with ID ${dto.partnerId} not found`,
-      );
+      throw new NotFoundException(`Partner with ID ${dto.partnerId} not found`);
     }
 
     // Verify client exists
@@ -114,13 +114,14 @@ export class AffiliateReferralService {
         where: { id: dto.originId },
       });
       if (!origin) {
-        throw new NotFoundException(
-          `Origin with ID ${dto.originId} not found`,
-        );
+        throw new NotFoundException(`Origin with ID ${dto.originId} not found`);
       }
     } else {
       // Auto-create an origin of type=affiliate using shared logic
-      origin = await this.findOrCreateAffiliateOrigin(dto.partnerId, partner?.name ?? `Partner ${dto.partnerId}`);
+      origin = await this.findOrCreateAffiliateOrigin(
+        dto.partnerId,
+        partner?.name ?? `Partner ${dto.partnerId}`,
+      );
     }
 
     const referral = this.repository.create({
@@ -131,23 +132,23 @@ export class AffiliateReferralService {
       metadata: dto.metadata ?? {},
     });
 
-    const saved = await this.clientRepository.manager.transaction(async (manager) => {
-      const savedReferral = await manager.save(referral);
-      if (origin) {
-        client.originId = origin.id;
-        await manager.save(client);
-      }
-      return savedReferral;
-    });
+    const saved = await this.clientRepository.manager.transaction(
+      async (manager) => {
+        const savedReferral = await manager.save(referral);
+        if (origin) {
+          client.originId = origin.id;
+          await manager.save(client);
+        }
+        return savedReferral;
+      },
+    );
 
     this.logger.log(
       `Created referral id=${saved.id} for partner id=${dto.partnerId}, client id=${dto.clientId}`,
     );
 
     if (origin) {
-      this.logger.debug(
-        `Updated client id=${client.id} originId=${origin.id}`,
-      );
+      this.logger.debug(`Updated client id=${client.id} originId=${origin.id}`);
     }
 
     return saved;

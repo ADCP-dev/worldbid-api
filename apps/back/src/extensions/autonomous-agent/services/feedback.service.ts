@@ -120,25 +120,20 @@ export class FeedbackService {
         roll.totalViews += views;
         roll.totalEngagement += engagement;
         roll.snapshotCount += 1;
-        if (
-          !roll.latestSnapshot ||
-          row.snapshotDate > roll.latestSnapshot
-        ) {
+        if (!roll.latestSnapshot || row.snapshotDate > roll.latestSnapshot) {
           roll.latestSnapshot = row.snapshotDate;
         }
         byPlatform.set(key, roll);
       }
 
       const metricsByPlatform = [...byPlatform.values()].sort(
-        (a, b) => b.totalViews + b.totalEngagement - (a.totalViews + a.totalEngagement),
+        (a, b) =>
+          b.totalViews + b.totalEngagement - (a.totalViews + a.totalEngagement),
       );
 
       // Derive boosted keywords from top platforms and demoted ones from bottom.
       const medianIdx = Math.floor(metricsByPlatform.length / 2);
-      const topPerformers = metricsByPlatform.slice(
-        0,
-        Math.max(1, medianIdx),
-      );
+      const topPerformers = metricsByPlatform.slice(0, Math.max(1, medianIdx));
       const bottomPerformers = metricsByPlatform.slice(medianIdx + 1);
 
       const boostedKeywords = topPerformers.map((m) => `topic:${m.platform}`);

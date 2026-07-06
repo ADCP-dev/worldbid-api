@@ -55,7 +55,10 @@ export class MonthlyAnalyticsController {
     @Param('month') month: string,
     @Query('limit') limit?: string,
   ) {
-    return this.monthlyService.getTopPostsByMonth(month, limit ? Number(limit) : 20);
+    return this.monthlyService.getTopPostsByMonth(
+      month,
+      limit ? Number(limit) : 20,
+    );
   }
 
   /**

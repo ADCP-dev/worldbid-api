@@ -11,8 +11,11 @@ export class ScheduleService {
     return this.client.getScheduledPosts();
   }
 
-  async update(jobId: string, updates: { scheduledDate?: string; title?: string; caption?: string }) {
-    const payload: Record<string, any> = {};
+  async update(
+    jobId: string,
+    updates: { scheduledDate?: string; title?: string; caption?: string },
+  ) {
+    const payload: Record<string, string> = {};
     if (updates.scheduledDate) payload.scheduled_date = updates.scheduledDate;
     if (updates.title) payload.title = updates.title;
     if (updates.caption) payload.caption = updates.caption;

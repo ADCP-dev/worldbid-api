@@ -19,10 +19,10 @@ export class UpPostEntity {
   id: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  jobId: string;
+  jobId: string | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  requestId: string;
+  requestId: string | null;
 
   @Column({ type: 'varchar', length: 50 })
   mediaType: 'video' | 'photo' | 'text';
@@ -50,16 +50,19 @@ export class UpPostEntity {
   status: 'pending' | 'processing' | 'success' | 'error' | 'scheduled';
 
   @Column({ type: 'jsonb', nullable: true })
-  results: Record<string, { success: boolean; url?: string; error?: string; publishId?: string }>;
+  results: Record<
+    string,
+    { success: boolean; url?: string; error?: string; publishId?: string }
+  > | null;
 
   @Column({ type: 'timestamptz', nullable: true })
-  scheduledAt: Date;
+  scheduledAt: Date | null;
 
   @Column({ type: 'timestamptz', nullable: true })
-  publishedAt: Date;
+  publishedAt: Date | null;
 
   @Column({ type: 'text', nullable: true })
-  errorMessage: string;
+  errorMessage: string | null;
 
   @CreateDateColumn()
   createdAt: Date;

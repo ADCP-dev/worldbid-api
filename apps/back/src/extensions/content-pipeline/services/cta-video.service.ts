@@ -71,7 +71,9 @@ export class CtaVideoService {
         description: dto.description ?? null,
       });
       const saved = await manager.save(entity);
-      this.logger.log(`Created CTA video "${saved.name}" (id=${saved.id}, active=${saved.isActive})`);
+      this.logger.log(
+        `Created CTA video "${saved.name}" (id=${saved.id}, active=${saved.isActive})`,
+      );
       return saved;
     });
   }

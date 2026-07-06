@@ -23,10 +23,14 @@ export class AffiliateCommissionEntity extends EntityRelationalHelper {
   @Column({ type: 'int' })
   referralId: number;
 
-  @ManyToOne(() => AffiliateReferralEntity, (referral) => referral.commissions, {
-    eager: false,
-    onDelete: 'CASCADE',
-  })
+  @ManyToOne(
+    () => AffiliateReferralEntity,
+    (referral) => referral.commissions,
+    {
+      eager: false,
+      onDelete: 'CASCADE',
+    },
+  )
   @JoinColumn({ name: 'referralId' })
   referral: AffiliateReferralEntity;
 

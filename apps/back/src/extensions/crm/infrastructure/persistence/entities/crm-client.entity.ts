@@ -63,7 +63,11 @@ export class CrmClientEntity extends EntityRelationalHelper {
   @Column({ type: 'int', nullable: true })
   originId: number | null;
 
-  @ManyToOne(() => CrmOriginEntity, { eager: false, nullable: true, onDelete: 'SET NULL' })
+  @ManyToOne(() => CrmOriginEntity, {
+    eager: false,
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
   @JoinColumn({ name: 'originId' })
   origin: CrmOriginEntity | null;
 

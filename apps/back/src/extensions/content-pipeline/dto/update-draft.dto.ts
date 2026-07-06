@@ -1,4 +1,4 @@
-import { PartialType, OmitType } from '@nestjs/mapped-types';
+import { PartialType, OmitType } from '@nestjs/swagger';
 import { IsOptional, IsString, IsObject, IsArray } from 'class-validator';
 import { CreateDraftDto } from './create-draft.dto';
 

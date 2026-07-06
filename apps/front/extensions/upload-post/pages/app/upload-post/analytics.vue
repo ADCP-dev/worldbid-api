@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { toast } from 'vue-sonner';
 import { format } from 'date-fns';
+import type { UploadPostAnalytics, WeeklyReport } from '@/extensions/upload-post/composables/useUploadPost';
 
 definePageMeta({
   layout: 'default',
@@ -11,8 +12,8 @@ definePageMeta({
 const { getAnalytics, getWeeklyReport, sendWeeklyReport } = useUploadPost();
 
 const loading = ref(false);
-const analytics = ref<Record<string, any>>({});
-const report = ref<any>(null);
+const analytics = ref<UploadPostAnalytics>({});
+const report = ref<WeeklyReport | null>(null);
 const reportLoading = ref(false);
 
 const PLATFORM_LABELS: Record<string, string> = {

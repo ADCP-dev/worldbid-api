@@ -29,7 +29,10 @@ import { CarouselGeneratorService } from '@ext/content-pipeline/services/carouse
 import { VideoTemplateService } from '@ext/content-pipeline/services/video-template.service';
 import { CtaVideoService } from '@ext/content-pipeline/services/cta-video.service';
 import { MetricsService } from '@ext/content-pipeline/services/metrics.service';
-import { VideoJobProcessor, CONTENT_PIPELINE_VIDEO_QUEUE } from '@ext/content-pipeline/services/video-job.processor';
+import {
+  VideoJobProcessor,
+  CONTENT_PIPELINE_VIDEO_QUEUE,
+} from '@ext/content-pipeline/services/video-job.processor';
 import { VideoQueueService } from '@ext/content-pipeline/services/video-queue.service';
 
 import { ProjectController } from '@ext/content-pipeline/controllers/project.controller';

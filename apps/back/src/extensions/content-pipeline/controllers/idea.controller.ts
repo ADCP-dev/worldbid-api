@@ -50,10 +50,7 @@ export class IdeaController {
 
   @Post('projects/:projectId/ideas')
   @HttpCode(HttpStatus.CREATED)
-  create(
-    @Param('projectId') projectId: string,
-    @Body() dto: CreateIdeaDto,
-  ) {
+  create(@Param('projectId') projectId: string, @Body() dto: CreateIdeaDto) {
     return this.ideaService.create(projectId, dto);
   }
 
@@ -81,10 +78,7 @@ export class IdeaController {
 
   @Patch('ideas/:id/status')
   @HttpCode(HttpStatus.OK)
-  updateStatus(
-    @Param('id') id: string,
-    @Body() dto: UpdateIdeaStatusDto,
-  ) {
+  updateStatus(@Param('id') id: string, @Body() dto: UpdateIdeaStatusDto) {
     return this.ideaService.updateStatus(id, dto.status, dto.order);
   }
 

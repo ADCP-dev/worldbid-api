@@ -12,7 +12,11 @@ export interface MetricsListResult {
 
 export interface DashboardSummary {
   totalSnapshots: number;
-  byPlatform: Array<{ platform: string; snapshots: number; totalViews: number }>;
+  byPlatform: Array<{
+    platform: string;
+    snapshots: number;
+    totalViews: number;
+  }>;
   totals: {
     views: number;
     clicks: number;
@@ -64,7 +68,8 @@ export class MetricsService {
     metrics: Record<string, unknown>;
     snapshotDate?: string;
   }): Promise<ContentPipelineMetricsEntity> {
-    const snapshotDate = data.snapshotDate ?? new Date().toISOString().slice(0, 10);
+    const snapshotDate =
+      data.snapshotDate ?? new Date().toISOString().slice(0, 10);
     const entity = this.repo.create({
       projectId: data.projectId,
       draftId: data.draftId ?? null,
@@ -100,8 +105,10 @@ export class MetricsService {
 
     for (const row of all) {
       const m = (row.metrics ?? {}) as Record<string, number>;
-      const platformEntry =
-        byPlatformMap.get(row.platform) ?? { snapshots: 0, totalViews: 0 };
+      const platformEntry = byPlatformMap.get(row.platform) ?? {
+        snapshots: 0,
+        totalViews: 0,
+      };
       platformEntry.snapshots += 1;
       platformEntry.totalViews += Number(m.views ?? 0);
       byPlatformMap.set(row.platform, platformEntry);
@@ -140,7 +147,9 @@ export class MetricsService {
       .execute();
 
     const removed = result.affected ?? 0;
-    this.logger.log(`Cleanup: removed ${removed} metrics snapshots older than ${RETENTION_DAYS} days`);
+    this.logger.log(
+      `Cleanup: removed ${removed} metrics snapshots older than ${RETENTION_DAYS} days`,
+    );
     return removed;
   }
 }

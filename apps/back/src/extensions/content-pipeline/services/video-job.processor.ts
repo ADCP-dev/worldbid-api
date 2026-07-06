@@ -2,10 +2,11 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import type { Job } from 'bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { DraftService } from '@ext/content-pipeline/services/draft.service';
-import {
-  VideoTemplateService,
+import { VideoTemplateService } from '@ext/content-pipeline/services/video-template.service';
+import type {
+  TemplateType,
+  TemplateFillData,
 } from '@ext/content-pipeline/services/video-template.service';
-import type { TemplateType, TemplateFillData } from '@ext/content-pipeline/services/video-template.service';
 
 export const CONTENT_PIPELINE_VIDEO_QUEUE = 'content-pipeline-video';
 
@@ -26,7 +27,10 @@ export interface VideoJobData {
   draftId?: string;
   templateType?: string;
   options?: VideoJobOptions;
-  slots?: Record<number, { imageUrl?: string; slide?: Record<string, unknown> }>;
+  slots?: Record<
+    number,
+    { imageUrl?: string; slide?: Record<string, unknown> }
+  >;
 }
 
 export interface VideoJobResult {
@@ -65,9 +69,7 @@ export class VideoJobProcessor extends WorkerHost {
   async process(
     job: Job<VideoJobData, VideoJobResult>,
   ): Promise<VideoJobResult> {
-    this.logger.log(
-      `Processing video job ${job.id}: type=${job.data.type}`,
-    );
+    this.logger.log(`Processing video job ${job.id}: type=${job.data.type}`);
 
     try {
       switch (job.data.type) {
@@ -119,13 +121,10 @@ export class VideoJobProcessor extends WorkerHost {
     if (!data.draftId) {
       throw new Error('draftId required for generate-carousel-video');
     }
-    const draft = await this.draftService.generateCarouselVideo(
-      data.draftId,
-      {
-        format: data.options?.format,
-        transitions: data.options?.transitions,
-      },
-    );
+    const draft = await this.draftService.generateCarouselVideo(data.draftId, {
+      format: data.options?.format,
+      transitions: data.options?.transitions,
+    });
     const videos = Array.isArray(draft.videos) ? draft.videos : [];
     const carousels = Array.isArray(draft.carousels) ? draft.carousels : [];
     const lastVideo = videos[videos.length - 1] as
@@ -159,10 +158,10 @@ export class VideoJobProcessor extends WorkerHost {
     if (!this.videoTemplateService.isValidTemplateType(data.templateType)) {
       throw new Error(`Unknown template type: ${data.templateType}`);
     }
-    const templateType = (data.templateType as unknown) as TemplateType;
+    const templateType = data.templateType as unknown as TemplateType;
 
     const fillData: TemplateFillData = {
-      slots: data.slots ?? {},
+      slots: (data.slots ?? {}) as unknown as TemplateFillData['slots'],
       transitions: data.options?.transitions,
       slideDurationSec: data.options?.slideDurationSec,
       ctaVideoUrl: data.options?.ctaVideoUrl,

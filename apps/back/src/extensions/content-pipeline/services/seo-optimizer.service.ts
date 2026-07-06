@@ -27,16 +27,27 @@ export class SeoOptimizerService {
     const { blogContent, idea, project } = params;
 
     const focusKeyword =
-      idea.keywords[0] ?? project.keywords[0] ?? this.firstSignificantWord(idea.title);
+      idea.keywords[0] ??
+      project.keywords[0] ??
+      this.firstSignificantWord(idea.title);
 
-    const metaTitle = this.buildMetaTitle(idea.title, project.name, focusKeyword);
+    const metaTitle = this.buildMetaTitle(
+      idea.title,
+      project.name,
+      focusKeyword,
+    );
     const metaDescription = this.buildMetaDescription(
       blogContent,
       idea.angle,
       focusKeyword,
     );
     const slug = this.slugify(idea.title);
-    const jsonLd = this.buildJsonLd(idea.contentType, idea.title, project, slug);
+    const jsonLd = this.buildJsonLd(
+      idea.contentType,
+      idea.title,
+      project,
+      slug,
+    );
 
     this.logger.debug(
       `SEO optimized for "${idea.title}": slug=${slug}, title=${metaTitle.length}c, desc=${metaDescription.length}c`,
@@ -51,7 +62,11 @@ export class SeoOptimizerService {
     };
   }
 
-  private buildMetaTitle(title: string, projectName: string, keyword: string): string {
+  private buildMetaTitle(
+    title: string,
+    projectName: string,
+    keyword: string,
+  ): string {
     // Try to fit title + brand, prioritize keyword presence
     const brand = ` | ${projectName}`;
     const max = 60;
@@ -176,13 +191,27 @@ export class SeoOptimizerService {
 
   private firstSignificantWord(title: string): string {
     const stop = new Set([
-      'the','a','an','el','la','los','las','de','del','how','to','best','guide',
+      'the',
+      'a',
+      'an',
+      'el',
+      'la',
+      'los',
+      'las',
+      'de',
+      'del',
+      'how',
+      'to',
+      'best',
+      'guide',
     ]);
     return (
       title
         .split(/\s+/)
         .map((w) => w.toLowerCase().replace(/[^a-záéíóúñ]/g, ''))
-        .find((w) => w.length > 3 && !stop.has(w)) ?? title.split(/\s+/)[0] ?? ''
+        .find((w) => w.length > 3 && !stop.has(w)) ??
+      title.split(/\s+/)[0] ??
+      ''
     );
   }
 }

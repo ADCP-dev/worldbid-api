@@ -40,10 +40,7 @@ export class CrmContactController {
   }
 
   @Patch(':id')
-  update(
-    @Param('id') id: number,
-    @Body() dto: UpdateContactDto,
-  ) {
+  update(@Param('id') id: number, @Body() dto: UpdateContactDto) {
     return this.contactService.update(Number(id), dto);
   }
 

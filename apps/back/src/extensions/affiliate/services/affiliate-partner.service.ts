@@ -30,11 +30,13 @@ export class AffiliatePartnerService {
     private readonly mailerService: QueuedMailerService,
   ) {}
 
-  async findAll(params: {
-    page?: number;
-    limit?: number;
-    search?: string;
-  } = {}): Promise<{
+  async findAll(
+    params: {
+      page?: number;
+      limit?: number;
+      search?: string;
+    } = {},
+  ): Promise<{
     data: AffiliatePartnerEntity[];
     total: number;
     page: number;

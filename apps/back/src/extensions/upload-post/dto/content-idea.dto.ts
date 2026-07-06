@@ -11,7 +11,11 @@ export class CreateContentIdeaDto {
   @IsString()
   description?: string;
 
-  @ApiProperty({ required: false, enum: ['idea', 'drafting', 'ready', 'scheduled', 'published'], default: 'idea' })
+  @ApiProperty({
+    required: false,
+    enum: ['idea', 'drafting', 'ready', 'scheduled', 'published'],
+    default: 'idea',
+  })
   @IsOptional()
   @IsEnum(['idea', 'drafting', 'ready', 'scheduled', 'published'])
   status?: string;
@@ -47,6 +51,11 @@ export class CreateContentIdeaDto {
   @IsOptional()
   @IsString()
   scheduledAt?: string;
+
+  @ApiProperty({ required: false, description: 'Manual ordering index' })
+  @IsOptional()
+  @IsInt()
+  order?: number;
 }
 
 export class UpdateContentIdeaDto {
@@ -60,7 +69,10 @@ export class UpdateContentIdeaDto {
   @IsString()
   description?: string;
 
-  @ApiProperty({ required: false, enum: ['idea', 'drafting', 'ready', 'scheduled', 'published'] })
+  @ApiProperty({
+    required: false,
+    enum: ['idea', 'drafting', 'ready', 'scheduled', 'published'],
+  })
   @IsOptional()
   @IsEnum(['idea', 'drafting', 'ready', 'scheduled', 'published'])
   status?: string;

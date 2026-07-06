@@ -102,7 +102,10 @@ export class MonthlyAnalyticsService {
       const totalReach = snaps.reduce((sum, s) => sum + Number(s.reach), 0);
       const totalViews = snaps.reduce((sum, s) => sum + Number(s.views), 0);
       const totalLikes = snaps.reduce((sum, s) => sum + Number(s.likes), 0);
-      const totalComments = snaps.reduce((sum, s) => sum + Number(s.comments), 0);
+      const totalComments = snaps.reduce(
+        (sum, s) => sum + Number(s.comments),
+        0,
+      );
       const totalShares = snaps.reduce((sum, s) => sum + Number(s.shares), 0);
       const totalSaves = snaps.reduce((sum, s) => sum + Number(s.saves), 0);
 
@@ -111,7 +114,11 @@ export class MonthlyAnalyticsService {
       for (const s of snaps) {
         const score = Number(s.reach) + Number(s.views);
         if (!bestDay || score > bestDay.reach + bestDay.views) {
-          bestDay = { date: s.snapshotDate, reach: Number(s.reach), views: Number(s.views) };
+          bestDay = {
+            date: s.snapshotDate,
+            reach: Number(s.reach),
+            views: Number(s.views),
+          };
         }
       }
 
@@ -133,13 +140,21 @@ export class MonthlyAnalyticsService {
       });
     }
 
-    platforms.sort((a, b) => b.totalReach + b.totalViews - (a.totalReach + a.totalViews));
+    platforms.sort(
+      (a, b) => b.totalReach + b.totalViews - (a.totalReach + a.totalViews),
+    );
 
     return {
       month,
       platforms,
-      totalImpressions: platforms.reduce((sum, p) => sum + p.totalReach + p.totalViews, 0),
-      totalFollowersGrowth: platforms.reduce((sum, p) => sum + p.followersDelta, 0),
+      totalImpressions: platforms.reduce(
+        (sum, p) => sum + p.totalReach + p.totalViews,
+        0,
+      ),
+      totalFollowersGrowth: platforms.reduce(
+        (sum, p) => sum + p.followersDelta,
+        0,
+      ),
     };
   }
 
@@ -160,14 +175,18 @@ export class MonthlyAnalyticsService {
       results.push({
         month: monthStr,
         totalImpressions: summary.totalImpressions,
-        totalFollowers: summary.platforms.reduce((sum, p) => sum + p.followersEnd, 0),
+        totalFollowers: summary.platforms.reduce(
+          (sum, p) => sum + p.followersEnd,
+          0,
+        ),
         followersGrowth: summary.totalFollowersGrowth,
         platforms: summary.platforms.map((p) => ({
           platform: p.platform,
           followers: p.followersEnd,
           reach: p.totalReach,
           views: p.totalViews,
-          engagement: p.totalLikes + p.totalComments + p.totalShares + p.totalSaves,
+          engagement:
+            p.totalLikes + p.totalComments + p.totalShares + p.totalSaves,
         })),
       });
     }
@@ -179,13 +198,18 @@ export class MonthlyAnalyticsService {
    * Get top performing posts from the local DB.
    * Sorted by views/likes/engagement if available in results JSON.
    */
-  async getTopPosts(limit = 20, profileUsername?: string): Promise<UpPostEntity[]> {
+  async getTopPosts(
+    limit = 20,
+    profileUsername?: string,
+  ): Promise<UpPostEntity[]> {
     const qb = this.postRepo
       .createQueryBuilder('p')
       .where('p.status = :status', { status: 'success' });
 
     if (profileUsername) {
-      qb.andWhere('p.profileUsername = :username', { username: profileUsername });
+      qb.andWhere('p.profileUsername = :username', {
+        username: profileUsername,
+      });
     }
 
     const posts = await qb
@@ -230,7 +254,9 @@ export class MonthlyAnalyticsService {
       .andWhere('p.publishedAt < :nextStart', { nextStart: nextMonthStart });
 
     if (profileUsername) {
-      qb.andWhere('p.profileUsername = :username', { username: profileUsername });
+      qb.andWhere('p.profileUsername = :username', {
+        username: profileUsername,
+      });
     }
 
     return qb.orderBy('p.publishedAt', 'DESC').take(limit).getMany();
@@ -256,11 +282,14 @@ export class MonthlyAnalyticsService {
 
     // Priority: extension-specific config → global NOTIFICATION_EMAIL
     const email =
-      this.configService.get('upload-post', { infer: true })?.weeklyReportEmail ||
+      this.configService.get('upload-post', { infer: true })
+        ?.weeklyReportEmail ||
       this.configService.get('app', { infer: true })?.notificationEmail;
 
     if (!email) {
-      this.logger.warn('No weeklyReportEmail/notificationEmail configured — skipping monthly report');
+      this.logger.warn(
+        'No weeklyReportEmail/notificationEmail configured — skipping monthly report',
+      );
       this.logger.log(body);
       return;
     }
@@ -282,8 +311,12 @@ export class MonthlyAnalyticsService {
     lines.push(`📊 Informe Mensual Social — ${month}`);
     lines.push(`Período: ${month}`);
     lines.push('');
-    lines.push(`Impresiones totales: ${summary.totalImpressions.toLocaleString()}`);
-    lines.push(`Crecimiento de seguidores: ${summary.totalFollowersGrowth.toLocaleString()}`);
+    lines.push(
+      `Impresiones totales: ${summary.totalImpressions.toLocaleString()}`,
+    );
+    lines.push(
+      `Crecimiento de seguidores: ${summary.totalFollowersGrowth.toLocaleString()}`,
+    );
     lines.push('');
     lines.push('Por plataforma:');
     lines.push('─'.repeat(60));
@@ -293,9 +326,15 @@ export class MonthlyAnalyticsService {
       lines.push(
         `  Followers: ${p.followersStart.toLocaleString()} → ${p.followersEnd.toLocaleString()} (${p.followersDelta >= 0 ? '+' : ''}${p.followersDelta})`,
       );
-      lines.push(`  Reach: ${p.totalReach.toLocaleString()} | Views: ${p.totalViews.toLocaleString()}`);
-      lines.push(`  Likes: ${p.totalLikes.toLocaleString()} | Comments: ${p.totalComments.toLocaleString()}`);
-      lines.push(`  Shares: ${p.totalShares.toLocaleString()} | Saves: ${p.totalSaves.toLocaleString()}`);
+      lines.push(
+        `  Reach: ${p.totalReach.toLocaleString()} | Views: ${p.totalViews.toLocaleString()}`,
+      );
+      lines.push(
+        `  Likes: ${p.totalLikes.toLocaleString()} | Comments: ${p.totalComments.toLocaleString()}`,
+      );
+      lines.push(
+        `  Shares: ${p.totalShares.toLocaleString()} | Saves: ${p.totalSaves.toLocaleString()}`,
+      );
       lines.push(
         `  Best day: ${p.bestDay ? p.bestDay.date + ' (reach ' + p.bestDay.reach.toLocaleString() + ', views ' + p.bestDay.views.toLocaleString() + ')' : '—'}`,
       );
@@ -306,7 +345,7 @@ export class MonthlyAnalyticsService {
     lines.push('─'.repeat(60));
     for (const post of topPosts) {
       lines.push(
-        `• ${post.title ?? '(sin título)'} — ${post.platform ?? '?'} — ${post.publishedAt ?? '?'}`,
+        `• ${post.title ?? '(sin título)'} — ${post.platforms?.[0] ?? '?'} — ${post.publishedAt ?? '?'}`,
       );
     }
 
@@ -324,8 +363,10 @@ export class MonthlyAnalyticsService {
     const month = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`;
     try {
       await this.sendMonthlyReport(month);
-    } catch (err) {
-      this.logger.error(`scheduledMonthlyReport failed: ${err?.message ?? err}`);
+    } catch (err: unknown) {
+      this.logger.error(
+        `scheduledMonthlyReport failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 }

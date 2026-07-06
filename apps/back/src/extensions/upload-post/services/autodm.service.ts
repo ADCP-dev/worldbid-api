@@ -59,7 +59,9 @@ export class AutodmService {
     // Sync local DB
     if (result.monitors) {
       for (const m of result.monitors) {
-        const local = await this.monitorRepo.findOne({ where: { monitorId: m.monitor_id } });
+        const local = await this.monitorRepo.findOne({
+          where: { monitorId: m.monitor_id },
+        });
         if (local) {
           local.status = m.status;
           local.dmsSent = m.dms_sent ?? local.dmsSent;
@@ -103,7 +105,10 @@ export class AutodmService {
     return this.monitorRepo.find({ order: { createdAt: 'DESC' } });
   }
 
-  private async updateLocalStatus(monitorId: string, status: UpPostAutodmMonitorEntity['status']) {
+  private async updateLocalStatus(
+    monitorId: string,
+    status: UpPostAutodmMonitorEntity['status'],
+  ) {
     const local = await this.monitorRepo.findOne({ where: { monitorId } });
     if (local) {
       local.status = status;

@@ -126,7 +126,9 @@ This report was generated automatically.`;
         process.env.AFFILIATE_REPORT_EMAIL;
 
       if (!notificationEmail) {
-        this.logger.warn('No notification email configured — skipping monthly report');
+        this.logger.warn(
+          'No notification email configured — skipping monthly report',
+        );
         return;
       }
 
@@ -141,9 +143,7 @@ This report was generated automatically.`;
         `handleMonthlyReport: sent monthly report email — newReferrals=${newReferrals}, converted=${convertedReferralsThisMonth}, approved=${commissionsApproved}, paid=${commissionsPaid}`,
       );
     } catch (err) {
-      this.logger.error(
-        `handleMonthlyReport failed: ${err?.message ?? err}`,
-      );
+      this.logger.error(`handleMonthlyReport failed: ${err?.message ?? err}`);
     }
   }
 }

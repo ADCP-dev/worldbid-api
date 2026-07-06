@@ -25,9 +25,7 @@ import { UpdateCommissionDto } from '../dto/update-commission.dto';
 @Roles(RoleEnum.admin)
 @Controller({ path: 'affiliate/commissions', version: '1' })
 export class AffiliateCommissionController {
-  constructor(
-    private readonly commissionService: AffiliateCommissionService,
-  ) {}
+  constructor(private readonly commissionService: AffiliateCommissionService) {}
 
   @Get()
   @ApiQuery({ name: 'page', required: false, type: Number })

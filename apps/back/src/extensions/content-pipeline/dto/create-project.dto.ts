@@ -71,14 +71,16 @@ export class CreateProjectDto {
   affiliateConfig?: Record<string, unknown>;
 
   @ApiPropertyOptional({
-    description: 'Social config: { platforms, profileUsername, postingSchedule }',
+    description:
+      'Social config: { platforms, profileUsername, postingSchedule }',
   })
   @IsOptional()
   @IsObject()
   socialConfig?: Record<string, unknown>;
 
   @ApiPropertyOptional({
-    description: 'CMS config: { enabled, autoPublish, categoryId, authorUserId }',
+    description:
+      'CMS config: { enabled, autoPublish, categoryId, authorUserId }',
   })
   @IsOptional()
   @IsObject()
@@ -93,7 +95,10 @@ export class CreateProjectDto {
   @IsObject()
   autoPublish?: { blog: boolean; social: boolean };
 
-  @ApiPropertyOptional({ enum: ['active', 'paused', 'archived'], default: 'active' })
+  @ApiPropertyOptional({
+    enum: ['active', 'paused', 'archived'],
+    default: 'active',
+  })
   @IsOptional()
   @IsIn(['active', 'paused', 'archived'])
   status?: string;

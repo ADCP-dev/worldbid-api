@@ -219,10 +219,7 @@ body { width:${dims.width}px; height:${dims.height}px; background:var(--bg); fon
 .quote-author { font-size:${px(28)}px; color:var(--t3); margin-top:${px(32)}px; font-weight:600; }`;
   }
 
-  private buildSlideContent(
-    slide: CarouselSlide,
-    dims: Dimensions,
-  ): string {
+  private buildSlideContent(slide: CarouselSlide, dims: Dimensions): string {
     const s = dims.scale;
     const mono = slide.mono
       ? `<div class="mono">${this.escapeHtml(slide.mono)}</div>`

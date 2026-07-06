@@ -68,4 +68,12 @@ export class CreateIdeaDto {
   @Min(1)
   @Max(5)
   priority?: number;
+
+  @ApiPropertyOptional({
+    enum: ['idea', 'approved', 'rejected', 'drafting', 'published'],
+    default: 'idea',
+  })
+  @IsOptional()
+  @IsIn(['idea', 'approved', 'rejected', 'drafting', 'published'])
+  status?: string;
 }

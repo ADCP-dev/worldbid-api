@@ -33,9 +33,7 @@ export class AffiliatePortalService {
     private readonly statusRepository: Repository<CrmStatusEntity>,
   ) {}
 
-  async findPartnerByUserId(
-    userId: number,
-  ): Promise<AffiliatePartnerEntity> {
+  async findPartnerByUserId(userId: number): Promise<AffiliatePartnerEntity> {
     const partner = await this.partnerRepository.findOne({
       where: { userId },
     });
@@ -114,11 +112,18 @@ export class AffiliatePortalService {
     const partner = await this.findPartnerByUserId(userId);
 
     // Create or reuse an affiliate origin for this partner
-    const origin = await this.findOrCreateAffiliateOrigin(partner.id, partner.name);
+    const origin = await this.findOrCreateAffiliateOrigin(
+      partner.id,
+      partner.name,
+    );
 
     // Resolve default status using proper repository (not manager.findOne with string)
-    const defaultStatus = await this.statusRepository.findOne({ where: { isDefault: true } });
-    const leadStatus = await this.statusRepository.findOne({ where: { name: 'lead' } });
+    const defaultStatus = await this.statusRepository.findOne({
+      where: { isDefault: true },
+    });
+    const leadStatus = await this.statusRepository.findOne({
+      where: { name: 'lead' },
+    });
     const statusId = defaultStatus?.id ?? leadStatus?.id ?? 1;
 
     // Use transaction to avoid orphan client if referral creation fails
@@ -131,7 +136,11 @@ export class AffiliatePortalService {
         statusId,
         originId: origin.id,
         originDetail: `Affiliate referral from ${partner.name}`,
-        metadata: { source: 'affiliate_portal', partner_id: partner.id, notes: dto.notes ?? null },
+        metadata: {
+          source: 'affiliate_portal',
+          partner_id: partner.id,
+          notes: dto.notes ?? null,
+        },
         isActive: true,
       });
       const savedClient = await manager.save(client);

@@ -81,7 +81,11 @@ export class AffiliateDashboardService {
       .addGroupBy('p.name')
       .orderBy('totalRevenue', 'DESC')
       .limit(5)
-      .getRawMany<{ partnerId: number; partnerName: string; totalRevenue: string }>();
+      .getRawMany<{
+        partnerId: number;
+        partnerName: string;
+        totalRevenue: string;
+      }>();
 
     const topPartners = topRows.map((row) => ({
       partnerId: row.partnerId,

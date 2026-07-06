@@ -7,6 +7,13 @@ import FormInput from '@/modules/base/ui-app/components/form/FormInput.vue';
 import FormTextArea from '@/modules/base/ui-app/components/form/FormTextArea.vue';
 import type { CalendarEvent } from '@/modules/base/ui-app/components/calendar/types';
 
+type EventMeta = { type?: string; jobId?: string; requestId?: string; status?: string };
+
+function metaOf(event: CalendarEvent | null | undefined): EventMeta | undefined {
+  const m = event?.metadata;
+  return m && typeof m === 'object' ? (m as EventMeta) : undefined;
+}
+
 definePageMeta({
   layout: 'default',
   middleware: ['auth', 'admin'],
@@ -147,7 +154,7 @@ function handleEventCreate(payload: { start: Date; end: Date; allDay: boolean })
 }
 
 async function handleEventDrop({ event, newStart }: { event: CalendarEvent; newStart: Date }) {
-  const meta = event.metadata as any;
+  const meta = metaOf(event);
   if (meta?.type === 'scheduled' && meta?.jobId) {
     try {
       await updateScheduled(meta.jobId, {
@@ -217,7 +224,7 @@ async function handleCreateSubmit() {
 }
 
 async function handleCancelScheduled() {
-  const meta = selectedEvent.value?.metadata as any;
+  const meta = metaOf(selectedEvent.value);
   if (meta?.jobId) {
     try {
       await cancelScheduled(meta.jobId);
@@ -282,7 +289,7 @@ function formatEventDateRange(event: CalendarEvent): string {
               :key="type"
               class="btn btn-sm join-item"
               :class="{ 'btn-primary': createForm.mediaType === type }"
-              @click="createForm.mediaType = type as any"
+              @click="createForm.mediaType = type"
             >
               {{ type }}
             </button>
@@ -403,7 +410,7 @@ function formatEventDateRange(event: CalendarEvent): string {
       <div class="modal-action">
         <button class="btn" @click="isDetailModalOpen = false">Cerrar</button>
         <button
-          v-if="(selectedEvent?.metadata as any)?.type === 'scheduled'"
+          v-if="metaOf(selectedEvent)?.type === 'scheduled'"
           class="btn btn-error btn-outline"
           @click="handleCancelScheduled"
         >

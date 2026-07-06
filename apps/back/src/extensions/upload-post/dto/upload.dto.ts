@@ -79,7 +79,11 @@ export class UploadPhotosDto {
   @IsString({ each: true })
   platforms: string[];
 
-  @ApiProperty({ required: false, type: [String], description: 'Array of photo URLs' })
+  @ApiProperty({
+    required: false,
+    type: [String],
+    description: 'Array of photo URLs',
+  })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })

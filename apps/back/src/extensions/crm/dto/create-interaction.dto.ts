@@ -33,7 +33,10 @@ export class CreateInteractionDto {
   @IsString()
   subject?: string;
 
-  @ApiPropertyOptional({ example: 'Discussed needs and timeline.', type: String })
+  @ApiPropertyOptional({
+    example: 'Discussed needs and timeline.',
+    type: String,
+  })
   @IsOptional()
   @IsString()
   body?: string;

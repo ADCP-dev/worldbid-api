@@ -55,7 +55,8 @@ export class AffiliateInjectorService {
    * available. Mirrors the pattern used by PublishingService.
    */
   private getAffiliateService(): AffiliatePartnerService | null {
-    if (this.affiliateService !== undefined) return this.affiliateService ?? null;
+    if (this.affiliateService !== undefined)
+      return this.affiliateService ?? null;
     try {
       this.affiliateService = this.moduleRef.get(AffiliatePartnerService, {
         strict: false,
@@ -81,7 +82,9 @@ export class AffiliateInjectorService {
 
     const cfg = (project.affiliateConfig ?? {}) as AffiliateConfig;
     if (!cfg.enabled) {
-      this.logger.debug(`Project "${project.name}" has affiliate disabled — skipping`);
+      this.logger.debug(
+        `Project "${project.name}" has affiliate disabled — skipping`,
+      );
       return { blogContent, affiliateLinks: [], disclosureAdded: false };
     }
 
@@ -145,12 +148,18 @@ export class AffiliateInjectorService {
     projectKeywords: string[],
   ): Array<{ anchorText: string; productId: string }> {
     // Use project keywords + capitalized phrases as candidate product mentions.
-    const mentions = new Map<string, { anchorText: string; productId: string }>();
+    const mentions = new Map<
+      string,
+      { anchorText: string; productId: string }
+    >();
 
     for (const kw of projectKeywords) {
       const re = new RegExp(`\\b${this.escapeRegex(kw)}\\b`, 'gi');
       if (re.test(content)) {
-        mentions.set(kw.toLowerCase(), { anchorText: kw, productId: this.slugify(kw) });
+        mentions.set(kw.toLowerCase(), {
+          anchorText: kw,
+          productId: this.slugify(kw),
+        });
       }
     }
 

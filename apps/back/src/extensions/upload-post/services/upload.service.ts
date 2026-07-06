@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, type DeepPartial } from 'typeorm';
 import { UploadPostClientService } from '@ext/upload-post/services/upload-post-client.service';
 import { UpPostEntity } from '@ext/upload-post/infrastructure/persistence/entities/up-post.entity';
 
@@ -42,8 +42,10 @@ export class UploadService {
       profileUsername: user,
       mediaUrl: params.videoUrl,
       status: params.scheduledDate ? 'scheduled' : 'pending',
-      scheduledAt: params.scheduledDate ? new Date(params.scheduledDate) : null,
-    });
+      scheduledAt: params.scheduledDate
+        ? new Date(params.scheduledDate)
+        : undefined,
+    } as DeepPartial<UpPostEntity>);
     const saved = await this.postRepo.save(entity);
 
     try {
@@ -99,8 +101,10 @@ export class UploadService {
       platforms: params.platforms,
       profileUsername: user,
       status: params.scheduledDate ? 'scheduled' : 'pending',
-      scheduledAt: params.scheduledDate ? new Date(params.scheduledDate) : null,
-    });
+      scheduledAt: params.scheduledDate
+        ? new Date(params.scheduledDate)
+        : undefined,
+    } as DeepPartial<UpPostEntity>);
     const saved = await this.postRepo.save(entity);
 
     try {
@@ -141,8 +145,9 @@ export class UploadService {
     const result = await this.client.getUploadStatus(identifier);
 
     // Sync local DB if we have a matching record
-    const conditions: Record<string, any>[] = [];
-    if (identifier.requestId) conditions.push({ requestId: identifier.requestId });
+    const conditions: Array<Record<string, string>> = [];
+    if (identifier.requestId)
+      conditions.push({ requestId: identifier.requestId });
     if (identifier.jobId) conditions.push({ jobId: identifier.jobId });
 
     if (conditions.length > 0) {
@@ -156,7 +161,7 @@ export class UploadService {
           local.results = result.results ?? null;
         } else if (result.status === 'error' || result.error) {
           local.status = 'error';
-          local.errorMessage = result.error ?? result.message;
+          local.errorMessage = result.error ?? result.message ?? null;
         }
         await this.postRepo.save(local);
       }
