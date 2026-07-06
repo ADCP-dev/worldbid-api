@@ -57,6 +57,14 @@ export class ContentPipelineDraftEntity extends EntityRelationalHelper {
   @Column({ type: 'jsonb', default: [] })
   images: Record<string, unknown>[];
 
+  /** Generated videos: [{ path, platform, format, width, height, durationSec, sizeBytes, createdAt }] */
+  @Column({ type: 'jsonb', default: [] })
+  videos: Record<string, unknown>[];
+
+  /** Generated carousels: [{ htmlPath, postText, format, slidesCount, createdAt }] */
+  @Column({ type: 'jsonb', default: [] })
+  carousels: Record<string, unknown>[];
+
   /** Affiliate links injected: [{ url, anchorText, productId, program, asin }] */
   @Column({ type: 'jsonb', default: [] })
   affiliateLinks: Record<string, unknown>[];

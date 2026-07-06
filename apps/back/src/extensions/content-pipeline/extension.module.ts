@@ -22,6 +22,9 @@ import { ImageGeneratorService } from '@ext/content-pipeline/services/image-gene
 import { SeoOptimizerService } from '@ext/content-pipeline/services/seo-optimizer.service';
 import { AffiliateInjectorService } from '@ext/content-pipeline/services/affiliate-injector.service';
 import { PublishingService } from '@ext/content-pipeline/services/publishing.service';
+import { VideoGeneratorService } from '@ext/content-pipeline/services/video-generator.service';
+import { HtmlRendererService } from '@ext/content-pipeline/services/html-renderer.service';
+import { CarouselGeneratorService } from '@ext/content-pipeline/services/carousel-generator.service';
 import { MetricsService } from '@ext/content-pipeline/services/metrics.service';
 
 import { ProjectController } from '@ext/content-pipeline/controllers/project.controller';
@@ -57,6 +60,9 @@ import { MetricsController } from '@ext/content-pipeline/controllers/metrics.con
     SeoOptimizerService,
     AffiliateInjectorService,
     PublishingService,
+    VideoGeneratorService,
+    HtmlRendererService,
+    CarouselGeneratorService,
     MetricsService,
   ],
   exports: [
@@ -70,6 +76,9 @@ import { MetricsController } from '@ext/content-pipeline/controllers/metrics.con
     SeoOptimizerService,
     AffiliateInjectorService,
     PublishingService,
+    VideoGeneratorService,
+    HtmlRendererService,
+    CarouselGeneratorService,
     MetricsService,
   ],
 })

@@ -1,0 +1,418 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import type { AllConfigType } from '@src/config/config.type';
+import type { ContentPipelineConfig } from '@ext/content-pipeline/config/content-pipeline-config.type';
+
+const execFileAsync = promisify(execFile);
+
+export interface VideoSlide {
+  imageUrl: string;
+  text: string;
+}
+
+export interface GenerateVideoParams {
+  slides: VideoSlide[];
+  outputDir?: string;
+  slideDurationSec?: number;
+  /** xfade transitions between slides, e.g. ['fade','slideleft','circleopen']. Defaults to ['fade'] for all. */
+  transitions?: string[];
+  /** Whether to burn subtitles. Default true. */
+  enableSubtitles?: boolean;
+  /** Text per slide for subtitles (if different from slide.text). */
+  textOverlay?: string[];
+}
+
+export interface GeneratedVideo {
+  videoPath: string;
+  durationSec: number;
+  sizeBytes: number;
+}
+
+/** Default path to the static FFmpeg binary on the Foundation host. */
+const DEFAULT_FFMPEG_PATH = '/home/hermeswebui/.local/bin/ffmpeg';
+/** Default path to the bold DejaVu Sans TTF used for subtitle overlays. */
+const DEFAULT_FONT_PATH =
+  '/home/hermeswebui/.local/share/fonts/DejaVuSans-Bold.ttf';
+const DEFAULT_SLIDE_DURATION_SEC = 3;
+const DEFAULT_TRANSITION_DURATION = 0.4;
+const DEFAULT_TRANSITION = 'fade';
+const GLOBAL_FADE_DURATION = 0.5;
+const TIMEOUT_MS = 120_000;
+const VIDEO_WIDTH = 1080;
+const VIDEO_HEIGHT = 1920;
+const FPS = 25;
+const FONT_NAME = 'DejaVu Sans Bold';
+const FONT_SIZE = 72;
+
+/**
+ * Generates a 9:16 (1080x1920) MP4 video from slide images + text overlays
+ * using FFmpeg. Downloads each image, creates an ASS subtitle file, builds
+ * a filtergraph (scale → crop → fade → concat → subtitles), and runs FFmpeg.
+ *
+ * Designed for short-form video platforms (Reels, Shorts, TikTok).
+ */
+@Injectable()
+export class VideoGeneratorService {
+  private readonly logger = new Logger(VideoGeneratorService.name);
+  private readonly cfg: ContentPipelineConfig | null;
+  private readonly ffmpegPath: string;
+  private readonly fontPath: string;
+
+  constructor(
+    private readonly configService: ConfigService<AllConfigType>,
+  ) {
+    this.cfg = this.configService.get('content-pipeline', { infer: true }) ?? null;
+    this.ffmpegPath = this.cfg?.ffmpegPath ?? DEFAULT_FFMPEG_PATH;
+    this.fontPath = this.cfg?.fontPath ?? DEFAULT_FONT_PATH;
+  }
+
+  get isConfigured(): boolean {
+    return !!this.ffmpegPath;
+  }
+
+  /**
+   * Generate a 9:16 MP4 video from the given slides.
+   * Each slide is shown for `slideDurationSec` seconds (default 3).
+   * Returns the output path, duration, and file size.
+   * Throws on error (download failure, FFmpeg failure, timeout).
+   */
+  async generateVideo(params: GenerateVideoParams): Promise<GeneratedVideo> {
+    const slides = params.slides ?? [];
+    if (slides.length === 0) {
+      throw new Error('Cannot generate video: no slides provided');
+    }
+
+    const slideDuration = params.slideDurationSec ?? DEFAULT_SLIDE_DURATION_SEC;
+    const transitions = params.transitions ?? [DEFAULT_TRANSITION];
+    const enableSubtitles = params.enableSubtitles ?? true;
+    const textOverlay = params.textOverlay;
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+    // workDir: temp images + ASS file (cleaned in finally)
+    // outputDir: final video (persisted, returned to caller)
+    const workDir = await mkdtemp(join(tmpdir(), 'cp-video-'));
+    const outputDir =
+      params.outputDir ?? (await mkdtemp(join(tmpdir(), 'cp-video-out-')));
+    const outputPath = join(outputDir, 'output.mp4');
+
+    this.logger.log(
+      `Generating video: ${slides.length} slides, ${slideDuration}s each, transitions=[${transitions.join(',')}], subtitles=${enableSubtitles}, workDir=${workDir}`,
+    );
+
+    try {
+      // 1. Download images to workDir
+      const imagePaths: string[] = [];
+      for (let i = 0; i < slides.length; i++) {
+        const slide = slides[i];
+        if (!slide?.imageUrl) {
+          throw new Error(`Slide ${i} missing imageUrl`);
+        }
+        const imgPath = await this.downloadImage(
+          slide.imageUrl,
+          workDir,
+          i,
+          controller.signal,
+        );
+        imagePaths.push(imgPath);
+      }
+
+      // 2. Build ASS subtitle file (if enabled)
+      const assPath = join(workDir, 'overlay.ass');
+      if (enableSubtitles) {
+        const assContent = this.buildAssFile(slides, slideDuration, textOverlay);
+        await writeFile(assPath, assContent, 'utf8');
+      }
+
+      // 3. Build FFmpeg filtergraph (xfade hyperframe transitions)
+      const filterGraph = this.buildFilterGraph(
+        slides.length,
+        slideDuration,
+        assPath,
+        transitions,
+        enableSubtitles,
+      );
+
+      // 4. Assemble FFmpeg args
+      // -loop 1 -t <dur> per image: treat each image as a video stream of
+      // slideDuration seconds. Without this, FFmpeg reads 1 frame per image
+      // and the concat produces a fraction-of-a-second video.
+      const args: string[] = ['-nostdin', '-loglevel', 'warning'];
+      for (const p of imagePaths) {
+        args.push('-loop', '1', '-t', String(slideDuration), '-i', p);
+      }
+      args.push(
+        '-filter_complex',
+        filterGraph,
+        '-map',
+        '[vfinal]',
+        '-c:v',
+        'libx264',
+        '-preset',
+        'ultrafast',
+        '-crf',
+        '26',
+        '-pix_fmt',
+        'yuv420p',
+        '-r',
+        String(FPS),
+        '-y',
+        outputPath,
+      );
+
+      // 5. Run FFmpeg
+      this.logger.log('Running FFmpeg...');
+      try {
+        const { stderr } = await execFileAsync(this.ffmpegPath, args, {
+          signal: controller.signal,
+          maxBuffer: 10 * 1024 * 1024,
+        });
+        if (stderr) {
+          this.logger.debug(`FFmpeg stderr (tail): ${stderr.slice(-500)}`);
+        }
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === 'AbortError') {
+          throw new Error(`FFmpeg timed out after ${TIMEOUT_MS}ms`);
+        }
+        const msg = err instanceof Error ? err.message : String(err);
+        const errRecord = (err as Record<string, unknown>) ?? {};
+        const stderrStr =
+          typeof errRecord['stderr'] === 'string' ? errRecord['stderr'] : '';
+        const exitCode =
+          typeof errRecord['code'] === 'number' ? errRecord['code'] : '?';
+        throw new Error(
+          `FFmpeg failed (exit ${exitCode}): ${stderrStr.slice(-800) || msg}`,
+        );
+      }
+
+      // 6. Verify output and gather stats
+      const fileStat = await stat(outputPath);
+      // With xfade, total duration = n*slideDuration - (n-1)*transitionDuration
+      const transitionDur = DEFAULT_TRANSITION_DURATION;
+      const durationSec =
+        slides.length > 1
+          ? slides.length * slideDuration - (slides.length - 1) * transitionDur
+          : slides.length * slideDuration;
+
+      this.logger.log(
+        `Video generated: ${outputPath} (${fileStat.size} bytes, ${durationSec}s)`,
+      );
+
+      return {
+        videoPath: outputPath,
+        durationSec,
+        sizeBytes: fileStat.size,
+      };
+    } finally {
+      clearTimeout(timer);
+      // Clean up temp images + ASS (NOT the output dir)
+      rm(workDir, { recursive: true, force: true }).catch((err: unknown) => {
+        this.logger.warn(
+          `Failed to clean temp dir ${workDir}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      });
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Private helpers
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Download an image from a URL or decode a data URI to a local file.
+   * Returns the local file path.
+   */
+  private async downloadImage(
+    url: string,
+    destDir: string,
+    index: number,
+    signal: AbortSignal,
+  ): Promise<string> {
+    // Handle data URIs (base64-encoded images)
+    if (url.startsWith('data:')) {
+      const match = url.match(/^data:image\/([\w+]+);base64,(.+)$/);
+      if (!match?.[1] || !match?.[2]) {
+        throw new Error(`Slide ${index}: invalid data URI`);
+      }
+      const ext = match[1] === 'jpeg' ? 'jpg' : match[1];
+      const path = join(
+        destDir,
+        `slide-${String(index).padStart(3, '0')}.${ext}`,
+      );
+      await writeFile(path, Buffer.from(match[2], 'base64'));
+      return path;
+    }
+
+    // Handle HTTP(S) URLs
+    const res = await fetch(url, { signal });
+    if (!res.ok) {
+      throw new Error(
+        `Slide ${index}: download failed ${res.status} ${res.statusText}`,
+      );
+    }
+    const contentType = res.headers.get('content-type') ?? '';
+    const ext = this.extFromContentType(contentType);
+    const path = join(
+      destDir,
+      `slide-${String(index).padStart(3, '0')}.${ext}`,
+    );
+    const buffer = Buffer.from(await res.arrayBuffer());
+    await writeFile(path, buffer);
+    return path;
+  }
+
+  private extFromContentType(contentType: string): string {
+    if (contentType.includes('png')) return 'png';
+    if (contentType.includes('webp')) return 'webp';
+    if (contentType.includes('gif')) return 'gif';
+    if (contentType.includes('bmp')) return 'bmp';
+    return 'jpg';
+  }
+
+  /**
+   * Build the ASS subtitle file with one Dialogue line per slide.
+   * Text is overlaid at the bottom of the 9:16 frame.
+   */
+  private buildAssFile(
+    slides: VideoSlide[],
+    slideDuration: number,
+    textOverlay?: string[],
+  ): string {
+    const header = [
+      '[Script Info]',
+      'ScriptType: v4.00+',
+      `PlayResX: ${VIDEO_WIDTH}`,
+      `PlayResY: ${VIDEO_HEIGHT}`,
+      'ScaledBorderAndShadow: yes',
+      'WrapStyle: 0',
+      '',
+      '[V4+ Styles]',
+      'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
+      `Style: Default,${FONT_NAME},${FONT_SIZE},&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,6,2,2,60,60,200,1`,
+      '',
+      '[Events]',
+      'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text',
+    ];
+
+    const events: string[] = [];
+    for (let i = 0; i < slides.length; i++) {
+      const start = i * slideDuration;
+      const end = (i + 1) * slideDuration - 0.2;
+      const text = this.escapeAssText(
+        textOverlay?.[i] ?? slides[i]?.text ?? '',
+      );
+      events.push(
+        `Dialogue: 0,${this.formatAssTime(start)},${this.formatAssTime(end)},Default,,0,0,0,,${text}`,
+      );
+    }
+
+    return [...header, ...events].join('\n');
+  }
+
+  /** Format seconds as ASS timestamp `H:MM:SS.cs` (centiseconds). */
+  private formatAssTime(seconds: number): string {
+    const totalCs = Math.round(seconds * 100);
+    const totalSec = Math.floor(totalCs / 100);
+    const cs = totalCs % 100;
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(cs).padStart(2, '0')}`;
+  }
+
+  /** Escape text for ASS Dialogue lines (strip braces, convert newlines). */
+  private escapeAssText(text: string): string {
+    return text
+      .replace(/\n/g, '\\N')
+      .replace(/\{/g, '')
+      .replace(/\}/g, '')
+      .trim();
+  }
+
+  /**
+   * Build the FFmpeg filtergraph using xfade hyperframe transitions.
+   *
+   * Layout:
+   *   [N:v] scale+crop+setsar+format → [vN]                 (per image)
+   *   [v0][v1] xfade=transition=T:duration=D:offset=O → [x1]
+   *   [x1][v2] xfade=... → [x2]  ... → [xN-2]
+   *   [xN-2] fade in/out → [vfx]
+   *   [vfx] subtitles → [vfinal]    (if enabled)
+   *
+   * offset for xfade i = i * slideDuration - transitionDuration
+   * Global fade in (0.5s at start) + fade out (0.5s at end) for polish.
+   */
+  private buildFilterGraph(
+    slideCount: number,
+    slideDuration: number,
+    assPath: string,
+    transitions: string[],
+    enableSubtitles: boolean,
+  ): string {
+    const transitionDur = DEFAULT_TRANSITION_DURATION;
+    const parts: string[] = [];
+
+    // Per-image: scale, crop, setsar, format (NO per-slide fades — xfade handles transitions)
+    for (let i = 0; i < slideCount; i++) {
+      parts.push(
+        `[${i}:v]scale=${VIDEO_WIDTH}:${VIDEO_HEIGHT}:force_original_aspect_ratio=increase,crop=${VIDEO_WIDTH}:${VIDEO_HEIGHT},setsar=1,format=yuv420p[v${i}]`,
+      );
+    }
+
+    // xfade chain
+    if (slideCount === 1) {
+      // Single slide — no transitions, just pass through
+      parts.push(`[v0]null[vxfin]`);
+    } else {
+      let prevLabel = 'v0';
+      for (let i = 1; i < slideCount; i++) {
+        const trans = transitions[(i - 1) % transitions.length] ?? DEFAULT_TRANSITION;
+        const offset = i * slideDuration - transitionDur;
+        const outLabel = i === slideCount - 1 ? 'vxfin' : `x${i}`;
+        parts.push(
+          `[${prevLabel}][v${i}]xfade=transition=${trans}:duration=${transitionDur}:offset=${offset}[${outLabel}]`,
+        );
+        prevLabel = outLabel;
+      }
+    }
+
+    // Total duration after xfade chain
+    const totalDuration =
+      slideCount > 1
+        ? slideCount * slideDuration - (slideCount - 1) * transitionDur
+        : slideDuration;
+    const fadeOutStart = totalDuration - GLOBAL_FADE_DURATION;
+
+    // Global fade in/out for professional polish
+    parts.push(
+      `[vxfin]fade=t=in:st=0:d=${GLOBAL_FADE_DURATION},fade=t=out:st=${fadeOutStart}:d=${GLOBAL_FADE_DURATION}[vfx]`,
+    );
+
+    // Subtitles overlay (ASS file + font directory for libass)
+    if (enableSubtitles) {
+      const escapedAssPath = this.escapeFilterPath(assPath);
+      const escapedFontDir = this.escapeFilterPath(dirname(this.fontPath));
+      parts.push(
+        `[vfx]subtitles=${escapedAssPath}:fontsdir=${escapedFontDir}:force_style='Fontname=${FONT_NAME}'[vfinal]`,
+      );
+    } else {
+      parts.push(`[vfx]null[vfinal]`);
+    }
+
+    return parts.join(';');
+  }
+
+  /** Escape a filesystem path for use in FFmpeg filtergraph syntax. */
+  private escapeFilterPath(path: string): string {
+    return path
+      .replace(/\\/g, '\\\\')
+      .replace(/:/g, '\\:')
+      .replace(/'/g, "\\'");
+  }
+}

@@ -1,7 +1,7 @@
 import { registerAs } from '@nestjs/config';
 import { IsString, IsOptional } from 'class-validator';
 import validateConfig from '@infra/utils/validate-config';
-import { ContentPipelineConfig } from '@ext/content-pipeline/config/content-pipeline-config.type';
+import type { ContentPipelineConfig } from '@ext/content-pipeline/config/content-pipeline-config.type';
 
 class EnvironmentVariablesValidator {
   @IsString() @IsOptional()
@@ -36,6 +36,18 @@ class EnvironmentVariablesValidator {
 
   @IsString() @IsOptional()
   CONTENT_PIPELINE_NOTIFICATION_EMAIL: string;
+
+  @IsString() @IsOptional()
+  CONTENT_PIPELINE_FFMPEG_PATH: string;
+
+  @IsString() @IsOptional()
+  CONTENT_PIPELINE_FONT_PATH: string;
+
+  @IsString() @IsOptional()
+  CONTENT_PIPELINE_CHROMIUM_PATH: string;
+
+  @IsString() @IsOptional()
+  CONTENT_PIPELINE_CHROMIUM_LIB_DIR: string;
 }
 
 export default registerAs<ContentPipelineConfig>('content-pipeline', () => {
@@ -60,5 +72,17 @@ export default registerAs<ContentPipelineConfig>('content-pipeline', () => {
       process.env.WAVESPEED_BASE_URL ?? 'https://api.wavespeed.ai',
     notificationEmail: process.env.CONTENT_PIPELINE_NOTIFICATION_EMAIL,
     llmApiKey: process.env.OLLAMA_API_KEY,
+    ffmpegPath:
+      process.env.CONTENT_PIPELINE_FFMPEG_PATH ??
+      '/home/hermeswebui/.local/bin/ffmpeg',
+    fontPath:
+      process.env.CONTENT_PIPELINE_FONT_PATH ??
+      '/home/hermeswebui/.local/share/fonts/DejaVuSans-Bold.ttf',
+    chromiumPath:
+      process.env.CONTENT_PIPELINE_CHROMIUM_PATH ??
+      '/home/hermeswebui/.hermes/home/.cache/ms-playwright/chromium_headless_shell-1228/chrome-headless-shell-linux64/chrome-headless-shell',
+    chromiumLibDir:
+      process.env.CONTENT_PIPELINE_CHROMIUM_LIB_DIR ??
+      '/home/hermeswebui/.hermes/home/.local/lib/usr/lib/x86_64-linux-gnu',
   };
 });

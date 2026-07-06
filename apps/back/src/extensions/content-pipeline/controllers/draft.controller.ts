@@ -18,6 +18,7 @@ import { RolesGuard } from '@iam/roles/roles.guard';
 import { DraftService } from '@ext/content-pipeline/services/draft.service';
 import { UpdateDraftDto } from '@ext/content-pipeline/dto/update-draft.dto';
 import { RejectDraftDto } from '@ext/content-pipeline/dto/reject-draft.dto';
+import { GenerateCarouselVideoDto } from '@ext/content-pipeline/dto/generate-carousel-video.dto';
 
 @ApiTags('Content-Pipeline')
 @ApiBearerAuth()
@@ -71,5 +72,20 @@ export class DraftController {
   @HttpCode(HttpStatus.OK)
   publish(@Param('id') id: string) {
     return this.draftService.publish(id);
+  }
+
+  @Post('drafts/:id/generate-video')
+  @HttpCode(HttpStatus.OK)
+  generateVideo(@Param('id') id: string) {
+    return this.draftService.generateVideo(id);
+  }
+
+  @Post('drafts/:id/generate-carousel-video')
+  @HttpCode(HttpStatus.OK)
+  generateCarouselVideo(
+    @Param('id') id: string,
+    @Body() dto: GenerateCarouselVideoDto,
+  ) {
+    return this.draftService.generateCarouselVideo(id, dto);
   }
 }

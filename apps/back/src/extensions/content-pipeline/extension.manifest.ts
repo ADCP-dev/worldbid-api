@@ -39,6 +39,8 @@ const manifest: ExtensionManifest = {
       { method: 'POST', path: 'content-pipeline/drafts/:id/approve' },
       { method: 'POST', path: 'content-pipeline/drafts/:id/reject' },
       { method: 'POST', path: 'content-pipeline/drafts/:id/publish' },
+      { method: 'POST', path: 'content-pipeline/drafts/:id/generate-video' },
+      { method: 'POST', path: 'content-pipeline/drafts/:id/generate-carousel-video' },
       // Metrics
       { method: 'GET', path: 'content-pipeline/projects/:id/metrics' },
       { method: 'GET', path: 'content-pipeline/metrics/dashboard' },
