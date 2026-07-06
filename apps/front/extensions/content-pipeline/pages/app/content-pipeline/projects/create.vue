@@ -6,6 +6,7 @@ import FormInput from '@base/ui-app/components/form/FormInput.vue';
 import FormTextArea from '@base/ui-app/components/form/FormTextArea.vue';
 import FormSelect from '@base/ui-app/components/form/FormSelect.vue';
 import FormSwitch from '@base/ui-app/components/form/FormSwitch.vue';
+import type { CreateProjectPayload, Project } from '@/extensions/content-pipeline/types';
 
 definePageMeta({
   layout: 'default',
@@ -91,7 +92,7 @@ async function submit() {
 
   saving.value = true;
   try {
-    const payload: Record<string, any> = {
+    const payload: CreateProjectPayload = {
       name: result.data.name,
       slug: result.data.slug,
       niche: result.data.niche,
@@ -105,11 +106,12 @@ async function submit() {
         social: result.data.autoPublishSocial,
       },
     };
-    const project: any = await cp.createProject(payload);
+    const project: Project = await cp.createProject(payload);
     toast.success('Project created');
     navigateTo(`/app/content-pipeline/projects/${project.id}`);
-  } catch (err: any) {
-    toast.error('Error creating project', { description: err.message });
+  } catch (err: unknown) {
+    if (err instanceof Error) toast.error('Error creating project', { description: err.message });
+    else toast.error('Error creating project');
   } finally {
     saving.value = false;
   }

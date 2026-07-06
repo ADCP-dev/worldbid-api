@@ -64,8 +64,8 @@ async function loadSummary() {
     ]);
     summary.value = s;
     topPosts.value = Array.isArray(posts) ? posts : [];
-  } catch (err: any) {
-    toast.error('Error cargando resumen', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error cargando resumen', { description: err instanceof Error ? err.message : 'Error' });
   } finally {
     loading.value = false;
   }
@@ -75,8 +75,8 @@ async function loadHistory() {
   historyLoading.value = true;
   try {
     history.value = await getMonthlyHistory(12);
-  } catch (err: any) {
-    toast.error('Error cargando histórico', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error cargando histórico', { description: err instanceof Error ? err.message : 'Error' });
   } finally {
     historyLoading.value = false;
   }

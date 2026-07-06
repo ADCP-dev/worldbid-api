@@ -113,8 +113,8 @@ async function loadEvents() {
     }
 
     events.value = calEvents;
-  } catch (err: any) {
-    toast.error('Error cargando publicaciones', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error cargando publicaciones', { description: err instanceof Error ? err.message : 'Error' });
   } finally {
     loading.value = false;
   }
@@ -157,8 +157,8 @@ async function handleEventDrop({ event, newStart }: { event: CalendarEvent; newS
         description: format(newStart, 'dd/MM/yyyy HH:mm'),
       });
       await loadEvents();
-    } catch (err: any) {
-      toast.error('Error al reprogramar', { description: err.message });
+    } catch (err: unknown) {
+      toast.error('Error al reprogramar', { description: err instanceof Error ? err.message : 'Error' });
     }
   }
 }
@@ -211,8 +211,8 @@ async function handleCreateSubmit() {
     });
     isCreateModalOpen.value = false;
     await loadEvents();
-  } catch (err: any) {
-    toast.error('Error al programar', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error al programar', { description: err instanceof Error ? err.message : 'Error' });
   }
 }
 
@@ -224,8 +224,8 @@ async function handleCancelScheduled() {
       toast.success('Publicación cancelada');
       isDetailModalOpen.value = false;
       await loadEvents();
-    } catch (err: any) {
-      toast.error('Error al cancelar', { description: err.message });
+    } catch (err: unknown) {
+      toast.error('Error al cancelar', { description: err instanceof Error ? err.message : 'Error' });
     }
   }
 }

@@ -4,6 +4,8 @@
  * All endpoints require admin role — the backend enforces @Roles(RoleEnum.admin).
  */
 
+import type { ApiFetchOptions } from '@/extensions/upload-post/types';
+
 interface UploadPostScheduled {
   job_id: string;
   scheduled_date: string;
@@ -63,13 +65,13 @@ function useApi() {
   const authStore = useAuthStore();
   const baseUrl = config.public.apiUrl as string;
 
-  async function apiFetch<T>(path: string, options: any = {}): Promise<T> {
+  async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
     const token = authStore.token;
     const res = await $fetch<T>(`${baseUrl}${API_PREFIX}${path}`, {
       ...options,
       headers: {
         Authorization: token ? `Bearer ${token}` : '',
-        ...options.headers,
+        ...(options.headers ?? {}),
       },
     });
     return res as T;
@@ -255,7 +257,7 @@ export function useUploadPost() {
     return apiFetch('/upload-post/ideas', { method: 'POST', body: data });
   }
 
-  async function updateIdea(id: string, data: Record<string, any>) {
+  async function updateIdea(id: string, data: Record<string, unknown>) {
     return apiFetch(`/upload-post/ideas/${id}`, { method: 'PATCH', body: data });
   }
 

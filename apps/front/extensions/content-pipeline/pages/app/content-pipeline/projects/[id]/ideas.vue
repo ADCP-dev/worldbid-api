@@ -11,6 +11,7 @@ import type {
   KanbanTask,
   KanbanStateConfig,
 } from '@base/ui-app/components/kanban/types';
+import type { CreateIdeaPayload, Idea, PaginatedResponse } from '@/extensions/content-pipeline/types';
 
 definePageMeta({
   layout: 'default',
@@ -22,12 +23,12 @@ const cp = useContentPipeline();
 
 const projectId = computed(() => route.params.id as string);
 
-const ideas = ref<any[]>([]);
+const ideas = ref<Idea[]>([]);
 const loading = ref(false);
 const researching = ref(false);
 const isCreateModalOpen = ref(false);
 const isDetailModalOpen = ref(false);
-const selectedIdea = ref<any | null>(null);
+const selectedIdea = ref<Idea | null>(null);
 
 const createForm = ref({
   title: '',
@@ -70,10 +71,11 @@ const statusOptions = STATES.map((s) => ({ label: s.title, value: s.id }));
 async function loadIdeas() {
   loading.value = true;
   try {
-    const res: any = await cp.getIdeas(projectId.value);
-    ideas.value = res.data ?? res ?? [];
-  } catch (err: any) {
-    toast.error('Error loading ideas', { description: err.message });
+    const res: PaginatedResponse<Idea> | Idea[] = await cp.getIdeas(projectId.value);
+    ideas.value = Array.isArray(res) ? res : (res.data ?? []);
+  } catch (err: unknown) {
+    if (err instanceof Error) toast.error('Error loading ideas', { description: err.message });
+    else toast.error('Error loading ideas');
   } finally {
     loading.value = false;
   }
@@ -87,9 +89,9 @@ const kanbanTasks = computed<KanbanTask[]>(() =>
   ideas.value.map((idea) => ({
     id: String(idea.id),
     title: idea.title,
-    description: idea.description,
-    stateId: idea.status,
-    tags: (idea.tags ?? []).map((t: string) => ({ id: t, label: t })),
+    description: (idea as Idea & { description?: string }).description,
+    stateId: idea.status ?? 'idea',
+    tags: ((idea as Idea & { tags?: string[] }).tags ?? []).map((t: string) => ({ id: t, label: t })),
     metadata: { ...idea },
   })),
 );
@@ -112,8 +114,9 @@ async function handleUpdateTaskState({
     toast.success('Idea moved', {
       description: `${STATUS_LABELS[oldStateId] ?? oldStateId} → ${STATUS_LABELS[newStateId] ?? newStateId}`,
     });
-  } catch (err: any) {
-    toast.error('Error moving idea', { description: err.message });
+  } catch (err: unknown) {
+    if (err instanceof Error) toast.error('Error moving idea', { description: err.message });
+    else toast.error('Error moving idea');
     await loadIdeas();
   }
 }
@@ -129,17 +132,19 @@ async function handleCreate() {
     return;
   }
   try {
-    await cp.createIdea(projectId.value, {
+    const payload = {
       title: createForm.value.title,
       description: createForm.value.description || undefined,
       status: createForm.value.status,
-    });
+    } as CreateIdeaPayload;
+    await cp.createIdea(projectId.value, payload);
     toast.success('Idea created');
     isCreateModalOpen.value = false;
     createForm.value = { title: '', description: '', status: 'idea' };
     await loadIdeas();
-  } catch (err: any) {
-    toast.error('Error creating idea', { description: err.message });
+  } catch (err: unknown) {
+    if (err instanceof Error) toast.error('Error creating idea', { description: err.message });
+    else toast.error('Error creating idea');
   }
 }
 
@@ -150,8 +155,9 @@ async function handleDelete(taskId: string) {
     ideas.value = ideas.value.filter((i) => String(i.id) !== taskId);
     isDetailModalOpen.value = false;
     toast.success('Idea deleted');
-  } catch (err: any) {
-    toast.error('Error deleting idea', { description: err.message });
+  } catch (err: unknown) {
+    if (err instanceof Error) toast.error('Error deleting idea', { description: err.message });
+    else toast.error('Error deleting idea');
   }
 }
 
@@ -168,14 +174,15 @@ function openCreate(status = 'idea') {
 async function handleResearch() {
   researching.value = true;
   try {
-    const res: any = await cp.researchIdeas(projectId.value);
-    const count = Array.isArray(res) ? res.length : res?.ideas?.length ?? 0;
+    const res = await cp.researchIdeas(projectId.value);
+    const count = Array.isArray(res) ? res.length : 0;
     toast.success('Research complete', {
       description: count ? `${count} ideas generated` : 'New ideas generated',
     });
     await loadIdeas();
-  } catch (err: any) {
-    toast.error('Research failed', { description: err.message });
+  } catch (err: unknown) {
+    if (err instanceof Error) toast.error('Research failed', { description: err.message });
+    else toast.error('Research failed');
   } finally {
     researching.value = false;
   }
@@ -189,8 +196,9 @@ async function handleGenerateDraft() {
       description: 'The draft will appear in the Drafts tab once ready.',
     });
     await loadIdeas();
-  } catch (err: any) {
-    toast.error('Error generating draft', { description: err.message });
+  } catch (err: unknown) {
+    if (err instanceof Error) toast.error('Error generating draft', { description: err.message });
+    else toast.error('Error generating draft');
   }
 }
 

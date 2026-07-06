@@ -44,8 +44,8 @@ async function loadAnalytics() {
   try {
     const username = 'som-os';
     analytics.value = await getAnalytics(username);
-  } catch (err: any) {
-    toast.error('Error cargando analytics', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error cargando analytics', { description: err instanceof Error ? err.message : 'Error' });
   } finally {
     loading.value = false;
   }
@@ -55,8 +55,8 @@ async function loadReport() {
   reportLoading.value = true;
   try {
     report.value = await getWeeklyReport();
-  } catch (err: any) {
-    toast.error('Error generando reporte', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error generando reporte', { description: err instanceof Error ? err.message : 'Error' });
   } finally {
     reportLoading.value = false;
   }
@@ -66,8 +66,8 @@ async function handleSendReport() {
   try {
     await sendWeeklyReport();
     toast.success('Reporte semanal enviado por email');
-  } catch (err: any) {
-    toast.error('Error enviando reporte', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error enviando reporte', { description: err instanceof Error ? err.message : 'Error' });
   }
 }
 

@@ -4,6 +4,7 @@ import { toast } from 'vue-sonner';
 import DataTable from '@base/ui-app/components/data-table/DataTable.vue';
 import FormInput from '@base/ui-app/components/form/FormInput.vue';
 import FormSwitch from '@base/ui-app/components/form/FormSwitch.vue';
+import type { CellContext, Status, StatusPayload } from '@/extensions/crm/types';
 
 definePageMeta({
   layout: 'default',
@@ -14,7 +15,7 @@ const crm = useCrm();
 
 const loading = ref(false);
 const saving = ref(false);
-const statuses = ref<any[]>([]);
+const statuses = ref<Status[]>([]);
 
 const isModalOpen = ref(false);
 const editingId = ref<number | null>(null);
@@ -36,7 +37,7 @@ const columns = [
     headerName: 'Color',
     header: 'Color',
     enableSorting: false,
-    cell: ({ row }: any) => h('span', {
+    cell: ({ row }: CellContext<Status>) => h('span', {
       class: 'badge badge-sm',
       style: { backgroundColor: row.original.color, color: '#fff' },
     }, row.original.color),
@@ -47,7 +48,7 @@ const columns = [
     headerName: 'Activo',
     header: 'Activo',
     filterType: 'boolean' as const,
-    cell: ({ row }: any) => row.original.isActive
+    cell: ({ row }: CellContext<Status>) => row.original.isActive
       ? h('span', { class: 'badge badge-xs badge-success' }, 'Sí')
       : h('span', { class: 'badge badge-xs badge-ghost' }, 'No'),
   },
@@ -56,7 +57,7 @@ const columns = [
     headerName: 'Default',
     header: 'Default',
     filterType: 'boolean' as const,
-    cell: ({ row }: any) => row.original.isDefault
+    cell: ({ row }: CellContext<Status>) => row.original.isDefault
       ? h('span', { class: 'badge badge-xs badge-primary' }, 'Default')
       : h('span', { class: 'text-base-content/40' }, '—'),
   },
@@ -65,7 +66,7 @@ const columns = [
     headerName: 'Acciones',
     header: 'Acciones',
     enableSorting: false,
-    cell: ({ row }: any) => h('div', { class: 'flex items-center gap-1' }, [
+    cell: ({ row }: CellContext<Status>) => h('div', { class: 'flex items-center gap-1' }, [
       h('button', {
         class: 'btn btn-ghost btn-xs',
         onClick: (e: Event) => { e.stopPropagation(); openEdit(row.original); },
@@ -78,12 +79,16 @@ const columns = [
   },
 ];
 
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 async function load() {
   loading.value = true;
   try {
     statuses.value = await crm.getStatuses();
-  } catch (err: any) {
-    toast.error('Error cargando estados', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error cargando estados', { description: errorMessage(err) });
   } finally {
     loading.value = false;
   }
@@ -102,7 +107,7 @@ function openCreate() {
   isModalOpen.value = true;
 }
 
-function openEdit(status: any) {
+function openEdit(status: Status) {
   editingId.value = status.id;
   form.value = {
     label: status.label || '',
@@ -126,7 +131,7 @@ async function save() {
   }
   saving.value = true;
   try {
-    const payload = { ...form.value };
+    const payload: StatusPayload = { ...form.value };
     if (editingId.value) {
       await crm.updateStatus(editingId.value, payload);
       toast.success('Estado actualizado');
@@ -136,8 +141,8 @@ async function save() {
     }
     isModalOpen.value = false;
     await load();
-  } catch (err: any) {
-    toast.error('Error guardando estado', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error guardando estado', { description: errorMessage(err) });
   } finally {
     saving.value = false;
   }
@@ -149,8 +154,8 @@ async function remove(id: number) {
     await crm.deleteStatus(id);
     toast.success('Estado eliminado');
     await load();
-  } catch (err: any) {
-    toast.error('Error eliminando estado', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error eliminando estado', { description: errorMessage(err) });
   }
 }
 

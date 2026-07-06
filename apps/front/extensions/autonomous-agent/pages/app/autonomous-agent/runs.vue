@@ -134,8 +134,8 @@ const columns = computed(() => [
 
 async function loadProjects() {
   try {
-    const res = await cp.getProjects(1, 200) as PaginatedResponse<ProjectEntity> | ProjectEntity[];
-    projects.value = (res as PaginatedResponse<ProjectEntity>).data ?? (res as ProjectEntity[]) ?? [];
+    const res = await cp.getProjects(1, 200);
+    projects.value = ('data' in res ? res.data : res) ?? [];
   } catch (err: unknown) {
     toast.error('Error loading projects', { description: err instanceof Error ? err.message : 'Error' });
   }
@@ -148,9 +148,9 @@ async function loadRuns() {
     const res = await aa.getRuns(s.pageIndex + 1, s.pageSize, {
       status: statusFilter.value || undefined,
       runType: runTypeFilter.value || undefined,
-    }) as PaginatedResponse<RunEntity> | RunEntity[];
-    runs.value = (res as PaginatedResponse<RunEntity>).data ?? (res as RunEntity[]) ?? [];
-    total.value = (res as PaginatedResponse<RunEntity>).total ?? runs.value.length;
+    });
+    runs.value = ('data' in res ? res.data : res) ?? [];
+    total.value = ('total' in res ? res.total : runs.value.length) ?? runs.value.length;
   } catch (err: unknown) {
     toast.error('Error loading runs', { description: err instanceof Error ? err.message : 'Error' });
   } finally {
@@ -207,7 +207,7 @@ watch([statusFilter, runTypeFilter], () => {
           :total="total"
           manual
           :table-name="tableName"
-          @row-click="(row: DataTableRow<RunEntity>) => navigateTo(`/app/autonomous-agent/runs/${row.id}`)"
+          @row-click="(row: RunEntity) => navigateTo(`/app/autonomous-agent/runs/${row.id}`)"
         />
       </div>
     </div>

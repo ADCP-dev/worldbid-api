@@ -5,6 +5,7 @@ import { z } from 'zod';
 import FormInput from '@base/ui-app/components/form/FormInput.vue';
 import FormSelect from '@base/ui-app/components/form/FormSelect.vue';
 import FormSwitch from '@base/ui-app/components/form/FormSwitch.vue';
+import type { AutonomousConfigPayload, ConfigEntity, ProjectEntity } from '@/extensions/autonomous-agent/types';
 
 definePageMeta({
   layout: 'default',
@@ -16,7 +17,7 @@ const cp = useContentPipeline();
 
 const saving = ref(false);
 const loadingProjects = ref(true);
-const projects = ref<any[]>([]);
+const projects = ref<ProjectEntity[]>([]);
 
 const projectOptions = computed(() =>
   projects.value.map((p) => ({ label: p.name, value: String(p.id) })),
@@ -64,10 +65,11 @@ const errors = ref<Partial<Record<keyof FormValues, string>>>({});
 async function loadProjects() {
   loadingProjects.value = true;
   try {
-    const res: any = await cp.getProjects(1, 200);
-    projects.value = res.data ?? res ?? [];
-  } catch (err: any) {
-    toast.error('Error loading projects', { description: err.message });
+    const res = await cp.getProjects(1, 200);
+    projects.value = 'data' in res ? (res.data ?? []) : (res ?? []);
+  } catch (err: unknown) {
+    if (err instanceof Error) toast.error('Error loading projects', { description: err.message });
+    else toast.error('Error loading projects');
   } finally {
     loadingProjects.value = false;
   }
@@ -93,7 +95,7 @@ async function submit() {
 
   saving.value = true;
   try {
-    const payload: Record<string, any> = {
+    const payload: AutonomousConfigPayload = {
       projectId: Number(result.data.projectId),
       researchCron: result.data.researchCron || undefined,
       generateCron: result.data.generateCron || undefined,
@@ -105,11 +107,12 @@ async function submit() {
       notifyTelegram: result.data.notifyTelegram,
       telegramChatId: result.data.telegramChatId || undefined,
     };
-    const config: any = await aa.createConfig(payload);
+    const config: ConfigEntity = await aa.createConfig(payload);
     toast.success('Config created');
     navigateTo(`/app/autonomous-agent/configs/${config.id}`);
-  } catch (err: any) {
-    toast.error('Error creating config', { description: err.message });
+  } catch (err: unknown) {
+    if (err instanceof Error) toast.error('Error creating config', { description: err.message });
+    else toast.error('Error creating config');
   } finally {
     saving.value = false;
   }

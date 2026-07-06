@@ -145,7 +145,16 @@ export class WeeklyReportService {
     for (const [platform, m] of Object.entries(data)) {
       if (platform === 'success' || platform === 'message') continue;
       if (!m || typeof m !== 'object') continue;
-      const metrics = m as any;
+      const metrics = m as {
+        followers?: number;
+        reach?: number;
+        views?: number;
+        impressions?: number;
+        likes?: number;
+        comments?: number;
+        shares?: number;
+        saves?: number;
+      };
       const impressions = Number(metrics.views ?? metrics.impressions ?? 0);
       totalImpressions += impressions;
 
@@ -238,8 +247,10 @@ export class WeeklyReportService {
           text: body,
         });
         this.logger.log(`Weekly report sent to ${email}`);
-      } catch (err: any) {
-        this.logger.error(`Failed to send weekly report email: ${err.message}`);
+      } catch (err: unknown) {
+        this.logger.error(
+          `Failed to send weekly report email: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
     } else {
       this.logger.warn('No weeklyReportEmail configured — logging report only');

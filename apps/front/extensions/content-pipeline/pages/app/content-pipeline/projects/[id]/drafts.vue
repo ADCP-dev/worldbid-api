@@ -3,6 +3,7 @@ import { ref, computed, onMounted, h } from 'vue';
 import { toast } from 'vue-sonner';
 import DataTable from '@base/ui-app/components/data-table/DataTable.vue';
 import ViewButton from '@base/ui-app/components/data-table/buttons/ViewButton.vue';
+import type { CellContext, DataTableRow, Draft, PaginatedResponse } from '@/extensions/content-pipeline/types';
 
 definePageMeta({
   layout: 'default',
@@ -15,7 +16,7 @@ const cp = useContentPipeline();
 const projectId = computed(() => route.params.id as string);
 
 const loading = ref(false);
-const drafts = ref<any[]>([]);
+const drafts = ref<Draft[]>([]);
 const refreshKey = ref(0);
 
 const statusOptions = [
@@ -32,7 +33,7 @@ const columns = computed(() => [
     headerName: 'Title',
     header: 'Title',
     filterType: 'string' as const,
-    cell: ({ row }: any) =>
+    cell: ({ row }: CellContext<Draft>) =>
       row.original.idea?.title || row.original.title || h('span', { class: 'text-base-content/40' }, 'Untitled'),
   },
   {
@@ -41,8 +42,8 @@ const columns = computed(() => [
     header: 'Status',
     filterType: 'select' as const,
     options: statusOptions,
-    cell: ({ row }: any) => {
-      const s = row.original.status;
+    cell: ({ row }: CellContext<Draft>) => {
+      const s = row.original.status ?? '';
       const badgeClass: Record<string, string> = {
         pending: 'badge-warning',
         approved: 'badge-success',
@@ -61,8 +62,8 @@ const columns = computed(() => [
     headerName: 'Created',
     header: 'Created',
     filterType: 'date' as const,
-    cell: ({ row }: any) =>
-      new Date(row.original.createdAt).toLocaleDateString('en-US', {
+    cell: ({ row }: CellContext<Draft>) =>
+      new Date(row.original.createdAt ?? '').toLocaleDateString('en-US', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
@@ -73,7 +74,7 @@ const columns = computed(() => [
     headerName: 'Published',
     header: 'Published',
     filterType: 'date' as const,
-    cell: ({ row }: any) =>
+    cell: ({ row }: CellContext<Draft>) =>
       row.original.publishedAt
         ? new Date(row.original.publishedAt).toLocaleDateString('en-US', {
             day: '2-digit',
@@ -87,7 +88,7 @@ const columns = computed(() => [
     headerName: 'Actions',
     header: 'Actions',
     enableSorting: false,
-    cell: ({ row }: any) =>
+    cell: ({ row }: CellContext<Draft>) =>
       h('div', { class: 'flex items-center gap-1' }, [
         h(ViewButton, {
           ariaLabel: 'View draft',
@@ -139,10 +140,11 @@ const columns = computed(() => [
 async function loadDrafts() {
   loading.value = true;
   try {
-    const res: any = await cp.getDrafts(projectId.value);
-    drafts.value = res.data ?? res ?? [];
-  } catch (err: any) {
-    toast.error('Error loading drafts', { description: err.message });
+    const res: PaginatedResponse<Draft> | Draft[] = await cp.getDrafts(projectId.value);
+    drafts.value = Array.isArray(res) ? res : (res.data ?? []);
+  } catch (err: unknown) {
+    if (err instanceof Error) toast.error('Error loading drafts', { description: err.message });
+    else toast.error('Error loading drafts');
   } finally {
     loading.value = false;
   }
@@ -155,8 +157,9 @@ async function handleApprove(id: number | string) {
     await cp.approveDraft(id);
     toast.success('Draft approved');
     await loadDrafts();
-  } catch (err: any) {
-    toast.error('Error approving draft', { description: err.message });
+  } catch (err: unknown) {
+    if (err instanceof Error) toast.error('Error approving draft', { description: err.message });
+    else toast.error('Error approving draft');
   }
 }
 
@@ -166,8 +169,9 @@ async function handleReject(id: number | string) {
     await cp.rejectDraft(id, { reason });
     toast.success('Draft rejected');
     await loadDrafts();
-  } catch (err: any) {
-    toast.error('Error rejecting draft', { description: err.message });
+  } catch (err: unknown) {
+    if (err instanceof Error) toast.error('Error rejecting draft', { description: err.message });
+    else toast.error('Error rejecting draft');
   }
 }
 
@@ -176,8 +180,9 @@ async function handlePublish(id: number | string) {
     await cp.publishDraft(id);
     toast.success('Draft published');
     await loadDrafts();
-  } catch (err: any) {
-    toast.error('Error publishing draft', { description: err.message });
+  } catch (err: unknown) {
+    if (err instanceof Error) toast.error('Error publishing draft', { description: err.message });
+    else toast.error('Error publishing draft');
   }
 }
 </script>
@@ -201,7 +206,7 @@ async function handlePublish(id: number | string) {
           :total="drafts.length"
           :table-name="`content-pipeline-drafts-${projectId}`"
           :refresh-key="refreshKey"
-          @row-click="(row: any) => navigateTo(`/app/content-pipeline/drafts/${row.id}`)"
+          @row-click="(row: DataTableRow<Draft>) => navigateTo(`/app/content-pipeline/drafts/${row.original.id}`)"
         />
       </div>
     </div>

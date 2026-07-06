@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch, h } from 'vue';
 import { toast } from 'vue-sonner';
 import DataTable from '@base/ui-app/components/data-table/DataTable.vue';
 import { useTableStateStore } from '@base/ui-app/stores/useTableState';
+import type { CellContext, DataTableRow, Project } from '@/extensions/content-pipeline/types';
 
 definePageMeta({
   layout: 'default',
@@ -13,13 +14,13 @@ const cp = useContentPipeline();
 const tableStateStore = useTableStateStore();
 
 const loading = ref(false);
-const projects = ref<any[]>([]);
+const projects = ref<Project[]>([]);
 const total = ref(0);
 
 const tableName = 'content-pipeline-projects';
 
 const tableState = computed(() => {
-  const raw = (tableStateStore as Record<string, any>)[tableName] || {};
+  const raw = (tableStateStore as Record<string, unknown>)[tableName] as Record<string, unknown> | undefined || {};
   return {
     pageIndex: typeof raw.pageIndex === 'number' ? raw.pageIndex : 0,
     pageSize: typeof raw.pageSize === 'number' ? raw.pageSize : 10,
@@ -44,7 +45,7 @@ const columns = computed(() => [
     header: 'Status',
     filterType: 'select' as const,
     options: statusOptions,
-    cell: ({ row }: any) =>
+    cell: ({ row }: CellContext<Project>) =>
       h('span', { class: 'badge badge-sm badge-outline capitalize' }, row.original.status || '—'),
   },
   {
@@ -52,8 +53,8 @@ const columns = computed(() => [
     headerName: 'Created',
     header: 'Created',
     filterType: 'date' as const,
-    cell: ({ row }: any) =>
-      new Date(row.original.createdAt).toLocaleDateString('en-US', {
+    cell: ({ row }: CellContext<Project>) =>
+      new Date(row.original.createdAt ?? '').toLocaleDateString('en-US', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
@@ -65,11 +66,12 @@ async function loadProjects() {
   loading.value = true;
   try {
     const s = tableState.value;
-    const res: any = await cp.getProjects(s.pageIndex + 1, s.pageSize, s.globalFilter || undefined);
-    projects.value = res.data ?? res ?? [];
-    total.value = res.total ?? projects.value.length;
-  } catch (err: any) {
-    toast.error('Error loading projects', { description: err.message });
+    const res = await cp.getProjects(s.pageIndex + 1, s.pageSize, s.globalFilter || undefined);
+    projects.value = 'data' in res ? (res.data ?? []) : (res ?? []);
+    total.value = 'total' in res ? (res.total ?? projects.value.length) : projects.value.length;
+  } catch (err: unknown) {
+    if (err instanceof Error) toast.error('Error loading projects', { description: err.message });
+    else toast.error('Error loading projects');
   } finally {
     loading.value = false;
   }
@@ -99,7 +101,7 @@ watch(tableState, () => {
           :total="total"
           manual
           :table-name="tableName"
-          @row-click="(row: any) => navigateTo(`/app/content-pipeline/projects/${row.id}`)"
+          @row-click="(row: DataTableRow<Project>) => navigateTo(`/app/content-pipeline/projects/${row.original.id}`)"
         />
       </div>
     </div>

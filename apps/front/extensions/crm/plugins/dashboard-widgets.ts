@@ -1,6 +1,8 @@
+import type { DashboardEntry } from '@/extensions/crm/types';
+
 export default defineNuxtPlugin(() => {
   const authStore = useAuthStore();
-  const dashboards = useState<any[]>('app:dashboards', () => []);
+  const dashboards = useState<DashboardEntry[]>('app:dashboards', () => []);
 
   const addCrmDashboard = () => {
     if (!authStore.isAdmin) return;

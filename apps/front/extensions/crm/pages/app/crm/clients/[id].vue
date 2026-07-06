@@ -121,12 +121,12 @@ const INTERACTION_TYPE_LABELS: Record<string, string> = {
 
 const statusOptions = computed(() => [
   { label: 'Sin estado', value: '' },
-  ...statuses.value.map((s: any) => ({ label: s.label, value: s.id })),
+  ...statuses.value.map((s) => ({ label: s.label, value: s.id })),
 ]);
 
 const originOptions = computed(() => [
   { label: 'Sin origen', value: '' },
-  ...origins.value.map((o: any) => ({ label: o.label, value: o.id })),
+  ...origins.value.map((o) => ({ label: o.label, value: o.id })),
 ]);
 
 const interactionTypeOptions = computed(() =>
@@ -144,6 +144,10 @@ const projectStatusOptions = computed(() =>
 const paymentStatusOptions = computed(() =>
   Object.entries(PAYMENT_STATUS_LABELS).map(([value, label]) => ({ value, label })),
 );
+
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
 
 async function loadClient() {
   loading.value = true;
@@ -165,8 +169,8 @@ async function loadClient() {
       originDetail: data.originDetail || '',
       metadata: data.metadata ? JSON.stringify(data.metadata, null, 2) : '',
     };
-  } catch (err: any) {
-    toast.error('Error cargando cliente', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error cargando cliente', { description: errorMessage(err) });
   } finally {
     loading.value = false;
   }
@@ -177,34 +181,34 @@ async function loadFilters() {
     const [stat, orig] = await Promise.all([crm.getStatuses(), crm.getOrigins()]);
     statuses.value = stat;
     origins.value = orig;
-  } catch (err: any) {
-    toast.error('Error cargando filtros', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error cargando filtros', { description: errorMessage(err) });
   }
 }
 
 async function loadContacts() {
   try {
     contacts.value = await crm.getContacts(clientId.value);
-  } catch (err: any) {
-    toast.error('Error cargando contactos', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error cargando contactos', { description: errorMessage(err) });
   }
 }
 
 async function loadInteractions() {
   try {
-    const res: any = await crm.getInteractions(clientId.value, 1, 100);
-    interactions.value = res.data ?? res ?? [];
-  } catch (err: any) {
-    toast.error('Error cargando interacciones', { description: err.message });
+    const res: PaginatedResponse<Interaction> | Interaction[] = await crm.getInteractions(clientId.value, 1, 100);
+    interactions.value = Array.isArray(res) ? res : (res.data ?? []);
+  } catch (err: unknown) {
+    toast.error('Error cargando interacciones', { description: errorMessage(err) });
   }
 }
 
 async function loadProjects() {
   try {
-    const all: any[] = await crm.getProjects(clientId.value);
+    const all: Project[] = await crm.getProjects(clientId.value);
     projects.value = all ?? [];
-  } catch (err: any) {
-    toast.error('Error cargando proyectos', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error cargando proyectos', { description: errorMessage(err) });
   }
 }
 
@@ -215,12 +219,12 @@ async function saveClient() {
   }
   saving.value = true;
   try {
-    const payload: Record<string, any> = { ...form.value };
+    const payload: ClientPayload = { ...form.value };
     if (payload.statusId === '') payload.statusId = null;
     if (payload.originId === '') payload.originId = null;
-    if (payload.metadata) {
+    if (form.value.metadata) {
       try {
-        payload.metadata = JSON.parse(payload.metadata);
+        payload.metadata = JSON.parse(form.value.metadata);
       } catch {
         toast.error('Metadata JSON inválido');
         saving.value = false;
@@ -232,8 +236,8 @@ async function saveClient() {
     const updated = await crm.updateClient(clientId.value, payload);
     client.value = updated;
     toast.success('Cliente actualizado');
-  } catch (err: any) {
-    toast.error('Error guardando cliente', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error guardando cliente', { description: errorMessage(err) });
   } finally {
     saving.value = false;
   }
@@ -245,12 +249,13 @@ async function addContact() {
     return;
   }
   try {
-    await crm.createContact(clientId.value, { ...contactForm.value });
+    const payload: ContactPayload = { ...contactForm.value };
+    await crm.createContact(clientId.value, payload);
     toast.success('Contacto creado');
     contactForm.value = { name: '', position: '', email: '', phone: '', isPrimary: false };
     await loadContacts();
-  } catch (err: any) {
-    toast.error('Error creando contacto', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error creando contacto', { description: errorMessage(err) });
   }
 }
 
@@ -260,8 +265,8 @@ async function removeContact(id: number | string) {
     await crm.deleteContact(id);
     toast.success('Contacto eliminado');
     await loadContacts();
-  } catch (err: any) {
-    toast.error('Error eliminando contacto', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error eliminando contacto', { description: errorMessage(err) });
   }
 }
 
@@ -271,10 +276,11 @@ async function addInteraction() {
     return;
   }
   try {
-    await crm.createInteraction(clientId.value, {
+    const payload: InteractionPayload = {
       ...interactionForm.value,
       interactionDate: new Date(interactionForm.value.interactionDate).toISOString(),
-    });
+    };
+    await crm.createInteraction(clientId.value, payload);
     toast.success('Interacción creada');
     interactionForm.value = {
       type: 'call',
@@ -283,8 +289,8 @@ async function addInteraction() {
       interactionDate: new Date().toISOString().split('T')[0],
     };
     await loadInteractions();
-  } catch (err: any) {
-    toast.error('Error creando interacción', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error creando interacción', { description: errorMessage(err) });
   }
 }
 
@@ -294,8 +300,8 @@ async function removeInteraction(id: number | string) {
     await crm.deleteInteraction(id);
     toast.success('Interacción eliminada');
     await loadInteractions();
-  } catch (err: any) {
-    toast.error('Error eliminando interacción', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error eliminando interacción', { description: errorMessage(err) });
   }
 }
 
@@ -305,16 +311,17 @@ async function addProject() {
     return;
   }
   try {
-    await crm.createProject({
+    const payload: ProjectPayload = {
       ...projectForm.value,
       clientId: Number(clientId.value),
       price: projectForm.value.price ? Number(projectForm.value.price) : null,
-    });
+    };
+    await crm.createProject(payload);
     toast.success('Proyecto creado');
     projectForm.value = { name: '', type: 'consulting', price: '', status: 'pending', paymentStatus: 'pending' };
     await loadProjects();
-  } catch (err: any) {
-    toast.error('Error creando proyecto', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error creando proyecto', { description: errorMessage(err) });
   }
 }
 
@@ -324,8 +331,8 @@ async function removeProject(id: number | string) {
     await crm.deleteProject(id);
     toast.success('Proyecto eliminado');
     await loadProjects();
-  } catch (err: any) {
-    toast.error('Error eliminando proyecto', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error eliminando proyecto', { description: errorMessage(err) });
   }
 }
 

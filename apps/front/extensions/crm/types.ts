@@ -241,3 +241,23 @@ export interface DataTableRow<T = Record<string, unknown>> {
 export interface CellContext<T = Record<string, unknown>> {
   row: DataTableRow<T>;
 }
+
+// ─── App shell integration (plugins) ──────────────────────────────────
+// Shapes pushed into the shared app/nav useState by CRM plugins.
+
+export interface DashboardEntry {
+  id: string;
+  title: string;
+  componentName: string;
+}
+
+export interface NavMenuItem {
+  title: string;
+  icon: string;
+  link: string;
+}
+
+export interface NavMenuGroup {
+  heading: string;
+  items: NavMenuItem[];
+}

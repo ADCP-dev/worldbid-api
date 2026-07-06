@@ -36,8 +36,8 @@ async function loadMonitors() {
   try {
     const result = await getAutodmStatus(true);
     monitors.value = result.monitors ?? [];
-  } catch (err: any) {
-    toast.error('Error cargando monitores', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error cargando monitores', { description: err instanceof Error ? err.message : 'Error' });
   } finally {
     loading.value = false;
   }
@@ -67,29 +67,29 @@ async function handleStart() {
     isCreateModalOpen.value = false;
     createForm.value = { postUrl: '', replyMessage: '', monitoringInterval: 15, triggerKeywords: '' };
     await loadMonitors();
-  } catch (err: any) {
-    toast.error('Error iniciando monitor', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error iniciando monitor', { description: err instanceof Error ? err.message : 'Error' });
   }
 }
 
 async function handlePause(monitorId: string) {
   try { await pauseAutodm(monitorId); toast.success('Monitor pausado'); await loadMonitors(); }
-  catch (err: any) { toast.error(err.message); }
+  catch (err: unknown) { toast.error(err instanceof Error ? err.message : 'Error'); }
 }
 
 async function handleResume(monitorId: string) {
   try { await resumeAutodm(monitorId); toast.success('Monitor reanudado'); await loadMonitors(); }
-  catch (err: any) { toast.error(err.message); }
+  catch (err: unknown) { toast.error(err instanceof Error ? err.message : 'Error'); }
 }
 
 async function handleStop(monitorId: string) {
   try { await stopAutodm(monitorId); toast.success('Monitor detenido'); await loadMonitors(); }
-  catch (err: any) { toast.error(err.message); }
+  catch (err: unknown) { toast.error(err instanceof Error ? err.message : 'Error'); }
 }
 
 async function handleDelete(monitorId: string) {
   try { await deleteAutodm(monitorId); toast.success('Monitor eliminado'); await loadMonitors(); }
-  catch (err: any) { toast.error(err.message); }
+  catch (err: unknown) { toast.error(err instanceof Error ? err.message : 'Error'); }
 }
 
 async function handleLogs(monitorId: string) {
@@ -98,8 +98,8 @@ async function handleLogs(monitorId: string) {
   try {
     const result = await getAutodmLogs(monitorId);
     currentLogs.value = result.logs ?? [];
-  } catch (err: any) {
-    toast.error('Error cargando logs', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error cargando logs', { description: err instanceof Error ? err.message : 'Error' });
   } finally {
     logsLoading.value = false;
   }

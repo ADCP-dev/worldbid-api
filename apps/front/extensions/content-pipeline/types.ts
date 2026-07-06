@@ -140,6 +140,7 @@ export interface Draft {
   generationLog?: Record<string, unknown>;
   status?: string;
   reviewNotes?: string | null;
+  rejectionReason?: string | null;
   publishedTo?: Record<string, unknown>;
   publishedAt?: string | null;
   title?: string;

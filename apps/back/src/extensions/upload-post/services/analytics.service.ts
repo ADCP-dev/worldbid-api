@@ -87,7 +87,18 @@ export class AnalyticsService {
         if (platform === 'success' || platform === 'message') continue;
         if (!metrics || typeof metrics !== 'object') continue;
 
-        const m = metrics as any;
+        const m = metrics as {
+          followers?: number;
+          reach?: number;
+          views?: number;
+          impressions?: number;
+          likes?: number;
+          comments?: number;
+          shares?: number;
+          saves?: number;
+          profileViews?: number;
+          reach_timeseries?: Array<{ date: string; value: number }>;
+        };
 
         const row = existingMap.get(platform) ?? this.snapshotRepo.create({
           platform,
@@ -116,8 +127,10 @@ export class AnalyticsService {
       }
 
       this.logger.log(`Daily analytics snapshot saved (${saved} platforms)`);
-    } catch (err: any) {
-      this.logger.error(`Daily snapshot failed: ${err.message}`);
+    } catch (err: unknown) {
+      this.logger.error(
+        `Daily snapshot failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 

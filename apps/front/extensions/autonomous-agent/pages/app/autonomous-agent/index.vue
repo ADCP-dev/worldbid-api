@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { toast } from 'vue-sonner';
 import { Bot, Activity, CheckCircle, Play } from 'lucide-vue-next';
+import type { ConfigEntity, ProjectEntity, RunEntity } from '@/extensions/autonomous-agent/types';
 
 definePageMeta({
   layout: 'default',
@@ -12,9 +13,9 @@ const aa = useAutonomousAgent();
 const cp = useContentPipeline();
 
 const loading = ref(false);
-const configs = ref<any[]>([]);
-const runs = ref<any[]>([]);
-const projects = ref<any[]>([]);
+const configs = ref<ConfigEntity[]>([]);
+const runs = ref<RunEntity[]>([]);
+const projects = ref<ProjectEntity[]>([]);
 
 const activeConfigs = computed(() => configs.value.filter((c) => c.status === 'active'));
 
@@ -64,11 +65,13 @@ async function loadDashboard() {
       aa.getRuns(1, 50),
       cp.getProjects(1, 100).catch(() => ({ data: [] })),
     ]);
-    configs.value = configsRes.data ?? configsRes ?? [];
-    runs.value = runsRes.data ?? runsRes ?? [];
-    projects.value = projectsRes.data ?? projectsRes ?? [];
-  } catch (err: any) {
-    toast.error('Error loading dashboard', { description: err.message });
+    configs.value = 'data' in configsRes ? (configsRes.data ?? []) : (configsRes ?? []);
+    runs.value = 'data' in runsRes ? (runsRes.data ?? []) : (runsRes ?? []);
+    const pr = projectsRes as { data?: ProjectEntity[] } | ProjectEntity[];
+    projects.value = Array.isArray(pr) ? pr : (pr.data ?? []);
+  } catch (err: unknown) {
+    if (err instanceof Error) toast.error('Error loading dashboard', { description: err.message });
+    else toast.error('Error loading dashboard');
   } finally {
     loading.value = false;
   }

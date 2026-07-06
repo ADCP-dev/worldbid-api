@@ -1,6 +1,8 @@
+import type { NavMenuGroup } from '@/extensions/crm/types';
+
 export default defineNuxtPlugin(() => {
   const authStore = useAuthStore();
-  const menuItems = useState<any[]>('nav:menuItems', () => []);
+  const menuItems = useState<NavMenuGroup[]>('nav:menuItems', () => []);
 
   const addCrmMenu = () => {
     if (!authStore.isAdmin) return;
