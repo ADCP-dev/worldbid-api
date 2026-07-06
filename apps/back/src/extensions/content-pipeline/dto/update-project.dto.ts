@@ -9,12 +9,12 @@ import {
 } from 'class-validator';
 
 /**
- * Explicit update DTO — does NOT use PartialType(CreateProjectDto).
+ * Explicit update DTO — does NOT use PartialType(CreateCpProjectDto).
  * The `slug` field is intentionally omitted: slugs are immutable after
  * creation (they are used as stable identifiers by downstream CMS/social
  * integrations).
  */
-export class UpdateProjectDto {
+export class UpdateCpProjectDto {
   @ApiPropertyOptional({ example: 'Recipe Blog ES — updated' })
   @IsOptional()
   @IsString()

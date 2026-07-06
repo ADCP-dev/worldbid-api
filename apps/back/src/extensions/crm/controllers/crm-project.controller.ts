@@ -17,8 +17,8 @@ import { Roles } from '@iam/roles/roles.decorator';
 import { RoleEnum } from '@iam/roles/roles.enum';
 import { RolesGuard } from '@iam/roles/roles.guard';
 import { CrmProjectService } from '../services/crm-project.service';
-import { CreateProjectDto } from '../dto/create-project.dto';
-import { UpdateProjectDto } from '../dto/update-project.dto';
+import { CreateCrmProjectDto } from '../dto/create-project.dto';
+import { UpdateCrmProjectDto } from '../dto/update-project.dto';
 
 @ApiTags('CRM')
 @ApiBearerAuth()
@@ -43,12 +43,12 @@ export class CrmProjectController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() dto: CreateProjectDto) {
+  create(@Body() dto: CreateCrmProjectDto) {
     return this.projectService.create(dto);
   }
 
   @Patch(':id')
-  update(@Param('id') id: number, @Body() dto: UpdateProjectDto) {
+  update(@Param('id') id: number, @Body() dto: UpdateCrmProjectDto) {
     return this.projectService.update(Number(id), dto);
   }
 

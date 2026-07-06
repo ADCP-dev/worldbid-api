@@ -24,7 +24,7 @@ import { CreateIdeaDto } from '@ext/content-pipeline/dto/create-idea.dto';
 import { UpdateIdeaDto } from '@ext/content-pipeline/dto/update-idea.dto';
 import { FindAllIdeaDto } from '@ext/content-pipeline/dto/find-all-idea.dto';
 import { UpdateIdeaStatusDto } from '@ext/content-pipeline/dto/update-idea-status.dto';
-import { ReorderIdeasDto } from '@ext/content-pipeline/dto/reorder-ideas.dto';
+import { ReorderCpIdeasDto } from '@ext/content-pipeline/dto/reorder-ideas.dto';
 
 @ApiTags('Content-Pipeline')
 @ApiBearerAuth()
@@ -96,7 +96,7 @@ export class IdeaController {
 
   @Post('ideas/reorder')
   @HttpCode(HttpStatus.OK)
-  reorder(@Body() dto: ReorderIdeasDto) {
+  reorder(@Body() dto: ReorderCpIdeasDto) {
     return this.ideaService.reorder(dto.orderedIds);
   }
 

@@ -2,8 +2,8 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CrmProjectEntity } from '../infrastructure/persistence/entities/crm-project.entity';
-import { CreateProjectDto } from '../dto/create-project.dto';
-import { UpdateProjectDto } from '../dto/update-project.dto';
+import { CreateCrmProjectDto } from '../dto/create-project.dto';
+import { UpdateCrmProjectDto } from '../dto/update-project.dto';
 
 @Injectable()
 export class CrmProjectService {
@@ -45,7 +45,7 @@ export class CrmProjectService {
     return project;
   }
 
-  async create(dto: CreateProjectDto): Promise<CrmProjectEntity> {
+  async create(dto: CreateCrmProjectDto): Promise<CrmProjectEntity> {
     const project = this.repository.create(dto);
     const saved = await this.repository.save(project);
     this.logger.log(
@@ -54,7 +54,7 @@ export class CrmProjectService {
     return saved;
   }
 
-  async update(id: number, dto: UpdateProjectDto): Promise<CrmProjectEntity> {
+  async update(id: number, dto: UpdateCrmProjectDto): Promise<CrmProjectEntity> {
     const project = await this.findOne(id);
     Object.assign(project, dto);
     const saved = await this.repository.save(project);

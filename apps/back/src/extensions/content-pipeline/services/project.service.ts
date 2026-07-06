@@ -7,8 +7,8 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, ILike } from 'typeorm';
 import { ContentPipelineProjectEntity } from '@ext/content-pipeline/infrastructure/persistence/entities/project.entity';
-import { CreateProjectDto } from '@ext/content-pipeline/dto/create-project.dto';
-import { UpdateProjectDto } from '@ext/content-pipeline/dto/update-project.dto';
+import { CreateCpProjectDto } from '@ext/content-pipeline/dto/create-project.dto';
+import { UpdateCpProjectDto } from '@ext/content-pipeline/dto/update-project.dto';
 import { FindAllProjectDto } from '@ext/content-pipeline/dto/find-all-project.dto';
 
 @Injectable()
@@ -79,7 +79,7 @@ export class ProjectService {
     return project;
   }
 
-  async create(dto: CreateProjectDto): Promise<ContentPipelineProjectEntity> {
+  async create(dto: CreateCpProjectDto): Promise<ContentPipelineProjectEntity> {
     const existing = await this.repo.findOne({ where: { slug: dto.slug } });
     if (existing) {
       throw new ConflictException(`Project slug "${dto.slug}" already exists`);
@@ -98,7 +98,7 @@ export class ProjectService {
 
   async update(
     id: string,
-    dto: UpdateProjectDto,
+    dto: UpdateCpProjectDto,
   ): Promise<ContentPipelineProjectEntity> {
     const project = await this.findById(id);
     Object.assign(project, dto);

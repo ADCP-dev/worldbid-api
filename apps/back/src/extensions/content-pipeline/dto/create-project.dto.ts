@@ -9,7 +9,7 @@ import {
   MinLength,
 } from 'class-validator';
 
-export class CreateProjectDto {
+export class CreateCpProjectDto {
   @ApiProperty({ example: 'Recipe Blog ES' })
   @IsString()
   @MinLength(2)

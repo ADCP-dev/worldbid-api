@@ -17,8 +17,8 @@ import { Roles } from '@iam/roles/roles.decorator';
 import { RoleEnum } from '@iam/roles/roles.enum';
 import { RolesGuard } from '@iam/roles/roles.guard';
 import { ProjectService } from '@ext/content-pipeline/services/project.service';
-import { CreateProjectDto } from '@ext/content-pipeline/dto/create-project.dto';
-import { UpdateProjectDto } from '@ext/content-pipeline/dto/update-project.dto';
+import { CreateCpProjectDto } from '@ext/content-pipeline/dto/create-project.dto';
+import { UpdateCpProjectDto } from '@ext/content-pipeline/dto/update-project.dto';
 import { FindAllProjectDto } from '@ext/content-pipeline/dto/find-all-project.dto';
 
 @ApiTags('Content-Pipeline')
@@ -41,12 +41,12 @@ export class ProjectController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() dto: CreateProjectDto) {
+  create(@Body() dto: CreateCpProjectDto) {
     return this.projectService.create(dto);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateProjectDto) {
+  update(@Param('id') id: string, @Body() dto: UpdateCpProjectDto) {
     return this.projectService.update(id, dto);
   }
 

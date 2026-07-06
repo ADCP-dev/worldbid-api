@@ -10,7 +10,7 @@ import {
   IsString,
 } from 'class-validator';
 
-export class CreateProjectDto {
+export class CreateCrmProjectDto {
   @ApiProperty({ example: 1, type: Number })
   @IsNotEmpty()
   @IsInt()

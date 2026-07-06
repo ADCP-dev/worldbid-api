@@ -110,7 +110,7 @@ export class UpdateContentIdeaDto {
   scheduledAt?: string;
 }
 
-export class ReorderIdeasDto {
+export class ReorderUpIdeasDto {
   @ApiProperty({ type: [String], description: 'Ordered array of idea IDs' })
   @IsArray()
   @IsString({ each: true })

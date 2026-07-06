@@ -19,7 +19,7 @@ import { ContentIdeasService } from '@ext/upload-post/services/content-ideas.ser
 import {
   CreateContentIdeaDto,
   UpdateContentIdeaDto,
-  ReorderIdeasDto,
+  ReorderUpIdeasDto,
 } from '@ext/upload-post/dto/content-idea.dto';
 import { UpdateContentIdeaStatusDto } from '@ext/upload-post/dto/update-content-idea-status.dto';
 
@@ -63,7 +63,7 @@ export class ContentIdeasController {
 
   @Post('reorder')
   @HttpCode(HttpStatus.OK)
-  reorder(@Body() dto: ReorderIdeasDto) {
+  reorder(@Body() dto: ReorderUpIdeasDto) {
     return this.ideasService.reorder(dto.orderedIds);
   }
 
