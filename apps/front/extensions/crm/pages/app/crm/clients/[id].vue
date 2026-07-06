@@ -5,6 +5,23 @@ import FormInput from '@base/ui-app/components/form/FormInput.vue';
 import FormSelect from '@base/ui-app/components/form/FormSelect.vue';
 import FormTextArea from '@base/ui-app/components/form/FormTextArea.vue';
 import FormSwitch from '@base/ui-app/components/form/FormSwitch.vue';
+import type {
+  Client,
+  ClientPayload,
+  Contact,
+  ContactPayload,
+  Interaction,
+  InteractionPayload,
+  InteractionType,
+  Origin,
+  PaginatedResponse,
+  Project,
+  ProjectPayload,
+  ProjectStatus,
+  ProjectType,
+  PaymentStatus,
+  Status,
+} from '@crm/types';
 
 definePageMeta({
   layout: 'default',
@@ -18,9 +35,9 @@ const clientId = computed(() => route.params.id as string);
 
 const loading = ref(false);
 const saving = ref(false);
-const client = ref<any>(null);
-const statuses = ref<any[]>([]);
-const origins = ref<any[]>([]);
+const client = ref<Client | null>(null);
+const statuses = ref<Status[]>([]);
+const origins = ref<Origin[]>([]);
 
 const activeTab = ref<'data' | 'contacts' | 'interactions' | 'projects'>('data');
 
@@ -42,7 +59,7 @@ const form = ref({
 });
 
 // Contacts
-const contacts = ref<any[]>([]);
+const contacts = ref<Contact[]>([]);
 const contactForm = ref({
   name: '',
   position: '',
@@ -52,22 +69,22 @@ const contactForm = ref({
 });
 
 // Interactions
-const interactions = ref<any[]>([]);
+const interactions = ref<Interaction[]>([]);
 const interactionForm = ref({
-  type: 'call',
+  type: 'call' as InteractionType,
   subject: '',
   body: '',
   interactionDate: new Date().toISOString().split('T')[0],
 });
 
 // Projects
-const projects = ref<any[]>([]);
+const projects = ref<Project[]>([]);
 const projectForm = ref({
   name: '',
-  type: 'consulting',
+  type: 'consulting' as ProjectType,
   price: '' as string | number,
-  status: 'pending',
-  paymentStatus: 'pending',
+  status: 'pending' as ProjectStatus,
+  paymentStatus: 'pending' as PaymentStatus,
 });
 
 const PROJECT_STATUS_LABELS: Record<string, string> = {

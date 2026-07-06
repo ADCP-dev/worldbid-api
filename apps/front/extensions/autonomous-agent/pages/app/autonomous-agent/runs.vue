@@ -4,6 +4,7 @@ import { toast } from 'vue-sonner';
 import DataTable from '@base/ui-app/components/data-table/DataTable.vue';
 import FormSelect from '@base/ui-app/components/form/FormSelect.vue';
 import { useTableStateStore } from '@base/ui-app/stores/useTableState';
+import type { RunEntity, ProjectEntity, PaginatedResponse, CellContext, DataTableRow } from '../../../types';
 
 definePageMeta({
   layout: 'default',
@@ -15,14 +16,14 @@ const cp = useContentPipeline();
 const tableStateStore = useTableStateStore();
 
 const loading = ref(false);
-const runs = ref<any[]>([]);
+const runs = ref<RunEntity[]>([]);
 const total = ref(0);
-const projects = ref<any[]>([]);
+const projects = ref<ProjectEntity[]>([]);
 
 const tableName = 'autonomous-agent-runs';
 
 const tableState = computed(() => {
-  const raw = (tableStateStore as Record<string, any>)[tableName] || {};
+  const raw = (tableStateStore as Record<string, unknown>)[tableName] as Record<string, unknown> | undefined || {};
   return {
     pageIndex: typeof raw.pageIndex === 'number' ? raw.pageIndex : 0,
     pageSize: typeof raw.pageSize === 'number' ? raw.pageSize : 10,
@@ -77,7 +78,7 @@ const columns = computed(() => [
     headerName: 'Type',
     header: 'Type',
     filterType: 'string' as const,
-    cell: ({ row }: any) =>
+    cell: ({ row }: CellContext<RunEntity>) =>
       h('span', { class: 'font-medium capitalize' }, row.original.runType || '—'),
   },
   {
@@ -86,7 +87,7 @@ const columns = computed(() => [
     header: 'Status',
     filterType: 'select' as const,
     options: statusOptions,
-    cell: ({ row }: any) => {
+    cell: ({ row }: CellContext<RunEntity>) => {
       const s = row.original.status;
       const cls: Record<string, string> = {
         running: 'badge-info',
@@ -103,7 +104,7 @@ const columns = computed(() => [
     headerName: 'Started',
     header: 'Started',
     filterType: 'date' as const,
-    cell: ({ row }: any) =>
+    cell: ({ row }: CellContext<RunEntity>) =>
       row.original.startedAt
         ? new Date(row.original.startedAt).toLocaleString('en-US', {
             day: '2-digit',
@@ -119,24 +120,24 @@ const columns = computed(() => [
     header: 'Duration',
     filterType: 'string' as const,
     enableColumnFilter: false,
-    cell: ({ row }: any) =>
-      formatDuration(row.original.startedAt, row.original.endedAt),
+    cell: ({ row }: CellContext<RunEntity>) =>
+      formatDuration(row.original.startedAt, row.original.finishedAt ?? undefined),
   },
   {
     accessorKey: 'projectId',
     headerName: 'Project',
     header: 'Project',
     filterType: 'string' as const,
-    cell: ({ row }: any) => projectName(row.original.projectId),
+    cell: ({ row }: CellContext<RunEntity>) => projectName(row.original.projectId ?? ''),
   },
 ]);
 
 async function loadProjects() {
   try {
-    const res: any = await cp.getProjects(1, 200);
-    projects.value = res.data ?? res ?? [];
-  } catch (err: any) {
-    toast.error('Error loading projects', { description: err.message });
+    const res = await cp.getProjects(1, 200) as PaginatedResponse<ProjectEntity> | ProjectEntity[];
+    projects.value = (res as PaginatedResponse<ProjectEntity>).data ?? (res as ProjectEntity[]) ?? [];
+  } catch (err: unknown) {
+    toast.error('Error loading projects', { description: err instanceof Error ? err.message : 'Error' });
   }
 }
 
@@ -144,14 +145,14 @@ async function loadRuns() {
   loading.value = true;
   try {
     const s = tableState.value;
-    const res: any = await aa.getRuns(s.pageIndex + 1, s.pageSize, {
+    const res = await aa.getRuns(s.pageIndex + 1, s.pageSize, {
       status: statusFilter.value || undefined,
       runType: runTypeFilter.value || undefined,
-    });
-    runs.value = res.data ?? res ?? [];
-    total.value = res.total ?? runs.value.length;
-  } catch (err: any) {
-    toast.error('Error loading runs', { description: err.message });
+    }) as PaginatedResponse<RunEntity> | RunEntity[];
+    runs.value = (res as PaginatedResponse<RunEntity>).data ?? (res as RunEntity[]) ?? [];
+    total.value = (res as PaginatedResponse<RunEntity>).total ?? runs.value.length;
+  } catch (err: unknown) {
+    toast.error('Error loading runs', { description: err instanceof Error ? err.message : 'Error' });
   } finally {
     loading.value = false;
   }
@@ -206,7 +207,7 @@ watch([statusFilter, runTypeFilter], () => {
           :total="total"
           manual
           :table-name="tableName"
-          @row-click="(row: any) => navigateTo(`/app/autonomous-agent/runs/${row.id}`)"
+          @row-click="(row: DataTableRow<RunEntity>) => navigateTo(`/app/autonomous-agent/runs/${row.id}`)"
         />
       </div>
     </div>

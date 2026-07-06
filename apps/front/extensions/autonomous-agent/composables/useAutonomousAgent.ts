@@ -17,11 +17,13 @@ function useApi() {
     if (authStore.token) {
       headers.Authorization = `Bearer ${authStore.token}`;
     }
-    const fetchOptions: Record<string, unknown> = {
-      ...options,
-      headers,
-    };
-    const res = await $fetch<T>(`${baseUrl}${apiPrefix}${path}`, fetchOptions as Parameters<typeof $fetch<T>>[1]);
+    const res = await $fetch<T>(
+      `${baseUrl}${apiPrefix}${path}`,
+      {
+        ...options,
+        headers,
+      } as Parameters<typeof $fetch<T>>[1],
+    );
     return res as T;
   }
 

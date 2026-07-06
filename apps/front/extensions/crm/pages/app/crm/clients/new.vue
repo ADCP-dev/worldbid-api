@@ -4,6 +4,7 @@ import { toast } from 'vue-sonner';
 import FormInput from '@base/ui-app/components/form/FormInput.vue';
 import FormSelect from '@base/ui-app/components/form/FormSelect.vue';
 import FormTextArea from '@base/ui-app/components/form/FormTextArea.vue';
+import type { Client, ClientPayload, Origin, Status } from '@crm/types';
 
 definePageMeta({
   layout: 'default',
@@ -13,8 +14,8 @@ definePageMeta({
 const crm = useCrm();
 
 const saving = ref(false);
-const statuses = ref<any[]>([]);
-const origins = ref<any[]>([]);
+const statuses = ref<Status[]>([]);
+const origins = ref<Origin[]>([]);
 
 const form = ref({
   name: '',
@@ -34,21 +35,25 @@ const form = ref({
 
 const statusOptions = computed(() => [
   { label: 'Sin estado', value: '' },
-  ...statuses.value.map((s: any) => ({ label: s.label, value: s.id })),
+  ...statuses.value.map((s) => ({ label: s.label, value: s.id })),
 ]);
 
 const originOptions = computed(() => [
   { label: 'Sin origen', value: '' },
-  ...origins.value.map((o: any) => ({ label: o.label, value: o.id })),
+  ...origins.value.map((o) => ({ label: o.label, value: o.id })),
 ]);
+
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
 
 async function loadFilters() {
   try {
     const [stat, orig] = await Promise.all([crm.getStatuses(), crm.getOrigins()]);
     statuses.value = stat;
     origins.value = orig;
-  } catch (err: any) {
-    toast.error('Error cargando filtros', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error cargando filtros', { description: errorMessage(err) });
   }
 }
 
@@ -59,12 +64,12 @@ async function submit() {
   }
   saving.value = true;
   try {
-    const payload: Record<string, any> = { ...form.value };
+    const payload: ClientPayload = { ...form.value };
     if (payload.statusId === '') payload.statusId = null;
     if (payload.originId === '') payload.originId = null;
-    if (payload.metadata) {
+    if (form.value.metadata) {
       try {
-        payload.metadata = JSON.parse(payload.metadata);
+        payload.metadata = JSON.parse(form.value.metadata);
       } catch {
         toast.error('Metadata JSON inválido');
         saving.value = false;
@@ -73,11 +78,11 @@ async function submit() {
     } else {
       payload.metadata = null;
     }
-    const client: any = await crm.createClient(payload);
+    const client: Client = await crm.createClient(payload);
     toast.success('Cliente creado');
     navigateTo(`/app/crm/clients/${client.id}`);
-  } catch (err: any) {
-    toast.error('Error creando cliente', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error creando cliente', { description: errorMessage(err) });
   } finally {
     saving.value = false;
   }

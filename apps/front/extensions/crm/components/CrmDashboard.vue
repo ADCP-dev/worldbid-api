@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { toast } from 'vue-sonner';
+import type { DashboardData, OriginCount, Status, StatusCount } from '@crm/types';
 
 const crm = useCrm();
 
 const loading = ref(false);
-const dashboard = ref<any>(null);
-const statuses = ref<any[]>([]);
+const dashboard = ref<DashboardData | null>(null);
+const statuses = ref<Status[]>([]);
 
 const kpis = computed(() => {
   if (!dashboard.value) return [];
@@ -14,12 +15,12 @@ const kpis = computed(() => {
     { label: 'Total clientes', value: dashboard.value.totalClients ?? 0, color: 'text-primary' },
     {
       label: 'En discovery',
-      value: (dashboard.value.clientsByStatus ?? []).find((s: any) => s.statusName === 'discovery')?.count ?? 0,
+      value: (dashboard.value.clientsByStatus ?? []).find((s: StatusCount) => s.statusName === 'discovery')?.count ?? 0,
       color: 'text-info',
     },
     {
       label: 'Propuestas',
-      value: (dashboard.value.clientsByStatus ?? []).find((s: any) => s.statusName === 'proposal')?.count ?? 0,
+      value: (dashboard.value.clientsByStatus ?? []).find((s: StatusCount) => s.statusName === 'proposal')?.count ?? 0,
       color: 'text-warning',
     },
     { label: 'Clientes activos', value: dashboard.value.activeClients ?? 0, color: 'text-success' },
@@ -29,9 +30,9 @@ const kpis = computed(() => {
 const pipeline = computed(() => dashboard.value?.clientsByStatus ?? []);
 
 const originsList = computed(() => {
-  const list = dashboard.value?.clientsByOrigin ?? [];
-  const max = Math.max(...list.map((o: any) => o.count), 1);
-  return list.map((o: any) => ({ ...o, pct: Math.round((o.count / max) * 100) }));
+  const list: OriginCount[] = dashboard.value?.clientsByOrigin ?? [];
+  const max = Math.max(...list.map((o: OriginCount) => o.count), 1);
+  return list.map((o: OriginCount) => ({ ...o, pct: Math.round((o.count / max) * 100) }));
 });
 
 const projectsByStatus = computed(() => dashboard.value?.projectsByStatus ?? []);
@@ -44,8 +45,9 @@ async function loadDashboard() {
     const [dash, stat] = await Promise.all([crm.getDashboard(), crm.getStatuses()]);
     dashboard.value = dash;
     statuses.value = stat;
-  } catch (err: any) {
-    toast.error('Error cargando dashboard', { description: err.message });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    toast.error('Error cargando dashboard', { description: msg });
   } finally {
     loading.value = false;
   }
