@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateSubscriptionDto {
   @ApiProperty({ example: 'uuid-plan-id', type: String })
@@ -7,8 +7,8 @@ export class CreateSubscriptionDto {
   @IsString()
   planId: string;
 
-  @ApiPropertyOptional({ example: 'incomplete', type: String })
+  @ApiPropertyOptional({ example: 'incomplete', enum: ['active', 'past_due', 'canceled', 'incomplete', 'trialing'] })
   @IsOptional()
-  @IsString()
+  @IsEnum(['active', 'past_due', 'canceled', 'incomplete', 'trialing'])
   status?: string;
 }

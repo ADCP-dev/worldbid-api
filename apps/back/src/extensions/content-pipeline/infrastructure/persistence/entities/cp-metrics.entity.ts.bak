@@ -1,0 +1,54 @@
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  Index,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
+import { EntityRelationalHelper } from '@infra/utils/relational-entity-helper';
+import { CpProjectEntity } from './cp-project.entity';
+import { CpDraftEntity } from './cp-draft.entity';
+
+@Entity('ext_cp_metrics')
+@Index(['draftId'])
+@Index(['projectId'])
+@Index(['snapshotDate'])
+export class CpMetricsEntity extends EntityRelationalHelper {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column({ type: 'uuid', nullable: true })
+  draftId: string | null;
+
+  @ManyToOne(() => CpDraftEntity, {
+    eager: false,
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'draftId' })
+  draft: CpDraftEntity | null;
+
+  @Column({ type: 'uuid' })
+  projectId: string;
+
+  @ManyToOne(() => CpProjectEntity, {
+    eager: false,
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'projectId' })
+  project: CpProjectEntity;
+
+  @Column({ type: 'varchar', length: 50 })
+  platform: string; // 'blog' | 'instagram' | 'tiktok' | 'pinterest' | ...
+
+  @Column({ type: 'date' })
+  snapshotDate: string;
+
+  @Column({ type: 'jsonb', default: {} })
+  metrics: Record<string, unknown>; // { views, clicks, engagement, affiliateClicks, ... }
+
+  @CreateDateColumn()
+  createdAt: Date;
+}

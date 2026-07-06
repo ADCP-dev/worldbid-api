@@ -9,6 +9,7 @@ import {
   UseGuards,
   HttpStatus,
   HttpCode,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags, ApiParam } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
@@ -41,8 +42,14 @@ export class SubscriptionsController {
   @Get(':id')
   @ApiBearerAuth()
   @ApiParam({ name: 'id', type: String })
-  findById(@Param('id') id: string) {
-    return this.subscriptionsService.findById(id);
+  async findById(@UserId() userId: number, @Param('id') id: string) {
+    const subscription = await this.subscriptionsService.findById(id);
+    if (subscription.userId !== userId) {
+      throw new ForbiddenException(
+        'You do not have access to this subscription',
+      );
+    }
+    return subscription;
   }
 
   @Post()
@@ -59,7 +66,13 @@ export class SubscriptionsController {
   @ApiParam({ name: 'id', type: String })
   @UseGuards(PlanGuard)
   @RequiredFeature('subscription')
-  resume(@Param('id') id: string) {
+  async resume(@UserId() userId: number, @Param('id') id: string) {
+    const subscription = await this.subscriptionsService.findById(id);
+    if (subscription.userId !== userId) {
+      throw new ForbiddenException(
+        'You do not have access to this subscription',
+      );
+    }
     return this.subscriptionsService.resume(id);
   }
 
@@ -69,7 +82,13 @@ export class SubscriptionsController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(PlanGuard)
   @RequiredFeature('subscription')
-  cancel(@Param('id') id: string) {
+  async cancel(@UserId() userId: number, @Param('id') id: string) {
+    const subscription = await this.subscriptionsService.findById(id);
+    if (subscription.userId !== userId) {
+      throw new ForbiddenException(
+        'You do not have access to this subscription',
+      );
+    }
     return this.subscriptionsService.cancel(id);
   }
 }

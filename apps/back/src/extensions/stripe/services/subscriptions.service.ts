@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SubscriptionEntity } from '../infrastructure/persistence/entities/subscription.entity';
@@ -74,6 +74,10 @@ export class SubscriptionsService {
   }
 
   async updateStatus(id: string, status: string): Promise<SubscriptionEntity> {
+    const VALID_STATUSES = ['active', 'past_due', 'canceled', 'incomplete', 'trialing'];
+    if (!VALID_STATUSES.includes(status)) {
+      throw new BadRequestException(`Invalid status: ${status}`);
+    }
     const subscription = await this.findById(id);
     subscription.status = status;
     return this.subscriptionRepository.save(subscription);

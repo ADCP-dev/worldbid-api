@@ -13,4 +13,5 @@ export type AppConfig = {
   cdnBaseUrl?: string;
   openRouterApiKey?: string;
   translationModel?: string;
+  notificationEmail?: string;
 };

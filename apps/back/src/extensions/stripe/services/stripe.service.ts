@@ -53,7 +53,7 @@ export class StripeService {
 
     const customer = await this.stripe!.customers.create({
       email: user.email as string,
-      name: user.firstName + ' ' + user.lastName || undefined,
+      name: [user.firstName, user.lastName].filter(Boolean).join(' ') || undefined,
       metadata: {
         userId: userId.toString(),
       },
@@ -372,7 +372,7 @@ export class StripeService {
         return;
       }
 
-      const userId = parseInt(customer.metadata?.userId);
+      const userId = parseInt(customer.metadata?.userId, 10);
       if (!userId) {
         this.logger.error(
           `No userId found in customer metadata for ${subscription.customer}`,

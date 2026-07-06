@@ -62,6 +62,20 @@ export class ExtensionLoaderModule {
       };
     }
 
+    // Phase 3b: Collect extensions with missing dependencies (warnings) — skip them
+    const missingDepConflicts = conflicts.filter(
+      (c) => c.type === 'missing_dependency' && c.severity === 'warning',
+    );
+    const skipDueToMissingDeps = new Set<string>();
+    for (const c of missingDepConflicts) {
+      // Use structured `extension` field if available; fall back to regex for backward compat
+      const extName = c.extension ?? c.detail.match(/Extension "([^"]+)"/)?.[1];
+      if (extName) {
+        skipDueToMissingDeps.add(extName);
+        logger.warn(`⏭️  Skipping extension "${extName}" due to missing dependency`);
+      }
+    }
+
     // Phase 4: Resolve dependency order (topological sort)
     const { ordered: orderedManifests } = resolveDependencies(manifests);
 
@@ -71,6 +85,12 @@ export class ExtensionLoaderModule {
     // First: load extensions that have manifests (in resolved order)
     for (const manifest of orderedManifests) {
       const extName = manifest.name;
+
+      // Skip extensions with missing dependencies
+      if (skipDueToMissingDeps.has(extName)) {
+        continue;
+      }
+
       const dirEntry = dirs.find((d) => d.name === extName);
       if (!dirEntry) continue;
 

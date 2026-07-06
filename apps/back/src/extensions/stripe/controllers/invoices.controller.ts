@@ -5,6 +5,7 @@ import {
   UseGuards,
   Res,
   Logger,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags, ApiParam } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
@@ -12,6 +13,7 @@ import { Response } from 'express';
 import { StripeService } from '@ext/stripe/services/stripe.service';
 import { PdfInvoiceService } from '@ext/stripe/services/pdf-invoice.service';
 import { UserId } from '@iam/auth/decorators/current-user.decorator';
+import { UsersService } from '@users/users.service';
 
 @ApiTags('Stripe')
 @Controller({
@@ -25,6 +27,7 @@ export class InvoicesController {
   constructor(
     private readonly stripeService: StripeService,
     private readonly pdfInvoiceService: PdfInvoiceService,
+    private readonly usersService: UsersService,
   ) {}
 
   @Get()
@@ -42,6 +45,7 @@ export class InvoicesController {
   @ApiBearerAuth()
   @ApiParam({ name: 'id', type: String })
   async downloadInvoice(
+    @UserId() userId: number,
     @Param('id') id: string,
     @Res({ passthrough: false }) res: Response,
   ) {
@@ -50,6 +54,23 @@ export class InvoicesController {
       if (!invoice) {
         res.status(404).json({ message: 'Invoice not found' });
         return;
+      }
+
+      // IDOR protection: verify the invoice belongs to the authenticated user
+      const user = await this.usersService.findById(userId);
+      const userStripeCustomerId = user?.stripeCustomerId ?? null;
+      const invoiceCustomer =
+        typeof invoice.customer === 'string'
+          ? invoice.customer
+          : (invoice.customer as any)?.id ?? null;
+      if (
+        !userStripeCustomerId ||
+        !invoiceCustomer ||
+        invoiceCustomer !== userStripeCustomerId
+      ) {
+        throw new ForbiddenException(
+          'You do not have access to this invoice',
+        );
       }
 
       const currency = invoice.currency ?? 'eur';

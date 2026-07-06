@@ -2,14 +2,16 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  OneToOne,
+  ManyToOne,
   JoinColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 import { ProductEntity } from './product.entity';
 
 @Entity('ext_stripe_price')
+@Index(['productId'])
 export class PriceEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -20,7 +22,7 @@ export class PriceEntity {
   @Column()
   productId: string;
 
-  @OneToOne(() => ProductEntity)
+  @ManyToOne(() => ProductEntity, { eager: false })
   @JoinColumn({ name: 'productId' })
   product: ProductEntity;
 

@@ -5,7 +5,6 @@ import { useI18n } from 'vue-i18n';
 import { sanitizeRedirect } from '@base/auth/utils/redirect'
 
 const { t } = useI18n()
-const router = useRouter()
 const authStore = useAuthStore()
 const localePath = useLocalePath()
 const route = useRoute()

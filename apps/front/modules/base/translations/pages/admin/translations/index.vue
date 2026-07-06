@@ -1,4 +1,9 @@
 <script setup lang="ts">
+definePageMeta({
+  layout: 'default',
+  middleware: ['auth', 'admin'],
+});
+
 import { useTranslations } from "../../../composables/useTranslations";
 import { ref, onMounted, computed, h } from "vue";
 import DataTable from "@/modules/base/ui-app/components/data-table/DataTable.vue";

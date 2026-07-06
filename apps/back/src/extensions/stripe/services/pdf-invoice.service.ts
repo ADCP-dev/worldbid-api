@@ -41,12 +41,18 @@ export class PdfInvoiceService {
     doc.text(`Vencimiento: ${data.dueDate}`, 50);
 
     // Company info
+    const companyName = process.env.COMPANY_NAME || 'Ikiraisolutions';
+    const companyCif = process.env.COMPANY_CIF || '';
+    const companyAddress = process.env.COMPANY_ADDRESS || '';
     doc.fontSize(13).font('Helvetica-Bold').fillColor('#1f2937');
-    doc.text('Ikiraisolutions', 300, 50, { width: 245, align: 'right' });
+    doc.text(companyName, 300, 50, { width: 245, align: 'right' });
     doc.fontSize(9).font('Helvetica').fillColor('#374151');
-    doc.text('CIF: ES-00000000X', { width: 245, align: 'right' });
-    doc.text('Calle Ejemplo 123', { width: 245, align: 'right' });
-    doc.text('08001 Barcelona, España', { width: 245, align: 'right' });
+    if (companyCif) {
+      doc.text(`CIF: ${companyCif}`, { width: 245, align: 'right' });
+    }
+    if (companyAddress) {
+      doc.text(companyAddress, { width: 245, align: 'right' });
+    }
 
     // Line
     const lineY = doc.y + 15;

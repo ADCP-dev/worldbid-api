@@ -67,6 +67,10 @@ class EnvironmentVariablesValidator {
   @IsString()
   @IsOptional()
   TRANSLATION_MODEL: string;
+
+  @IsString()
+  @IsOptional()
+  NOTIFICATION_EMAIL: string;
 }
 
 export default registerAs<AppConfig>('app', () => {
@@ -91,5 +95,6 @@ export default registerAs<AppConfig>('app', () => {
     cdnBaseUrl: process.env.CDN_BASE_URL ?? process.env.BUNNY_CDN_URL,
     openRouterApiKey: process.env.OPENROUTER_API_KEY,
     translationModel: process.env.TRANSLATION_MODEL || 'openrouter/free',
+    notificationEmail: process.env.NOTIFICATION_EMAIL,
   };
 });

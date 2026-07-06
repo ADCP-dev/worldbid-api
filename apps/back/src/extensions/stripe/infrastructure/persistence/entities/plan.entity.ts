@@ -6,10 +6,12 @@ import {
   JoinColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 import { PriceEntity } from './price.entity';
 
 @Entity('ext_stripe_plan')
+@Index(['priceId'])
 export class PlanEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;

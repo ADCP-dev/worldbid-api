@@ -1,3 +1,5 @@
+import { buildLoginRedirectUrl } from "@base/auth/utils/redirect";
+
 export default defineNuxtRouteMiddleware(async (to) => {
   // Skip server-side execution — auth uses localStorage which is client-only
   if (import.meta.server) {
@@ -14,7 +16,17 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   // Check if user is authenticated
   if (!authStore.isAuthenticated) {
-    return navigateTo(localePath("/login") + "?redirect=" + encodeURIComponent(to.fullPath));
+    return navigateTo(buildLoginRedirectUrl(localePath("/login"), to.fullPath));
+  }
+
+  // Allow affiliate role to access /app/portal/*
+  if (authStore.user?.role?.name === "affiliate" && to.path.startsWith("/app/portal")) {
+    return; // Allow access
+  }
+
+  // Redirect affiliates to their portal instead of showing 403
+  if (authStore.user?.role?.name === 'affiliate') {
+    return navigateTo(localePath('/app/portal'));
   }
 
   // Check if user has admin role
@@ -30,10 +42,10 @@ export default defineNuxtRouteMiddleware(async (to) => {
     try {
       const result = await authStore.refreshAccessToken();
       if (!result.success) {
-        return navigateTo(localePath("/login") + "?redirect=" + encodeURIComponent(to.fullPath));
+        return navigateTo(buildLoginRedirectUrl(localePath("/login"), to.fullPath));
       }
     } catch (error) {
-      return navigateTo(localePath("/login") + "?redirect=" + encodeURIComponent(to.fullPath));
+      return navigateTo(buildLoginRedirectUrl(localePath("/login"), to.fullPath));
     }
   }
 });

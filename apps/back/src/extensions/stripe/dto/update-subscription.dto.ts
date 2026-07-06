@@ -1,10 +1,10 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsEnum, IsOptional } from 'class-validator';
 
 export class UpdateSubscriptionDto {
-  @ApiPropertyOptional({ example: 'active', type: String })
+  @ApiPropertyOptional({ example: 'active', enum: ['active', 'past_due', 'canceled', 'incomplete', 'trialing'] })
   @IsOptional()
-  @IsString()
+  @IsEnum(['active', 'past_due', 'canceled', 'incomplete', 'trialing'])
   status?: string;
 
   @ApiPropertyOptional({ example: false, type: Boolean })

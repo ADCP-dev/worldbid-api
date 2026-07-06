@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PriceEntity } from '../infrastructure/persistence/entities/price.entity';
 import { CreatePriceDto } from '../dto/create-price.dto';
+import { UpdatePriceDto } from '../dto/update-price.dto';
 
 @Injectable()
 export class PricesService {
@@ -23,7 +24,7 @@ export class PricesService {
     return this.priceRepository.save(price);
   }
 
-  async update(id: string, dto: Partial<CreatePriceDto>): Promise<PriceEntity> {
+  async update(id: string, dto: UpdatePriceDto): Promise<PriceEntity> {
     const price = await this.priceRepository.findOne({ where: { id } });
     if (!price) {
       throw new NotFoundException(`Price with ID ${id} not found`);
