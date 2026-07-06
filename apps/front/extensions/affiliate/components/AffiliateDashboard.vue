@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { toast } from 'vue-sonner';
+import type { AffiliateDashboardData } from '@affiliate/types';
 
 const affiliate = useAffiliate();
 
 const loading = ref(false);
-const dashboard = ref<any>(null);
+const dashboard = ref<AffiliateDashboardData | null>(null);
 
 const kpis = computed(() => {
   if (!dashboard.value) return [];
@@ -50,8 +51,9 @@ async function loadDashboard() {
   loading.value = true;
   try {
     dashboard.value = await affiliate.getAffiliateDashboard();
-  } catch (err: any) {
-    toast.error('Error cargando dashboard', { description: err.message });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    toast.error('Error cargando dashboard', { description: msg });
   } finally {
     loading.value = false;
   }

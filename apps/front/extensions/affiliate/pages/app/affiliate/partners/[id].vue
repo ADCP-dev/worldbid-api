@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue';
 import { toast } from 'vue-sonner';
 import FormInput from '@base/ui-app/components/form/FormInput.vue';
 import FormSwitch from '@base/ui-app/components/form/FormSwitch.vue';
+import type { Commission, PaginatedResponse, Partner, Referral, UpdatePartnerPayload } from '@affiliate/types';
 
 definePageMeta({
   layout: 'default',
@@ -17,9 +18,9 @@ const partnerId = computed(() => route.params.id as string);
 const loading = ref(false);
 const saving = ref(false);
 const inviting = ref(false);
-const partner = ref<any>(null);
-const referrals = ref<any[]>([]);
-const commissions = ref<any[]>([]);
+const partner = ref<Partner | null>(null);
+const referrals = ref<Referral[]>([]);
+const commissions = ref<Commission[]>([]);
 
 const activeTab = ref<'data' | 'referrals' | 'commissions'>('data');
 
@@ -69,6 +70,10 @@ function formatDate(date: string) {
   return new Date(date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 async function loadPartner() {
   loading.value = true;
   try {
@@ -81,8 +86,8 @@ async function loadPartner() {
     iban.value = data.iban || '';
     commissionRate.value = data.commissionRate ?? '';
     isActive.value = data.isActive ?? true;
-  } catch (err: any) {
-    toast.error('Error cargando partner', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error cargando partner', { description: errorMessage(err) });
   } finally {
     loading.value = false;
   }
@@ -90,19 +95,19 @@ async function loadPartner() {
 
 async function loadReferrals() {
   try {
-    const res: any = await affiliate.getReferrals(partnerId.value);
-    referrals.value = res.data ?? res ?? [];
-  } catch (err: any) {
-    toast.error('Error cargando referencias', { description: err.message });
+    const res: PaginatedResponse<Referral> | Referral[] = await affiliate.getReferrals(partnerId.value);
+    referrals.value = Array.isArray(res) ? res : (res.data ?? []);
+  } catch (err: unknown) {
+    toast.error('Error cargando referencias', { description: errorMessage(err) });
   }
 }
 
 async function loadCommissions() {
   try {
-    const res: any = await affiliate.getCommissions(partnerId.value);
-    commissions.value = res.data ?? res ?? [];
-  } catch (err: any) {
-    toast.error('Error cargando comisiones', { description: err.message });
+    const res: PaginatedResponse<Commission> | Commission[] = await affiliate.getCommissions(partnerId.value);
+    commissions.value = Array.isArray(res) ? res : (res.data ?? []);
+  } catch (err: unknown) {
+    toast.error('Error cargando comisiones', { description: errorMessage(err) });
   }
 }
 
@@ -113,7 +118,7 @@ async function savePartner() {
   }
   saving.value = true;
   try {
-    const payload: Record<string, any> = {
+    const payload: UpdatePartnerPayload = {
       name: name.value,
       companyName: companyName.value,
       email: email.value,
@@ -125,8 +130,8 @@ async function savePartner() {
     const updated = await affiliate.updatePartner(partnerId.value, payload);
     partner.value = updated;
     toast.success('Partner actualizado');
-  } catch (err: any) {
-    toast.error('Error guardando partner', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error guardando partner', { description: errorMessage(err) });
   } finally {
     saving.value = false;
   }
@@ -138,8 +143,8 @@ async function inviteToPortal() {
   try {
     await affiliate.invitePartner(partnerId.value);
     toast.success('Invitación enviada');
-  } catch (err: any) {
-    toast.error('Error enviando invitación', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error enviando invitación', { description: errorMessage(err) });
   } finally {
     inviting.value = false;
   }

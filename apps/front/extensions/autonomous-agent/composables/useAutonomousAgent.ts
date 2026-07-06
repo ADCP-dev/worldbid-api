@@ -4,21 +4,24 @@
  * All endpoints require admin role — backend enforces @Roles(RoleEnum.admin).
  */
 
+import type { ApiFetchOptions, PaginatedResponse } from '../types';
+
 function useApi() {
   const config = useRuntimeConfig();
   const authStore = useAuthStore();
   const baseUrl = config.public.apiUrl as string;
   const apiPrefix = (config.public.apiPrefix as string) || '/api/v1';
 
-  async function apiFetch<T>(path: string, options: any = {}): Promise<T> {
+  async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
     const headers: Record<string, string> = { ...options.headers };
     if (authStore.token) {
       headers.Authorization = `Bearer ${authStore.token}`;
     }
-    const res = await $fetch<T>(`${baseUrl}${apiPrefix}${path}`, {
+    const fetchOptions: Record<string, unknown> = {
       ...options,
       headers,
-    });
+    };
+    const res = await $fetch<T>(`${baseUrl}${apiPrefix}${path}`, fetchOptions as Parameters<typeof $fetch<T>>[1]);
     return res as T;
   }
 
@@ -31,12 +34,12 @@ export function useAutonomousAgent() {
   // ─── Configs ─────────────────────────────────────────────────────────
 
   async function getConfigs(page = 1, limit = 20, search?: string) {
-    const query: Record<string, any> = { page, limit };
+    const query: Record<string, unknown> = { page, limit };
     if (search) query.search = search;
     return apiFetch('/autonomous-agent/configs', { query });
   }
 
-  async function createConfig(data: Record<string, any>) {
+  async function createConfig(data: Record<string, unknown>) {
     return apiFetch('/autonomous-agent/configs', { method: 'POST', body: data });
   }
 
@@ -44,7 +47,7 @@ export function useAutonomousAgent() {
     return apiFetch(`/autonomous-agent/configs/${id}`);
   }
 
-  async function updateConfig(id: number | string, data: Record<string, any>) {
+  async function updateConfig(id: number | string, data: Record<string, unknown>) {
     return apiFetch(`/autonomous-agent/configs/${id}`, { method: 'PATCH', body: data });
   }
 
@@ -67,11 +70,11 @@ export function useAutonomousAgent() {
     limit = 20,
     filters?: { projectId?: string; runType?: string; status?: string },
   ) {
-    const query: Record<string, any> = { page, limit };
+    const query: Record<string, unknown> = { page, limit };
     if (filters?.projectId) query.projectId = filters.projectId;
     if (filters?.runType) query.runType = filters.runType;
     if (filters?.status) query.status = filters.status;
-    return apiFetch('/autonomous-agent/runs', { query });
+    return apiFetch<PaginatedResponse<unknown>>('/autonomous-agent/runs', { query });
   }
 
   async function getRun(id: number | string) {

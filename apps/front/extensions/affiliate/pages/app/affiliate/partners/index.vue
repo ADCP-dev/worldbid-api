@@ -4,6 +4,8 @@ import { toast } from 'vue-sonner';
 import DataTable from '@base/ui-app/components/data-table/DataTable.vue';
 import ViewButton from '@base/ui-app/components/data-table/buttons/ViewButton.vue';
 import { useTableStateStore } from '@base/ui-app/stores/useTableState';
+import type { CellContext, PaginatedResponse } from '@affiliate/types';
+import type { Partner } from '@affiliate/types';
 
 definePageMeta({
   layout: 'default',
@@ -14,13 +16,13 @@ const affiliate = useAffiliate();
 const tableStateStore = useTableStateStore();
 
 const loading = ref(false);
-const partners = ref<any[]>([]);
+const partners = ref<Partner[]>([]);
 const total = ref(0);
 
 const tableName = 'affiliate-partners';
 
 const tableState = computed(() => {
-  const raw = (tableStateStore as Record<string, any>)[tableName] || {};
+  const raw = (tableStateStore as unknown as Record<string, { pageIndex?: number; pageSize?: number; globalFilter?: string }>)[tableName] || {};
   return {
     pageIndex: typeof raw.pageIndex === 'number' ? raw.pageIndex : 0,
     pageSize: typeof raw.pageSize === 'number' ? raw.pageSize : 10,
@@ -32,6 +34,10 @@ function formatRate(rate: number) {
   return `${(rate ?? 0).toFixed(2)}%`;
 }
 
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 const columns = computed(() => [
   { accessorKey: 'name', headerName: 'Nombre', header: 'Nombre', filterType: 'string' as const },
   { accessorKey: 'companyName', headerName: 'Empresa', header: 'Empresa', filterType: 'string' as const },
@@ -41,14 +47,14 @@ const columns = computed(() => [
     headerName: 'Comisión',
     header: 'Comisión',
     filterType: 'string' as const,
-    cell: ({ row }: any) => formatRate(row.original.commissionRate),
+    cell: ({ row }: CellContext<Partner>) => formatRate(row.original.commissionRate),
   },
   {
     accessorKey: 'isActive',
     headerName: 'Activo',
     header: 'Activo',
     filterType: 'boolean' as const,
-    cell: ({ row }: any) => h(
+    cell: ({ row }: CellContext<Partner>) => h(
       'span',
       { class: ['badge', 'badge-sm', row.original.isActive ? 'badge-success' : 'badge-ghost'] },
       row.original.isActive ? 'Sí' : 'No',
@@ -59,7 +65,7 @@ const columns = computed(() => [
     headerName: 'Acciones',
     header: 'Acciones',
     enableSorting: false,
-    cell: ({ row }: any) => h(ViewButton, {
+    cell: ({ row }: CellContext<Partner>) => h(ViewButton, {
       ariaLabel: `Ver partner ${row.original.name}`,
       onClick: (e: Event) => {
         e.stopPropagation();
@@ -73,11 +79,12 @@ async function loadPartners() {
   loading.value = true;
   try {
     const s = tableState.value;
-    const res: any = await affiliate.getPartners(s.pageIndex + 1, s.globalFilter || undefined);
-    partners.value = res.data ?? res ?? [];
-    total.value = res.total ?? partners.value.length;
-  } catch (err: any) {
-    toast.error('Error cargando partners', { description: err.message });
+    const res: PaginatedResponse<Partner> | Partner[] = await affiliate.getPartners(s.pageIndex + 1, s.globalFilter || undefined);
+    const list = Array.isArray(res) ? res : (res.data ?? []);
+    partners.value = list;
+    total.value = Array.isArray(res) ? list.length : (res.total ?? list.length);
+  } catch (err: unknown) {
+    toast.error('Error cargando partners', { description: errorMessage(err) });
   } finally {
     loading.value = false;
   }
@@ -107,7 +114,7 @@ watch(tableState, () => {
           :total="total"
           manual
           :table-name="tableName"
-          @row-click="(row: any) => navigateTo(`/app/affiliate/partners/${row.id}`)"
+          @row-click="(row: Partner) => navigateTo(`/app/affiliate/partners/${row.id}`)"
         />
       </div>
     </div>

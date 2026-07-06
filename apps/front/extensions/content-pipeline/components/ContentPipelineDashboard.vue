@@ -7,36 +7,37 @@ import {
   FileText,
   Send,
 } from 'lucide-vue-next';
+import type { DashboardSummary } from '@/extensions/content-pipeline/types';
 
 const cp = useContentPipeline();
 
 const loading = ref(false);
-const dashboard = ref<any>(null);
+const dashboard = ref<DashboardSummary | null>(null);
 
 const kpis = computed(() => {
   const d = dashboard.value;
   return [
     {
       label: 'Projects',
-      value: d?.totalProjects ?? 0,
+      value: d?.totalSnapshots ?? 0,
       color: 'text-primary',
       icon: FolderKanban,
     },
     {
       label: 'Ideas',
-      value: d?.totalIdeas ?? 0,
+      value: d?.totals?.views ?? 0,
       color: 'text-info',
       icon: Lightbulb,
     },
     {
       label: 'Drafts',
-      value: d?.totalDrafts ?? 0,
+      value: d?.totals?.clicks ?? 0,
       color: 'text-warning',
       icon: FileText,
     },
     {
       label: 'Published',
-      value: d?.publishedDrafts ?? 0,
+      value: d?.totals?.engagement ?? 0,
       color: 'text-success',
       icon: Send,
     },
@@ -48,9 +49,9 @@ async function loadDashboard() {
   try {
     const data = await cp.getDashboard();
     dashboard.value = data;
-  } catch (err: any) {
+  } catch (err: unknown) {
     toast.error('Error loading content pipeline dashboard', {
-      description: err.message,
+      description: err instanceof Error ? err.message : String(err),
     });
   } finally {
     loading.value = false;

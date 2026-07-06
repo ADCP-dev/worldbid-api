@@ -1,6 +1,9 @@
-import { Injectable, Logger, ModuleRef } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { ContentPipelineDraftEntity } from '@ext/content-pipeline/infrastructure/persistence/entities/draft.entity';
 import { ContentPipelineProjectEntity } from '@ext/content-pipeline/infrastructure/persistence/entities/project.entity';
+import { BlogPostsService } from '@ext/cms/blog/posts/posts.service';
+import { UploadPostClientService } from '@ext/upload-post/services/upload-post-client.service';
 
 interface SocialVariant {
   platform: string;
@@ -8,6 +11,11 @@ interface SocialVariant {
   caption: string;
   hashtags: string[];
   mediaPrompt: string;
+}
+
+interface UploadPostResult {
+  request_id?: string;
+  id?: string;
 }
 
 export interface PublishResult {
@@ -31,35 +39,35 @@ export interface PublishResult {
 @Injectable()
 export class PublishingService {
   private readonly logger = new Logger(PublishingService.name);
-  private blogPostsService: any | null | undefined;
-  private uploadPostClient: any | null | undefined;
+  private blogPostsService: BlogPostsService | null | undefined;
+  private uploadPostClient: UploadPostClientService | null | undefined;
 
   constructor(private readonly moduleRef: ModuleRef) {}
 
   /** Lazily resolve the CMS BlogPostsService if the cms extension is loaded. */
-  private getBlogPostsService(): any | null {
-    if (this.blogPostsService !== undefined) return this.blogPostsService;
+  private getBlogPostsService(): BlogPostsService | null {
+    if (this.blogPostsService !== undefined) return this.blogPostsService ?? null;
     try {
-      this.blogPostsService = this.moduleRef.get('BlogPostsService', {
+      this.blogPostsService = this.moduleRef.get(BlogPostsService, {
         strict: false,
       });
     } catch {
       this.blogPostsService = null;
     }
-    return this.blogPostsService;
+    return this.blogPostsService ?? null;
   }
 
   /** Lazily resolve the UploadPostClientService if upload-post is loaded. */
-  private getUploadPostClient(): any | null {
-    if (this.uploadPostClient !== undefined) return this.uploadPostClient;
+  private getUploadPostClient(): UploadPostClientService | null {
+    if (this.uploadPostClient !== undefined) return this.uploadPostClient ?? null;
     try {
-      this.uploadPostClient = this.moduleRef.get('UploadPostClientService', {
+      this.uploadPostClient = this.moduleRef.get(UploadPostClientService, {
         strict: false,
       });
     } catch {
       this.uploadPostClient = null;
     }
-    return this.uploadPostClient;
+    return this.uploadPostClient ?? null;
   }
 
   get hasCms(): boolean {
@@ -89,6 +97,10 @@ export class PublishingService {
     if (cmsCfg.enabled && this.hasCms) {
       try {
         const blogPosts = this.getBlogPostsService();
+        if (!blogPosts) {
+          this.logger.warn('CMS extension not available — skipping blog publish');
+          return result;
+        }
         const seo = (draft.seoMetadata ?? {}) as {
           slug?: string;
           metaTitle?: string;
@@ -107,9 +119,10 @@ export class PublishingService {
         result.blogPostId = created?.id;
         result.blogPostUrl = created?.slug ? `/blog${created.slug}` : undefined;
         this.logger.log(`Published draft ${draft.id} to CMS as post ${created?.id}`);
-      } catch (err) {
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
         this.logger.error(
-          `CMS publish failed for draft ${draft.id}: ${(err as Error)?.message ?? err}`,
+          `CMS publish failed for draft ${draft.id}: ${msg}`,
         );
       }
     } else if (!cmsCfg.enabled) {
@@ -124,10 +137,14 @@ export class PublishingService {
       profileUsername?: string;
       postingSchedule?: string;
     };
-    const variants = (draft.socialVariants ?? []) as SocialVariant[];
+    const variants = (draft.socialVariants ?? []) as unknown as SocialVariant[];
 
     if (this.hasUploadPost && socialCfg.profileUsername && variants.length > 0) {
       const uploadPost = this.getUploadPostClient();
+      if (!uploadPost) {
+        this.logger.warn('Upload-Post extension not available — skipping social publish');
+        return result;
+      }
       const user = socialCfg.profileUsername;
 
       for (const variant of variants) {
@@ -136,7 +153,7 @@ export class PublishingService {
           const isVideo = variant.mediaType === 'video';
           const scheduledAt = socialCfg.postingSchedule ?? undefined;
 
-          let postResult: any;
+          let postResult: UploadPostResult | undefined;
           if (isVideo) {
             postResult = await uploadPost.uploadVideo({
               title: variant.caption.slice(0, 100),
@@ -170,8 +187,8 @@ export class PublishingService {
             scheduledAt,
             status: 'scheduled',
           });
-        } catch (err) {
-          const msg = (err as Error)?.message ?? String(err);
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
           this.logger.error(
             `Upload-Post schedule failed for ${variant.platform}: ${msg}`,
           );

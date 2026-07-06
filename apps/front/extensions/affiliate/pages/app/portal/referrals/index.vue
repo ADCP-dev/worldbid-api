@@ -3,6 +3,8 @@ import { ref, computed, onMounted, watch, h } from 'vue';
 import { toast } from 'vue-sonner';
 import DataTable from '@base/ui-app/components/data-table/DataTable.vue';
 import { useTableStateStore } from '@base/ui-app/stores/useTableState';
+import type { CellContext } from '@affiliate/types';
+import type { Referral } from '@affiliate/types';
 
 definePageMeta({
   layout: 'default',
@@ -13,13 +15,13 @@ const affiliate = useAffiliate();
 const tableStateStore = useTableStateStore();
 
 const loading = ref(false);
-const referrals = ref<any[]>([]);
+const referrals = ref<Referral[]>([]);
 const total = ref(0);
 
 const tableName = 'affiliate-portal-referrals';
 
 const tableState = computed(() => {
-  const raw = (tableStateStore as Record<string, any>)[tableName] || {};
+  const raw = (tableStateStore as unknown as Record<string, { pageIndex?: number; pageSize?: number; globalFilter?: string }>)[tableName] || {};
   return {
     pageIndex: typeof raw.pageIndex === 'number' ? raw.pageIndex : 0,
     pageSize: typeof raw.pageSize === 'number' ? raw.pageSize : 10,
@@ -53,21 +55,21 @@ const columns = computed(() => [
     headerName: 'Cliente',
     header: 'Cliente',
     filterType: 'string' as const,
-    cell: ({ row }: any) => h('span', { class: 'font-medium' }, row.original.clientName || '—'),
+    cell: ({ row }: CellContext<Referral>) => h('span', { class: 'font-medium' }, row.original.clientName || '—'),
   },
   {
     accessorKey: 'companyName',
     headerName: 'Empresa',
     header: 'Empresa',
     filterType: 'string' as const,
-    cell: ({ row }: any) => row.original.companyName || '—',
+    cell: ({ row }: CellContext<Referral>) => row.original.companyName || '—',
   },
   {
     accessorKey: 'status',
     headerName: 'Estado',
     header: 'Estado',
     filterType: 'string' as const,
-    cell: ({ row }: any) => h(
+    cell: ({ row }: CellContext<Referral>) => h(
       'span',
       { class: ['badge', 'badge-sm', STATUS_BADGE[row.original.status] || 'badge-ghost'] },
       STATUS_LABELS[row.original.status] ?? row.original.status,
@@ -78,18 +80,20 @@ const columns = computed(() => [
     headerName: 'Fecha',
     header: 'Fecha',
     filterType: 'string' as const,
-    cell: ({ row }: any) => formatDate(row.original.referredDate || row.original.createdAt),
+    cell: ({ row }: CellContext<Referral>) => formatDate(row.original.referredDate || row.original.createdAt || ''),
   },
 ]);
 
 async function loadReferrals() {
   loading.value = true;
   try {
-    const res: any = await affiliate.getMyReferrals();
-    referrals.value = res.data ?? res ?? [];
-    total.value = res.total ?? referrals.value.length;
-  } catch (err: any) {
-    toast.error('Error cargando referencias', { description: err.message });
+    const res = await affiliate.getMyReferrals();
+    const list = Array.isArray(res) ? res : (res.data ?? []);
+    referrals.value = list;
+    total.value = Array.isArray(res) ? list.length : (res.total ?? list.length);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    toast.error('Error cargando referencias', { description: msg });
   } finally {
     loading.value = false;
   }

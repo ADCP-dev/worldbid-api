@@ -226,14 +226,15 @@ export class ContentGeneratorService {
     return { blogContent: raw, socialVariants: [] };
   }
 
-  private normalizeVariant(v: any): SocialVariant | null {
+  private normalizeVariant(v: unknown): SocialVariant | null {
     if (!v || typeof v !== 'object') return null;
+    const obj = v as Record<string, unknown>;
     return {
-      platform: String(v.platform ?? 'instagram'),
-      mediaType: (v.mediaType as SocialVariant['mediaType']) ?? 'image',
-      caption: String(v.caption ?? ''),
-      hashtags: Array.isArray(v.hashtags) ? v.hashtags.map(String) : [],
-      mediaPrompt: String(v.mediaPrompt ?? ''),
+      platform: String(obj.platform ?? 'instagram'),
+      mediaType: (obj.mediaType as SocialVariant['mediaType']) ?? 'image',
+      caption: String(obj.caption ?? ''),
+      hashtags: Array.isArray(obj.hashtags) ? obj.hashtags.map(String) : [],
+      mediaPrompt: String(obj.mediaPrompt ?? ''),
     };
   }
 }

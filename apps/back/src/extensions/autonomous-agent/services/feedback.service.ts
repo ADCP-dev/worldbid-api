@@ -177,9 +177,9 @@ export class FeedbackService {
           `${boostedKeywords.length} boosted, ${demotedPlatforms.length} demoted`,
       );
       return summary;
-    } catch (err: any) {
+    } catch (err: unknown) {
       this.logger.warn(
-        `runFeedbackLoop: query/rollup failed for project ${projectId}: ${err?.message ?? err} — returning null`,
+        `runFeedbackLoop: query/rollup failed for project ${projectId}: ${err instanceof Error ? err.message : String(err)} — returning null`,
       );
       return null;
     }

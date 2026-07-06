@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue';
 import { toast } from 'vue-sonner';
 import FormInput from '@base/ui-app/components/form/FormInput.vue';
+import type { PortalProfile } from '@affiliate/types';
 
 definePageMeta({
   layout: 'default',
@@ -17,15 +18,19 @@ const name = ref('');
 const phone = ref('');
 const iban = ref('');
 
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 async function loadProfile() {
   loading.value = true;
   try {
-    const data: any = await affiliate.getMyProfile();
+    const data: PortalProfile = await affiliate.getMyProfile();
     name.value = data.name || '';
     phone.value = data.phone || '';
     iban.value = data.iban || '';
-  } catch (err: any) {
-    toast.error('Error cargando perfil', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error cargando perfil', { description: errorMessage(err) });
   } finally {
     loading.value = false;
   }
@@ -44,8 +49,8 @@ async function submit() {
       iban: iban.value,
     });
     toast.success('Perfil actualizado');
-  } catch (err: any) {
-    toast.error('Error guardando perfil', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error guardando perfil', { description: errorMessage(err) });
   } finally {
     saving.value = false;
   }

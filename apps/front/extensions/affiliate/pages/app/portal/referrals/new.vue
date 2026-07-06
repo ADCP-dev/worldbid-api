@@ -35,8 +35,9 @@ async function submit() {
     });
     toast.success('Referencia enviada');
     navigateTo('/app/portal/referrals');
-  } catch (err: any) {
-    toast.error('Error creando referencia', { description: err.message });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    toast.error('Error creando referencia', { description: msg });
   } finally {
     saving.value = false;
   }

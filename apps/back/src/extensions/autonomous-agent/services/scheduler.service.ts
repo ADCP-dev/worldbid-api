@@ -72,9 +72,9 @@ export class SchedulerService {
           config.projectId,
         );
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       this.logger.error(
-        `scheduleResearch failed: ${err?.message ?? err}`,
+        `scheduleResearch failed: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
   }
@@ -100,9 +100,9 @@ export class SchedulerService {
           '',
         );
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       this.logger.error(
-        `scheduleGenerate failed: ${err?.message ?? err}`,
+        `scheduleGenerate failed: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
   }
@@ -128,9 +128,9 @@ export class SchedulerService {
           '',
         );
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       this.logger.error(
-        `schedulePublish failed: ${err?.message ?? err}`,
+        `schedulePublish failed: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
   }
@@ -170,15 +170,15 @@ export class SchedulerService {
               },
             );
           }
-        } catch (err: any) {
+        } catch (err: unknown) {
           this.logger.warn(
-            `Metrics feedback/report for project ${config.projectId} failed: ${err?.message ?? err}`,
+            `Metrics feedback/report for project ${config.projectId} failed: ${err instanceof Error ? err.message : String(err)}`,
           );
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       this.logger.error(
-        `scheduleMetrics failed: ${err?.message ?? err}`,
+        `scheduleMetrics failed: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
   }

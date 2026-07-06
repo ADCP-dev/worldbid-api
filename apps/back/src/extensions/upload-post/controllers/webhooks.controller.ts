@@ -17,6 +17,7 @@ import { RoleEnum } from '@iam/roles/roles.enum';
 import { RolesGuard } from '@iam/roles/roles.guard';
 import { ConfigService } from '@nestjs/config';
 import { WebhooksService } from '@ext/upload-post/services/webhooks.service';
+import type { WebhookPayload } from '@ext/upload-post/services/webhooks.service';
 import { WebhookConfigureDto } from '@ext/upload-post/dto/common.dto';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { Request } from 'express';
@@ -52,7 +53,7 @@ export class WebhooksController {
   @HttpCode(HttpStatus.OK)
   handleIncoming(
     @Req() req: RawBodyRequest<Request>,
-    @Body() payload: any,
+    @Body() payload: WebhookPayload,
   ) {
     const secret = this.configService.get('upload-post', { infer: true })?.webhookSecret;
 

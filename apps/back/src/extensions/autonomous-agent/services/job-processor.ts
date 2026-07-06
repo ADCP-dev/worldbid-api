@@ -1,6 +1,6 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-import { Injectable, Logger, ModuleRef } from '@nestjs/common';
+import { Injectable, Logger, ModuleRef, Type } from '@nestjs/common';
 import { AgentRunService } from '@ext/autonomous-agent/services/agent-run.service';
 import { AUTONOMOUS_AGENT_QUEUE } from '@ext/autonomous-agent/services/pipeline-orchestrator.service';
 import {
@@ -17,6 +17,10 @@ import { MetricsService } from '@ext/content-pipeline/services/metrics.service';
 import { ProjectService } from '@ext/content-pipeline/services/project.service';
 import { IdeaService } from '@ext/content-pipeline/services/idea.service';
 import { DraftService } from '@ext/content-pipeline/services/draft.service';
+import type { NullableType } from '@infra/utils/types/nullable.type';
+import type { ContentPipelineProjectEntity } from '@ext/content-pipeline/infrastructure/persistence/entities/project.entity';
+import type { ContentPipelineIdeaEntity } from '@ext/content-pipeline/infrastructure/persistence/entities/idea.entity';
+import type { ContentPipelineDraftEntity } from '@ext/content-pipeline/infrastructure/persistence/entities/draft.entity';
 
 /**
  * BullMQ worker that processes autonomous-agent jobs.
@@ -42,7 +46,7 @@ export class AutonomousAgentJobProcessor extends WorkerHost {
   }
 
   /** Lazily resolve a content-pipeline service class, or null if absent. */
-  private resolve<T>(token: any): T | null {
+  private resolve<T>(token: Type<unknown> | string): NullableType<T> {
     try {
       return this.moduleRef.get<T>(token, { strict: false });
     } catch {
@@ -104,8 +108,8 @@ export class AutonomousAgentJobProcessor extends WorkerHost {
       this.logger.log(
         `Job ${job.id} (${type}) completed for run ${runId}`,
       );
-    } catch (err: any) {
-      const message = err?.message ?? String(err);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
       this.logger.error(
         `Job ${job.id} (${type}) failed for run ${runId}: ${message}`,
       );
@@ -114,9 +118,9 @@ export class AutonomousAgentJobProcessor extends WorkerHost {
           await this.agentRunService.updateStatus(runId, 'failed', {
             errorMessage: message,
           });
-        } catch (updateErr: any) {
+        } catch (updateErr: unknown) {
           this.logger.error(
-            `Failed to mark run ${runId} as failed: ${updateErr?.message ?? updateErr}`,
+            `Failed to mark run ${runId} as failed: ${updateErr instanceof Error ? updateErr.message : String(updateErr)}`,
           );
         }
       }
@@ -142,7 +146,7 @@ export class AutonomousAgentJobProcessor extends WorkerHost {
       throw new Error('content-pipeline extension is not loaded');
     }
 
-    let project: any = null;
+    let project: NullableType<ContentPipelineProjectEntity> = null;
     if (projectService) {
       try {
         project = await projectService.findById(projectId);
@@ -181,7 +185,7 @@ export class AutonomousAgentJobProcessor extends WorkerHost {
       throw new Error(`Project ${projectId} not found for generate`);
     }
 
-    let idea: any = null;
+    let idea: NullableType<ContentPipelineIdeaEntity> = null;
     if (ideaId && ideaService) {
       try {
         idea = await ideaService.findById(ideaId);
@@ -238,7 +242,7 @@ export class AutonomousAgentJobProcessor extends WorkerHost {
       throw new Error(`Project ${projectId} not found for publish`);
     }
 
-    let draft: any = null;
+    let draft: NullableType<ContentPipelineDraftEntity> = null;
     if (draftId && draftService) {
       try {
         draft = await draftService.findById(draftId);

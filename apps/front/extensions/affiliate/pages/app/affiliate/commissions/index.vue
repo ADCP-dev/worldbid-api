@@ -4,6 +4,13 @@ import { toast } from 'vue-sonner';
 import DataTable from '@base/ui-app/components/data-table/DataTable.vue';
 import FormSelect from '@base/ui-app/components/form/FormSelect.vue';
 import { useTableStateStore } from '@base/ui-app/stores/useTableState';
+import type {
+  CellContext,
+  Commission,
+  CommissionSummary,
+  PaginatedResponse,
+  Partner,
+} from '@affiliate/types';
 
 definePageMeta({
   layout: 'default',
@@ -14,17 +21,23 @@ const affiliate = useAffiliate();
 const tableStateStore = useTableStateStore();
 
 const loading = ref(false);
-const commissions = ref<any[]>([]);
-const partners = ref<any[]>([]);
-const summary = ref<any>(null);
+const commissions = ref<Commission[]>([]);
+const partners = ref<Partner[]>([]);
+const summary = ref<CommissionSummary | null>(null);
 const partnerId = ref<string>('');
 const status = ref<string>('');
 const total = ref(0);
 
 const tableName = 'affiliate-commissions';
 
+interface TableStateRaw {
+  pageIndex?: number;
+  pageSize?: number;
+  globalFilter?: string;
+}
+
 const tableState = computed(() => {
-  const raw = (tableStateStore as Record<string, any>)[tableName] || {};
+  const raw = (tableStateStore as unknown as Record<string, TableStateRaw>)[tableName] ?? {};
   return {
     pageIndex: typeof raw.pageIndex === 'number' ? raw.pageIndex : 0,
     pageSize: typeof raw.pageSize === 'number' ? raw.pageSize : 10,
@@ -53,7 +66,7 @@ const statusOptions = computed(() => [
 
 const partnerOptions = computed(() => [
   { label: 'Todos', value: '' },
-  ...partners.value.map((p: any) => ({ label: p.name, value: String(p.id) })),
+  ...partners.value.map((p) => ({ label: p.name, value: String(p.id) })),
 ]);
 
 function formatCurrency(amount: number) {
@@ -64,34 +77,39 @@ function formatDate(date: string) {
   return new Date(date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
+function errorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  return String(err);
+}
+
 const columns = computed(() => [
   {
     accessorKey: 'partner',
     headerName: 'Partner',
     header: 'Partner',
     filterType: 'string' as const,
-    cell: ({ row }: any) => row.original.partner?.name || '—',
+    cell: ({ row }: CellContext<Commission>) => row.original.partner?.name || '—',
   },
   {
     accessorKey: 'project',
     headerName: 'Proyecto',
     header: 'Proyecto',
     filterType: 'string' as const,
-    cell: ({ row }: any) => row.original.project?.name || '—',
+    cell: ({ row }: CellContext<Commission>) => row.original.project?.name || '—',
   },
   {
     accessorKey: 'commissionAmount',
     headerName: 'Comisión',
     header: 'Comisión',
     filterType: 'string' as const,
-    cell: ({ row }: any) => h('span', { class: 'font-semibold' }, formatCurrency(row.original.commissionAmount)),
+    cell: ({ row }: CellContext<Commission>) => h('span', { class: 'font-semibold' }, formatCurrency(row.original.commissionAmount ?? 0)),
   },
   {
     accessorKey: 'status',
     headerName: 'Estado',
     header: 'Estado',
     filterType: 'string' as const,
-    cell: ({ row }: any) => h(
+    cell: ({ row }: CellContext<Commission>) => h(
       'span',
       { class: ['badge', 'badge-sm', STATUS_BADGE[row.original.status] || 'badge-ghost'] },
       STATUS_LABELS[row.original.status] ?? row.original.status,
@@ -102,30 +120,31 @@ const columns = computed(() => [
     headerName: 'Pagada',
     header: 'Pagada',
     filterType: 'string' as const,
-    cell: ({ row }: any) => row.original.paidDate ? formatDate(row.original.paidDate) : '—',
+    cell: ({ row }: CellContext<Commission>) => row.original.paidDate ? formatDate(row.original.paidDate) : '—',
   },
 ]);
 
 async function loadPartners() {
   try {
-    const res: any = await affiliate.getPartners(1);
-    partners.value = res.data ?? res ?? [];
-  } catch (err: any) {
-    toast.error('Error cargando partners', { description: err.message });
+    const res: PaginatedResponse<Partner> | Partner[] = await affiliate.getPartners(1);
+    partners.value = Array.isArray(res) ? res : (res.data ?? []);
+  } catch (err: unknown) {
+    toast.error('Error cargando partners', { description: errorMessage(err) });
   }
 }
 
 async function loadCommissions() {
   loading.value = true;
   try {
-    const res: any = await affiliate.getCommissions(
+    const res: PaginatedResponse<Commission> | Commission[] = await affiliate.getCommissions(
       partnerId.value ? Number(partnerId.value) : undefined,
       status.value || undefined,
     );
-    commissions.value = res.data ?? res ?? [];
-    total.value = res.total ?? commissions.value.length;
-  } catch (err: any) {
-    toast.error('Error cargando comisiones', { description: err.message });
+    const list = Array.isArray(res) ? res : (res.data ?? []);
+    commissions.value = list;
+    total.value = Array.isArray(res) ? list.length : (res.total ?? list.length);
+  } catch (err: unknown) {
+    toast.error('Error cargando comisiones', { description: errorMessage(err) });
   } finally {
     loading.value = false;
   }
@@ -134,7 +153,7 @@ async function loadCommissions() {
 async function loadSummary() {
   try {
     summary.value = await affiliate.getCommissionSummary();
-  } catch (err: any) {
+  } catch (err: unknown) {
     // Non-fatal
     if (import.meta.dev) console.error('Error cargando resumen', err);
   }

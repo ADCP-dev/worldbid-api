@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { toast } from 'vue-sonner';
 import FormInput from '@base/ui-app/components/form/FormInput.vue';
+import type { CreatePartnerPayload, Partner } from '@affiliate/types';
 
 definePageMeta({
   layout: 'default',
@@ -19,6 +20,10 @@ const phone = ref('');
 const iban = ref('');
 const commissionRate = ref<string | number>('');
 
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 async function submit() {
   if (!name.value.trim()) {
     toast.error('El nombre es obligatorio');
@@ -26,7 +31,7 @@ async function submit() {
   }
   saving.value = true;
   try {
-    const payload: Record<string, any> = {
+    const payload: CreatePartnerPayload = {
       name: name.value,
       companyName: companyName.value,
       email: email.value,
@@ -34,11 +39,11 @@ async function submit() {
       iban: iban.value,
       commissionRate: commissionRate.value === '' ? null : Number(commissionRate.value),
     };
-    const partner: any = await affiliate.createPartner(payload);
+    const partner: Partner = await affiliate.createPartner(payload);
     toast.success('Partner creado');
     navigateTo(`/app/affiliate/partners/${partner.id}`);
-  } catch (err: any) {
-    toast.error('Error creando partner', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error creando partner', { description: errorMessage(err) });
   } finally {
     saving.value = false;
   }

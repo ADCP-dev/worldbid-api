@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { toast } from 'vue-sonner';
+import type { PortalProfile, PortalSummary, Referral } from '@affiliate/types';
 
 definePageMeta({
   layout: 'default',
@@ -11,9 +12,9 @@ const affiliate = useAffiliate();
 const authStore = useAuthStore();
 
 const loading = ref(false);
-const profile = ref<any>(null);
-const summary = ref<any>(null);
-const referrals = ref<any[]>([]);
+const profile = ref<PortalProfile | null>(null);
+const summary = ref<PortalSummary | null>(null);
+const referrals = ref<Referral[]>([]);
 
 const partnerName = computed(() => profile.value?.name || authStore.user?.firstName || 'Afiliado');
 
@@ -51,11 +52,13 @@ async function loadData() {
     ]);
     profile.value = prof;
     summary.value = sum;
-    referrals.value = (refs as any)?.data ?? refs ?? [];
+    const refsList = Array.isArray(refs) ? refs : (refs.data ?? []);
+    referrals.value = refsList;
     // Keep only 5 most recent
     referrals.value = referrals.value.slice(0, 5);
-  } catch (err: any) {
-    toast.error('Error cargando datos', { description: err.message });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    toast.error('Error cargando datos', { description: msg });
   } finally {
     loading.value = false;
   }

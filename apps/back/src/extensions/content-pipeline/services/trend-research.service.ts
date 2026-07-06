@@ -21,6 +21,21 @@ export interface ResearchResult {
   }[];
 }
 
+interface TavilySearchResult {
+  title?: string;
+  url?: string;
+  content?: string;
+  score?: number;
+}
+
+interface TavilySearchResponse {
+  results?: TavilySearchResult[];
+}
+
+interface RankedResult extends TavilySearchResult {
+  _score: number;
+}
+
 @Injectable()
 export class TrendResearchService {
   private readonly logger = new Logger(TrendResearchService.name);
@@ -54,13 +69,14 @@ export class TrendResearchService {
     // Build search queries based on project niche + keywords
     const queries = this.buildResearchQueries(niche, keywords, language);
 
-    const allResults: any[] = [];
+    const allResults: TavilySearchResult[] = [];
     for (const query of queries) {
       try {
         const results = await this.tavilySearch(query);
         allResults.push(...results);
-      } catch (err) {
-        this.logger.error(`Tavily search failed for "${query}": ${err}`);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        this.logger.error(`Tavily search failed for "${query}": ${msg}`);
       }
     }
 
@@ -90,7 +106,7 @@ export class TrendResearchService {
     return baseQueries;
   }
 
-  private async tavilySearch(query: string): Promise<any[]> {
+  private async tavilySearch(query: string): Promise<TavilySearchResult[]> {
     const apiKey = this.cfg!.tavilyApiKey!;
     const baseUrl = this.cfg!.tavilyBaseUrl!;
     const maxResults = this.cfg?.tavilyMaxResults ?? 8;
@@ -112,11 +128,12 @@ export class TrendResearchService {
         }),
         signal: controller.signal,
       });
-    } catch (err) {
-      if ((err as Error)?.name === 'AbortError') {
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') {
         this.logger.error(`Tavily request timed out after ${timeoutMs}ms`);
       } else {
-        this.logger.error(`Tavily request failed: ${(err as Error)?.message ?? err}`);
+        const msg = err instanceof Error ? err.message : String(err);
+        this.logger.error(`Tavily request failed: ${msg}`);
       }
       return [];
     } finally {
@@ -128,15 +145,17 @@ export class TrendResearchService {
       return [];
     }
 
-    const data = await res.json() as any;
+    const data = (await res.json()) as TavilySearchResponse;
     return data.results ?? [];
   }
 
-  private rankResults(results: any[], projectKeywords: string[]): any[] {
-    // Score by keyword overlap + title relevance
+  private rankResults(
+    results: TavilySearchResult[],
+    projectKeywords: string[],
+  ): RankedResult[] {
     const scored = results.map((r) => {
-      const title = (r.title || '').toLowerCase();
-      const content = (r.content || '').toLowerCase();
+      const title = (r.title ?? '').toLowerCase();
+      const content = (r.content ?? '').toLowerCase();
       let score = 0;
       for (const kw of projectKeywords) {
         if (title.includes(kw.toLowerCase())) score += 3;
@@ -146,18 +165,20 @@ export class TrendResearchService {
     });
 
     scored.sort((a, b) => b._score - a._score);
-    // Deduplicate by URL
     const seen = new Set<string>();
     return scored.filter((r) => {
-      if (seen.has(r.url)) return false;
+      if (!r.url || seen.has(r.url)) return false;
       seen.add(r.url);
       return true;
     });
   }
 
-  private resultToIdea(r: any, project: ContentPipelineProjectEntity): ResearchResult['ideas'][0] {
-    const title = r.title || 'Untitled idea';
-    const content = r.content || '';
+  private resultToIdea(
+    r: RankedResult,
+    project: ContentPipelineProjectEntity,
+  ): ResearchResult['ideas'][0] {
+    const title = r.title ?? 'Untitled idea';
+    const content = r.content ?? '';
 
     // Guess content type from title
     const titleLower = title.toLowerCase();
@@ -176,7 +197,7 @@ export class TrendResearchService {
       contentType,
       researchData: {
         trendingTopics: [title],
-        competitorUrls: [r.url].filter(Boolean),
+        competitorUrls: r.url ? [r.url] : [],
         relatedKeywords: [],
       },
     };

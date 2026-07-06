@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, h } from 'vue';
 import { toast } from 'vue-sonner';
+import type { Row } from '@tanstack/vue-table';
 import DataTable from '@base/ui-app/components/data-table/DataTable.vue';
 import FormInput from '@base/ui-app/components/form/FormInput.vue';
 import FormSelect from '@base/ui-app/components/form/FormSelect.vue';
 import FormSwitch from '@base/ui-app/components/form/FormSwitch.vue';
+import type { Origin, OriginPayload } from '@/extensions/crm/types';
 
 definePageMeta({
   layout: 'default',
@@ -15,7 +17,7 @@ const crm = useCrm();
 
 const loading = ref(false);
 const saving = ref(false);
-const origins = ref<any[]>([]);
+const origins = ref<Origin[]>([]);
 
 const isModalOpen = ref(false);
 const editingId = ref<number | null>(null);
@@ -51,7 +53,7 @@ const columns = [
     header: 'Tipo',
     filterType: 'select' as const,
     options: originTypeOptions.value,
-    cell: ({ row }: any) => h('span', { class: 'badge badge-sm badge-ghost' },
+    cell: ({ row }: { row: Row<Origin> }) => h('span', { class: 'badge badge-sm badge-ghost' },
       ORIGIN_TYPE_LABELS[row.original.type] ?? row.original.type),
   },
   { accessorKey: 'sortOrder', headerName: 'Orden', header: 'Orden', filterType: 'number' as const },
@@ -60,7 +62,7 @@ const columns = [
     headerName: 'Activo',
     header: 'Activo',
     filterType: 'boolean' as const,
-    cell: ({ row }: any) => row.original.isActive
+    cell: ({ row }: { row: Row<Origin> }) => row.original.isActive
       ? h('span', { class: 'badge badge-xs badge-success' }, 'Sí')
       : h('span', { class: 'badge badge-xs badge-ghost' }, 'No'),
   },
@@ -69,7 +71,7 @@ const columns = [
     headerName: 'Acciones',
     header: 'Acciones',
     enableSorting: false,
-    cell: ({ row }: any) => h('div', { class: 'flex items-center gap-1' }, [
+    cell: ({ row }: { row: Row<Origin> }) => h('div', { class: 'flex items-center gap-1' }, [
       h('button', {
         class: 'btn btn-ghost btn-xs',
         onClick: (e: Event) => { e.stopPropagation(); openEdit(row.original); },
@@ -86,8 +88,8 @@ async function load() {
   loading.value = true;
   try {
     origins.value = await crm.getOrigins();
-  } catch (err: any) {
-    toast.error('Error cargando orígenes', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error cargando orígenes', { description: err instanceof Error ? err.message : 'Error' });
   } finally {
     loading.value = false;
   }
@@ -105,7 +107,7 @@ function openCreate() {
   isModalOpen.value = true;
 }
 
-function openEdit(origin: any) {
+function openEdit(origin: Origin) {
   editingId.value = origin.id;
   form.value = {
     label: origin.label || '',
@@ -128,7 +130,7 @@ async function save() {
   }
   saving.value = true;
   try {
-    const payload = { ...form.value };
+    const payload: OriginPayload = { ...form.value };
     if (editingId.value) {
       await crm.updateOrigin(editingId.value, payload);
       toast.success('Origen actualizado');
@@ -138,8 +140,8 @@ async function save() {
     }
     isModalOpen.value = false;
     await load();
-  } catch (err: any) {
-    toast.error('Error guardando origen', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error guardando origen', { description: err instanceof Error ? err.message : 'Error' });
   } finally {
     saving.value = false;
   }
@@ -151,8 +153,8 @@ async function remove(id: number) {
     await crm.deleteOrigin(id);
     toast.success('Origen eliminado');
     await load();
-  } catch (err: any) {
-    toast.error('Error eliminando origen', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error eliminando origen', { description: err instanceof Error ? err.message : 'Error' });
   }
 }
 

@@ -71,9 +71,9 @@ export class NotificationService {
     try {
       await this.queuedMailerService.sendMail({ to: email, subject, text });
       this.logger.log(`notifyRunComplete: sent to ${email} (run ${run.id})`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       this.logger.error(
-        `notifyRunComplete: failed to send email: ${err?.message ?? err}`,
+        `notifyRunComplete: failed to send email: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
   }
@@ -113,9 +113,9 @@ export class NotificationService {
       this.logger.log(
         `notifyWeeklyReport: sent to ${email} (project ${projectId})`,
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       this.logger.error(
-        `notifyWeeklyReport: failed to send email: ${err?.message ?? err}`,
+        `notifyWeeklyReport: failed to send email: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
   }

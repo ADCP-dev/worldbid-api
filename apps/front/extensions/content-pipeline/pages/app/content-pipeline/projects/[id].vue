@@ -6,6 +6,15 @@ import FormInput from '@base/ui-app/components/form/FormInput.vue';
 import FormTextArea from '@base/ui-app/components/form/FormTextArea.vue';
 import FormSelect from '@base/ui-app/components/form/FormSelect.vue';
 import FormSwitch from '@base/ui-app/components/form/FormSwitch.vue';
+import type {
+  Draft,
+  Idea,
+  MetricsSnapshot,
+  PaginatedResponse,
+  Project,
+  ProjectMetrics,
+  UpdateProjectPayload,
+} from '@/extensions/content-pipeline/types';
 
 definePageMeta({
   layout: 'default',
@@ -19,10 +28,10 @@ const projectId = computed(() => route.params.id as string);
 
 const loading = ref(false);
 const saving = ref(false);
-const project = ref<any>(null);
-const metrics = ref<any>(null);
-const ideas = ref<any[]>([]);
-const drafts = ref<any[]>([]);
+const project = ref<Project | null>(null);
+const metrics = ref<ProjectMetrics | MetricsSnapshot[] | null>(null);
+const ideas = ref<Idea[]>([]);
+const drafts = ref<Draft[]>([]);
 const activeTab = ref<'ideas' | 'drafts' | 'metrics' | 'settings'>('ideas');
 
 const languageOptions = [
@@ -70,16 +79,22 @@ const form = ref<FormValues>({
 const errors = ref<Partial<Record<keyof FormValues, string>>>({});
 
 const metricsBars = computed(() => {
-  if (!metrics.value) return [];
+  const m = metrics.value;
+  if (!m || Array.isArray(m)) return [];
   const items = [
-    { label: 'Ideas', value: metrics.value.totalIdeas ?? 0, color: 'bg-info' },
-    { label: 'Approved', value: metrics.value.approvedIdeas ?? 0, color: 'bg-success' },
-    { label: 'Drafts', value: metrics.value.totalDrafts ?? 0, color: 'bg-warning' },
-    { label: 'Published', value: metrics.value.publishedDrafts ?? 0, color: 'bg-primary' },
+    { label: 'Ideas', value: m.totalIdeas ?? 0, color: 'bg-info' },
+    { label: 'Approved', value: m.approvedIdeas ?? 0, color: 'bg-success' },
+    { label: 'Drafts', value: m.totalDrafts ?? 0, color: 'bg-warning' },
+    { label: 'Published', value: m.publishedDrafts ?? 0, color: 'bg-primary' },
   ];
   const max = Math.max(...items.map((i) => i.value), 1);
   return items.map((i) => ({ ...i, pct: Math.round((i.value / max) * 100) }));
 });
+
+function errorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  return String(err);
+}
 
 async function loadProject() {
   loading.value = true;
@@ -98,8 +113,8 @@ async function loadProject() {
       autoPublishBlog: data.autoPublish?.blog ?? false,
       autoPublishSocial: data.autoPublish?.social ?? false,
     };
-  } catch (err: any) {
-    toast.error('Error loading project', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error loading project', { description: errorMessage(err) });
   } finally {
     loading.value = false;
   }
@@ -107,27 +122,27 @@ async function loadProject() {
 
 async function loadIdeas() {
   try {
-    const res: any = await cp.getIdeas(projectId.value);
-    ideas.value = res.data ?? res ?? [];
-  } catch (err: any) {
-    toast.error('Error loading ideas', { description: err.message });
+    const res: PaginatedResponse<Idea> | Idea[] = await cp.getIdeas(projectId.value);
+    ideas.value = Array.isArray(res) ? res : (res.data ?? []);
+  } catch (err: unknown) {
+    toast.error('Error loading ideas', { description: errorMessage(err) });
   }
 }
 
 async function loadDrafts() {
   try {
-    const res: any = await cp.getDrafts(projectId.value);
-    drafts.value = res.data ?? res ?? [];
-  } catch (err: any) {
-    toast.error('Error loading drafts', { description: err.message });
+    const res: PaginatedResponse<Draft> | Draft[] = await cp.getDrafts(projectId.value);
+    drafts.value = Array.isArray(res) ? res : (res.data ?? []);
+  } catch (err: unknown) {
+    toast.error('Error loading drafts', { description: errorMessage(err) });
   }
 }
 
 async function loadMetrics() {
   try {
     metrics.value = await cp.getMetrics(projectId.value);
-  } catch (err: any) {
-    toast.error('Error loading metrics', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error loading metrics', { description: errorMessage(err) });
   }
 }
 
@@ -149,9 +164,8 @@ async function saveProject() {
 
   saving.value = true;
   try {
-    const payload: Record<string, any> = {
+    const payload: UpdateProjectPayload = {
       name: result.data.name,
-      slug: result.data.slug,
       niche: result.data.niche,
       brandVoice: result.data.brandVoice || undefined,
       targetAudience: result.data.targetAudience || undefined,
@@ -166,8 +180,8 @@ async function saveProject() {
     const updated = await cp.updateProject(projectId.value, payload);
     project.value = updated;
     toast.success('Project updated');
-  } catch (err: any) {
-    toast.error('Error saving project', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error saving project', { description: errorMessage(err) });
   } finally {
     saving.value = false;
   }
@@ -179,8 +193,8 @@ async function deleteProject() {
     await cp.deleteProject(projectId.value);
     toast.success('Project deleted');
     navigateTo('/app/content-pipeline/projects');
-  } catch (err: any) {
-    toast.error('Error deleting project', { description: err.message });
+  } catch (err: unknown) {
+    toast.error('Error deleting project', { description: errorMessage(err) });
   }
 }
 

@@ -1,8 +1,9 @@
-import { Module } from '@nestjs/common';
+import { Module, Type } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
+import { EntitySchema } from 'typeorm';
 
 import { AaConfigEntity } from '@ext/autonomous-agent/infrastructure/persistence/entities/aa-config.entity';
 import { AaRunEntity } from '@ext/autonomous-agent/infrastructure/persistence/entities/aa-run.entity';
@@ -30,7 +31,7 @@ import { AUTONOMOUS_AGENT_QUEUE } from '@ext/autonomous-agent/services/pipeline-
  * from TypeOrmModule.forFeature — FeedbackService then degrades to a
  * no-op via its @Optional() repository injection.
  */
-let ContentPipelineMetricsEntity: any | undefined;
+let ContentPipelineMetricsEntity: Type<unknown> | EntitySchema<unknown> | undefined;
 try {
   // eslint-disable-next-line @typescript-eslint/no-var-requires, no-restricted-syntax
   ContentPipelineMetricsEntity =
@@ -40,7 +41,7 @@ try {
   // content-pipeline extension not present — feedback loop becomes a no-op.
 }
 
-const entityTokens: any[] = [AaConfigEntity, AaRunEntity];
+const entityTokens: (Type<unknown> | EntitySchema<unknown>)[] = [AaConfigEntity, AaRunEntity];
 if (ContentPipelineMetricsEntity) {
   entityTokens.push(ContentPipelineMetricsEntity);
 }

@@ -1,7 +1,9 @@
-import { Injectable, Logger, ModuleRef } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { AllConfigType } from '@src/config/config.type';
 import { ContentPipelineProjectEntity } from '@ext/content-pipeline/infrastructure/persistence/entities/project.entity';
+import { AffiliatePartnerService } from '@ext/affiliate/services/affiliate-partner.service';
 
 export interface AffiliateLink {
   url: string;
@@ -40,7 +42,7 @@ interface AffiliateConfig {
 @Injectable()
 export class AffiliateInjectorService {
   private readonly logger = new Logger(AffiliateInjectorService.name);
-  private affiliateService: any | null | undefined;
+  private affiliateService: AffiliatePartnerService | null | undefined;
 
   constructor(
     private readonly configService: ConfigService<AllConfigType>,
@@ -52,16 +54,16 @@ export class AffiliateInjectorService {
    * is loaded. If it throws (extension not registered), affiliate is not
    * available. Mirrors the pattern used by PublishingService.
    */
-  private getAffiliateService(): any | null {
-    if (this.affiliateService !== undefined) return this.affiliateService;
+  private getAffiliateService(): AffiliatePartnerService | null {
+    if (this.affiliateService !== undefined) return this.affiliateService ?? null;
     try {
-      this.affiliateService = this.moduleRef.get('AffiliatePartnerService', {
+      this.affiliateService = this.moduleRef.get(AffiliatePartnerService, {
         strict: false,
       });
     } catch {
       this.affiliateService = null;
     }
-    return this.affiliateService;
+    return this.affiliateService ?? null;
   }
 
   get affiliateEnabled(): boolean {

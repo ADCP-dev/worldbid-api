@@ -1,6 +1,24 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { UploadPostClientService } from '@ext/upload-post/services/upload-post-client.service';
 
+/**
+ * Inbound webhook payload from Upload-Post.
+ * An index signature lets any other field through without `any`.
+ */
+export interface WebhookPayload {
+  event?: string;
+  platform?: string;
+  account_name?: string;
+  reason?: string;
+  result?: {
+    success?: boolean;
+    url?: string;
+    publish_id?: string;
+    error?: string;
+  };
+  [key: string]: unknown;
+}
+
 @Injectable()
 export class WebhooksService {
   private readonly logger = new Logger(WebhooksService.name);
@@ -40,7 +58,7 @@ export class WebhooksService {
    * Handle incoming webhook payload from Upload-Post.
    * Called by the controller's POST handler.
    */
-  handleWebhookEvent(payload: any): { received: boolean; event: string } {
+  handleWebhookEvent(payload: WebhookPayload): { received: boolean; event: string } {
     const event = payload?.event ?? 'unknown';
     this.logger.log(`Webhook received: ${event}`);
 
@@ -68,7 +86,7 @@ export class WebhooksService {
     return { received: true, event };
   }
 
-  private handleUploadCompleted(payload: any) {
+  private handleUploadCompleted(payload: WebhookPayload) {
     const result = payload?.result;
     if (result?.success) {
       this.logger.log(

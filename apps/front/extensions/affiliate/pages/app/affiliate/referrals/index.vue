@@ -4,6 +4,8 @@ import { toast } from 'vue-sonner';
 import DataTable from '@base/ui-app/components/data-table/DataTable.vue';
 import FormSelect from '@base/ui-app/components/form/FormSelect.vue';
 import { useTableStateStore } from '@base/ui-app/stores/useTableState';
+import type { CellContext, PaginatedResponse } from '@affiliate/types';
+import type { Partner, Referral } from '@affiliate/types';
 
 definePageMeta({
   layout: 'default',
@@ -14,8 +16,8 @@ const affiliate = useAffiliate();
 const tableStateStore = useTableStateStore();
 
 const loading = ref(false);
-const referrals = ref<any[]>([]);
-const partners = ref<any[]>([]);
+const referrals = ref<Referral[]>([]);
+const partners = ref<Partner[]>([]);
 const total = ref(0);
 const partnerId = ref<string>('');
 const status = ref<string>('');
@@ -23,7 +25,7 @@ const status = ref<string>('');
 const tableName = 'affiliate-referrals';
 
 const tableState = computed(() => {
-  const raw = (tableStateStore as Record<string, any>)[tableName] || {};
+  const raw = (tableStateStore as unknown as Record<string, { pageIndex?: number; pageSize?: number; globalFilter?: string }>)[tableName] || {};
   return {
     pageIndex: typeof raw.pageIndex === 'number' ? raw.pageIndex : 0,
     pageSize: typeof raw.pageSize === 'number' ? raw.pageSize : 10,
@@ -54,11 +56,15 @@ const statusOptions = computed(() => [
 
 const partnerOptions = computed(() => [
   { label: 'Todos', value: '' },
-  ...partners.value.map((p: any) => ({ label: p.name, value: String(p.id) })),
+  ...partners.value.map((p) => ({ label: p.name, value: String(p.id) })),
 ]);
 
 function formatDate(date: string) {
   return new Date(date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
 }
 
 const columns = computed(() => [
@@ -67,21 +73,21 @@ const columns = computed(() => [
     headerName: 'Partner',
     header: 'Partner',
     filterType: 'string' as const,
-    cell: ({ row }: any) => row.original.partner?.name || '—',
+    cell: ({ row }: CellContext<Referral>) => row.original.partner?.name || '—',
   },
   {
     accessorKey: 'clientName',
     headerName: 'Cliente',
     header: 'Cliente',
     filterType: 'string' as const,
-    cell: ({ row }: any) => h('span', { class: 'font-medium' }, row.original.clientName || '—'),
+    cell: ({ row }: CellContext<Referral>) => h('span', { class: 'font-medium' }, row.original.clientName || '—'),
   },
   {
     accessorKey: 'status',
     headerName: 'Estado',
     header: 'Estado',
     filterType: 'string' as const,
-    cell: ({ row }: any) => h(
+    cell: ({ row }: CellContext<Referral>) => h(
       'span',
       { class: ['badge', 'badge-sm', STATUS_BADGE[row.original.status] || 'badge-ghost'] },
       STATUS_LABELS[row.original.status] ?? row.original.status,
@@ -92,30 +98,31 @@ const columns = computed(() => [
     headerName: 'Fecha',
     header: 'Fecha',
     filterType: 'string' as const,
-    cell: ({ row }: any) => formatDate(row.original.referredDate || row.original.createdAt),
+    cell: ({ row }: CellContext<Referral>) => formatDate(row.original.referredDate || row.original.createdAt || ''),
   },
 ]);
 
 async function loadPartners() {
   try {
-    const res: any = await affiliate.getPartners(1);
-    partners.value = res.data ?? res ?? [];
-  } catch (err: any) {
-    toast.error('Error cargando partners', { description: err.message });
+    const res: PaginatedResponse<Partner> | Partner[] = await affiliate.getPartners(1);
+    partners.value = Array.isArray(res) ? res : (res.data ?? []);
+  } catch (err: unknown) {
+    toast.error('Error cargando partners', { description: errorMessage(err) });
   }
 }
 
 async function loadReferrals() {
   loading.value = true;
   try {
-    const res: any = await affiliate.getReferrals(
+    const res: PaginatedResponse<Referral> | Referral[] = await affiliate.getReferrals(
       partnerId.value ? Number(partnerId.value) : undefined,
       status.value || undefined,
     );
-    referrals.value = res.data ?? res ?? [];
-    total.value = res.total ?? referrals.value.length;
-  } catch (err: any) {
-    toast.error('Error cargando referencias', { description: err.message });
+    const list = Array.isArray(res) ? res : (res.data ?? []);
+    referrals.value = list;
+    total.value = Array.isArray(res) ? list.length : (res.total ?? list.length);
+  } catch (err: unknown) {
+    toast.error('Error cargando referencias', { description: errorMessage(err) });
   } finally {
     loading.value = false;
   }

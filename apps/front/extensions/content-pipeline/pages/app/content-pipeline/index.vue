@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { toast } from 'vue-sonner';
 import { FolderKanban, Lightbulb, FileText, CheckCircle } from 'lucide-vue-next';
+import type { DashboardData } from '../../../types';
 
 definePageMeta({
   layout: 'default',
@@ -11,7 +12,7 @@ definePageMeta({
 const cp = useContentPipeline();
 
 const loading = ref(false);
-const dashboard = ref<any>(null);
+const dashboard = ref<DashboardData | null>(null);
 
 const kpis = computed(() => {
   if (!dashboard.value) return [];
@@ -51,8 +52,9 @@ async function loadDashboard() {
   loading.value = true;
   try {
     dashboard.value = await cp.getDashboard();
-  } catch (err: any) {
-    toast.error('Error loading dashboard', { description: err.message });
+  } catch (err: unknown) {
+    if (err instanceof Error) toast.error('Error loading dashboard', { description: err.message });
+    else toast.error('Error loading dashboard');
   } finally {
     loading.value = false;
   }
@@ -112,7 +114,7 @@ function formatDate(date: string) {
                 <div class="flex-1 bg-base-200 rounded-full h-6 overflow-hidden">
                   <div
                     class="h-full bg-info rounded-full flex items-center justify-end pr-2 transition-all"
-                    :style="{ width: `${Math.min(100, Math.max(8, (item.count / Math.max(...ideasByStatus.map((i: any) => i.count), 1)) * 100))}%` }"
+                    :style="{ width: `${Math.min(100, Math.max(8, (item.count / Math.max(...ideasByStatus.map((i) => i.count), 1)) * 100))}%` }"
                   >
                     <span class="text-xs text-info-content font-semibold">{{ item.count }}</span>
                   </div>
@@ -135,7 +137,7 @@ function formatDate(date: string) {
                 <div class="flex-1 bg-base-200 rounded-full h-6 overflow-hidden">
                   <div
                     class="h-full bg-warning rounded-full flex items-center justify-end pr-2 transition-all"
-                    :style="{ width: `${Math.min(100, Math.max(8, (item.count / Math.max(...draftsByStatus.map((i: any) => i.count), 1)) * 100))}%` }"
+                    :style="{ width: `${Math.min(100, Math.max(8, (item.count / Math.max(...draftsByStatus.map((i) => i.count), 1)) * 100))}%` }"
                   >
                     <span class="text-xs text-warning-content font-semibold">{{ item.count }}</span>
                   </div>
