@@ -39,6 +39,7 @@ export class AffiliateReportService {
         59,
         59,
       );
+      this.logger.debug(`monthly report range: ${monthStart.toISOString()} → ${monthEnd.toISOString()}`);
 
       // Only run on actual last day of the month
       const lastDayOfMonth = new Date(
