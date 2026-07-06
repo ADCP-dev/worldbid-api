@@ -1,32 +1,118 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useQueryClient } from '@tanstack/vue-query';
 import {
   useSubscriptionQuery,
   useCancelMutation,
   useResumeMutation,
   useInvoicesQuery,
 } from '@/composables/useSubscription';
-import StripeService from '@/services/stripe.service';
+import { useCustomerPortalMutation } from '@stripe/composables/useStripe';
+import { useApi } from '#imports';
 
-definePageMeta({ layout: 'default', middleware: 'auth' });
+definePageMeta({ layout: 'default', middleware: ['auth'] });
 
-const stripeService = new StripeService();
+const api = useApi();
+const portal = useCustomerPortalMutation();
+const qc = useQueryClient();
 
 const { data: subscription, isLoading } = useSubscriptionQuery('me');
-const { data: invoices, isLoading: loadingInvoices } = useInvoicesQuery();
+const { data: invoices, isLoading: loadingInvoices, refetch: refetchInvoices } = useInvoicesQuery();
 const cancel = useCancelMutation();
 const resume = useResumeMutation();
+
+const priceLabel = computed(() => {
+  const price = subscription.value?.plan?.price;
+  if (!price) return '—';
+  return `${(price / 100).toFixed(2)} ${(subscription.value.plan?.currency ?? 'eur').toUpperCase()}`;
+});
+
+const statusClass = computed(() => {
+  switch (subscription.value?.status) {
+    case 'active':
+    case 'trialing':
+      return 'badge-success';
+    case 'canceled':
+      return 'badge-error';
+    case 'past_due':
+    case 'unpaid':
+      return 'badge-warning';
+    default:
+      return 'badge-ghost';
+  }
+});
+
+const statusLabel = computed(() => {
+  switch (subscription.value?.status) {
+    case 'active':
+      return 'Activa';
+    case 'trialing':
+      return 'Prueba';
+    case 'canceled':
+      return 'Cancelada';
+    case 'past_due':
+      return 'Pago atrasado';
+    case 'unpaid':
+      return 'Sin pagar';
+    default:
+      return subscription.value?.status ?? '—';
+  }
+});
+
+const periodLabel = computed(() => {
+  const interval = subscription.value?.plan?.interval;
+  if (!interval) return '';
+  const map: Record<string, string> = {
+    month: 'Facturación mensual',
+    year: 'Facturación anual',
+    week: 'Facturación semanal',
+    day: 'Facturación diaria',
+  };
+  return map[interval] ?? `Facturación por ${interval}`;
+});
+
+const nextBilling = computed(() => {
+  const end = subscription.value?.currentPeriodEnd;
+  if (!end) return null;
+  const date = typeof end === 'number' ? new Date(end * 1000) : new Date(end);
+  return date.toLocaleDateString('es-ES');
+});
+
 async function handleManage() {
-  const { url } = await stripeService.getCustomerPortal();
-  if (url) window.location.href = url;
+  await portal.mutateAsync();
 }
 
 async function downloadInvoice(invoiceId: string) {
   try {
-    await stripeService.downloadInvoice(invoiceId);
-  } catch (e: any) {
-    console.error('Error downloading invoice', e);
+    const blob = await api.get<Blob>(`/stripe/invoices/${invoiceId}/download`);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `factura-${invoiceId}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (e: unknown) {
+    if (import.meta.dev) console.error('Error downloading invoice', e);
   }
+}
+
+async function handleCancel() {
+  const id = subscription.value?.id;
+  if (!id) return;
+  await cancel.mutateAsync(id);
+}
+
+async function handleResume() {
+  const id = subscription.value?.id;
+  if (!id) return;
+  await resume.mutateAsync(id);
+}
+
+async function loadInvoices() {
+  await qc.invalidateQueries({ queryKey: ['stripe', 'invoices'] });
+  await refetchInvoices();
 }
 </script>
 
