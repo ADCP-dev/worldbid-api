@@ -202,7 +202,7 @@ async function submit() {
         <div class="card-actions justify-end mt-4">
           <NuxtLink to="/app/content-pipeline/projects" class="btn btn-ghost">Cancel</NuxtLink>
           <button class="btn btn-primary" :disabled="saving" @click="submit">
-            <span v-if="saving" class="loading loading-spinner loading-xs"></span>
+            <span v-if="saving" class="loading loading-spinner loading-xs"/>
             Create project
           </button>
         </div>

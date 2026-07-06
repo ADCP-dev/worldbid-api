@@ -115,9 +115,7 @@ const VERTICAL_DIMS: Dimensions = {
 export class CarouselGeneratorService {
   private readonly logger = new Logger(CarouselGeneratorService.name);
 
-  async generateCarouselSlides(
-    params: GenerateCarouselParams,
-  ): Promise<GeneratedCarousel> {
+  generateCarouselSlides(params: GenerateCarouselParams): GeneratedCarousel {
     const slides = params.slides ?? [];
     if (slides.length === 0) {
       throw new Error('Cannot generate carousel: no slides provided');

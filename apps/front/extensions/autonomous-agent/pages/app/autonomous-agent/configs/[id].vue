@@ -215,7 +215,7 @@ onMounted(loadConfig);
             :disabled="toggling"
             @click="togglePause"
           >
-            <span v-if="toggling" class="loading loading-spinner loading-xs"></span>
+            <span v-if="toggling" class="loading loading-spinner loading-xs"/>
             {{ isPaused ? 'Resume' : 'Pause' }}
           </button>
           <button class="btn btn-error btn-sm btn-outline" @click="deleteConfig">
@@ -301,7 +301,7 @@ onMounted(loadConfig);
 
           <div class="card-actions justify-end mt-4">
             <button class="btn btn-primary" :disabled="saving" @click="saveConfig">
-              <span v-if="saving" class="loading loading-spinner loading-xs"></span>
+              <span v-if="saving" class="loading loading-spinner loading-xs"/>
               Save
             </button>
           </div>

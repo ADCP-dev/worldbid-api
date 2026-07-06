@@ -296,14 +296,14 @@ async function handleDelete(video: CtaVideo) {
             label="Name"
             placeholder="e.g. Default CTA"
             required
-            testId="cta-name"
+            test-id="cta-name"
           />
           <FormInput
             v-model="form.url"
             label="URL"
             placeholder="https://..."
             required
-            testId="cta-url"
+            test-id="cta-url"
           />
           <FormSelect
             v-model="form.format"
@@ -315,7 +315,7 @@ async function handleDelete(video: CtaVideo) {
             label="Duration (seconds)"
             type="number"
             placeholder="15"
-            testId="cta-duration"
+            test-id="cta-duration"
           />
           <FormTextArea
             v-model="form.description"
@@ -333,7 +333,7 @@ async function handleDelete(video: CtaVideo) {
         <div class="modal-action">
           <button class="btn btn-ghost" @click="closeModal">Cancel</button>
           <button class="btn btn-primary" :disabled="saving" @click="handleSave">
-            <span v-if="saving" class="loading loading-spinner loading-xs"></span>
+            <span v-if="saving" class="loading loading-spinner loading-xs"/>
             {{ editing ? 'Save' : 'Create' }}
           </button>
         </div>

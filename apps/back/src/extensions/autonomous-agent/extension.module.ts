@@ -36,8 +36,10 @@ let ContentPipelineMetricsEntity:
   | EntitySchema<unknown>
   | undefined;
 try {
+  /* eslint-disable @typescript-eslint/no-require-imports */
   ContentPipelineMetricsEntity =
     require('../content-pipeline/infrastructure/persistence/entities/metrics.entity').ContentPipelineMetricsEntity;
+  /* eslint-enable @typescript-eslint/no-require-imports */
 } catch {
   // content-pipeline extension not present — feedback loop becomes a no-op.
 }

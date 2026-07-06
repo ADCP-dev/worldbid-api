@@ -71,10 +71,10 @@ export class AffiliateInjectorService {
     return !!this.getAffiliateService();
   }
 
-  async inject(
+  inject(
     blogContent: string,
     project: ContentPipelineProjectEntity,
-  ): Promise<AffiliateInjectionResult> {
+  ): AffiliateInjectionResult {
     if (!this.affiliateEnabled) {
       this.logger.debug('Affiliate extension not loaded — skipping injection');
       return { blogContent, affiliateLinks: [], disclosureAdded: false };

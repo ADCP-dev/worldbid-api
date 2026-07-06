@@ -496,7 +496,7 @@ function formatDate(date: string) {
                 Delete project
               </button>
               <button class="btn btn-primary" :disabled="saving" @click="saveProject">
-                <span v-if="saving" class="loading loading-spinner loading-xs"></span>
+                <span v-if="saving" class="loading loading-spinner loading-xs"/>
                 Save
               </button>
             </div>

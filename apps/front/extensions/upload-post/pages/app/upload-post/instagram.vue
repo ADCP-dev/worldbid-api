@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
-import { h } from 'vue';
+import { ref, computed, onMounted, h  } from 'vue';
+
 import { toast } from 'vue-sonner';
 import { Instagram, Send, RefreshCw, MessageCircle } from 'lucide-vue-next';
 import DataTable from '@base/ui-app/components/data-table/DataTable.vue';

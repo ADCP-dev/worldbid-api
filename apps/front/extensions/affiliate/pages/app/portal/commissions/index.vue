@@ -3,8 +3,8 @@ import { ref, computed, onMounted, watch, h } from 'vue';
 import { toast } from 'vue-sonner';
 import DataTable from '@base/ui-app/components/data-table/DataTable.vue';
 import { useTableStateStore } from '@base/ui-app/stores/useTableState';
-import type { CellContext } from '@affiliate/types';
-import type { Commission, PortalSummary } from '@affiliate/types';
+import type { CellContext, Commission, PortalSummary  } from '@affiliate/types';
+
 
 definePageMeta({
   layout: 'default',

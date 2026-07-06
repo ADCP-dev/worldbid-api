@@ -227,7 +227,7 @@ function formatDate(date: string) {
           @click="handleResearch"
         >
           <Sparkles class="w-4 h-4" />
-          <span v-if="researching" class="loading loading-spinner loading-xs"></span>
+          <span v-if="researching" class="loading loading-spinner loading-xs"/>
           Research ideas
         </button>
         <button class="btn btn-primary btn-sm" @click="openCreate()">

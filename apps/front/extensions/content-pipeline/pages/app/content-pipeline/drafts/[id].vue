@@ -319,7 +319,7 @@ const statusBadgeClass: Record<string, string> = {
                   :disabled="saving"
                   @click="saveContent"
                 >
-                  <span v-if="saving" class="loading loading-spinner loading-xs"></span>
+                  <span v-if="saving" class="loading loading-spinner loading-xs"/>
                   Save
                 </button>
               </div>

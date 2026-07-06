@@ -204,7 +204,7 @@ onMounted(load);
         <div class="modal-action">
           <button class="btn" @click="isModalOpen = false">Cancelar</button>
           <button class="btn btn-primary" :disabled="saving" @click="save">
-            <span v-if="saving" class="loading loading-spinner loading-xs"></span>
+            <span v-if="saving" class="loading loading-spinner loading-xs"/>
             Guardar
           </button>
         </div>

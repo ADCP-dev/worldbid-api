@@ -4,8 +4,8 @@ import { toast } from 'vue-sonner';
 import DataTable from '@base/ui-app/components/data-table/DataTable.vue';
 import FormSelect from '@base/ui-app/components/form/FormSelect.vue';
 import { useTableStateStore } from '@base/ui-app/stores/useTableState';
-import type { CellContext, PaginatedResponse } from '@affiliate/types';
-import type { Partner, Referral } from '@affiliate/types';
+import type { CellContext, PaginatedResponse, Partner, Referral  } from '@affiliate/types';
+
 
 definePageMeta({
   layout: 'default',

@@ -128,7 +128,7 @@ onUnmounted(() => {
               v-model="newJobId"
               label="Job ID"
               placeholder="e.g. 7f9b3c2a-..."
-              testId="video-job-id-input"
+              test-id="video-job-id-input"
             />
           </div>
           <button class="btn btn-primary" @click="addJob">

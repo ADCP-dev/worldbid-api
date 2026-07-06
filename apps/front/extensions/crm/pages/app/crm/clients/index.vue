@@ -3,8 +3,8 @@ import { ref, computed, onMounted, watch, h } from 'vue';
 import { toast } from 'vue-sonner';
 import DataTable from '@base/ui-app/components/data-table/DataTable.vue';
 import { useTableStateStore } from '@base/ui-app/stores/useTableState';
-import type { CellContext, ColumnFilter, PaginatedResponse } from '@crm/types';
-import type { Client, Origin, Status } from '@crm/types';
+import type { CellContext, ColumnFilter, PaginatedResponse, Client, Origin, Status  } from '@crm/types';
+
 
 definePageMeta({
   layout: 'default',

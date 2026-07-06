@@ -120,7 +120,7 @@ onMounted(loadFilters);
         <div class="card-actions justify-end mt-4">
           <NuxtLink to="/app/crm/clients" class="btn btn-ghost">Cancelar</NuxtLink>
           <button class="btn btn-primary" :disabled="saving" @click="submit">
-            <span v-if="saving" class="loading loading-spinner loading-xs"></span>
+            <span v-if="saving" class="loading loading-spinner loading-xs"/>
             Crear cliente
           </button>
         </div>

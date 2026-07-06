@@ -272,7 +272,7 @@ onMounted(loadProject);
             <div class="flex gap-2">
               <NuxtLink to="/app/crm/projects" class="btn btn-ghost">Cancelar</NuxtLink>
               <button class="btn btn-primary" :disabled="saving" @click="save">
-                <span v-if="saving" class="loading loading-spinner loading-xs"></span>
+                <span v-if="saving" class="loading loading-spinner loading-xs"/>
                 Guardar
               </button>
             </div>

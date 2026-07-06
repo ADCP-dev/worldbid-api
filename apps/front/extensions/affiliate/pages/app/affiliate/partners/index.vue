@@ -4,8 +4,8 @@ import { toast } from 'vue-sonner';
 import DataTable from '@base/ui-app/components/data-table/DataTable.vue';
 import ViewButton from '@base/ui-app/components/data-table/buttons/ViewButton.vue';
 import { useTableStateStore } from '@base/ui-app/stores/useTableState';
-import type { CellContext, PaginatedResponse } from '@affiliate/types';
-import type { Partner } from '@affiliate/types';
+import type { CellContext, PaginatedResponse, Partner  } from '@affiliate/types';
+
 
 definePageMeta({
   layout: 'default',

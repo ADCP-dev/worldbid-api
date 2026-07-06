@@ -3,8 +3,8 @@ import { ref, computed, onMounted, h } from 'vue';
 import { toast } from 'vue-sonner';
 import { Eye, Pencil, Trash2 } from 'lucide-vue-next';
 import DataTable from '@base/ui-app/components/data-table/DataTable.vue';
-import type { CellContext } from '@crm/types';
-import type { Client, Project, ProjectStatus } from '@crm/types';
+import type { CellContext, Client, Project, ProjectStatus  } from '@crm/types';
+
 
 definePageMeta({
   layout: 'default',

@@ -51,7 +51,6 @@ export class WeeklyReportService {
     // Fetch the previous 7 days (days 8-14) for delta calculation.
     // Use string comparison (YYYY-MM-DD) to avoid timezone off-by-one errors.
     const last14 = await this.analyticsService.getSnapshotsForLastDays(14);
-    const cutoffStr = new Date().toISOString().slice(0, 10);
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - 7);
     const cutoff7Str = cutoffDate.toISOString().slice(0, 10);

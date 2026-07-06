@@ -177,7 +177,7 @@ onMounted(async () => {
           </div>
         </div>
         <button class="btn btn-outline btn-sm" :disabled="inviting" @click="inviteToPortal">
-          <span v-if="inviting" class="loading loading-spinner loading-xs"></span>
+          <span v-if="inviting" class="loading loading-spinner loading-xs"/>
           Invitar al portal
         </button>
       </div>
@@ -237,7 +237,7 @@ onMounted(async () => {
           </div>
           <div class="card-actions justify-end mt-4">
             <button class="btn btn-primary" :disabled="saving" @click="savePartner">
-              <span v-if="saving" class="loading loading-spinner loading-xs"></span>
+              <span v-if="saving" class="loading loading-spinner loading-xs"/>
               Guardar
             </button>
           </div>

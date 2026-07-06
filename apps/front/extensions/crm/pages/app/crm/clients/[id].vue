@@ -441,7 +441,7 @@ watch(activeTab, async (tab) => {
           </div>
           <div class="card-actions justify-end mt-4">
             <button class="btn btn-primary" :disabled="saving" @click="saveClient">
-              <span v-if="saving" class="loading loading-spinner loading-xs"></span>
+              <span v-if="saving" class="loading loading-spinner loading-xs"/>
               Guardar
             </button>
           </div>
@@ -479,7 +479,7 @@ watch(activeTab, async (tab) => {
                     <th>Email</th>
                     <th>Teléfono</th>
                     <th>Principal</th>
-                    <th></th>
+                    <th/>
                   </tr>
                 </thead>
                 <tbody>
@@ -588,7 +588,7 @@ watch(activeTab, async (tab) => {
                     <th>Precio</th>
                     <th>Estado</th>
                     <th>Pago</th>
-                    <th></th>
+                    <th/>
                   </tr>
                 </thead>
                 <tbody>
@@ -603,7 +603,8 @@ watch(activeTab, async (tab) => {
                       <span class="badge badge-sm badge-outline">{{ PROJECT_STATUS_LABELS[project.status] ?? project.status }}</span>
                     </td>
                     <td>
-                      <span class="badge badge-sm" :class="{
+                      <span
+class="badge badge-sm" :class="{
                         'badge-success': project.paymentStatus === 'paid',
                         'badge-warning': project.paymentStatus === 'partial',
                         'badge-error': project.paymentStatus === 'overdue',
