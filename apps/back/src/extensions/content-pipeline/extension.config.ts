@@ -48,6 +48,9 @@ class EnvironmentVariablesValidator {
 
   @IsString() @IsOptional()
   CONTENT_PIPELINE_CHROMIUM_LIB_DIR: string;
+
+  @IsString() @IsOptional()
+  CONTENT_PIPELINE_CTA_VIDEO_PATH: string;
 }
 
 export default registerAs<ContentPipelineConfig>('content-pipeline', () => {
@@ -84,5 +87,6 @@ export default registerAs<ContentPipelineConfig>('content-pipeline', () => {
     chromiumLibDir:
       process.env.CONTENT_PIPELINE_CHROMIUM_LIB_DIR ??
       '/home/hermeswebui/.hermes/home/.local/lib/usr/lib/x86_64-linux-gnu',
+    ctaVideoPath: process.env.CONTENT_PIPELINE_CTA_VIDEO_PATH,
   };
 });

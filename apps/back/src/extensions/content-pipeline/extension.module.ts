@@ -25,12 +25,14 @@ import { PublishingService } from '@ext/content-pipeline/services/publishing.ser
 import { VideoGeneratorService } from '@ext/content-pipeline/services/video-generator.service';
 import { HtmlRendererService } from '@ext/content-pipeline/services/html-renderer.service';
 import { CarouselGeneratorService } from '@ext/content-pipeline/services/carousel-generator.service';
+import { VideoTemplateService } from '@ext/content-pipeline/services/video-template.service';
 import { MetricsService } from '@ext/content-pipeline/services/metrics.service';
 
 import { ProjectController } from '@ext/content-pipeline/controllers/project.controller';
 import { IdeaController } from '@ext/content-pipeline/controllers/idea.controller';
 import { DraftController } from '@ext/content-pipeline/controllers/draft.controller';
 import { MetricsController } from '@ext/content-pipeline/controllers/metrics.controller';
+import { TemplateController } from '@ext/content-pipeline/controllers/template.controller';
 
 @Module({
   imports: [
@@ -48,6 +50,7 @@ import { MetricsController } from '@ext/content-pipeline/controllers/metrics.con
     IdeaController,
     DraftController,
     MetricsController,
+    TemplateController,
   ],
   providers: [
     contentPipelineProvider,
@@ -63,6 +66,7 @@ import { MetricsController } from '@ext/content-pipeline/controllers/metrics.con
     VideoGeneratorService,
     HtmlRendererService,
     CarouselGeneratorService,
+    VideoTemplateService,
     MetricsService,
   ],
   exports: [
@@ -79,6 +83,7 @@ import { MetricsController } from '@ext/content-pipeline/controllers/metrics.con
     VideoGeneratorService,
     HtmlRendererService,
     CarouselGeneratorService,
+    VideoTemplateService,
     MetricsService,
   ],
 })

@@ -220,9 +220,175 @@ export class VideoGeneratorService {
     }
   }
 
+  /**
+   * Concatenate a content video with a pre-configured CTA video clip using
+   * FFmpeg xfade for a smooth fade transition between them.
+   *
+   * Pipeline:
+   *   1. Probe the content video duration with ffprobe
+   *   2. Run FFmpeg: [0:v] content + [1:v] CTA → xfade=transition=fade
+   *      offset = content_duration - transitionDuration
+   *   3. Encode with libx264 (-preset ultrafast -crf 24 -pix_fmt yuv420p -r 30)
+   *   4. Return final video path + duration + size
+   *
+   * Tested and working FFmpeg command:
+   *   ffmpeg -i content.mp4 -i cta.mp4 \
+   *     -filter_complex "[0:v][1:v]xfade=transition=fade:duration=0.5:offset={dur-0.5}[vfinal]" \
+   *     -map "[vfinal]" -c:v libx264 -preset ultrafast -crf 24 -pix_fmt yuv420p -r 30 output.mp4
+   */
+  async concatWithCta(params: {
+    contentVideoPath: string;
+    ctaVideoPath: string;
+    outputDir?: string;
+    transitionDuration?: number;
+  }): Promise<GeneratedVideo> {
+    const transitionDur = params.transitionDuration ?? 0.5;
+    const outputDir =
+      params.outputDir ?? (await mkdtemp(join(tmpdir(), 'cp-cta-concat-')));
+    const outputPath = join(outputDir, 'final.mp4');
+
+    if (!params.contentVideoPath) {
+      throw new Error('concatWithCta: contentVideoPath is required');
+    }
+    if (!params.ctaVideoPath) {
+      throw new Error('concatWithCta: ctaVideoPath is required');
+    }
+
+    this.logger.log(
+      `Concatenating CTA: content=${params.contentVideoPath}, cta=${params.ctaVideoPath}, transition=${transitionDur}s`,
+    );
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+    try {
+      // 1. Probe content video duration with ffprobe (sibling of ffmpeg binary)
+      const ffprobePath = this.deriveFfprobePath();
+      const contentDuration = await this.probeDuration(
+        ffprobePath,
+        params.contentVideoPath,
+        controller.signal,
+      );
+
+      const offset = Math.max(0, contentDuration - transitionDur);
+
+      this.logger.debug(
+        `Content duration: ${contentDuration}s, xfade offset: ${offset}s`,
+      );
+
+      // 2. Build FFmpeg args
+      const args: string[] = [
+        '-nostdin',
+        '-loglevel',
+        'warning',
+        '-i',
+        params.contentVideoPath,
+        '-i',
+        params.ctaVideoPath,
+        '-filter_complex',
+        `[0:v][1:v]xfade=transition=fade:duration=${transitionDur}:offset=${offset}[vfinal]`,
+        '-map',
+        '[vfinal]',
+        '-c:v',
+        'libx264',
+        '-preset',
+        'ultrafast',
+        '-crf',
+        '24',
+        '-pix_fmt',
+        'yuv420p',
+        '-r',
+        '30',
+        '-y',
+        outputPath,
+      ];
+
+      // 3. Run FFmpeg
+      try {
+        const { stderr } = await execFileAsync(this.ffmpegPath, args, {
+          signal: controller.signal,
+          maxBuffer: 10 * 1024 * 1024,
+        });
+        if (stderr) {
+          this.logger.debug(`FFmpeg stderr (tail): ${stderr.slice(-500)}`);
+        }
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === 'AbortError') {
+          throw new Error(`FFmpeg CTA concat timed out after ${TIMEOUT_MS}ms`);
+        }
+        const msg = err instanceof Error ? err.message : String(err);
+        const errRecord = (err as Record<string, unknown>) ?? {};
+        const stderrStr =
+          typeof errRecord['stderr'] === 'string' ? errRecord['stderr'] : '';
+        const exitCode =
+          typeof errRecord['code'] === 'number' ? errRecord['code'] : '?';
+        throw new Error(
+          `FFmpeg CTA concat failed (exit ${exitCode}): ${stderrStr.slice(-800) || msg}`,
+        );
+      }
+
+      // 4. Probe final video duration + file size
+      const finalDuration = await this.probeDuration(
+        ffprobePath,
+        outputPath,
+        controller.signal,
+      );
+      const fileStat = await stat(outputPath);
+
+      this.logger.log(
+        `CTA concat done: ${outputPath} (${finalDuration}s, ${fileStat.size} bytes)`,
+      );
+
+      return {
+        videoPath: outputPath,
+        durationSec: finalDuration,
+        sizeBytes: fileStat.size,
+      };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Private helpers
   // ---------------------------------------------------------------------------
+
+  /** Derive the ffprobe binary path from the ffmpeg path (same dir, ffprobe). */
+  private deriveFfprobePath(): string {
+    const dir = dirname(this.ffmpegPath);
+    return join(dir, 'ffprobe');
+  }
+
+  /** Probe a video file duration (seconds) using ffprobe. */
+  private async probeDuration(
+    ffprobePath: string,
+    videoPath: string,
+    signal: AbortSignal,
+  ): Promise<number> {
+    try {
+      const { stdout } = await execFileAsync(
+        ffprobePath,
+        [
+          '-v',
+          'error',
+          '-show_entries',
+          'format=duration',
+          '-of',
+          'default=noprint_wrappers=1:nokey=1',
+          videoPath,
+        ],
+        { signal, maxBuffer: 1024 * 1024 },
+      );
+      const dur = parseFloat(stdout.trim());
+      if (Number.isNaN(dur) || dur <= 0) {
+        throw new Error(`ffprobe returned invalid duration: "${stdout}"`);
+      }
+      return dur;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(`ffprobe failed for ${videoPath}: ${msg}`);
+    }
+  }
 
   /**
    * Download an image from a URL or decode a data URI to a local file.

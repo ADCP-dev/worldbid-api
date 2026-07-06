@@ -21,4 +21,6 @@ export type ContentPipelineConfig = {
   chromiumLibDir?: string;
   /** Legacy alias kept for the provider's inert check. */
   llmApiKey?: string;
+  /** Path to a pre-configured CTA video clip (MP4) appended by VideoTemplateService. */
+  ctaVideoPath?: string;
 };

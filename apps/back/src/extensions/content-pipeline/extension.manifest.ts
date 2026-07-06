@@ -41,6 +41,10 @@ const manifest: ExtensionManifest = {
       { method: 'POST', path: 'content-pipeline/drafts/:id/publish' },
       { method: 'POST', path: 'content-pipeline/drafts/:id/generate-video' },
       { method: 'POST', path: 'content-pipeline/drafts/:id/generate-carousel-video' },
+      // Video templates
+      { method: 'GET', path: 'content-pipeline/templates' },
+      { method: 'GET', path: 'content-pipeline/templates/:type' },
+      { method: 'POST', path: 'content-pipeline/templates/generate' },
       // Metrics
       { method: 'GET', path: 'content-pipeline/projects/:id/metrics' },
       { method: 'GET', path: 'content-pipeline/metrics/dashboard' },

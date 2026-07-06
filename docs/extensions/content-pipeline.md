@@ -39,6 +39,8 @@ CONTENT_PIPELINE_FONT_PATH=/home/hermeswebui/.local/share/fonts/DejaVuSans-Bold.
 # HTML rendering (optional — defaults work on Foundation host)
 CONTENT_PIPELINE_CHROMIUM_PATH=/home/hermeswebui/.hermes/home/.cache/ms-playwright/chromium_headless_shell-1228/chrome-headless-shell-linux64/chrome-headless-shell
 CONTENT_PIPELINE_CHROMIUM_LIB_DIR=/home/hermeswebui/.hermes/home/.local/lib/usr/lib/x86_64-linux-gnu
+# Video templates — CTA clip appended to every template video (optional)
+CONTENT_PIPELINE_CTA_VIDEO_PATH=/data/cta/cta-clip.mp4
 ```
 
 ## API Endpoints
@@ -80,6 +82,14 @@ CONTENT_PIPELINE_CHROMIUM_LIB_DIR=/home/hermeswebui/.hermes/home/.local/lib/usr/
 | POST | `content-pipeline/drafts/:id/generate-video` | Generate 9:16 MP4 from draft images |
 | POST | `content-pipeline/drafts/:id/generate-carousel-video` | Generate carousel HTML → PNG → MP4 with hyperframes |
 
+### Video Templates
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `content-pipeline/templates` | List all predefined video templates |
+| GET | `content-pipeline/templates/:type` | Get a specific template definition |
+| POST | `content-pipeline/templates/generate` | Generate a video from a template + fill data |
+
 ### Metrics
 
 | Method | Path | Description |
@@ -103,6 +113,7 @@ CONTENT_PIPELINE_CHROMIUM_LIB_DIR=/home/hermeswebui/.hermes/home/.local/lib/usr/
 | VideoGeneratorService | FFmpeg MP4 from images + ASS subtitles + xfade hyperframe transitions |
 | HtmlRendererService | Chromium headless HTML → PNG screenshots |
 | CarouselGeneratorService | Branded HTML carousel slides (SOM-OS design system) |
+| VideoTemplateService | Predefined video templates with CTA video concatenation |
 | MetricsService | Metrics tracking, snapshots, cleanup |
 
 ## Video Generation
@@ -270,6 +281,105 @@ Body (all optional):
 
 - 5 slides → ~8.5s screenshots + ~25s FFmpeg = ~34s total
 - Output: 1080×1920 H264 MP4, ~734KB
+
+## Video Templates
+
+The `VideoTemplateService` provides 5 predefined video templates that structure content into narrative arcs. Every template appends a pre-configured CTA video clip at the end (unless disabled).
+
+### Template types
+
+| Template | Arc | Slots | Transitions |
+|----------|-----|-------|-------------|
+| `before-after` | Estado anterior → Estado después → Resultado | before, after, metric (optional) | slideleft, fade |
+| `product-showcase` | Vista frontal → Vista posterior → 2 características | front (img), back (img), feature, feature | circleopen, slideleft, fade |
+| `presentation` | Título → Agenda → 3 Contenidos → Resumen | title, agenda, content×3, summary | fade, slideleft, slideright, fade, wipeup |
+| `tutorial` | Hook → Paso 1-3 → Resultado | hook, step×3, result (img or text) | fade, slideleft, slideup, circleopen, fade |
+| `case-study` | Problema → Solución → Implementación → Resultados → Testimonio | problem, solution, implementation, metric, testimonial | fade, slideleft, wipeup, circleopen, fade |
+
+Each slot accepts either:
+- An **image URL** (for image-based slots like `front`, `back`, `before`, `after`, `result`)
+- A **carousel slide** (typed object with `type`, `title`, `body`, etc.) → rendered to branded HTML → PNG
+
+### CTA Video
+
+A pre-configured MP4 clip appended to every template video with a smooth xfade fade transition (0.5s). Stored once and reused across all template generations.
+
+Resolution order for the CTA video path:
+1. `ctaVideoPath` in the generate request body (per-call override)
+2. `ctaVideoPath` on the template definition (per-template override)
+3. `setCtaVideo()` runtime override (in-memory)
+4. `CONTENT_PIPELINE_CTA_VIDEO_PATH` env var (global default)
+
+If no CTA path is configured, the content video is returned without a CTA (logged as warning).
+
+### FFmpeg CTA concat
+
+```
+ffmpeg -i content.mp4 -i cta.mp4 \
+  -filter_complex "[0:v][1:v]xfade=transition=fade:duration=0.5:offset={content_dur-0.5}[vfinal]" \
+  -map "[vfinal]" -c:v libx264 -preset ultrafast -crf 24 -pix_fmt yuv420p -r 30 output.mp4
+```
+
+- `offset = content_duration - transition_duration` (ffprobe probes content duration first)
+- Result: smooth fade between last frame of content and first frame of CTA
+
+### Endpoints
+
+```http
+GET /v1/content-pipeline/templates
+GET /v1/content-pipeline/templates/:type
+POST /v1/content-pipeline/templates/generate
+```
+
+### Generate from template
+
+```json
+POST /v1/content-pipeline/templates/generate
+{
+  "template": "before-after",
+  "format": "vertical",
+  "transitions": ["slideleft", "fade"],
+  "slideDurationSec": 3,
+  "ctaVideoPath": "/data/cta/custom.mp4",
+  "slots": {
+    "0": { "imageUrl": "https://example.com/before.jpg" },
+    "1": { "imageUrl": "https://example.com/after.jpg" },
+    "2": { "slide": { "type": "metric", "metricValue": "62%", "metricLabel": "Reducción de tiempo" } }
+  }
+}
+```
+
+Response:
+
+```json
+{
+  "videoPath": "/tmp/cp-tpl-final-xxx/final.mp4",
+  "durationSec": 12.5,
+  "sizeBytes": 1024000,
+  "carouselHtml": ["<!doctype html>..."],
+  "postText": "Mira esta transformación...",
+  "ctaVideoPath": "/data/cta/cta-clip.mp4",
+  "templateType": "before-after"
+}
+```
+
+### Pipeline flow
+
+1. Get template definition by type
+2. Validate required slots are filled
+3. Separate image-based slots (imageUrl) from text-based slots (carousel slide)
+4. `CarouselGeneratorService` → branded HTML slides for text slots
+5. `HtmlRendererService` → PNG screenshots
+6. Build ordered `VideoSlide[]` (images + rendered PNGs, in template slot order)
+7. `VideoGeneratorService.generateVideo()` → content MP4 with xfade transitions
+8. `VideoGeneratorService.concatWithCta()` → append CTA clip with xfade fade
+9. Return `TemplateVideoResult` with final video path, durations, post text
+
+### Configuration
+
+| Env var | Default | Description |
+|---------|---------|-------------|
+| `CONTENT_PIPELINE_CTA_VIDEO_PATH` | *(none)* | Path to pre-configured CTA video clip (MP4) |
 
 ## Frontend
 
