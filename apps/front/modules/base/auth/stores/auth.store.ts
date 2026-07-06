@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 
 interface User {
-<<<<<<< HEAD
   id: string | number
   firstName: string
   lastName: string
@@ -15,19 +14,6 @@ interface AuthData {
   refreshToken: string
   tokenExpires: number
   user: User | null
-=======
-  id: string | number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  role: {
-    name: string;
-    homeRoute?: string;
-  };
-  photo?: {
-    path: string;
-  };
->>>>>>> 3aded1db4c5a7ba899a388bdcca402c0f4116137
 }
 
 interface AuthState {
@@ -56,20 +42,8 @@ export const useAuthStore = defineStore('auth', {
   getters: {
     isAuthenticated: (state) => !!state.token,
     isTokenExpired: (state) => {
-<<<<<<< HEAD
       if (!state.tokenExpires) return true
       return Date.now() >= state.tokenExpires
-=======
-      if (!state.tokenExpires) return true;
-      return Date.now() >= state.tokenExpires;
-    },
-    isAdmin: (state) => state.user?.role?.name === 'admin',
-    isCustomer: (state) => state.user?.role?.name === 'customer',
-    isAffiliate: (state) => state.user?.role?.name === 'affiliate',
-    fullName: (state) => {
-      if (!state.user) return '';
-      return `${state.user.firstName} ${state.user.lastName}`.trim();
->>>>>>> 3aded1db4c5a7ba899a388bdcca402c0f4116137
     },
     isAdmin: (state) => state.user?.role?.name === 'admin',
     isCustomer: (state) => state.user?.role?.name === 'customer',
@@ -219,19 +193,10 @@ export const useAuthStore = defineStore('auth', {
           await api.post('/auth/logout', { refreshToken: this.refreshToken })
         }
       } catch (error: unknown) {
-<<<<<<< HEAD
         console.error('Logout error:', error)
       } finally {
         this.clearAuthData()
         await navigateTo('/login')
-=======
-        if (import.meta.dev) console.error('Logout error:', error);
-      } finally {
-        this.clearAuthData();
-        if (import.meta.client) {
-          window.location.href = '/login';
-        }
->>>>>>> 3aded1db4c5a7ba899a388bdcca402c0f4116137
       }
     },
 
@@ -259,13 +224,8 @@ export const useAuthStore = defineStore('auth', {
         this.startRefreshTokenTimer()
         return { success: true, token: result.token }
       } catch (error: unknown) {
-<<<<<<< HEAD
         console.error('Token refresh failed:', error)
         this.logout()
-=======
-        if (import.meta.dev) console.error('Token refresh failed:', error);
-        this.logout();
->>>>>>> 3aded1db4c5a7ba899a388bdcca402c0f4116137
         return {
           success: false,
           error: error instanceof Error ? error.message : 'Token refresh failed',
@@ -308,12 +268,5 @@ export const useAuthStore = defineStore('auth', {
       }
     },
   },
-<<<<<<< HEAD
   persist: true,
 })
-=======
-  persist: {
-    paths: ['token', 'refreshToken', 'tokenExpires', 'user'],
-  },
-});
->>>>>>> 3aded1db4c5a7ba899a388bdcca402c0f4116137

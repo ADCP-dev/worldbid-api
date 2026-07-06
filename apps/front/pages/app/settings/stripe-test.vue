@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { toast } from 'vue-sonner';
@@ -137,15 +136,6 @@ function handleCheckout(planId: string) {
 }
 </script>
 
-=======
-<!--
-  This page has been relocated to the Stripe extension layer.
-  See: extensions/stripe/pages/app/settings/stripe-test.vue
-  This stub is kept only to avoid stale-file issues during cleanup.
-  The Nuxt layer version takes precedence for the same route.
-  Safe to delete this file once the Stripe extension layer is confirmed active.
--->
->>>>>>> 3aded1db4c5a7ba899a388bdcca402c0f4116137
 <template>
   <div />
 </template>
