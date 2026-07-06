@@ -13,9 +13,9 @@ import {
 import { EntityRelationalHelper } from '@infra/utils/relational-entity-helper';
 import { CrmStatusEntity } from './crm-status.entity';
 import { CrmOriginEntity } from './crm-origin.entity';
-import { CrmContactEntity } from './crm-contact.entity';
-import { CrmInteractionEntity } from './crm-interaction.entity';
-import { CrmProjectEntity } from './crm-project.entity';
+import type { CrmContactEntity } from './crm-contact.entity';
+import type { CrmInteractionEntity } from './crm-interaction.entity';
+import type { CrmProjectEntity } from './crm-project.entity';
 
 @Entity('ext_crm_client')
 @Index(['statusId'])
@@ -89,12 +89,33 @@ export class CrmClientEntity extends EntityRelationalHelper {
   @DeleteDateColumn()
   deletedAt: Date | null;
 
-  @OneToMany(() => CrmContactEntity, (contact) => contact.client)
+  @OneToMany(
+    () => {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { CrmContactEntity } = require('./crm-contact.entity');
+      return CrmContactEntity;
+    },
+    (contact: CrmContactEntity) => contact.client,
+  )
   contacts: CrmContactEntity[];
 
-  @OneToMany(() => CrmInteractionEntity, (interaction) => interaction.client)
+  @OneToMany(
+    () => {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { CrmInteractionEntity } = require('./crm-interaction.entity');
+      return CrmInteractionEntity;
+    },
+    (interaction: CrmInteractionEntity) => interaction.client,
+  )
   interactions: CrmInteractionEntity[];
 
-  @OneToMany(() => CrmProjectEntity, (project) => project.client)
+  @OneToMany(
+    () => {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { CrmProjectEntity } = require('./crm-project.entity');
+      return CrmProjectEntity;
+    },
+    (project: CrmProjectEntity) => project.client,
+  )
   projects: CrmProjectEntity[];
 }

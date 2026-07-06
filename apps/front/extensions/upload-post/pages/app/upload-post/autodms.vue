@@ -17,11 +17,27 @@ const {
   getAutodmLogs,
 } = useUploadPost();
 
-const monitors = ref<any[]>([]);
+interface AutodmMonitor {
+  monitor_id: string;
+  post_url: string;
+  status: 'running' | 'paused' | 'stopped' | 'expired';
+  dms_sent?: number;
+  trigger_keywords?: string[];
+  expires_at?: string;
+}
+
+interface AutodmLog {
+  timestamp?: string;
+  username?: string;
+  comment?: string;
+  dm_sent?: boolean;
+}
+
+const monitors = ref<AutodmMonitor[]>([]);
 const loading = ref(false);
 const isCreateModalOpen = ref(false);
 const logsModal = ref(false);
-const currentLogs = ref<any[]>([]);
+const currentLogs = ref<AutodmLog[]>([]);
 const logsLoading = ref(false);
 
 const createForm = ref({

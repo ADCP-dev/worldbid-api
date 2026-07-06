@@ -13,7 +13,7 @@ import {
 import { EntityRelationalHelper } from '@infra/utils/relational-entity-helper';
 import { CrmClientEntity } from '@ext/crm/infrastructure/persistence/entities/crm-client.entity';
 import { UserEntity } from '@users/infrastructure/entities/user.entity';
-import { AffiliateReferralEntity } from './affiliate-referral.entity';
+import type { AffiliateReferralEntity } from './affiliate-referral.entity';
 
 @Entity('ext_affiliate_partner')
 @Index(['email'], { unique: true })
@@ -82,6 +82,13 @@ export class AffiliatePartnerEntity extends EntityRelationalHelper {
   @DeleteDateColumn()
   deletedAt: Date | null;
 
-  @OneToMany(() => AffiliateReferralEntity, (referral) => referral.partner)
+  @OneToMany(
+    () => {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { AffiliateReferralEntity } = require('./affiliate-referral.entity');
+      return AffiliateReferralEntity;
+    },
+    (referral: AffiliateReferralEntity) => referral.partner,
+  )
   referrals: AffiliateReferralEntity[];
 }

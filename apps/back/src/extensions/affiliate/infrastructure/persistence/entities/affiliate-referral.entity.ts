@@ -13,7 +13,7 @@ import { EntityRelationalHelper } from '@infra/utils/relational-entity-helper';
 import { CrmClientEntity } from '@ext/crm/infrastructure/persistence/entities/crm-client.entity';
 import { CrmOriginEntity } from '@ext/crm/infrastructure/persistence/entities/crm-origin.entity';
 import { AffiliatePartnerEntity } from './affiliate-partner.entity';
-import { AffiliateCommissionEntity } from './affiliate-commission.entity';
+import type { AffiliateCommissionEntity } from './affiliate-commission.entity';
 
 @Entity('ext_affiliate_referral')
 @Index(['partnerId'])
@@ -69,8 +69,12 @@ export class AffiliateReferralEntity extends EntityRelationalHelper {
   updatedAt: Date;
 
   @OneToMany(
-    () => AffiliateCommissionEntity,
-    (commission) => commission.referral,
+    () => {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { AffiliateCommissionEntity } = require('./affiliate-commission.entity');
+      return AffiliateCommissionEntity;
+    },
+    (commission: AffiliateCommissionEntity) => commission.referral,
   )
   commissions: AffiliateCommissionEntity[];
 }

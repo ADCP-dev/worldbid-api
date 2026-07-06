@@ -12,8 +12,7 @@
       "decoratorMetadata": true
     },
     "target": "es2022",
-    "keepClassNames": true,
-    "baseUrl": "."
+    "keepClassNames": true
   },
   "module": {
     "type": "commonjs"

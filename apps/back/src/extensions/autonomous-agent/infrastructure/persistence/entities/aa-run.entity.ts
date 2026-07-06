@@ -18,11 +18,9 @@ export class AaRunEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Index()
   @Column({ type: 'uuid' })
   configId: string;
 
-  @Index()
   @Column({ type: 'uuid' })
   projectId: string;
 
