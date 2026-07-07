@@ -244,19 +244,15 @@ export interface CellContext<T = Record<string, unknown>> {
 
 // ─── App shell integration (plugins) ──────────────────────────────────
 // Shapes pushed into the shared app/nav useState by CRM plugins.
+// Re-exported from the shared typed contract in ~/types/*.
 
-export interface DashboardEntry {
-  id: string;
-  title: string;
-  componentName: string;
-}
+import type { NavMenuItem, NavMenu } from '~/types/nav';
 
-export interface NavMenuItem {
-  title: string;
-  icon: string;
-  link: string;
-}
+export type { DashboardEntry } from '~/types/dashboard';
+export type { NavMenuItem, NavMenu } from '~/types/nav';
 
+// Backwards-compatible alias: CRM plugins historically import `NavMenuGroup`
+// from this module. Alias to the shared NavMenu shape (heading + items).
 export interface NavMenuGroup {
   heading: string;
   items: NavMenuItem[];

@@ -7,7 +7,7 @@ import AppLogo from '@/components/AppLogo.vue'
 import type { NavGroup, NavLink, NavSectionTitle } from '~/types/nav'
 import { NavSearch } from '#components'
 
-const { navMenu, navMenuBottom } = useNavMenu()
+const { navMenu } = useNavMenu()
 
 const authStore = useAuthStore()
 
@@ -49,12 +49,6 @@ for="main-drawer"
         <component :is="resolveNavItemComponent(item)" v-for="(item, index) in nav.items" :key="index" :item="item" />
       </ul>
     </div>
-
-    <ul class="menu w-full shrink-0 is-drawer-close:px-0 px-2">
-      <component
-:is="resolveNavItemComponent(item)" v-for="(item, index) in navMenuBottom" :key="index" :item="item"
-        size="sm" />
-    </ul>
 
     <div class="border-t w-full shrink-0">
       <NavUser :user="user" />

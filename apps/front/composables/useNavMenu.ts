@@ -1,25 +1,29 @@
-import type { NavMenu, NavMenuItems } from '~/types/nav';
+import type { NavMenu, NavMenuItem } from '~/types/nav';
 import { useI18n } from 'vue-i18n';
+import { useOrderingStore } from '~/composables/useOrderingStore';
 
 export function useNavMenu() {
   const authStore = useAuthStore();
-  const config = useRuntimeConfig();
+  const orderingStore = useOrderingStore();
   const { t } = useI18n();
   const localePath = useLocalePath();
 
   const navMenu = computed<NavMenu[]>(() => {
     const baseGeneral: NavMenu = {
       heading: t('base.nav.general'),
+      order: 0,
       items: [
         {
           title: t('base.nav.home'),
           icon: 'House',
           link: localePath('/app'),
+          order: 0,
         },
         {
           title: t('base.nav.settings'),
           icon: 'Settings',
           link: localePath('/app/settings/profile'),
+          order: 10,
         },
       ],
     };
@@ -29,11 +33,13 @@ export function useNavMenu() {
     if (authStore.isAdmin) {
       menu.push({
         heading: t('base.nav.admin'),
+        order: 200,
         items: [
           {
             title: t('base.nav.users'),
             icon: 'Users',
             link: localePath('/app/users'),
+            order: 0,
           },
         ],
       });
@@ -47,7 +53,7 @@ export function useNavMenu() {
       menu.push({
         ...item,
         heading: item.heading ? t(item.heading) : '',
-        items: item.items.map((subItem: NavMenuItems[number]) => {
+        items: item.items.map((subItem: NavMenuItem) => {
           if ('title' in subItem) {
             return {
               ...subItem,
@@ -59,10 +65,16 @@ export function useNavMenu() {
       });
     });
 
-    return menu;
+    // Deterministic ordering: groups ascending by `order` (default 100),
+    // then items within each group ascending by `order` (default 100).
+    menu.sort((a, b) => (a.order ?? 100) - (b.order ?? 100));
+    menu.forEach((group) => {
+      group.items.sort((a, b) => (a.order ?? 100) - (b.order ?? 100));
+    });
+
+    // Admin-configurable override: store wins over plugin `order` defaults.
+    return orderingStore.effectiveSidebarGroups(menu);
   });
 
-  const navMenuBottom = computed<NavMenuItems>(() => []);
-
-  return { navMenu, navMenuBottom };
+  return { navMenu };
 }

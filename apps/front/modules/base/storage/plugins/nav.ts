@@ -11,10 +11,12 @@ export default defineNuxtPlugin(() => {
     if (!menuItems.value.find(item => item.heading === 'Storage')) {
       menuItems.value.push({
         heading: 'Storage',
+        order: 95,
         items: [{
           title: 'Archivos',
           icon: 'FolderOpen',
           link: localePath('/app/storage'),
+          order: 0,
         }],
       });
     }

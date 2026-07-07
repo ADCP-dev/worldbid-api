@@ -1,6 +1,8 @@
+import type { DashboardEntry } from '~/types/dashboard';
+
 export default defineNuxtPlugin(() => {
   const authStore = useAuthStore();
-  const dashboards = useState<{ id: string; title: string; componentName: string }[]>(
+  const dashboards = useState<DashboardEntry[]>(
     'app:dashboards',
     () => [],
   );
@@ -12,6 +14,7 @@ export default defineNuxtPlugin(() => {
       id: 'autonomous-agent',
       title: 'Autonomous Agent',
       componentName: 'AutonomousAgentDashboard',
+      order: 80,
     });
   };
 

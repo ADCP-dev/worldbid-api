@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { useSortable } from "@vueuse/core";
+import { ref, computed } from "vue";
+import { VueDraggable } from "vue-draggable-plus";
 import {
   GripVertical,
   ChevronRight,
@@ -80,73 +81,88 @@ const flatPages = computed<FlatPage[]>(() => {
   return result;
 });
 
-// Extract IDs in current order for reorder callback
-const getOrderedIds = (): string[] => {
-  return flatPages.value.map((fp) => fp.id);
-};
+// Local editable copy of the flat list — VueDraggable mutates this via v-model
+const sortableList = ref<FlatPage[]>([...flatPages.value]);
 
-// Called when drag ends within a parent group
-const handleReorder = () => {
-  const orderedIds = getOrderedIds();
-  // For hierarchical reorder, we need to determine which parent group was affected
-  // Since we're doing flat list drag, we'll pass null for root-level reorder
+// Keep local list in sync when the prop-driven flat view changes
+watch(
+  flatPages,
+  (val) => {
+    sortableList.value = [...val];
+  },
+  { immediate: true, deep: true },
+);
+
+// VueDraggable @change handler — shape: { added?, removed?, moved? }
+function onChange(_event: { added?: unknown; removed?: unknown; moved?: unknown }) {
+  const orderedIds = sortableList.value.map((fp) => fp.id);
+  // Flat-list drag: root-level reorder → parentId null
   props.onReorder(orderedIds, null);
-};
+}
 </script>
 
 <template>
   <div class="space-y-1">
-    <div
-      v-for="flat in flatPages"
-      :key="flat.id"
-      class="flex items-center gap-2 p-2 rounded-lg hover:bg-base-200 transition-colors group"
-      :style="{ paddingLeft: `${flat.depth * 1.5 + 0.5}rem` }"
+    <VueDraggable
+      v-model="sortableList"
+      :animation="150"
+      :handle="'.drag-handle'"
+      ghost-class="opacity-40"
+      item-key="id"
+      @change="onChange"
     >
-      <!-- Expand/Collapse toggle -->
-      <button
-        v-if="flat.hasChildren"
-        type="button"
-        class="btn btn-ghost btn-xs btn-square"
-        @click="toggleExpanded(flat.id)"
-      >
-        <component
-          :is="flat.isExpanded ? ChevronDown : ChevronRight"
-          class="w-4 h-4"
-        />
-      </button>
-      <div v-else class="w-6"/>
-
-      <!-- Drag handle -->
-      <div class="cursor-grab active:cursor-grabbing text-base-content/40">
-        <GripVertical class="w-4 h-4" />
-      </div>
-
-      <!-- Page icon -->
-      <component
-        :is="flat.page.isPublished ? FileText : Globe"
-        class="w-4 h-4 text-base-content/60"
-      />
-
-      <!-- Page info -->
-      <div class="flex-1 min-w-0">
-        <span class="font-medium truncate">{{ flat.page.title }}</span>
-        <span class="text-sm text-base-content/60 ml-2"
-          >/{{ flat.page.slug }})</span
-        >
-      </div>
-
-      <!-- Status badge -->
       <div
-        class="badge badge-sm"
-        :class="flat.page.isPublished ? 'badge-success' : 'badge-warning'"
+        v-for="flat in sortableList"
+        :key="flat.id"
+        class="flex items-center gap-2 p-2 rounded-lg hover:bg-base-200 transition-colors group"
+        :style="{ paddingLeft: `${flat.depth * 1.5 + 0.5}rem` }"
       >
-        {{ flat.page.isPublished ? "Published" : "Draft" }}
+        <!-- Expand/Collapse toggle -->
+        <button
+          v-if="flat.hasChildren"
+          type="button"
+          class="btn btn-ghost btn-xs btn-square"
+          @click="toggleExpanded(flat.id)"
+        >
+          <component
+            :is="flat.isExpanded ? ChevronDown : ChevronRight"
+            class="w-4 h-4"
+          />
+        </button>
+        <div v-else class="w-6"/>
+
+        <!-- Drag handle -->
+        <div class="drag-handle cursor-grab active:cursor-grabbing text-base-content/40">
+          <GripVertical class="w-4 h-4" />
+        </div>
+
+        <!-- Page icon -->
+        <component
+          :is="flat.page.isPublished ? FileText : Globe"
+          class="w-4 h-4 text-base-content/60"
+        />
+
+        <!-- Page info -->
+        <div class="flex-1 min-w-0">
+          <span class="font-medium truncate">{{ flat.page.title }}</span>
+          <span class="text-sm text-base-content/60 ml-2"
+            >/{{ flat.page.slug }})</span
+          >
+        </div>
+
+        <!-- Status badge -->
+        <div
+          class="badge badge-sm"
+          :class="flat.page.isPublished ? 'badge-success' : 'badge-warning'"
+        >
+          {{ flat.page.isPublished ? "Published" : "Draft" }}
+        </div>
       </div>
-    </div>
+    </VueDraggable>
 
     <!-- Empty state -->
     <div
-      v-if="flatPages.length === 0"
+      v-if="sortableList.length === 0"
       class="text-center py-8 text-base-content/60"
     >
       <FileText class="w-12 h-12 mx-auto mb-2 opacity-50" />

@@ -9,6 +9,7 @@ import { MailerModule } from '@infra/mailer/mailer.module';
 import { ExtensionLoaderModule } from '@core/extension-loader';
 import { TranslationsModule } from '@src/modules/translations/translations.module';
 import { ErrorTrackerModule } from '@src/modules/error-tracker/error-tracker.module';
+import { AppSettingsModule } from '@settings/app-settings.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { ErrorTrackerModule } from '@src/modules/error-tracker/error-tracker.mod
     // Optional modules
     TranslationsModule,
     ErrorTrackerModule,
+    AppSettingsModule,
   ],
 })
 export class FoundationModule {}

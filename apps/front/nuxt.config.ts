@@ -50,6 +50,8 @@ export default defineNuxtConfig(
         apiPrefix: process.env.API_PREFIX || '/api/v1',
         calendlyUrl: process.env.CALENDLY_URL || '',
         env: process.env.ENV || 'development',
+        // Default dashboard tab id; empty = use lowest `order` (see PRD-dashboard-nav-ordering §4.2).
+        defaultDashboard: '',
       },
     },
 

@@ -15,16 +15,19 @@ export default defineNuxtPlugin(() => {
     ) {
       menuItems.value.push({
         heading: "base.nav.translations_heading",
+        order: 96,
         items: [
           {
             title: "base.nav.languages",
             icon: "Globe",
             link: localePath("/admin/translations/langs"),
+            order: 0,
           },
           {
             title: "base.nav.all_translations",
             icon: "FileText",
             link: localePath("/admin/translations"),
+            order: 10,
           },
         ],
       });

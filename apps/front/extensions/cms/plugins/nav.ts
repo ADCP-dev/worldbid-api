@@ -1,7 +1,8 @@
 import { watch } from 'vue';
+import type { NavMenu } from '~/types/nav';
 
 export default defineNuxtPlugin(() => {
-  const menuItems = useState<any[]>("nav:menuItems", () => []);
+  const menuItems = useState<NavMenu[]>("nav:menuItems", () => []);
   const authStore = useAuthStore();
 
   const addCmsMenu = () => {
@@ -11,12 +12,13 @@ export default defineNuxtPlugin(() => {
 
     menuItems.value.push({
       heading: "CMS",
+      order: 50,
       items: [
-        { title: "Páginas", icon: "FileText", link: "/app/cms/pages" },
-        { title: "Blog", icon: "BookOpen", link: "/app/cms/blog/posts" },
-        { title: "Categorías", icon: "Folder", link: "/app/cms/blog/categories" },
-        { title: "Etiquetas", icon: "Tag", link: "/app/cms/tags" },
-        { title: "Media", icon: "Image", link: "/app/cms/media" },
+        { title: "Páginas", icon: "FileText", link: "/app/cms/pages", order: 0 },
+        { title: "Blog", icon: "BookOpen", link: "/app/cms/blog/posts", order: 10 },
+        { title: "Categorías", icon: "Folder", link: "/app/cms/blog/categories", order: 20 },
+        { title: "Etiquetas", icon: "Tag", link: "/app/cms/tags", order: 30 },
+        { title: "Media", icon: "Image", link: "/app/cms/media", order: 40 },
       ],
     });
   };

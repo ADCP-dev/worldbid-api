@@ -1,4 +1,4 @@
-import type { DashboardEntry } from '@/extensions/crm/types';
+import type { DashboardEntry } from '~/types/dashboard';
 
 export default defineNuxtPlugin(() => {
   const authStore = useAuthStore();
@@ -11,6 +11,7 @@ export default defineNuxtPlugin(() => {
       id: 'crm',
       title: 'CRM',
       componentName: 'CrmDashboard',
+      order: 10,
     });
   };
 

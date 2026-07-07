@@ -1,18 +1,16 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { useUsers } from '~/composables/useUsers';
+import { useChangePasswordMutation } from '@/composables/useUsers';
+import type { User } from '@/composables/useUsers';
 import { toast } from 'vue-sonner';
 
-const props = defineProps({
-  user: {
-    type: Object,
-    required: true
-  }
-});
+const props = defineProps<{
+  user: User;
+}>();
 
 const emit = defineEmits(['saved', 'close']);
 
-const { changePassword } = useUsers();
+const changePasswordMutation = useChangePasswordMutation();
 
 const password = ref('');
 const isSubmitting = ref(false);
@@ -36,7 +34,7 @@ const handleSubmit = async () => {
 
   isSubmitting.value = true;
   try {
-    await changePassword(props.user.id, password.value);
+    await changePasswordMutation.mutateAsync({ id: props.user.id, password: password.value });
     toast.success('Contraseña actualizada correctamente');
     emit('saved');
     closeDialog();

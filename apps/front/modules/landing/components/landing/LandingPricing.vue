@@ -2,11 +2,8 @@
 import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Check } from "lucide-vue-next";
-import StripeService from "~/services/stripe.service";
 
 const { t } = useI18n();
-
-let stripe: StripeService;
 
 interface PlanProps {
   title: string;
@@ -29,9 +26,6 @@ const currencySymbols: { [key: string]: string } = {
 };
 
 const loadPlans = async () => {
-  if (!stripe) {
-    stripe = new StripeService();
-  }
   // Static Spanish pricing plans for Foundation
   plans.value = [
     {

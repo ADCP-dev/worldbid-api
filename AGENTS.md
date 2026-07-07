@@ -235,6 +235,7 @@ Skills = workflows especializados y conocimiento de dominio. Se auto-detectan se
 | `motion-graphics` | Use when the user wants a short, design-led motion graphic where motion is the message: kinetic typography, stat or number count-up, chart/data-viz hit, logo sting, brand lockup, lower-third, callout, social overlay, animated headline/tweet/news item, motion poster, or quick captured-page highlight. Usually under 10s and up to ~30s, with no narration arc, voice-over, or live-action subject. Can render to MP4 or transparent overlay. Not for longer, multi-scene, narrated, or brand-reel pieces (use general-video), narrated website videos (website-to-video), topic explainers (faceless-explainer), product promos (product-launch-video), PR videos (pr-to-video), or captions on existing footage (embedded-captions). When unsure whether it's a quick motion-first piece or a longer / narrated treatment, see /hyperframes. | See description |
 | `music-to-video` | Use when the user has a music track (an audio file, or a video to pull audio from) and wants a beat-synced HyperFrames video, calm to hard-hitting. The music drives everything: one analyzer reads it once, the orchestrator lays out the frames and fills a per-frame plan, and one sub-agent builds each frame. Typography and templates are the floor — a complete video needs zero assets — but any images or videos the user supplies are cut into the frames on the same beat grid (beat-cut / ken-burns). The genre (lyric video, slideshow, kinetic promo) falls out of the per-frame choices; the pipeline never branches on it. | See description |
 | `pr-to-video` | turn a GitHub pull request (a PR URL like github.com/<owner>/<repo>/pull/<N>, an <owner>/<repo>#<N> ref, or 'this PR' in a checked-out repo) into a code-change explainer video, up to ~3 min (sweet spot 30-90s) — changelog, feature reveal, fix, or refactor walkthrough, rendered from the diff / commits / files. The input is a CODE CHANGE read via the gh CLI; there is no website capture. Use this skill for a GitHub PR. Do not use it for a product launch/promo (use /product-launch-video), a tour of a real website (use /website-to-video), a topic explainer with no PR (use /faceless-explainer), captions on existing footage (use /embedded-captions), or a short unnarrated motion graphic (use /motion-graphics). If the intent is unclear, route through /hyperframes first. | See description |
+| `prd-writer` | Writes high-quality PRDs (Product Requirements Documents) optimized for AI coding agents. Uses EARS notation, multi-file structure, explicit open questions, Definition of Done. Trigger: when user asks to write a PRD, create product requirements, document a feature before implementation, or says /prd-new, /prd-review, /prd-update. | See description |
 | `product-launch-video` | turn a product or marketing URL, pasted script, or brief into a product launch video, including SaaS promos, feature reveals, app launches, company promos, and product marketing videos. Use this skill when the user wants to market, launch, promote, or reveal a product. Do not use it for general non-launch website tours, non-product topic explainers, GitHub pull requests, captioning existing footage, or short unnarrated motion graphics. If the intent is unclear, route through /hyperframes first. This is the new shot-sequence architecture: every visual frame is authored as a time-coded shot sequence picked from a menu of golden blueprints, so frames develop over their full duration instead of freezing after entrance. | See description |
 | `remotion-to-hyperframes` | 'Port an existing Remotion (React) composition to HyperFrames HTML. Use ONLY when the user explicitly asks to port/convert/migrate/translate a Remotion source. Do NOT use: (a) authoring a new HyperFrames composition; (b) Remotion mentioned in passing; (c) Remotion code shared as reference only; (d) "same video as my Remotion one" without explicit migrate request — treat as fresh build. Doubt → `/general-video`. One-way, Remotion-only: no reverse export (HyperFrames→Remotion or any framework), no non-Remotion source (After Effects, Framer Motion, plain React/CSS) → out of scope, re-create via `/general-video`. Flags unsupported patterns (useState, useEffect, async calculateMetadata, third-party React libs, `@remotion/lambda`) and recommends runtime interop over lossy translation. Unsure whether to port vs. build fresh, or only a passing Remotion mention? → /hyperframes.' | See description |
 | `sdd-apply` | Implement tasks from the change, writing actual code following the specs and design. Trigger: When the orchestrator launches you to implement one or more tasks from a change. | See description |
@@ -423,9 +424,85 @@ Docs en `docs/`. Docs pa contexto y teoría. Skills pa acción.
 | `docs/GENERATORS.md` | GENERATORS |
 | `docs/issues/issue-81-layout-category-routing.md` | CMS Layout Separation & Category Routing |
 | `docs/PLAYWRIGHT-TEST-AGENTS.md` | Playwright Test Agents |
-| `docs/PRD-email-logo-sync.md` | PRD-email-logo-sync |
-| `docs/PRD-email-tailwind-sync.md` | PRD-email-tailwind-sync |
-| `docs/PRD-stripe-module.md` | PRD-stripe-module |
+| `docs/prds/affiliate/00-index.md` | 00-index |
+| `docs/prds/affiliate/01-overview.md` | 01-overview |
+| `docs/prds/affiliate/02-architecture.md` | 02-architecture |
+| `docs/prds/affiliate/03-requirements.md` | 03-requirements |
+| `docs/prds/affiliate/04-context.md` | 04-context |
+| `docs/prds/affiliate/05-risks-and-tradeoffs.md` | 05-risks-and-tradeoffs |
+| `docs/prds/affiliate/06-migration-phases.md` | 06-migration-phases |
+| `docs/prds/affiliate/07-open-questions.md` | 07-open-questions |
+| `docs/prds/affiliate/08-definition-of-done.md` | 08-definition-of-done |
+| `docs/prds/autonomous-agent/00-index.md` | 00-index |
+| `docs/prds/autonomous-agent/01-overview.md` | 01-overview |
+| `docs/prds/autonomous-agent/02-architecture.md` | 02-architecture |
+| `docs/prds/autonomous-agent/03-requirements.md` | 03-requirements |
+| `docs/prds/autonomous-agent/04-context.md` | 04-context |
+| `docs/prds/autonomous-agent/05-risks-and-tradeoffs.md` | 05-risks-and-tradeoffs |
+| `docs/prds/autonomous-agent/06-migration-phases.md` | 06-migration-phases |
+| `docs/prds/autonomous-agent/07-open-questions.md` | 07-open-questions |
+| `docs/prds/autonomous-agent/08-definition-of-done.md` | 08-definition-of-done |
+| `docs/prds/base-ui-components/00-index.md` | 00-index |
+| `docs/prds/base-ui-components/01-overview.md` | 01-overview |
+| `docs/prds/base-ui-components/02-architecture.md` | 02-architecture |
+| `docs/prds/base-ui-components/03-requirements.md` | 03-requirements |
+| `docs/prds/base-ui-components/04-context.md` | 04-context |
+| `docs/prds/base-ui-components/05-risks-and-tradeoffs.md` | 05-risks-and-tradeoffs |
+| `docs/prds/base-ui-components/07-open-questions.md` | 07-open-questions |
+| `docs/prds/base-ui-components/08-definition-of-done.md` | 08-definition-of-done |
+| `docs/prds/cms-audit/00-index.md` | 00-index |
+| `docs/prds/cms-audit/01-overview.md` | 01-overview |
+| `docs/prds/cms-audit/02-architecture.md` | 02-architecture |
+| `docs/prds/cms-audit/03-requirements.md` | 03-requirements |
+| `docs/prds/cms-audit/04-context.md` | 04-context |
+| `docs/prds/cms-audit/05-risks-and-tradeoffs.md` | 05-risks-and-tradeoffs |
+| `docs/prds/cms-audit/06-migration-phases.md` | 06-migration-phases |
+| `docs/prds/cms-audit/07-open-questions.md` | 07-open-questions |
+| `docs/prds/cms-audit/08-definition-of-done.md` | 08-definition-of-done |
+| `docs/prds/cms/00-index.md` | 00-index |
+| `docs/prds/cms/01-overview.md` | 01-overview |
+| `docs/prds/cms/02-architecture.md` | 02-architecture |
+| `docs/prds/cms/03-requirements.md` | 03-requirements |
+| `docs/prds/cms/04-context.md` | 04-context |
+| `docs/prds/cms/05-risks-and-tradeoffs.md` | 05-risks-and-tradeoffs |
+| `docs/prds/cms/06-migration-phases.md` | 06-migration-phases |
+| `docs/prds/cms/07-open-questions.md` | 07-open-questions |
+| `docs/prds/cms/08-definition-of-done.md` | 08-definition-of-done |
+| `docs/prds/content-pipeline/00-index.md` | 00-index |
+| `docs/prds/content-pipeline/01-overview.md` | 01-overview |
+| `docs/prds/content-pipeline/02-architecture.md` | 02-architecture |
+| `docs/prds/content-pipeline/03-requirements.md` | 03-requirements |
+| `docs/prds/content-pipeline/04-context.md` | 04-context |
+| `docs/prds/content-pipeline/05-risks-and-tradeoffs.md` | 05-risks-and-tradeoffs |
+| `docs/prds/content-pipeline/06-migration-phases.md` | 06-migration-phases |
+| `docs/prds/content-pipeline/07-open-questions.md` | 07-open-questions |
+| `docs/prds/content-pipeline/08-definition-of-done.md` | 08-definition-of-done |
+| `docs/prds/crm/00-index.md` | 00-index |
+| `docs/prds/crm/01-overview.md` | 01-overview |
+| `docs/prds/crm/02-architecture.md` | 02-architecture |
+| `docs/prds/crm/03-requirements.md` | 03-requirements |
+| `docs/prds/crm/04-context.md` | 04-context |
+| `docs/prds/crm/05-risks-and-tradeoffs.md` | 05-risks-and-tradeoffs |
+| `docs/prds/crm/07-open-questions.md` | 07-open-questions |
+| `docs/prds/crm/08-definition-of-done.md` | 08-definition-of-done |
+| `docs/prds/RESOLVED-OPEN-QUESTIONS.md` | RESOLVED-OPEN-QUESTIONS |
+| `docs/prds/stripe/00-index.md` | 00-index |
+| `docs/prds/stripe/01-overview.md` | 01-overview |
+| `docs/prds/stripe/02-architecture.md` | 02-architecture |
+| `docs/prds/stripe/03-requirements.md` | 03-requirements |
+| `docs/prds/stripe/04-context.md` | 04-context |
+| `docs/prds/stripe/05-risks-and-tradeoffs.md` | 05-risks-and-tradeoffs |
+| `docs/prds/stripe/06-migration-phases.md` | 06-migration-phases |
+| `docs/prds/stripe/07-open-questions.md` | 07-open-questions |
+| `docs/prds/stripe/08-definition-of-done.md` | 08-definition-of-done |
+| `docs/prds/upload-post/00-index.md` | 00-index |
+| `docs/prds/upload-post/01-overview.md` | 01-overview |
+| `docs/prds/upload-post/02-architecture.md` | 02-architecture |
+| `docs/prds/upload-post/03-requirements.md` | 03-requirements |
+| `docs/prds/upload-post/04-context.md` | 04-context |
+| `docs/prds/upload-post/05-risks-and-tradeoffs.md` | 05-risks-and-tradeoffs |
+| `docs/prds/upload-post/07-open-questions.md` | 07-open-questions |
+| `docs/prds/upload-post/08-definition-of-done.md` | 08-definition-of-done |
 | `docs/TOOLS.md` | TOOLS |
 | `docs/TYPESCRIPT-GUIDELINES.md` | TYPESCRIPT-GUIDELINES |
 

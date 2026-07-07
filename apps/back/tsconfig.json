@@ -28,6 +28,7 @@
       "@billing/*": ["src/modules/billing/*"],
       "@storage/*": ["src/modules/storage/*"],
       "@social/*": ["src/modules/social/*"],
+      "@settings/*": ["src/modules/app-settings/*"],
       "@infra/*": ["src/infrastructure/*"],
       "@src/*": ["src/*"],
       "@core/*": ["src/core/*"]

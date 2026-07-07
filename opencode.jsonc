@@ -6,7 +6,7 @@
     "foundation": {
       "description": "Foundation architect — uses AGENTS.md, SDD, and project skills",
       "mode": "primary",
-      "model": "opencode-go/deepseek-v4-pro",
+      "model": "ollama-cloud/glm-5.2",
       "prompt": "{file:./AGENTS.md}",
       "tools": {
         "bash": true,
@@ -110,12 +110,10 @@
   },
   // Default agent
   "default_agent": "foundation",
-  // Model for lightweight tasks (title generation, summaries)
-  "small_model": "opencode-go/deepseek-v4-flash",
   // ─── Global tool restrictions ──────────────────────────────────────────────
   // Playwright tools restricted to dedicated test agents only
   "tools": {
-    "playwright*": false
+    "playwright*": true
   },
   // ─── MCP Servers ────────────────────────────────────────────────────────────
   // Remote MCPs (always available, no local setup)

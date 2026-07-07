@@ -1,18 +1,17 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import { useUsers } from '~/composables/useUsers';
+import { useCreateUserMutation, useUpdateUserMutation } from '@/composables/useUsers';
+import type { User, CreateUserInput, UpdateUserInput } from '@/composables/useUsers';
 import { toast } from 'vue-sonner';
 
-const props = defineProps({
-  user: {
-    type: Object,
-    default: null
-  }
-});
+const props = defineProps<{
+  user: User | null;
+}>();
 
 const emit = defineEmits(['saved', 'close']);
 
-const { createUser, updateUser } = useUsers();
+const createUserMutation = useCreateUserMutation();
+const updateUserMutation = useUpdateUserMutation();
 
 const formData = ref({
   firstName: '',
@@ -54,18 +53,18 @@ const closeDialog = () => {
 const handleSubmit = async () => {
   isSubmitting.value = true;
   try {
-    const payload: any = {
+    const payload: CreateUserInput = {
       firstName: formData.value.firstName,
       lastName: formData.value.lastName,
       email: formData.value.email,
     };
 
     if (props.user) {
-      await updateUser(props.user.id, payload);
+      await updateUserMutation.mutateAsync({ id: props.user.id, data: payload as UpdateUserInput });
       toast.success('User updated successfully');
     } else {
       payload.password = formData.value.password;
-      await createUser(payload);
+      await createUserMutation.mutateAsync(payload);
       toast.success('User created successfully');
     }
 

@@ -13,11 +13,13 @@ export default defineNuxtPlugin(() => {
     ) {
       menuItems.value.push({
         heading: "System",
+        order: 98,
         items: [
           {
             title: "base.nav.error_logs",
             icon: "Bug",
             link: localePath("/admin/errors"),
+            order: 0,
           },
         ],
       });

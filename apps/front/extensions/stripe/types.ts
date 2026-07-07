@@ -157,13 +157,13 @@ export interface CellContext<T = Record<string, unknown>> {
 }
 
 // ─── App shell integration (plugins) ──────────────────────────────────
+// Re-exported from the shared typed contract in ~/types/*.
 
-export interface NavMenuItem {
-  title: string;
-  icon: string;
-  link: string;
-}
+import type { NavMenuItem, NavMenu } from '~/types/nav';
 
+export type { NavMenuItem, NavMenu } from '~/types/nav';
+
+// Backwards-compatible alias used by stripe plugins.
 export interface NavMenuGroup {
   heading: string;
   items: NavMenuItem[];

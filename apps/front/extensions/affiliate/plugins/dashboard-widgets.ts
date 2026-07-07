@@ -1,6 +1,8 @@
+import type { DashboardEntry } from '~/types/dashboard';
+
 export default defineNuxtPlugin(() => {
   const authStore = useAuthStore();
-  const dashboards = useState<any[]>('app:dashboards', () => []);
+  const dashboards = useState<DashboardEntry[]>('app:dashboards', () => []);
 
   const addAffiliateDashboard = () => {
     if (!authStore.isAdmin) return;
@@ -9,6 +11,7 @@ export default defineNuxtPlugin(() => {
       id: 'affiliate',
       title: 'Afiliación',
       componentName: 'AffiliateDashboard',
+      order: 30,
     });
   };
 

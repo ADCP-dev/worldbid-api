@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, h, resolveComponent } from "vue";
-import { useUsers } from "~/composables/useUsers";
+import { useDeleteUserMutation } from "@/composables/useUsers";
 import { useI18n } from "vue-i18n";
 import { toast } from "vue-sonner";
 import {
@@ -14,17 +14,17 @@ import {
 } from "lucide-vue-next";
 
 import DataTable from "@/modules/base/ui-app/components/data-table/DataTable.vue";
-import UserFormDialog from "~/components/users/UserFormDialog.vue";
-import UserPasswordDialog from "~/components/users/UserPasswordDialog.vue";
-import UserRoleDialog from "~/components/users/UserRoleDialog.vue";
-import TableActionMenu from "~/components/ui/TableActionMenu.vue";
+import UserFormDialog from "@/components/users/UserFormDialog.vue";
+import UserPasswordDialog from "@/components/users/UserPasswordDialog.vue";
+import UserRoleDialog from "@/components/users/UserRoleDialog.vue";
+import TableActionMenu from "@/components/ui/TableActionMenu.vue";
 
 definePageMeta({
   layout: 'default',
   middleware: ['auth', 'admin'],
 });
 
-const { deleteUser } = useUsers();
+const deleteUserMutation = useDeleteUserMutation();
 const { t } = useI18n();
 
 const tableRef = ref<any>(null);
@@ -61,7 +61,7 @@ const handleChangeRole = (user: any) => {
 const handleDelete = async (user: any) => {
   if (confirm(t("base.users.messages.deleteConfirm", { email: user.email }))) {
     try {
-      await deleteUser(user.id);
+      await deleteUserMutation.mutateAsync(user.id);
       toast.success(t("base.users.messages.deleteSuccess"));
       refreshTable();
     } catch (error: any) {

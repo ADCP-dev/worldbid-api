@@ -1,6 +1,8 @@
+import type { NavMenu } from '~/types/nav';
+
 export default defineNuxtPlugin(() => {
   const authStore = useAuthStore();
-  const menuItems = useState<any[]>('nav:menuItems', () => []);
+  const menuItems = useState<NavMenu[]>('nav:menuItems', () => []);
 
   // ─── Admin section (admins only) ────────────────────────────────────────
   const addAdminMenu = () => {
@@ -8,11 +10,12 @@ export default defineNuxtPlugin(() => {
     if (menuItems.value.find((item) => item.heading === 'Afiliación')) return;
     menuItems.value.push({
       heading: 'Afiliación',
+      order: 30,
       items: [
-        { title: 'Dashboard', icon: 'TrendingUp', link: '/app/affiliate' },
-        { title: 'Partners', icon: 'UserCheck', link: '/app/affiliate/partners' },
-        { title: 'Referencias', icon: 'Share2', link: '/app/affiliate/referrals' },
-        { title: 'Comisiones', icon: 'Euro', link: '/app/affiliate/commissions' },
+        { title: 'Dashboard', icon: 'TrendingUp', link: '/app/affiliate', order: 0 },
+        { title: 'Partners', icon: 'UserCheck', link: '/app/affiliate/partners', order: 10 },
+        { title: 'Referencias', icon: 'Share2', link: '/app/affiliate/referrals', order: 20 },
+        { title: 'Comisiones', icon: 'Euro', link: '/app/affiliate/commissions', order: 30 },
       ],
     });
   };
@@ -23,11 +26,12 @@ export default defineNuxtPlugin(() => {
     if (menuItems.value.find((item) => item.heading === 'Portal')) return;
     menuItems.value.push({
       heading: 'Portal',
+      order: 35,
       items: [
-        { title: 'Dashboard', icon: 'LayoutDashboard', link: '/app/portal' },
-        { title: 'Mis referencias', icon: 'Share2', link: '/app/portal/referrals' },
-        { title: 'Mis comisiones', icon: 'Euro', link: '/app/portal/commissions' },
-        { title: 'Mi perfil', icon: 'User', link: '/app/portal/profile' },
+        { title: 'Dashboard', icon: 'LayoutDashboard', link: '/app/portal', order: 0 },
+        { title: 'Mis referencias', icon: 'Share2', link: '/app/portal/referrals', order: 10 },
+        { title: 'Mis comisiones', icon: 'Euro', link: '/app/portal/commissions', order: 20 },
+        { title: 'Mi perfil', icon: 'User', link: '/app/portal/profile', order: 100 },
       ],
     });
   };

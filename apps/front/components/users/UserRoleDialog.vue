@@ -1,18 +1,17 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import { useUsers } from '~/composables/useUsers';
+import { useChangeUserRoleMutation, useChangeUserStatusMutation } from '@/composables/useUsers';
+import type { User } from '@/composables/useUsers';
 import { toast } from 'vue-sonner';
 
-const props = defineProps({
-  user: {
-    type: Object,
-    required: true
-  }
-});
+const props = defineProps<{
+  user: User;
+}>();
 
 const emit = defineEmits(['saved', 'close']);
 
-const { changeRole, changeStatus } = useUsers();
+const changeUserRoleMutation = useChangeUserRoleMutation();
+const changeUserStatusMutation = useChangeUserStatusMutation();
 
 const roleId = ref<number | string>('');
 const statusId = ref<number | string>('');
@@ -41,10 +40,10 @@ const handleSubmit = async () => {
     // Only update if changed
     const promises = [];
     if (roleId.value && roleId.value !== props.user.role?.id) {
-      promises.push(changeRole(props.user.id, roleId.value));
+      promises.push(changeUserRoleMutation.mutateAsync({ id: props.user.id, roleId: roleId.value }));
     }
     if (statusId.value && statusId.value !== props.user.status?.id) {
-      promises.push(changeStatus(props.user.id, statusId.value));
+      promises.push(changeUserStatusMutation.mutateAsync({ id: props.user.id, statusId: statusId.value }));
     }
 
     if (promises.length > 0) {
