@@ -9,15 +9,16 @@ import type { HookContext } from '@core/spec-engine/spec.types';
 
 export default async function staleWebhookHandler(
   payload: Record<string, unknown>,
+  ctx: HookContext,
 ): Promise<void> {
-  // In the full implementation, this would:
-  // 1. Look up tasks by ID from payload
-  // 2. Update their status or add metadata flag
-  // 3. Notify assignees
-
-  // For the spike, just log the receipt
   const taskIds = payload.taskIds || [payload.taskId];
-  const logger = console; // The webhook factory provides a minimal context
-  logger.log(`[stale-webhook] Received alert for tasks: ${JSON.stringify(taskIds)}`);
-  console.log(`[stale-webhook] Stale since: ${payload.staleSince || 'unknown'}`);
+  ctx.logger.log(`Received stale webhook for tasks: ${JSON.stringify(taskIds)}`);
+  ctx.logger.log(`Stale since: ${payload.staleSince || 'unknown'}`);
+
+  // Log to ErrorTracker for visibility
+  await ctx.logError(
+    `Stale task alert received for ${Array.isArray(taskIds) ? taskIds.length : 1} task(s)`,
+    'spec-engine:tasks:stale-webhook',
+    { taskIds, staleSince: payload.staleSince },
+  );
 }

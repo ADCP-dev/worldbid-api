@@ -257,8 +257,18 @@ export class WebhookControllerFactory {
   ): { handler: WebhookHandler | null; handlerError: string | null } {
     try {
       const handlerFilePath = path.resolve(extensionDir, spec.handler);
+      // Path containment check
+      const normalizedDir = path.resolve(extensionDir) + path.sep;
+      if (!handlerFilePath.startsWith(normalizedDir)) {
+        this.logger.warn(`⚠️  Webhook handler "${spec.handler}" escapes extension directory`);
+        return { handler: null, handlerError: 'Handler path escapes extension directory' };
+      }
+      // In production, .ts → .js
+      const requirePath = process.env.NODE_ENV === 'production'
+        ? handlerFilePath.replace(/\.ts$/, '.js')
+        : handlerFilePath;
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const mod = require(handlerFilePath);
+      const mod = require(requirePath);
 
       const handlerFn: unknown =
         mod && typeof mod === 'object' && 'default' in mod

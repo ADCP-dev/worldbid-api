@@ -124,7 +124,7 @@ resources:
           when: 'assigneeId != null'
         channel: email
         template: ./templates/task-assigned.hbs
-        to: '${entity.assignee.email}'
+        to: '${app.notificationEmail}'
         subject: 'Nueva tarea asignada: ${entity.title}'
 
       - name: notify-stale

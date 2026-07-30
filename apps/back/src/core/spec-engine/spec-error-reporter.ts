@@ -374,9 +374,10 @@ export class SpecErrorReporter {
     lines.push('');
 
     if (error.stack) {
-      lines.push('### Stack Trace');
+      lines.push('### Stack Trace (first 5 frames)');
       lines.push('```');
-      lines.push(error.stack);
+      const frames = error.stack.split('\n').slice(0, 6);
+      lines.push(frames.join('\n'));
       lines.push('```');
       lines.push('');
     }
@@ -504,11 +505,11 @@ export class SpecErrorReporter {
     lines.push(`<b>${this.escapeHtml(truncate(error.message, 200))}</b>`);
     lines.push('');
 
-    if (error.resource) lines.push(`📦 Resource: <code>${error.resource}</code>`);
-    if (error.operation) lines.push(`⚡ Operation: <code>${error.operation}</code>`);
-    if (error.stage) lines.push(`🔧 Stage: <code>${error.stage}</code>`);
-    if (error.hookPath) lines.push(`🪩 Hook: <code>${error.hookPath}</code>`);
-    lines.push(`🔑 Hash: <code>${error.hash.slice(0, 16)}</code>`);
+    if (error.resource) lines.push(`📦 Resource: <code>${this.escapeHtml(error.resource)}</code>`);
+    if (error.operation) lines.push(`⚡ Operation: <code>${this.escapeHtml(error.operation)}</code>`);
+    if (error.stage) lines.push(`🔧 Stage: <code>${this.escapeHtml(error.stage)}</code>`);
+    if (error.hookPath) lines.push(`🪩 Hook: <code>${this.escapeHtml(error.hookPath)}</code>`);
+    lines.push(`🔑 Hash: <code>${this.escapeHtml(error.hash.slice(0, 16))}</code>`);
     lines.push(`📊 Occurrences: ${error.occurrences}`);
 
     if (error.trace && error.trace.stages.length > 0) {
@@ -516,7 +517,7 @@ export class SpecErrorReporter {
       lines.push('<b>Trace:</b>');
       const failedStages = error.trace.stages.filter((s) => s.status === 'fail');
       for (const s of failedStages) {
-        lines.push(`  ❌ <code>${s.stage}</code> — ${s.error?.message || 'failed'}`);
+        lines.push(`  ❌ <code>${this.escapeHtml(s.stage)}</code> — ${this.escapeHtml(s.error?.message || 'failed')}`);
       }
       lines.push(`  Total: ${error.trace.totalDurationMs}ms`);
     }

@@ -36,6 +36,7 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Repository, FindManyOptions } from 'typeorm';
+import { getRepositoryToken } from '@nestjs/typeorm';
 import { z } from 'zod';
 import type { Request, Response } from 'express';
 
@@ -116,7 +117,7 @@ export class ControllerFactory {
     const routePath = this.pluralize(resourceName);
     const createSchema = ValidationFactory.createCreateSchema(spec);
     const updateSchema = ValidationFactory.createUpdateSchema(spec);
-    const diToken = `SpecRepo_${entitySchemaName}`;
+    const diToken = getRepositoryToken(entitySchemaName as any);
 
     // Resolve roles
     const perms = spec.permissions || {};
@@ -172,6 +173,24 @@ export class ControllerFactory {
         ) as unknown as HookContext;
       }
 
+      // ─── Helper: filter data by write permissions ──────
+      private applyFieldWritePerms(
+        data: Record<string, unknown>,
+        user: AuthenticatedUser | null,
+      ): Record<string, unknown> {
+        if (!user || Object.keys(fieldPerms).length === 0) return data;
+        const result: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(data)) {
+          const fieldRule = fieldPerms[key];
+          if (fieldRule?.write) {
+            const allowedRoles = resolveRolesArray(fieldRule.write);
+            if (!allowedRoles.includes(user.role?.id)) continue; // strip field
+          }
+          result[key] = value;
+        }
+        return result;
+      }
+
       // ─── Helper: apply row-level filter ─────────────────
       private applyRowLevelFilter(
         user: AuthenticatedUser | null,
@@ -187,9 +206,15 @@ export class ControllerFactory {
         if (match) {
           const [, field, userField] = match;
           const value = (user as any)[userField];
+          if (value === undefined) {
+            // Fail closed: if user field doesn't resolve, return impossible WHERE
+            return { ...where, _spec_denied: 1 };
+          }
           return { ...where, [field]: value };
         }
-        return where;
+        // Fail closed: unrecognized filter pattern → deny all rows
+        this.logger.warn(`Row-level filter "${rule.filter}" could not be parsed — denying all rows`);
+        return { ...where, _spec_denied: 1 };
       }
 
       // ─── Helper: strip fields user can't read ───────────
@@ -216,7 +241,7 @@ export class ControllerFactory {
           case RoleEnum.admin: return 'admin';
           case RoleEnum.customer: return 'customer';
           case RoleEnum.affiliate: return 'affiliate';
-          default: return 'unknown';
+          default: return '__denied__'; // Fail closed for unknown roles
         }
       }
 
@@ -236,8 +261,8 @@ export class ControllerFactory {
         trace.endStage('auth', 'pass', { guard: 'jwt', rolesChecked: listRoles });
 
         trace.startStage('db');
-        const pageNum = page ? Math.max(1, Number(page)) : 1;
-        const limitNum = limit ? Math.min(100, Number(limit)) : 20;
+        const pageNum = page && Number.isFinite(Number(page)) ? Math.max(1, Math.floor(Number(page))) : 1;
+        const limitNum = limit && Number.isFinite(Number(limit)) ? Math.max(1, Math.min(100, Math.floor(Number(limit)))) : 20;
         const skip = (pageNum - 1) * limitNum;
 
         const where = this.applyRowLevelFilter(user, {});
@@ -371,15 +396,23 @@ export class ControllerFactory {
 
         // Stage 4: DB operation
         trace.startStage('db');
-        const entity = this.repository.create(data);
-        const saved = await this.repository.save(entity);
-        trace.endStage('db', 'pass', { operation: 'INSERT', table: spec.table, id: saved.id });
+        let saved: any;
+        try {
+          const entity = this.repository.create(data);
+          saved = await this.repository.save(entity);
+          trace.endStage('db', 'pass', { operation: 'INSERT', table: spec.table, id: saved.id });
+        } catch (err) {
+          trace.endStage('db', 'fail', { error: (err as Error).message });
+          trace.finish();
+          this.attachTrace(res, trace);
+          throw err;
+        }
 
         // Stage 5: After hook (fire-and-forget)
         if (allHooks.afterCreate) {
           trace.startStage('afterHook');
           const ctx = this.buildContext(user, 'create', trace);
-          await hookExecutor.executeAfterHook(allHooks.afterCreate, saved, ctx, trace);
+          hookExecutor.executeAfterHook(allHooks.afterCreate, saved, ctx, trace).catch(() => {});
         } else {
           trace.skipStage('afterHook', 'no afterCreate hook defined');
         }
@@ -471,7 +504,7 @@ export class ControllerFactory {
         if (allHooks.afterUpdate) {
           trace.startStage('afterHook');
           const ctx = this.buildContext(user, 'update', trace);
-          await hookExecutor.executeAfterHook(allHooks.afterUpdate, saved, ctx, trace);
+          hookExecutor.executeAfterHook(allHooks.afterUpdate, saved, ctx, trace).catch(() => {});
         } else {
           trace.skipStage('afterHook', 'no afterUpdate hook defined');
         }
@@ -544,12 +577,12 @@ export class ControllerFactory {
           trace.skipStage('beforeHook', 'no beforeDelete hook defined');
         }
 
-        await this.repository.softDelete(Number(id));
+        await this.repository.softDelete(where);
 
         if (allHooks.afterDelete) {
           trace.startStage('afterHook');
           const ctx = this.buildContext(user, 'delete', trace);
-          await hookExecutor.executeAfterHook(allHooks.afterDelete, entity, ctx, trace);
+          hookExecutor.executeAfterHook(allHooks.afterDelete, entity, ctx, trace).catch(() => {});
         } else {
           trace.skipStage('afterHook', 'no afterDelete hook defined');
         }

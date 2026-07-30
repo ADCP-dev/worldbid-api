@@ -14,6 +14,7 @@ import { Logger } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { Repository } from 'typeorm';
+import { getRepositoryToken } from '@nestjs/typeorm';
 
 import type { AuthenticatedUser, TraceWriter } from './spec.types';
 import { HookAbortError } from './spec.types';
@@ -29,6 +30,10 @@ import { EmailService } from '@comms/email-queue/email.service';
 import { FilesService } from '@storage/files/files.service';
 import { ErrorTrackerService } from '@src/modules/error-tracker/error-tracker.service';
 
+// Import driver-specific file services
+// These may not all be available depending on FILE_DRIVER config
+// We use optional resolution in getService() to handle this.
+
 /**
  * Map of service name → actual class reference for ModuleRef resolution.
  */
@@ -38,34 +43,29 @@ const SERVICE_CLASS_MAP: Record<string, any> = {
   EmailService,
   FilesService,
   ErrorTrackerService,
+  // Driver-specific file services — resolved lazily since not all may be registered
 };
 
 export class HookContextImpl {
   readonly logger: Logger;
   readonly trace: TraceWriter;
+  readonly user: AuthenticatedUser | null;
+  readonly operation: string;
+  readonly resource: string;
 
   constructor(
     private readonly moduleRef: ModuleRef,
     private readonly configService: ConfigService<any>,
-    private readonly user: AuthenticatedUser | null,
-    private readonly resource: string,
-    private readonly operation: string,
+    user: AuthenticatedUser | null,
+    resource: string,
+    operation: string,
     trace: TraceWriter,
   ) {
     this.logger = new Logger(`HookContext:${resource}:${operation}`);
     this.trace = trace;
-  }
-
-  get user$(): AuthenticatedUser | null {
-    return this.user;
-  }
-
-  get operation$(): string {
-    return this.operation;
-  }
-
-  get resource$(): string {
-    return this.resource;
+    this.user = user;
+    this.resource = resource;
+    this.operation = operation;
   }
 
   /**
@@ -75,7 +75,7 @@ export class HookContextImpl {
    */
   getRepository(name: string): Repository<any> {
     try {
-      return this.moduleRef.get(`SpecRepo_${name}`, { strict: false });
+      return this.moduleRef.get(getRepositoryToken(name as any), { strict: false });
     } catch {
       throw new Error(
         `Repository "${name}" not found. Spec-driven resources are available by name. ` +

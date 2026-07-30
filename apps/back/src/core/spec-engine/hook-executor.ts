@@ -49,6 +49,18 @@ export class HookExecutor {
     if (!hookPath) return null;
 
     const absolutePath = path.resolve(extensionDir, hookPath);
+    // Path containment: prevent directory traversal
+    const normalizedDir = path.resolve(extensionDir) + path.sep;
+    if (!absolutePath.startsWith(normalizedDir)) {
+      this.logger.warn(
+        `⚠️  Hook path "${hookPath}" escapes extension directory — skipping`,
+      );
+      return null;
+    }
+    // In production, .ts files are compiled to .js — strip extension
+    const requirePath = process.env.NODE_ENV === 'production'
+      ? absolutePath.replace(/\.ts$/, '.js')
+      : absolutePath;
     const cacheKey = `${resourceName}:${hookType}:${absolutePath}`;
 
     // Check cache
@@ -57,7 +69,7 @@ export class HookExecutor {
 
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const mod = require(absolutePath);
+      const mod = require(requirePath);
       const handler = mod.default;
 
       if (typeof handler !== 'function') {

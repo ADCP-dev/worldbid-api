@@ -35,6 +35,7 @@ import * as path from 'path';
 import type { LoadedSpec } from './spec-loader';
 import type { JobSpec, HookContext } from './spec.types';
 import { SpecEngineBootService } from './spec-engine-boot';
+import { NotificationDispatcher } from './notification-dispatcher';
 import { HookContextImpl } from './hook-context';
 import { TraceBuilder } from './spec-trace';
 
@@ -93,7 +94,7 @@ function isRedisAvailable(): boolean {
 function buildJobContext(resourceName: string, logger: Logger): HookContext {
   const moduleRef = SpecEngineBootService.getModuleRef();
   const configService = SpecEngineBootService.getConfigService();
-  const trace = new TraceBuilder(resourceName, 'list', null, logger, false);
+  const trace = new TraceBuilder(resourceName, 'job', null, logger, process.env.NODE_ENV !== 'production');
   return new HookContextImpl(
     moduleRef,
     configService,
@@ -339,6 +340,33 @@ export class SpecJobRunner implements OnModuleInit, OnModuleDestroy {
     try {
       const ctx = buildJobContext(resourceName, this.logger);
       await handler(ctx);
+
+      // Dispatch job-triggered notifications
+      const resource = this.loadedSpecs
+        .flatMap(l => l.spec.resources)
+        .find(r => r.jobs?.some(j => j.name === job.name));
+      if (resource?.notifications?.length) {
+        const jobNotifications = resource.notifications.filter(
+          n => n.trigger.on === 'job' && n.trigger.jobName === job.name
+        );
+        if (jobNotifications.length > 0) {
+          const dispatcher = new NotificationDispatcher();
+          const loaded = this.loadedSpecs.find(l => l.spec.resources.includes(resource));
+          const cs = SpecEngineBootService.getConfigService() as any;
+          await dispatcher.dispatch({
+            notifications: jobNotifications,
+            operation: 'job',
+            entity: { jobName: job.name, resourceName },
+            ctx,
+            extensionDir: loaded?.dir || '',
+            appConfig: {
+              url: cs.get('app.backendDomain', { infer: true }) || '',
+              name: cs.get('app.name', { infer: true }) || '',
+              notificationEmail: cs.get('app.notificationEmail', { infer: true }) || '',
+            },
+          });
+        }
+      }
     } catch (err) {
       this.logger.error(`Job "${job.name}" failed: ${(err as Error).message}`);
     }

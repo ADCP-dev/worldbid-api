@@ -197,14 +197,10 @@ export class SpecEngineModule {
       provide: SpecErrorReporter,
       useValue: specErrorReporter,
     });
-    providers.push({
-      provide: SpecJobRunner,
-      useFactory: () => {
-        const runner = new SpecJobRunner();
-        runner.setLoadedSpecs(loadedSpecs);
-        return runner;
-      },
-    });
+    // Register job runner with BullMQ (if Redis available) or setInterval fallback
+    const jobRegistration = SpecJobRunner.register(loadedSpecs);
+    imports.push(...jobRegistration.imports);
+    providers.push(...jobRegistration.providers);
 
     // Store loaded specs for the boot service to wire ModuleRef
     providers.push({

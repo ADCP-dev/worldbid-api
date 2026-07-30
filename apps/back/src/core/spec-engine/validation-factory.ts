@@ -121,6 +121,10 @@ export class ValidationFactory {
         schema = z.number().int().positive();
         break;
 
+      case 'file':
+        schema = z.string().uuid().or(z.string().nullable());
+        break;
+
       default:
         schema = z.unknown();
     }
