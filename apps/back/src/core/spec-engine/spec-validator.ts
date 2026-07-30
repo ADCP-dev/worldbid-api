@@ -255,6 +255,21 @@ export class SpecValidator {
     if (spec.permissions) {
       const permErrors = this.validatePermissions(spec.permissions, fieldNames);
       errors.push(...permErrors);
+
+      // Warn about 'public' role — requires unguarding the route
+      const allPermRoles = [
+        ...(spec.permissions.list || []), ...(spec.permissions.read || []),
+        ...(spec.permissions.create || []), ...(spec.permissions.update || []),
+        ...(spec.permissions.delete || []),
+      ];
+      if (allPermRoles.includes('public')) {
+        warnings.push({
+          resource: spec.name,
+          message: 'Permission "public" requires the route to be unguarded. ' +
+            'Spec engine applies AuthGuard(jwt) on all routes. ' +
+            'Use "admin" or "customer" instead, or write a manual controller.',
+        });
+      }
     }
 
     // Validate hooks — check files exist
@@ -401,18 +416,14 @@ export class SpecValidator {
     };
 
     // Warn about 'public' role — requires unguarding the route
+    // (moved here from validatePermissions which doesn't have spec/warnings scope)
     const allPermRoles = [
       ...(perms.list || []), ...(perms.read || []),
       ...(perms.create || []), ...(perms.update || []),
       ...(perms.delete || []),
     ];
     if (allPermRoles.includes('public')) {
-      warnings.push({
-        resource: spec.name,
-        message: 'Permission "public" requires the route to be unguarded. ' +
-          'Spec engine currently applies AuthGuard(jwt) on all routes. ' +
-          'Use "admin" or "customer" instead, or write a manual controller.',
-      });
+      // This warning is handled in validateResource where spec is available
     }
 
     checkRoles(perms.list, 'list');

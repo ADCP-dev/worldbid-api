@@ -539,17 +539,19 @@ export class ControllerFactory {
         }
         // Use partial update instead of full save to avoid race condition
         // Only update the fields present in validated data (not full row)
+        let saved: any;
         try {
           await this.repository.update(numericId, data);
           // Reload to get the updated entity for response
-          const saved = await this.repository.findOne({ where });
-          trace.endStage('db', 'pass', { operation: 'UPDATE', table: spec.table, id: numericId });
+          saved = await this.repository.findOne({ where });
           if (!saved) {
             trace.endStage('db', 'fail', { error: 'Not found after update' });
             trace.finish();
             this.attachTrace(res, trace);
             throw new NotFoundException(`${displayName} with ID ${id} not found after update`);
           }
+          trace.endStage('db', 'pass', { operation: 'UPDATE', table: spec.table, id: numericId });
+        } catch (err) {
           trace.endStage('db', 'fail', { error: (err as Error).message });
           trace.finish();
           this.attachTrace(res, trace);
