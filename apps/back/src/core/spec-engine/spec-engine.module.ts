@@ -26,6 +26,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { EntitySchema } from 'typeorm';
 import { ModuleRef } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
+import * as fs from 'fs';
+import * as path from 'path';
 
 import { SpecLoader, LoadedSpec } from './spec-loader';
 import { SpecValidator } from './spec-validator';
@@ -90,6 +92,9 @@ export class SpecEngineModule {
     const hookExecutor = new HookExecutor();
     const notificationDispatcher = new NotificationDispatcher();
     const specErrorReporter = new SpecErrorReporter();
+
+    // Wire error reporter into hook executor (for Telegram + GitHub issues)
+    hookExecutor.setErrorReporter(specErrorReporter);
 
     // Phase 4: Materialize entities + controllers + webhooks
     const entitySchemas: EntitySchema<any>[] = [];
@@ -273,9 +278,6 @@ export class SpecEngineModule {
    * Find the extensions directory relative to this compiled file
    */
   private static findExtensionsDir(): string | null {
-    const path = require('path');
-    const fs = require('fs');
-
     // Try dist/extensions (compiled)
     const distPath = path.resolve(__dirname, '../../extensions');
     if (fs.existsSync(distPath)) return distPath;

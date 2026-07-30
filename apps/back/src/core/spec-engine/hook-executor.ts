@@ -23,6 +23,7 @@ import type {
   HookContext,
 } from './spec.types';
 import { HookAbortError } from './spec.types';
+import type { SpecErrorReporter } from './spec-error-reporter';
 import type { TraceBuilder } from './spec-trace';
 
 export type HookType = 'beforeCreate' | 'afterCreate' | 'beforeUpdate' | 'afterUpdate' | 'beforeDelete' | 'afterDelete' | 'beforeQuery';
@@ -35,6 +36,11 @@ export interface LoadedHook {
 export class HookExecutor {
   private readonly logger = new Logger('HookExecutor');
   private hookCache: Map<string, LoadedHook> = new Map();
+  private errorReporter: SpecErrorReporter | null = null;
+
+  setErrorReporter(reporter: SpecErrorReporter): void {
+    this.errorReporter = reporter;
+  }
 
   /**
    * Load a hook handler at materialization time.
@@ -112,17 +118,25 @@ export class HookExecutor {
       const result = await (hook.handler as BeforeHook)(data, ctx);
 
       const modifiedFields = this.getModifiedFields(data, result.data);
-      trace.endStage('beforeHook', 'pass', {
-        hook: hook.path,
-        modified: modifiedFields,
-        proceed: result.proceed,
-      });
 
       if (!result.proceed) {
+        // Log abort to trace and throw — single endStage call
+        trace.endStage('beforeHook', 'fail', {
+          hook: hook.path,
+          modified: modifiedFields,
+          proceed: false,
+          error: result.error,
+        });
         throw new BadRequestException(
           result.error || 'Hook aborted the operation',
         );
       }
+
+      trace.endStage('beforeHook', 'pass', {
+        hook: hook.path,
+        modified: modifiedFields,
+        proceed: true,
+      });
 
       return { data: result.data, proceed: true };
     } catch (err) {
@@ -186,7 +200,7 @@ export class HookExecutor {
         (err as Error).stack,
       );
 
-      // Report to ErrorTracker if available
+      // Report to ErrorTracker + SpecErrorReporter (Telegram + GitHub)
       try {
         await ctx.logError(
           `After hook failed: ${(err as Error).message}`,
@@ -195,6 +209,30 @@ export class HookExecutor {
         );
       } catch {
         // ErrorTracker not available — already logged above
+      }
+
+      // Also report via SpecErrorReporter for Telegram + GitHub issue
+      if (this.errorReporter) {
+        try {
+          const { computeSpecErrorHash } = require('./spec-error-reporter');
+          this.errorReporter.report({
+            message: `After hook failed: ${(err as Error).message}`,
+            source: `spec-engine:${ctx.resource}:${ctx.operation}`,
+            stack: (err as Error).stack,
+            resource: ctx.resource,
+            operation: ctx.operation,
+            stage: 'afterHook',
+            hookPath: hook.path,
+            hash: computeSpecErrorHash(
+              `After hook failed: ${(err as Error).message}`,
+              `spec-engine:${ctx.resource}:${ctx.operation}`,
+              (err as Error).stack,
+            ),
+            occurrences: 1,
+          });
+        } catch {
+          // Best effort — don't let reporting fail the pipeline
+        }
       }
 
       trace.endStage('afterHook', 'fail', {

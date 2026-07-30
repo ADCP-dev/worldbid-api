@@ -74,6 +74,13 @@ function resolveRolesArray(roles: PermissionRole[]): number[] {
     .filter((r): r is number => r !== null);
 }
 
+// Parse and validate a numeric ID from a route param.
+// Returns NaN if invalid — callers should check with Number.isFinite().
+function parseId(id: string): number {
+  const num = Number(id);
+  return Number.isFinite(num) ? num : NaN;
+}
+
 export interface MaterializedController {
   controllerClass: any;
   entitySchemaName: string;
@@ -320,6 +327,10 @@ export class ControllerFactory {
         @Req() req?: Request,
         @Res({ passthrough: true }) res?: Response,
       ) {
+        const numericId = parseId(id);
+        if (!Number.isFinite(numericId)) {
+          throw new BadRequestException(`Invalid ID: "${id}" must be a number`);
+        }
         const user = (req?.user as AuthenticatedUser) || null;
         const trace = new TraceBuilder(resourceName, 'read', user ? { id: user.id, role: user.role?.name || '' } : null, this.logger, isDev);
 
@@ -421,10 +432,12 @@ export class ControllerFactory {
         if (notifications.length > 0) {
           trace.startStage('notifications');
           const ctx = this.buildContext(user, 'create', trace);
+          // Load entity with relations so notification templates can access ${entity.assignee.email}
+          const entityForNotifications = await this.loadForNotifications(saved, spec);
           const summary = await notificationDispatcher.dispatch({
             notifications,
             operation: 'afterCreate',
-            entity: saved,
+            entity: entityForNotifications,
             ctx,
             extensionDir,
             appConfig: getAppConfig(),
@@ -453,6 +466,10 @@ export class ControllerFactory {
         @Req() req?: Request,
         @Res({ passthrough: true }) res?: Response,
       ) {
+        const numericId = parseId(id);
+        if (!Number.isFinite(numericId)) {
+          throw new BadRequestException(`Invalid ID: "${id}" must be a number`);
+        }
         const user = (req?.user as AuthenticatedUser) || null;
         const trace = new TraceBuilder(resourceName, 'update', user ? { id: user.id, role: user.role?.name || '' } : null, this.logger, isDev);
 
@@ -488,7 +505,7 @@ export class ControllerFactory {
 
         // Stage 4: DB
         trace.startStage('db');
-        const where = this.applyRowLevelFilter(user, { id: Number(id) });
+        const where = this.applyRowLevelFilter(user, { id: numericId });
         const existing = await this.repository.findOne({ where });
         if (!existing) {
           trace.endStage('db', 'fail', { error: 'Not found' });
@@ -513,10 +530,11 @@ export class ControllerFactory {
         if (notifications.length > 0) {
           trace.startStage('notifications');
           const ctx = this.buildContext(user, 'update', trace);
+          const entityForNotifications = await this.loadForNotifications(saved, spec);
           const summary = await notificationDispatcher.dispatch({
             notifications,
             operation: 'afterUpdate',
-            entity: saved,
+            entity: entityForNotifications,
             ctx,
             extensionDir,
             appConfig: getAppConfig(),
@@ -545,6 +563,10 @@ export class ControllerFactory {
         @Req() req?: Request,
         @Res({ passthrough: true }) res?: Response,
       ) {
+        const numericId = parseId(id);
+        if (!Number.isFinite(numericId)) {
+          throw new BadRequestException(`Invalid ID: "${id}" must be a number`);
+        }
         const user = (req?.user as AuthenticatedUser) || null;
         const trace = new TraceBuilder(resourceName, 'delete', user ? { id: user.id, role: user.role?.name || '' } : null, this.logger, isDev);
 
@@ -552,7 +574,7 @@ export class ControllerFactory {
         trace.endStage('auth', 'pass', { guard: 'jwt', rolesChecked: deleteRoles });
 
         trace.startStage('db');
-        const where = this.applyRowLevelFilter(user, { id: Number(id) });
+        const where = this.applyRowLevelFilter(user, { id: numericId });
         const entity = await this.repository.findOne({ where });
         if (!entity) {
           trace.endStage('db', 'fail', { error: 'Not found' });
@@ -566,13 +588,13 @@ export class ControllerFactory {
         if (allHooks.beforeDelete) {
           trace.startStage('beforeHook');
           const ctx = this.buildContext(user, 'delete', trace);
-          const hookResult = await hookExecutor.executeBeforeHook(
+          await hookExecutor.executeBeforeHook(
             allHooks.beforeDelete,
             entity as Record<string, unknown>,
             ctx,
             trace,
           );
-          // For delete, we don't modify the entity — just check proceed
+          // proceed check is inside executeBeforeHook — throws if proceed=false
         } else {
           trace.skipStage('beforeHook', 'no beforeDelete hook defined');
         }
@@ -609,6 +631,33 @@ export class ControllerFactory {
 
         trace.finish();
         this.attachTrace(res, trace);
+      }
+
+      // ─── Helper: load entity with relations for notifications ──
+      private async loadForNotifications(
+        entity: any,
+        spec: ResourceSpec,
+      ): Promise<Record<string, unknown>> {
+        // Collect ref field names for relation loading
+        const refFields = spec.fields
+          .filter(f => f.type === 'ref')
+          .map(f => f.name.replace(/Id$/, ''));
+        
+        if (refFields.length === 0) return entity;
+
+        try {
+          // Reload with relations populated
+          const loaded = await this.repository.findOne({
+            where: { id: entity.id },
+            relations: refFields.reduce((acc, name) => ({ ...acc, [name]: true }), {}),
+          });
+          return loaded || entity;
+        } catch {
+          // If relation loading fails (e.g. target entity not registered),
+          // return the original entity — notification interpolation will
+          // gracefully handle missing fields
+          return entity;
+        }
       }
 
       // ─── Helper: attach trace to response ───────────────
