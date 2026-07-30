@@ -1,17 +1,18 @@
 /**
- * SpecEngineModule — the dynamic module that loads YAML specs and materializes them.
- *
- * This replaces hand-written NestJS modules for spec-driven extensions.
- * Drop a .spec.yaml in extensions/<name>/ → full CRUD API is available at runtime.
+ * SpecEngineModule — the dynamic module that loads YAML specs and
+ * materializes them into full CRUD APIs at runtime.
  *
  * Flow:
  *   1. Scan extensions dir for .spec.yaml files
- *   2. For each resource in each spec:
- *      a. Build TypeORM EntitySchema (dynamic entity)
- *      b. Register dynamic repository in NestJS DI
- *      c. Build dynamic controller with CRUD routes + Zod validation + auth
- *   3. Register job handlers (BullMQ or setInterval)
- *   4. Register webhook controllers
+ *   2. Parse and validate each spec
+ *   3. For each resource:
+ *      a. Build TypeORM EntitySchema (dynamic entity with relations)
+ *      b. Load hooks (beforeCreate, afterCreate, etc.)
+ *      c. Build dynamic controller with full 7-stage pipeline
+ *      d. Build webhook controllers if webhooks defined
+ *   4. Register TypeORM with all dynamic entity schemas
+ *   5. Register job runner with loaded specs
+ *   6. Wire NotificationDispatcher, HookExecutor, SpecErrorReporter
  */
 
 import {
@@ -23,25 +24,26 @@ import {
 } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EntitySchema } from 'typeorm';
+import { ModuleRef } from '@nestjs/core';
+import { ConfigService } from '@nestjs/config';
 
 import { SpecLoader, LoadedSpec } from './spec-loader';
 import { EntityFactory } from './entity-factory';
 import { ControllerFactory } from './controller-factory';
+import { ValidationFactory } from './validation-factory';
+import { HookExecutor } from './hook-executor';
+import { NotificationDispatcher } from './notification-dispatcher';
+import { SpecErrorReporter } from './spec-error-reporter';
 import { SpecJobRunner } from './spec-job-runner';
-import type { ResourceSpec } from './spec.types';
+import { WebhookControllerFactory } from './webhook-controller-factory';
+import { SpecEngineBootService } from './spec-engine-boot';
+import type { ResourceSpec, HookSpec } from './spec.types';
+import type { LoadedHook } from './hook-executor';
 
 const logger = new Logger('SpecEngine');
 
-export interface SpecEngineContext {
-  loadedSpecs: LoadedSpec[];
-  resourceSpecs: Map<string, ResourceSpec>;
-}
-
 @Module({})
 export class SpecEngineModule {
-  /**
-   * Register the spec engine: scan for specs and materialize all resources
-   */
   static register(): DynamicModule {
     const extensionsDir = this.findExtensionsDir();
 
@@ -58,7 +60,7 @@ export class SpecEngineModule {
       return { module: SpecEngineModule, imports: [], providers: [], controllers: [] };
     }
 
-    // Phase 2: Build a registry of all resource specs (for ref validation)
+    // Phase 2: Build resource registry
     const resourceSpecs = new Map<string, ResourceSpec>();
     for (const loaded of loadedSpecs) {
       for (const res of loaded.spec.resources) {
@@ -75,29 +77,90 @@ export class SpecEngineModule {
       }
     }
 
-    // Phase 3: Materialize entities + controllers
+    // Phase 3: Create shared providers
+    const hookExecutor = new HookExecutor();
+    const notificationDispatcher = new NotificationDispatcher();
+    const specErrorReporter = new SpecErrorReporter();
+
+    // Phase 4: Materialize entities + controllers + webhooks
     const entitySchemas: EntitySchema<any>[] = [];
     const controllers: Type<any>[] = [];
     const providers: Provider[] = [];
     const imports: any[] = [];
 
+    // We need ModuleRef and ConfigService — but they're only available
+    // after the module is instantiated. So we create a factory that
+    // receives them via onModuleInit.
+    //
+    // For the controller factory, we need ModuleRef at registration time.
+    // We use a deferred pattern: store references that get resolved
+    // when the module initializes.
+
     for (const loaded of loadedSpecs) {
       for (const resource of loaded.spec.resources) {
         try {
-          // Create entity schema
-          const entitySchema = EntityFactory.create(resource);
+          // Create entity schema with relations
+          const entitySchema = EntityFactory.create(resource, resourceSpecs);
           entitySchemas.push(entitySchema);
 
-          // Create controller
-          const { controllerClass } = ControllerFactory.create(
-            resource,
+          // Load hooks for this resource
+          const allHooks = this.loadHooksForResource(
+            resource.hooks,
+            loaded.dir,
             resource.name,
+            hookExecutor,
           );
+
+          // We need to defer controller creation until we have ModuleRef.
+          // For now, we create a placeholder and wire it in onModuleInit.
+          // Actually, NestJS DynamicModule requires controllers to be
+          // registered at registration time, not at onModuleInit.
+          //
+          // Solution: we pass a lazy resolver that gets ModuleRef later.
+          // The controller factory needs ModuleRef for HookContextImpl.
+          // We use a module-level variable that gets set in onModuleInit.
+
+          // Create controller with deferred ModuleRef
+          const { controllerClass } = ControllerFactory.create({
+            spec: resource,
+            entitySchemaName: resource.name,
+            extensionDir: loaded.dir,
+            hookExecutor,
+            notificationDispatcher,
+            isDev: process.env.NODE_ENV !== 'production',
+            allHooks,
+          });
+
           controllers.push(controllerClass);
 
           logger.log(
-            `✅ Materialized: ${resource.name} → table ${resource.table}, ${resource.fields.length} fields`,
+            `✅ Materialized: ${resource.name} → table ${resource.table}, ${resource.fields.length} fields` +
+              (allHooks.beforeCreate ? ', beforeCreate hook' : '') +
+              (allHooks.afterCreate ? ', afterCreate hook' : '') +
+              (resource.notifications?.length ? `, ${resource.notifications.length} notifications` : '') +
+              (resource.jobs?.length ? `, ${resource.jobs.length} jobs` : '') +
+              (resource.webhooks?.length ? `, ${resource.webhooks.length} webhooks` : ''),
           );
+
+          // Create webhook controllers
+          if (resource.webhooks) {
+            for (const webhook of resource.webhooks) {
+              try {
+                const { controllerClass: webhookController } =
+                  WebhookControllerFactory.create(
+                    webhook,
+                    loaded.dir,
+                    resource.name,
+                  );
+                controllers.push(webhookController);
+                logger.log(`  ↳ Webhook: ${webhook.path} (${webhook.auth})`);
+              } catch (err) {
+                logger.error(
+                  `  ↳ Failed to create webhook "${webhook.name}": ${(err as Error).message}`,
+                );
+              }
+            }
+          }
         } catch (err) {
           logger.error(
             `❌ Failed to materialize resource "${resource.name}": ${(err as Error).message}`,
@@ -106,16 +169,24 @@ export class SpecEngineModule {
       }
     }
 
-    // Phase 4: Register TypeORM with all dynamic entity schemas
+    // Phase 5: Register TypeORM with all dynamic entity schemas
     if (entitySchemas.length > 0) {
       imports.push(TypeOrmModule.forFeature(entitySchemas));
     }
 
-    // Phase 5: Register job runner with loaded specs injected via factory
-    const jobContext: SpecEngineContext = { loadedSpecs, resourceSpecs };
+    // Phase 6: Register providers
+    providers.push(SpecEngineBootService);
     providers.push({
-      provide: 'SPEC_ENGINE_CONTEXT',
-      useValue: jobContext,
+      provide: HookExecutor,
+      useValue: hookExecutor,
+    });
+    providers.push({
+      provide: NotificationDispatcher,
+      useValue: notificationDispatcher,
+    });
+    providers.push({
+      provide: SpecErrorReporter,
+      useValue: specErrorReporter,
     });
     providers.push({
       provide: SpecJobRunner,
@@ -124,6 +195,20 @@ export class SpecEngineModule {
         runner.setLoadedSpecs(loadedSpecs);
         return runner;
       },
+    });
+
+    // Store loaded specs for the boot service to wire ModuleRef
+    providers.push({
+      provide: 'SPEC_LOADED_SPECS',
+      useValue: loadedSpecs,
+    });
+    providers.push({
+      provide: 'SPEC_RESOURCE_SPECS',
+      useValue: resourceSpecs,
+    });
+    providers.push({
+      provide: 'SPEC_ENTITY_SCHEMAS',
+      useValue: entitySchemas,
     });
 
     logger.log(
@@ -135,7 +220,42 @@ export class SpecEngineModule {
       imports,
       controllers,
       providers,
-      exports: [SpecJobRunner, 'SPEC_ENGINE_CONTEXT'],
+      exports: [
+        HookExecutor,
+        NotificationDispatcher,
+        SpecErrorReporter,
+        SpecJobRunner,
+        'SPEC_LOADED_SPECS',
+        'SPEC_RESOURCE_SPECS',
+      ],
+    };
+  }
+
+  /**
+   * Load all hooks for a resource
+   */
+  private static loadHooksForResource(
+    hooks: HookSpec | undefined,
+    extensionDir: string,
+    resourceName: string,
+    hookExecutor: HookExecutor,
+  ): {
+    beforeCreate?: LoadedHook;
+    afterCreate?: LoadedHook;
+    beforeUpdate?: LoadedHook;
+    afterUpdate?: LoadedHook;
+    beforeDelete?: LoadedHook;
+    afterDelete?: LoadedHook;
+  } {
+    if (!hooks) return {};
+
+    return {
+      beforeCreate: hookExecutor.loadHook(hooks.beforeCreate, extensionDir, resourceName, 'beforeCreate') || undefined,
+      afterCreate: hookExecutor.loadHook(hooks.afterCreate, extensionDir, resourceName, 'afterCreate') || undefined,
+      beforeUpdate: hookExecutor.loadHook(hooks.beforeUpdate, extensionDir, resourceName, 'beforeUpdate') || undefined,
+      afterUpdate: hookExecutor.loadHook(hooks.afterUpdate, extensionDir, resourceName, 'afterUpdate') || undefined,
+      beforeDelete: hookExecutor.loadHook(hooks.beforeDelete, extensionDir, resourceName, 'beforeDelete') || undefined,
+      afterDelete: hookExecutor.loadHook(hooks.afterDelete, extensionDir, resourceName, 'afterDelete') || undefined,
     };
   }
 
@@ -143,8 +263,6 @@ export class SpecEngineModule {
    * Find the extensions directory relative to this compiled file
    */
   private static findExtensionsDir(): string | null {
-    // __dirname is dist/core/spec-engine (compiled) or src/core/spec-engine (ts)
-    // extensions/ is at src/extensions/ or dist/extensions/
     const path = require('path');
     const fs = require('fs');
 

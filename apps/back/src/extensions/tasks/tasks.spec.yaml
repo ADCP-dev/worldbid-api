@@ -1,11 +1,11 @@
 # Tasks Extension Spec
 # This file IS the extension. The SpecEngine reads it and materializes everything.
-# No .ts files needed except for job/webhook handlers (escape hatch).
+# No .ts files needed except for hook/job/webhook handlers (escape hatch).
 
 name: tasks
 version: 1.0.0
 displayName: Tasks
-description: Kanban-style task management with stale task alerts
+description: Kanban-style task management with stale task alerts and dashboard
 
 resources:
   # ─── Task Board ─────────────────────────────────────────
@@ -23,43 +23,135 @@ resources:
         validation:
           min: 2
           max: 200
+        ui:
+          display: text
+          formInput: text
+          link: true
+
       - name: description
         type: text
         nullable: true
+        ui:
+          display: truncate
+          truncateLength: 50
+          formInput: textarea
+
       - name: status
         type: enum
         required: true
         default: pending
         enum: [pending, in_progress, review, done, blocked]
         index: true
+        ui:
+          display: badge
+          formInput: select
+          colors:
+            pending: '#f59e0b'
+            in_progress: '#3b82f6'
+            review: '#8b5cf6'
+            done: '#22c55e'
+            blocked: '#ef4444'
+
       - name: priority
         type: enum
         required: true
         default: medium
         enum: [low, medium, high, urgent]
         index: true
+        ui:
+          display: badge
+          formInput: select
+          colors:
+            low: '#6b7280'
+            medium: '#3b82f6'
+            high: '#f59e0b'
+            urgent: '#ef4444'
+
       - name: assigneeId
         type: ref
         ref: user
         nullable: true
         refOnDelete: SET NULL
         index: true
+        ui:
+          display: avatar
+          formInput: select-async
+          labelField: firstName
+
       - name: dueDate
         type: datetime
         nullable: true
         index: true
+        ui:
+          display: date
+          formInput: datepicker
+
       - name: position
         type: integer
         default: 0
+        ui:
+          display: text
+          formInput: text
+
       - name: metadata
         type: json
         default: {}
+
     permissions:
       list: [admin, customer]
       read: [admin, customer]
       create: [admin]
       update: [admin, customer]
       delete: [admin]
+      fields:
+        position:
+          read: [admin]
+          write: [admin]
+        assigneeId:
+          read: [admin]
+      rowLevel:
+        customer:
+          filter: 'assigneeId == ${user.id}'
+
+    hooks:
+      beforeCreate: ./hooks/task-before-create.ts
+      afterCreate: ./hooks/task-after-create.ts
+
+    notifications:
+      - name: notify-assignee
+        trigger:
+          on: afterCreate
+          when: 'assigneeId != null'
+        channel: email
+        template: ./templates/task-assigned.hbs
+        to: '${entity.assignee.email}'
+        subject: 'Nueva tarea asignada: ${entity.title}'
+
+      - name: notify-stale
+        trigger:
+          on: job
+          jobName: stale-tasks-detector
+        channel: email
+        template: ./templates/stale-tasks.hbs
+        to: '${app.notificationEmail}'
+        subject: 'Tareas pendientes sin actualizar'
+
+    jobs:
+      - name: stale-tasks-detector
+        schedule: interval
+        value: 60s
+        handler: ./handlers/stale-tasks.handler.ts
+        queue: spec-jobs
+        retries: 3
+        backoff: exponential
+
+    webhooks:
+      - name: stale-alert
+        path: tasks/webhooks/stale
+        method: POST
+        auth: hmac
+        handler: ./handlers/stale-webhook.handler.ts
+
     seeds:
       - title: Setup project repository
         status: done
@@ -76,24 +168,23 @@ resources:
       - title: Deploy staging environment
         status: blocked
         priority: urgent
-        dueDate: "2026-08-15T00:00:00Z"
+        dueDate: '2026-08-15T00:00:00Z'
         position: 3
 
-    # ─── Job: detect stale tasks (pending > 24h) ──────────
-    jobs:
-      - name: stale-tasks-detector
-        schedule: interval
-        value: 60s
-        handler: ./handlers/stale-tasks.handler.ts
-        description: Detects tasks that have been pending for too long and fires webhook
-
-    # ─── Webhook: receive external stale alerts ───────────
-    webhooks:
-      - path: tasks/webhooks/stale
-        method: POST
-        auth: hmac
-        handler: ./handlers/stale-webhook.handler.ts
-        description: Receives external alerts about stale tasks
+    ui:
+      icon: CheckSquare
+      view: table
+      sidebar:
+        heading: Tasks
+        items:
+          - title: All Tasks
+            icon: CheckSquare
+            link: /app/tasks
+            roles: [admin]
+          - title: My Tasks
+            icon: User
+            link: /app/tasks/mine
+            roles: [customer]
 
   # ─── Task Comment (nested resource) ─────────────────────
   - name: task-comment
@@ -120,9 +211,58 @@ resources:
         validation:
           min: 1
           max: 5000
+        ui:
+          display: truncate
+          truncateLength: 80
+          formInput: textarea
     permissions:
       list: [admin, customer]
       read: [admin, customer]
       create: [admin, customer]
       update: [admin]
       delete: [admin]
+
+# ─── Views / Dashboards ───────────────────────────────────
+views:
+  - name: task-dashboard
+    displayName: Task Dashboard
+    type: dashboard
+    roles: [admin]
+    panels:
+      - name: total-tasks
+        chart: stat
+        label: Total Tasks
+        query:
+          resource: task
+          aggregate: count
+
+      - name: tasks-by-status
+        chart: donut
+        query:
+          resource: task
+          groupBy: status
+          aggregate: count
+
+      - name: tasks-by-priority
+        chart: bar
+        query:
+          resource: task
+          groupBy: priority
+          aggregate: count
+
+      - name: urgent-open
+        chart: stat
+        label: Urgent Open
+        query:
+          resource: task
+          filter: 'priority == urgent && status != done'
+          aggregate: count
+
+      - name: tasks-over-time
+        chart: line
+        query:
+          resource: task
+          groupBy: createdAt
+          groupByInterval: day
+          aggregate: count
+          timeRange: 30d

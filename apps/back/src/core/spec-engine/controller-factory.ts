@@ -1,15 +1,16 @@
 /**
  * ControllerFactory — creates dynamic NestJS controllers from ResourceSpec.
  *
- * This is the core of the spec engine: instead of generating .ts controller files,
- * we build controller classes at runtime using NestJS DynamicModule + metadata reflection.
+ * This is the heart of the spec engine. Instead of generating .ts files,
+ * we build controller classes at runtime that implement the full 7-stage
+ * pipeline: auth → validation → beforeHook → db → afterHook → notifications → response.
  *
  * Each resource gets:
- *   GET    /<resource>          → findAll (paginated)
- *   GET    /<resource>/:id      → findOne
- *   POST   /<resource>          → create (Zod validated)
- *   PATCH  /<resource>/:id      → update (Zod validated)
- *   DELETE /<resource>/:id      → softDelete
+ *   GET    /<resource>          → findAll (paginated, row-level filtered)
+ *   GET    /<resource>/:id      → findOne (row-level filtered)
+ *   POST   /<resource>          → create (Zod validated, hooks, notifications)
+ *   PATCH  /<resource>/:id      → update (Zod validated, hooks, notifications)
+ *   DELETE /<resource>/:id      → softDelete (hooks, notifications)
  */
 
 import {
@@ -21,11 +22,14 @@ import {
   Body,
   Param,
   Query,
+  Req,
+  Res,
   UseGuards,
   HttpStatus,
   HttpCode,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
   Logger,
   Inject,
 } from '@nestjs/common';
@@ -33,13 +37,25 @@ import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Repository } from 'typeorm';
 import { z } from 'zod';
+import type { Request, Response } from 'express';
 
 import { Roles } from '@iam/roles/roles.decorator';
 import { RoleEnum } from '@iam/roles/roles.enum';
 import { RolesGuard } from '@iam/roles/roles.guard';
 
-import type { ResourceSpec, PermissionRole } from './spec.types';
+import type {
+  ResourceSpec,
+  PermissionRole,
+  HookContext,
+  AuthenticatedUser,
+} from './spec.types';
+import { HookAbortError } from './spec.types';
 import { ValidationFactory } from './validation-factory';
+import { TraceBuilder } from './spec-trace';
+import { HookExecutor, LoadedHook } from './hook-executor';
+import { NotificationDispatcher } from './notification-dispatcher';
+import { HookContextImpl } from './hook-context';
+import { SpecEngineBootService } from './spec-engine-boot';
 
 // Role name → RoleEnum value map
 const ROLE_MAP: Record<PermissionRole, number | null> = {
@@ -51,27 +67,49 @@ const ROLE_MAP: Record<PermissionRole, number | null> = {
 
 export interface MaterializedController {
   controllerClass: any;
-  entitySchemaName: string; // used for DI token
+  entitySchemaName: string;
+}
+
+export interface ControllerFactoryParams {
+  spec: ResourceSpec;
+  entitySchemaName: string;
+  extensionDir: string;
+  hookExecutor: HookExecutor;
+  notificationDispatcher: NotificationDispatcher;
+  isDev: boolean;
+  allHooks: {
+    beforeCreate?: LoadedHook;
+    afterCreate?: LoadedHook;
+    beforeUpdate?: LoadedHook;
+    afterUpdate?: LoadedHook;
+    beforeDelete?: LoadedHook;
+    afterDelete?: LoadedHook;
+  };
 }
 
 export class ControllerFactory {
   /**
-   * Build a dynamic controller class from a ResourceSpec.
-   *
-   * The controller uses a repository injected via the entity schema name as DI token.
-   * The service layer is inlined — no separate service class needed for standard CRUD.
+   * Build a dynamic controller class with the full 7-stage pipeline.
    */
-  static create(
-    spec: ResourceSpec,
-    entitySchemaName: string,
-  ): MaterializedController {
+  static create(params: ControllerFactoryParams): MaterializedController {
+    const {
+      spec,
+      entitySchemaName,
+      extensionDir,
+      hookExecutor,
+      notificationDispatcher,
+      isDev,
+      allHooks,
+    } = params;
+
     const resourceName = spec.name;
     const displayName = spec.displayName || resourceName;
     const routePath = this.pluralize(resourceName);
     const createSchema = ValidationFactory.createCreateSchema(spec);
     const updateSchema = ValidationFactory.createUpdateSchema(spec);
+    const diToken = `SpecRepo_${entitySchemaName}`;
 
-    // Determine required roles for each action
+    // Resolve roles
     const perms = spec.permissions || {};
     const listRoles = this.resolveRoles(perms.list || ['admin']);
     const readRoles = this.resolveRoles(perms.read || ['admin']);
@@ -79,10 +117,24 @@ export class ControllerFactory {
     const updateRoles = this.resolveRoles(perms.update || ['admin']);
     const deleteRoles = this.resolveRoles(perms.delete || ['admin']);
 
-    // We need to use @Inject with the entity schema name as token.
-    // NestJS TypeOrmModule.forFeature([entitySchema]) registers a Repository
-    // with the entity schema name as the DI token.
-    const diToken = entitySchemaName;
+    // Row-level filters
+    const rowLevel = perms.rowLevel || {};
+
+    // Field-level RBAC
+    const fieldPerms = perms.fields || {};
+
+    // App config for notifications — resolved lazily via boot service
+    const getAppConfig = () => {
+      const cs = SpecEngineBootService.getConfigService();
+      return {
+        url: cs.get('app.backendDomain', { infer: true }) || '',
+        name: cs.get('app.name', { infer: true }) || '',
+        notificationEmail: cs.get('app.notificationEmail', { infer: true }) || '',
+      };
+    };
+
+    // Notifications
+    const notifications = spec.notifications || [];
 
     @ApiTags(displayName)
     @ApiBearerAuth()
@@ -95,112 +147,423 @@ export class ControllerFactory {
         @Inject(diToken) private readonly repository: Repository<any>,
       ) {}
 
+      // ─── Helper: build HookContext ──────────────────────
+      private buildContext(
+        user: AuthenticatedUser | null,
+        operation: string,
+        trace: TraceBuilder,
+      ): HookContext {
+        return new HookContextImpl(
+          SpecEngineBootService.getModuleRef(),
+          SpecEngineBootService.getConfigService(),
+          user,
+          resourceName,
+          operation,
+          trace,
+        ) as unknown as HookContext;
+      }
+
+      // ─── Helper: apply row-level filter ─────────────────
+      private applyRowLevelFilter(
+        user: AuthenticatedUser | null,
+        where: Record<string, unknown>,
+      ): Record<string, unknown> {
+        if (!user) return where;
+        const roleName = this.roleIdToName(user.role?.id);
+        const rule = rowLevel[roleName];
+        if (!rule) return where;
+
+        // Simple filter: 'assigneeId == ${user.id}'
+        const match = rule.filter.match(/^(\w+)\s*==\s*\$\{user\.(\w+)\}$/);
+        if (match) {
+          const [, field, userField] = match;
+          const value = (user as any)[userField];
+          return { ...where, [field]: value };
+        }
+        return where;
+      }
+
+      // ─── Helper: strip fields user can't read ───────────
+      private applyFieldReadPerms(
+        entity: Record<string, unknown>,
+        user: AuthenticatedUser | null,
+      ): Record<string, unknown> {
+        if (!user || Object.keys(fieldPerms).length === 0) return entity;
+        const roleName = this.roleIdToName(user.role?.id);
+        const result: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(entity)) {
+          const fieldRule = fieldPerms[key];
+          if (fieldRule?.read) {
+            const allowedRoles = this.resolveRoles(fieldRule.read);
+            if (!allowedRoles.includes(user.role?.id)) continue;
+          }
+          result[key] = value;
+        }
+        return result;
+      }
+
+      private roleIdToName(roleId: number | undefined): string {
+        switch (roleId) {
+          case RoleEnum.admin: return 'admin';
+          case RoleEnum.customer: return 'customer';
+          case RoleEnum.affiliate: return 'affiliate';
+          default: return 'unknown';
+        }
+      }
+
+      // ─── GET / ──────────────────────────────────────────
       @Get()
       @Roles(...listRoles)
       async findAll(
         @Query('page') page?: string,
         @Query('limit') limit?: string,
+        @Req() req?: Request,
+        @Res({ passthrough: true }) res?: Response,
       ) {
+        const user = (req?.user as AuthenticatedUser) || null;
+        const trace = new TraceBuilder(resourceName, 'list', user ? { id: user.id, role: user.role?.name || '' } : null, this.logger, isDev);
+
+        trace.startStage('auth');
+        trace.endStage('auth', 'pass', { guard: 'jwt', rolesChecked: listRoles });
+
+        trace.startStage('db');
         const pageNum = page ? Math.max(1, Number(page)) : 1;
         const limitNum = limit ? Math.min(100, Number(limit)) : 20;
         const skip = (pageNum - 1) * limitNum;
 
+        const where = this.applyRowLevelFilter(user, {});
         const [items, total] = await this.repository.findAndCount({
           skip,
           take: limitNum,
+          where,
           order: { id: 'DESC' as any },
           withDeleted: false,
         });
 
-        return {
-          data: items,
-          meta: {
-            total,
-            page: pageNum,
-            limit: limitNum,
-            totalPages: Math.ceil(total / limitNum),
-          },
+        trace.endStage('db', 'pass', { operation: 'SELECT', table: spec.table, count: items.length });
+
+        // Apply field-level RBAC to each item
+        const sanitized = items.map((item: any) => this.applyFieldReadPerms(item, user));
+
+        trace.skipStage('validation', 'not applicable to list');
+        trace.skipStage('beforeHook', 'not applicable to list');
+        trace.skipStage('afterHook', 'not applicable to list');
+        trace.skipStage('notifications', 'not applicable to list');
+
+        trace.startStage('response');
+        const response = {
+          data: sanitized,
+          meta: { total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) },
         };
+        trace.endStage('response', 'pass', { fieldsStripped: [], rowLevelFilterApplied: Object.keys(where).length > 1 });
+
+        trace.finish();
+        this.attachTrace(res, trace);
+        return response;
       }
 
+      // ─── GET /:id ───────────────────────────────────────
       @Get(':id')
       @Roles(...readRoles)
-      async findOne(@Param('id') id: string) {
-        const entity = await this.repository.findOne({
-          where: { id: Number(id) },
-        });
+      async findOne(
+        @Param('id') id: string,
+        @Req() req?: Request,
+        @Res({ passthrough: true }) res?: Response,
+      ) {
+        const user = (req?.user as AuthenticatedUser) || null;
+        const trace = new TraceBuilder(resourceName, 'read', user ? { id: user.id, role: user.role?.name || '' } : null, this.logger, isDev);
+
+        trace.startStage('auth');
+        trace.endStage('auth', 'pass', { guard: 'jwt', rolesChecked: readRoles });
+
+        trace.startStage('db');
+        const where = this.applyRowLevelFilter(user, { id: Number(id) });
+        const entity = await this.repository.findOne({ where });
+        trace.endStage('db', 'pass', { operation: 'SELECT', table: spec.table, found: !!entity });
+
         if (!entity) {
-          throw new NotFoundException(
-            `${displayName} with ID ${id} not found`,
-          );
+          trace.finish();
+          this.attachTrace(res, trace);
+          throw new NotFoundException(`${displayName} with ID ${id} not found`);
         }
-        return entity;
+
+        trace.skipStage('validation', 'not applicable to read');
+        trace.skipStage('beforeHook', 'not applicable to read');
+        trace.skipStage('afterHook', 'not applicable to read');
+        trace.skipStage('notifications', 'not applicable to read');
+
+        trace.startStage('response');
+        const sanitized = this.applyFieldReadPerms(entity, user);
+        trace.endStage('response', 'pass');
+
+        trace.finish();
+        this.attachTrace(res, trace);
+        return sanitized;
       }
 
+      // ─── POST / ─────────────────────────────────────────
       @Post()
       @HttpCode(HttpStatus.CREATED)
       @Roles(...createRoles)
-      async create(@Body() body: unknown) {
+      async create(
+        @Body() body: unknown,
+        @Req() req?: Request,
+        @Res({ passthrough: true }) res?: Response,
+      ) {
+        const user = (req?.user as AuthenticatedUser) || null;
+        const trace = new TraceBuilder(resourceName, 'create', user ? { id: user.id, role: user.role?.name || '' } : null, this.logger, isDev);
+
+        // Stage 1: Auth (already passed via guard)
+        trace.startStage('auth');
+        trace.endStage('auth', 'pass', { guard: 'jwt', rolesChecked: createRoles });
+
+        // Stage 2: Validation
+        trace.startStage('validation');
         const result = createSchema.safeParse(body);
         if (!result.success) {
           const errors = result.error.issues.map((i) => ({
             field: i.path.join('.'),
             message: i.message,
           }));
+          trace.endStage('validation', 'fail', { errors }, undefined, undefined, { message: 'Validation failed', code: 'VALIDATION_ERROR' });
+          trace.finish();
+          this.attachTrace(res, trace);
           throw new BadRequestException({ validation: errors });
         }
+        trace.endStage('validation', 'pass', { schema: `${resourceName}.create`, rulesChecked: spec.fields.length });
 
-        const entity = this.repository.create(result.data);
+        let data = result.data as Record<string, unknown>;
+
+        // Stage 3: Before hook
+        if (allHooks.beforeCreate) {
+          trace.startStage('beforeHook');
+          const ctx = this.buildContext(user, 'create', trace);
+          const hookResult = await hookExecutor.executeBeforeHook(allHooks.beforeCreate, data, ctx, trace);
+          data = hookResult.data;
+        } else {
+          trace.skipStage('beforeHook', 'no beforeCreate hook defined');
+        }
+
+        // Stage 4: DB operation
+        trace.startStage('db');
+        const entity = this.repository.create(data);
         const saved = await this.repository.save(entity);
-        this.logger.log(`Created ${resourceName} id=${saved.id}`);
-        return saved;
+        trace.endStage('db', 'pass', { operation: 'INSERT', table: spec.table, id: saved.id });
+
+        // Stage 5: After hook (fire-and-forget)
+        if (allHooks.afterCreate) {
+          trace.startStage('afterHook');
+          const ctx = this.buildContext(user, 'create', trace);
+          await hookExecutor.executeAfterHook(allHooks.afterCreate, saved, ctx, trace);
+        } else {
+          trace.skipStage('afterHook', 'no afterCreate hook defined');
+        }
+
+        // Stage 6: Notifications
+        if (notifications.length > 0) {
+          trace.startStage('notifications');
+          const ctx = this.buildContext(user, 'create', trace);
+          const summary = await notificationDispatcher.dispatch({
+            notifications,
+            operation: 'afterCreate',
+            entity: saved,
+            ctx,
+            extensionDir,
+            appConfig: getAppConfig(),
+          });
+          trace.endStage('notifications', 'pass', summary);
+        } else {
+          trace.skipStage('notifications', 'no notifications defined');
+        }
+
+        // Stage 7: Response
+        trace.startStage('response');
+        const sanitized = this.applyFieldReadPerms(saved, user);
+        trace.endStage('response', 'pass');
+
+        trace.finish();
+        this.attachTrace(res, trace);
+        return sanitized;
       }
 
+      // ─── PATCH /:id ─────────────────────────────────────
       @Patch(':id')
       @Roles(...updateRoles)
-      async update(@Param('id') id: string, @Body() body: unknown) {
+      async update(
+        @Param('id') id: string,
+        @Body() body: unknown,
+        @Req() req?: Request,
+        @Res({ passthrough: true }) res?: Response,
+      ) {
+        const user = (req?.user as AuthenticatedUser) || null;
+        const trace = new TraceBuilder(resourceName, 'update', user ? { id: user.id, role: user.role?.name || '' } : null, this.logger, isDev);
+
+        trace.startStage('auth');
+        trace.endStage('auth', 'pass', { guard: 'jwt', rolesChecked: updateRoles });
+
+        // Stage 2: Validation
+        trace.startStage('validation');
         const result = updateSchema.safeParse(body);
         if (!result.success) {
           const errors = result.error.issues.map((i) => ({
             field: i.path.join('.'),
             message: i.message,
           }));
+          trace.endStage('validation', 'fail', { errors });
+          trace.finish();
+          this.attachTrace(res, trace);
           throw new BadRequestException({ validation: errors });
         }
+        trace.endStage('validation', 'pass', { schema: `${resourceName}.update` });
 
-        const existing = await this.repository.findOne({
-          where: { id: Number(id) },
-        });
-        if (!existing) {
-          throw new NotFoundException(
-            `${displayName} with ID ${id} not found`,
-          );
+        let data = result.data as Record<string, unknown>;
+
+        // Stage 3: Before hook
+        if (allHooks.beforeUpdate) {
+          trace.startStage('beforeHook');
+          const ctx = this.buildContext(user, 'update', trace);
+          const hookResult = await hookExecutor.executeBeforeHook(allHooks.beforeUpdate, data, ctx, trace);
+          data = hookResult.data;
+        } else {
+          trace.skipStage('beforeHook', 'no beforeUpdate hook defined');
         }
 
-        Object.assign(existing, result.data);
+        // Stage 4: DB
+        trace.startStage('db');
+        const where = this.applyRowLevelFilter(user, { id: Number(id) });
+        const existing = await this.repository.findOne({ where });
+        if (!existing) {
+          trace.endStage('db', 'fail', { error: 'Not found' });
+          trace.finish();
+          this.attachTrace(res, trace);
+          throw new NotFoundException(`${displayName} with ID ${id} not found`);
+        }
+        Object.assign(existing, data);
         const saved = await this.repository.save(existing);
-        this.logger.log(`Updated ${resourceName} id=${id}`);
-        return saved;
+        trace.endStage('db', 'pass', { operation: 'UPDATE', table: spec.table, id: saved.id });
+
+        // Stage 5: After hook
+        if (allHooks.afterUpdate) {
+          trace.startStage('afterHook');
+          const ctx = this.buildContext(user, 'update', trace);
+          await hookExecutor.executeAfterHook(allHooks.afterUpdate, saved, ctx, trace);
+        } else {
+          trace.skipStage('afterHook', 'no afterUpdate hook defined');
+        }
+
+        // Stage 6: Notifications
+        if (notifications.length > 0) {
+          trace.startStage('notifications');
+          const ctx = this.buildContext(user, 'update', trace);
+          const summary = await notificationDispatcher.dispatch({
+            notifications,
+            operation: 'afterUpdate',
+            entity: saved,
+            ctx,
+            extensionDir,
+            appConfig: getAppConfig(),
+          });
+          trace.endStage('notifications', 'pass', summary);
+        } else {
+          trace.skipStage('notifications', 'no notifications defined');
+        }
+
+        // Stage 7: Response
+        trace.startStage('response');
+        const sanitized = this.applyFieldReadPerms(saved, user);
+        trace.endStage('response', 'pass');
+
+        trace.finish();
+        this.attachTrace(res, trace);
+        return sanitized;
       }
 
+      // ─── DELETE /:id ────────────────────────────────────
       @Delete(':id')
       @HttpCode(HttpStatus.NO_CONTENT)
       @Roles(...deleteRoles)
-      async remove(@Param('id') id: string) {
-        const entity = await this.repository.findOne({
-          where: { id: Number(id) },
-        });
+      async remove(
+        @Param('id') id: string,
+        @Req() req?: Request,
+        @Res({ passthrough: true }) res?: Response,
+      ) {
+        const user = (req?.user as AuthenticatedUser) || null;
+        const trace = new TraceBuilder(resourceName, 'delete', user ? { id: user.id, role: user.role?.name || '' } : null, this.logger, isDev);
+
+        trace.startStage('auth');
+        trace.endStage('auth', 'pass', { guard: 'jwt', rolesChecked: deleteRoles });
+
+        trace.startStage('db');
+        const where = this.applyRowLevelFilter(user, { id: Number(id) });
+        const entity = await this.repository.findOne({ where });
         if (!entity) {
-          throw new NotFoundException(
-            `${displayName} with ID ${id} not found`,
-          );
+          trace.endStage('db', 'fail', { error: 'Not found' });
+          trace.finish();
+          this.attachTrace(res, trace);
+          throw new NotFoundException(`${displayName} with ID ${id} not found`);
         }
+        trace.endStage('db', 'pass', { operation: 'SOFT_DELETE', table: spec.table, id });
+
+        // After hook (before actual delete so entity is available)
+        if (allHooks.beforeDelete) {
+          trace.startStage('beforeHook');
+          const ctx = this.buildContext(user, 'delete', trace);
+          await hookExecutor.executeBeforeHook(
+            allHooks.beforeDelete,
+            entity,
+            ctx,
+            trace,
+          );
+        } else {
+          trace.skipStage('beforeHook', 'no beforeDelete hook defined');
+        }
+
         await this.repository.softDelete(Number(id));
-        this.logger.log(`Soft-deleted ${resourceName} id=${id}`);
+
+        if (allHooks.afterDelete) {
+          trace.startStage('afterHook');
+          const ctx = this.buildContext(user, 'delete', trace);
+          await hookExecutor.executeAfterHook(entity, ctx, trace);
+        } else {
+          trace.skipStage('afterHook', 'no afterDelete hook defined');
+        }
+
+        // Notifications
+        if (notifications.length > 0) {
+          trace.startStage('notifications');
+          const ctx = this.buildContext(user, 'delete', trace);
+          const summary = await notificationDispatcher.dispatch({
+            notifications,
+            operation: 'afterDelete',
+            entity,
+            ctx,
+            extensionDir,
+            appConfig: getAppConfig(),
+          });
+          trace.endStage('notifications', 'pass', summary);
+        } else {
+          trace.skipStage('notifications', 'no notifications defined');
+        }
+
+        trace.startStage('response');
+        trace.endStage('response', 'pass', { statusCode: 204 });
+
+        trace.finish();
+        this.attachTrace(res, trace);
+      }
+
+      // ─── Helper: attach trace to response ───────────────
+      private attachTrace(res: Response | undefined, trace: TraceBuilder): void {
+        if (!res || !trace.isActive()) return;
+        try {
+          res.setHeader('X-Spec-Trace', trace.toBase64());
+        } catch {
+          // Response already sent — ignore
+        }
       }
     }
 
-    // Give the dynamic class a useful name for debugging
+    // Give the dynamic class a useful name
     Object.defineProperty(SpecDynamicController, 'name', {
       value: `${this.pascalCase(resourceName)}SpecController`,
     });
@@ -221,7 +584,7 @@ export class ControllerFactory {
   }
 
   /**
-   * Very simple pluralization — good enough for most resource names
+   * Simple pluralization
    */
   private static pluralize(name: string): string {
     if (name.endsWith('s')) return name;

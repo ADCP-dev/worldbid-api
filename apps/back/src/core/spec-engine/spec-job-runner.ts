@@ -1,7 +1,7 @@
 /**
  * SpecJobRunner — runs scheduled jobs defined in spec files.
  *
- * For the spike, we use setInterval (no Redis dependency required).
+ * Uses setInterval for the spike (no Redis dependency required).
  * Production version would use BullMQ repeatable jobs.
  *
  * Jobs are defined in spec YAML:
@@ -10,21 +10,20 @@
  *       schedule: interval
  *       value: 60s
  *       handler: ./handlers/stale-tasks.handler.ts
+ *
+ * The job handler receives a HookContext — same interface as lifecycle hooks.
  */
 
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import * as path from 'path';
 import type { LoadedSpec } from './spec-loader';
-import type { JobSpec } from './spec.types';
+import type { JobSpec, HookContext } from './spec.types';
+import { SpecEngineBootService } from './spec-engine-boot';
+import { HookContextImpl } from './hook-context';
+import { TraceBuilder } from './spec-trace';
 
-export interface JobHandler {
-  default: (ctx: JobContext) => Promise<void>;
-}
-
-export interface JobContext {
-  logger: Logger;
-  specName: string;
-  jobName: string;
+interface LoadedJobHandler {
+  default: (ctx: HookContext) => Promise<void>;
 }
 
 @Injectable()
@@ -40,14 +39,12 @@ export class SpecJobRunner implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit() {
-    // Load the specs that were passed via the DI context
-    // For now, we accept them via a setter — the module sets this up
     for (const loaded of this.loadedSpecs) {
       for (const resource of loaded.spec.resources) {
         if (!resource.jobs || resource.jobs.length === 0) continue;
 
         for (const job of resource.jobs) {
-          this.scheduleJob(loaded, job);
+          this.scheduleJob(loaded, job, resource.name);
         }
       }
     }
@@ -60,7 +57,7 @@ export class SpecJobRunner implements OnModuleInit, OnModuleDestroy {
     this.intervals = [];
   }
 
-  private scheduleJob(loaded: LoadedSpec, job: JobSpec) {
+  private scheduleJob(loaded: LoadedSpec, job: JobSpec, resourceName: string) {
     const intervalMs = this.parseInterval(job.value);
 
     if (intervalMs <= 0) {
@@ -69,11 +66,11 @@ export class SpecJobRunner implements OnModuleInit, OnModuleDestroy {
     }
 
     // Load the handler
-    let handler: JobHandler['default'] | null = null;
+    let handler: LoadedJobHandler['default'] | null = null;
     try {
       const handlerPath = path.resolve(loaded.dir, job.handler);
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const mod = require(handlerPath) as JobHandler;
+      const mod = require(handlerPath) as LoadedJobHandler;
       handler = mod.default;
     } catch (err) {
       this.logger.warn(
@@ -87,15 +84,12 @@ export class SpecJobRunner implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    const ctx: JobContext = {
-      logger: new Logger(`SpecJob:${job.name}`),
-      specName: loaded.spec.name,
-      jobName: job.name,
-    };
-
     // Run immediately once, then on interval
-    this.runHandler(handler, ctx, job);
-    const interval = setInterval(() => this.runHandler(handler!, ctx, job), intervalMs);
+    this.runHandler(handler, resourceName, job);
+    const interval = setInterval(
+      () => this.runHandler(handler!, resourceName, job),
+      intervalMs,
+    );
     this.intervals.push(interval);
 
     this.logger.log(
@@ -104,16 +98,33 @@ export class SpecJobRunner implements OnModuleInit, OnModuleDestroy {
   }
 
   private async runHandler(
-    handler: JobHandler['default'],
-    ctx: JobContext,
+    handler: LoadedJobHandler['default'],
+    resourceName: string,
     job: JobSpec,
   ) {
     try {
+      const moduleRef = SpecEngineBootService.getModuleRef();
+      const configService = SpecEngineBootService.getConfigService();
+      const trace = new TraceBuilder(
+        resourceName,
+        'list',
+        null,
+        this.logger,
+        false,
+      );
+
+      const ctx = new HookContextImpl(
+        moduleRef,
+        configService,
+        null,
+        resourceName,
+        'job',
+        trace,
+      ) as unknown as HookContext;
+
       await handler(ctx);
     } catch (err) {
-      ctx.logger.error(
-        `Job "${job.name}" failed: ${(err as Error).message}`,
-      );
+      this.logger.error(`Job "${job.name}" failed: ${(err as Error).message}`);
     }
   }
 
@@ -129,16 +140,11 @@ export class SpecJobRunner implements OnModuleInit, OnModuleDestroy {
     const unit = match[2];
 
     switch (unit) {
-      case 'ms':
-        return num;
-      case 's':
-        return num * 1000;
-      case 'm':
-        return num * 60 * 1000;
-      case 'h':
-        return num * 60 * 60 * 1000;
-      default:
-        return 0;
+      case 'ms': return num;
+      case 's': return num * 1000;
+      case 'm': return num * 60 * 1000;
+      case 'h': return num * 60 * 60 * 1000;
+      default: return 0;
     }
   }
 }
