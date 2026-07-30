@@ -330,7 +330,7 @@ export class ControllerFactory {
           data: sanitized,
           meta: { total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) },
         };
-        trace.endStage('response', 'pass', { fieldsStripped: [], rowLevelFilterApplied: Object.keys(where).length > 1 });
+        trace.endStage('response', 'pass', { fieldsStripped: [], rowLevelFilterApplied: Object.keys(where).length > 0 });
 
         trace.finish();
         this.attachTrace(res, trace);

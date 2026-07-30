@@ -122,7 +122,7 @@ export class ValidationFactory {
         break;
 
       case 'file':
-        schema = z.string().uuid().or(z.string().nullable());
+        schema = z.string().uuid().nullable();
         break;
 
       default:
