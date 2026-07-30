@@ -38,7 +38,7 @@ export class TraceBuilder implements TraceWriter {
 
   constructor(
     resource: string,
-    operation: 'create' | 'read' | 'update' | 'delete' | 'list',
+    operation: 'create' | 'read' | 'update' | 'delete' | 'list' | 'webhook' | 'job',
     user: { id: number; role: string } | null,
     private readonly logger: Logger,
     isDev: boolean,

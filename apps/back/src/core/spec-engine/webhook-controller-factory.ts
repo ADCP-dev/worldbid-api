@@ -4,11 +4,11 @@
  * Creates dynamic NestJS controllers for inbound webhook endpoints defined in
  * spec YAML. Each controller handles a single POST route, verifies the
  * configured auth mode (none | hmac | jwt), loads the handler module at startup,
- * and invokes it at request time with a minimal HookContext.
+ * and invokes it at request time with a full HookContext.
  *
- * The factory is intended to be called at NestJS module-registration time
- * (e.g. via DynamicModule / controllers array). The returned controller class
- * is registered against the spec `path`.
+ * The HookContext is built via SpecEngineBootService (same as lifecycle hooks),
+ * giving webhook handlers access to repositories, services, config, logger,
+ * and error reporting.
  */
 
 import {
@@ -29,26 +29,20 @@ import * as crypto from 'crypto';
 import * as path from 'path';
 import type { Request } from 'express';
 
+import type { WebhookSpec } from './spec.types';
+import type { HookContext as SpecHookContext } from './spec.types';
+import { SpecEngineBootService } from './spec-engine-boot';
+import { HookContextImpl } from './hook-context';
+import { TraceBuilder } from './spec-trace';
+
 /* -------------------------------------------------------------------------- */
 /* Types                                                                       */
 /* -------------------------------------------------------------------------- */
 
-export interface WebhookSpec {
-  name: string;
-  path: string; // URL path like 'tasks/webhooks/stale'
-  method: 'POST';
-  auth: 'none' | 'hmac' | 'jwt';
-  handler: string; // path to handler .ts file, relative to spec dir
-}
-
-export interface HookContext {
-  logger: Logger;
-  resourceName: string;
-  extensionDir: string;
-  webhookName: string;
-}
-
-export type WebhookHandler = (payload: any, ctx: HookContext) => Promise<void>;
+export type WebhookHandler = (
+  payload: any,
+  ctx: SpecHookContext,
+) => Promise<void>;
 
 export interface WebhookControllerFactoryResult {
   controllerClass: any;
@@ -69,13 +63,6 @@ export class WebhookControllerFactory {
 
   /**
    * Create a dynamic NestJS controller for a single webhook spec.
-   *
-   * @param spec           The webhook definition from spec YAML.
-   * @param extensionDir   Absolute path to the extension directory that owns
-   *                       this webhook (used to resolve the handler file).
-   * @param resourceName   The resource name this webhook belongs to.
-   * @returns              The dynamic controller class ready for NestJS module
-   *                       registration.
    */
   static create(
     spec: WebhookSpec,
@@ -86,20 +73,17 @@ export class WebhookControllerFactory {
     const routePath = this.normalizeRoutePath(spec.path);
     const authMode = spec.auth ?? 'none';
 
-    // --- Load the handler at startup (cached) -------------------------------
+    // Load the handler at startup (cached)
     const { handler, handlerError } = this.loadHandler(spec, extensionDir);
 
-    // --- Shared logger ------------------------------------------------------
     const logger = new Logger(`Webhook:${webhookName}`);
 
-    // --- Build the dynamic controller class ---------------------------------
     @Controller(routePath)
     @ApiTags(`webhooks-${resourceName}`)
     class DynamicWebhookController {
       private readonly logger = logger;
       private readonly webhookName = webhookName;
       private readonly resourceName = resourceName;
-      private readonly extensionDir = extensionDir;
       private readonly handler: WebhookHandler | null = handler;
       private readonly handlerError: string | null = handlerError;
       private readonly authMode = authMode;
@@ -116,14 +100,12 @@ export class WebhookControllerFactory {
           `Received webhook '${this.webhookName}' on ${req.method} ${req.url}`,
         );
 
-        // --- Auth verification --------------------------------------------
+        // Auth verification
         if (this.authMode === 'hmac') {
           this.verifyHmac(req, body);
         }
-        // 'jwt' is enforced by the JwtAuthGuard applied below.
-        // 'none' requires no verification.
 
-        // --- Handler availability -----------------------------------------
+        // Handler availability
         if (this.handlerError || !this.handler) {
           this.logger.error(
             `Handler not available: ${this.handlerError ?? 'no handler loaded'}`,
@@ -133,15 +115,36 @@ export class WebhookControllerFactory {
           );
         }
 
-        // --- Build a minimal HookContext ----------------------------------
-        const ctx: HookContext = {
-          logger: this.logger,
-          resourceName: this.resourceName,
-          extensionDir: this.extensionDir,
-          webhookName: this.webhookName,
-        };
+        // Build full HookContext via SpecEngineBootService
+        let ctx: SpecHookContext;
+        try {
+          const moduleRef = SpecEngineBootService.getModuleRef();
+          const configService = SpecEngineBootService.getConfigService();
+          const user = (req as any).user ?? null;
+          const trace = new TraceBuilder(
+            this.resourceName,
+            'webhook',
+            user ? { id: user.id, role: user.role?.name || '' } : null,
+            this.logger,
+            process.env.NODE_ENV !== 'production',
+          );
 
-        // --- Invoke the handler -------------------------------------------
+          ctx = new HookContextImpl(
+            moduleRef,
+            configService,
+            user,
+            this.resourceName,
+            'webhook',
+            trace,
+          ) as unknown as SpecHookContext;
+        } catch (err) {
+          this.logger.error(
+            `Failed to build HookContext: ${(err as Error).message}`,
+          );
+          throw new InternalServerErrorException('Internal context error');
+        }
+
+        // Invoke the handler
         try {
           await this.handler(body, ctx);
           this.logger.log(`Webhook '${this.webhookName}' processed successfully`);
@@ -179,7 +182,6 @@ export class WebhookControllerFactory {
           );
         }
 
-        // Prefer the cached raw body if available (body-parser / rawBody).
         const rawBody: Buffer | string =
           (req as any).rawBody ??
           Buffer.from(
@@ -207,18 +209,11 @@ export class WebhookControllerFactory {
         return hmac.digest('hex');
       }
 
-      /**
-       * Timing-safe comparison of two hex strings.
-       * Both are converted to Buffers first; if lengths differ we still
-       * perform a comparison against a same-length buffer to avoid leaking
-       * length information via timing.
-       */
       private safeCompareHex(a: string, b: string): boolean {
         const bufA = Buffer.from(a, 'hex');
         const bufB = Buffer.from(b, 'hex');
 
         if (bufA.length !== bufB.length) {
-          // Still run a comparison to keep timing constant-ish.
           crypto.timingSafeEqual(bufB, bufB);
           return false;
         }
@@ -227,16 +222,16 @@ export class WebhookControllerFactory {
       }
     }
 
-    // Apply the JWT guard only when required. We decorate the class after
-    // creation so that non-jwt controllers never touch @nestjs/passport.
+    // Apply JWT guard only when required
     if (authMode === 'jwt') {
       UseGuards(JwtAuthGuard)(DynamicWebhookController);
     }
 
-    // Give the dynamic class a readable name for debugging / NestJS logs.
     Object.defineProperty(DynamicWebhookController, 'name', {
-      value: `WebhookController_${resourceName}_${webhookName}`
-        .replace(/[^a-zA-Z0-9_]/g, '_'),
+      value: `WebhookController_${resourceName}_${webhookName}`.replace(
+        /[^a-zA-Z0-9_]/g,
+        '_',
+      ),
       configurable: true,
     });
 
@@ -247,27 +242,15 @@ export class WebhookControllerFactory {
   /* Helpers                                                                   */
   /* ------------------------------------------------------------------------ */
 
-  /**
-   * Ensure the route path does not have a leading slash (NestJS controllers
-   * are mounted relative to the global prefix) and is a non-empty string.
-   */
   private static normalizeRoutePath(rawPath: string): string {
     if (!rawPath || typeof rawPath !== 'string') {
-      throw new Error(`WebhookControllerFactory: invalid spec path "${rawPath}"`);
+      throw new Error(
+        `WebhookControllerFactory: invalid spec path "${rawPath}"`,
+      );
     }
     return rawPath.startsWith('/') ? rawPath.slice(1) : rawPath;
   }
 
-  /**
-   * Load and cache the webhook handler module at startup.
-   *
-   * The handler file path in the spec is relative to the extension directory.
-   * We resolve it to an absolute path and require() it. The module must export
-   * a default function matching `WebhookHandler`.
-   *
-   * If the file cannot be found or does not export a valid handler, a warning
-   * is logged and `handlerError` is set so the controller can return 500.
-   */
   private static loadHandler(
     spec: WebhookSpec,
     extensionDir: string,
