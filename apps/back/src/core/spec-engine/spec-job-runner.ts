@@ -117,8 +117,18 @@ function loadJobHandler(
 ): LoadedJobHandler['default'] | null {
   try {
     const resolved = path.resolve(extensionDir, handlerPath);
+    // Path containment: prevent directory traversal
+    const normalizedDir = path.resolve(extensionDir) + path.sep;
+    if (!resolved.startsWith(normalizedDir)) {
+      logger.warn(`Job handler "${handlerPath}" for "${jobName}" escapes extension directory`);
+      return null;
+    }
+    // In production, .ts → .js
+    const requirePath = process.env.NODE_ENV === 'production'
+      ? resolved.replace(/\.ts$/, '.js')
+      : resolved;
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const mod = require(resolved) as LoadedJobHandler;
+    const mod = require(requirePath) as LoadedJobHandler;
     if (!mod.default) {
       logger.warn(
         `⚠️  Job handler "${handlerPath}" for "${jobName}" has no default export`,
@@ -268,6 +278,41 @@ export class SpecJobProcessor extends WorkerHost {
  * Also serves as the backwards-compatible export for the module token.
  * The static register() method decides whether to use this class or BullMQ.
  */
+
+// Shared helper for dispatching job-triggered notifications
+async function dispatchJobNotifications(
+  jobName: string,
+  resourceName: string,
+  ctx: any,
+  loadedSpecs: LoadedSpec[],
+): Promise<void> {
+  const resource = loadedSpecs
+    .flatMap(l => l.spec.resources)
+    .find(r => r.jobs?.some(j => j.name === jobName));
+  if (!resource?.notifications?.length) return;
+
+  const jobNotifications = resource.notifications.filter(
+    n => n.trigger.on === 'job' && n.trigger.jobName === jobName
+  );
+  if (jobNotifications.length === 0) return;
+
+  const dispatcher = new NotificationDispatcher();
+  const loaded = loadedSpecs.find(l => l.spec.resources.includes(resource));
+  const cs = SpecEngineBootService.getConfigService() as any;
+  await dispatcher.dispatch({
+    notifications: jobNotifications,
+    operation: 'job',
+    entity: { jobName, resourceName },
+    ctx,
+    extensionDir: loaded?.dir || '',
+    appConfig: {
+      url: cs.get('app.backendDomain', { infer: true }) || '',
+      name: cs.get('app.name', { infer: true }) || '',
+      notificationEmail: cs.get('app.notificationEmail', { infer: true }) || '',
+    },
+  });
+}
+
 @Injectable()
 export class SpecJobRunner implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger('SpecJobRunner');
@@ -342,31 +387,7 @@ export class SpecJobRunner implements OnModuleInit, OnModuleDestroy {
       await handler(ctx);
 
       // Dispatch job-triggered notifications
-      const resource = this.loadedSpecs
-        .flatMap(l => l.spec.resources)
-        .find(r => r.jobs?.some(j => j.name === job.name));
-      if (resource?.notifications?.length) {
-        const jobNotifications = resource.notifications.filter(
-          n => n.trigger.on === 'job' && n.trigger.jobName === job.name
-        );
-        if (jobNotifications.length > 0) {
-          const dispatcher = new NotificationDispatcher();
-          const loaded = this.loadedSpecs.find(l => l.spec.resources.includes(resource));
-          const cs = SpecEngineBootService.getConfigService() as any;
-          await dispatcher.dispatch({
-            notifications: jobNotifications,
-            operation: 'job',
-            entity: { jobName: job.name, resourceName },
-            ctx,
-            extensionDir: loaded?.dir || '',
-            appConfig: {
-              url: cs.get('app.backendDomain', { infer: true }) || '',
-              name: cs.get('app.name', { infer: true }) || '',
-              notificationEmail: cs.get('app.notificationEmail', { infer: true }) || '',
-            },
-          });
-        }
-      }
+      await dispatchJobNotifications(job.name, resourceName, ctx, this.loadedSpecs);
     } catch (err) {
       this.logger.error(`Job "${job.name}" failed: ${(err as Error).message}`);
     }

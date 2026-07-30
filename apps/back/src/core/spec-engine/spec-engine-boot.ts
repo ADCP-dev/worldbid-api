@@ -13,6 +13,7 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
+import { SpecErrorReporter } from './spec-error-reporter';
 
 @Injectable()
 export class SpecEngineBootService implements OnModuleInit {
@@ -33,8 +34,6 @@ export class SpecEngineBootService implements OnModuleInit {
 
     // Wire ErrorTrackerService into SpecErrorReporter
     try {
-      const { SpecErrorReporter } = require('./spec-error-reporter');
-      // SpecErrorReporter is registered as a provider — resolve it
       const errorReporter = this.moduleRef.get(SpecErrorReporter, { strict: false });
       if (errorReporter?.setErrorTrackerService) {
         const errorTrackerService = this.moduleRef.get('ErrorTrackerService', { strict: false });

@@ -205,6 +205,10 @@ export class ControllerFactory {
       ): Record<string, unknown> {
         if (!user) return where;
         const roleName = this.roleIdToName(user.role?.id);
+        if (roleName === '__denied__') {
+          // Unknown role — deny all rows
+          return { ...where, id: -1 };
+        }
         const rule = rowLevel[roleName];
         if (!rule) return where;
 
@@ -215,13 +219,13 @@ export class ControllerFactory {
           const value = (user as any)[userField];
           if (value === undefined) {
             // Fail closed: if user field doesn't resolve, return impossible WHERE
-            return { ...where, _spec_denied: 1 };
+            return { ...where, id: -1 };
           }
           return { ...where, [field]: value };
         }
         // Fail closed: unrecognized filter pattern → deny all rows
         this.logger.warn(`Row-level filter "${rule.filter}" could not be parsed — denying all rows`);
-        return { ...where, _spec_denied: 1 };
+        return { ...where, id: -1 };
       }
 
       // ─── Helper: strip fields user can't read ───────────
@@ -395,6 +399,9 @@ export class ControllerFactory {
 
         let data = result.data as Record<string, unknown>;
 
+    // Apply field-level write permissions
+    data = this.applyFieldWritePerms(data, user);
+
         // Stage 3: Before hook
         if (allHooks.beforeCreate) {
           trace.startStage('beforeHook');
@@ -493,6 +500,9 @@ export class ControllerFactory {
 
         let data = result.data as Record<string, unknown>;
 
+    // Apply field-level write permissions
+    data = this.applyFieldWritePerms(data, user);
+
         // Stage 3: Before hook
         if (allHooks.beforeUpdate) {
           trace.startStage('beforeHook');
@@ -514,8 +524,16 @@ export class ControllerFactory {
           throw new NotFoundException(`${displayName} with ID ${id} not found`);
         }
         Object.assign(existing, data);
-        const saved = await this.repository.save(existing);
-        trace.endStage('db', 'pass', { operation: 'UPDATE', table: spec.table, id: saved.id });
+        let saved: any;
+        try {
+          saved = await this.repository.save(existing);
+          trace.endStage('db', 'pass', { operation: 'UPDATE', table: spec.table, id: saved.id });
+        } catch (err) {
+          trace.endStage('db', 'fail', { error: (err as Error).message });
+          trace.finish();
+          this.attachTrace(res, trace);
+          throw err;
+        }
 
         // Stage 5: After hook
         if (allHooks.afterUpdate) {
@@ -613,10 +631,11 @@ export class ControllerFactory {
         if (notifications.length > 0) {
           trace.startStage('notifications');
           const ctx = this.buildContext(user, 'delete', trace);
+          const entityForNotifications = await this.loadForNotifications(entity, spec);
           const summary = await notificationDispatcher.dispatch({
             notifications,
             operation: 'afterDelete',
-            entity,
+            entity: entityForNotifications,
             ctx,
             extensionDir,
             appConfig: getAppConfig(),

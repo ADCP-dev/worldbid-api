@@ -24,6 +24,7 @@ import type {
 } from './spec.types';
 import { HookAbortError } from './spec.types';
 import type { SpecErrorReporter } from './spec-error-reporter';
+import { computeSpecErrorHash } from './spec-error-reporter';
 import type { TraceBuilder } from './spec-trace';
 
 export type HookType = 'beforeCreate' | 'afterCreate' | 'beforeUpdate' | 'afterUpdate' | 'beforeDelete' | 'afterDelete' | 'beforeQuery';
@@ -140,12 +141,10 @@ export class HookExecutor {
 
       return { data: result.data, proceed: true };
     } catch (err) {
+      // If the error is from proceed=false, trace was already recorded above.
+      // Only record trace for UNEXPECTED errors (not BadRequestException from abort).
       if (err instanceof BadRequestException) {
-        // Hook returned proceed: false — this is expected
-        trace.endStage('beforeHook', 'fail', {
-          hook: hook.path,
-          error: err.message,
-        }, undefined, undefined, { message: err.message, code: 'HOOK_ABORT' });
+        // Trace already recorded in the proceed=false path above — just re-throw
         throw err;
       }
 
