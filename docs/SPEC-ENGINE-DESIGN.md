@@ -3,24 +3,31 @@
 > **Status**: Design phase. Implementation starts after validation.
 > **Branch**: `feat/spec-engine`
 > **Date**: 2026-07-30
+> **Authors**: Adrián Colom + Hermes
 
-## 0. Table of Contents
+---
+
+## Table of Contents
 
 1. [Principles](#1-principles)
-2. [Spec Format](#2-spec-format)
-3. [Lifecycle Pipeline](#3-lifecycle-pipeline)
-4. [HookContext — the unified interface](#4-hookcontext)
-5. [Notification System](#5-notification-system)
-6. [File Handling](#6-file-handling)
-7. [Auth & RBAC](#7-auth--rbac)
-8. [Jobs](#8-jobs)
-9. [Migrations](#9-migrations)
-10. [Testing](#10-testing)
-11. [Frontend](#11-frontend)
-12. [Plugin System](#12-plugin-system)
-13. [AI Agent Integration](#13-ai-agent-integration)
-14. [Module Wiring](#14-module-wiring)
-15. [What the spike got wrong](#15-what-the-spike-got-wrong)
+2. [Architecture Model](#2-architecture-model)
+3. [Spec Format](#3-spec-format)
+4. [Lifecycle Pipeline](#4-lifecycle-pipeline)
+5. [SpecTrace — observability and debugging](#5-spectrace)
+6. [Error Reporting — ErrorTracker + GitHub Issues](#6-error-reporting)
+7. [HookContext — the unified interface](#7-hookcontext)
+8. [Notification System](#8-notification-system)
+9. [File Handling](#9-file-handling)
+10. [Auth & RBAC](#10-auth--rbac)
+11. [Jobs](#11-jobs)
+12. [Migrations](#12-migrations)
+13. [Testing](#13-testing)
+14. [Views & Dashboards](#14-views--dashboards)
+15. [Frontend — Deterministic vs Custom](#15-frontend)
+16. [Plugin System](#16-plugin-system)
+17. [AI Agent Integration](#17-ai-agent-integration)
+18. [Module Wiring](#18-module-wiring)
+19. [Implementation Roadmap](#19-implementation-roadmap)
 
 ---
 
@@ -46,15 +53,55 @@ Every design decision is evaluated through this lens: "does this make it easier 
 
 Every hook, every notification trigger, every job handler has a typed TypeScript interface. The engine validates at load time that handlers conform to their contracts. Runtime errors from contract violations are caught and reported with context.
 
+### 1.6 Observability is built-in, not bolted-on
+
+Every request through the pipeline produces a structured trace. Every error is logged to ErrorTrackerService with full context. Every error opens a GitHub issue with the trace, spec, and source code — so the AI can fix it autonomously.
+
 ---
 
-## 2. Spec Format
+## 2. Architecture Model
 
-### 2.1 Design decision: YAML, not JSON
+### 2.1 What this is
 
-YAML supports comments, multi-line strings, and is more readable for humans. The AI writes YAML. The engine parses it with `js-yaml` and validates against a JSON Schema before materializing anything.
+The spec engine combines three established architectural patterns:
 
-### 2.2 Formal structure
+| Pattern | What it means | Real-world examples |
+|---|---|---|
+| **Metadata-driven architecture** | The app is defined by data, not by code. You define objects, fields, permissions — the platform generates API + UI. | Salesforce, Directus, Strapi |
+| **Declarative framework** | You declare the desired state, the framework materializes it. You don't write the commands. | Terraform (infra), Kubernetes (orchestration), Hasura (GraphQL) |
+| **Interceptor pipeline** | Each request passes through a chain of extension points defined in metadata, not in code. | NestJS interceptors, Express middleware |
+
+### 2.2 Why this works
+
+The 80/20 insight: 80% of APIs are CRUD with validation and permissions. That's declarable. The 20% that needs custom logic uses hooks — pure functions with typed contracts. No classes, no decorators, no DI.
+
+### 2.3 The difference from code generation
+
+Foundation today uses **code generation** (Hygen): it reads prompts and generates 8 `.ts` files. Those files are your code. They drift from the generator. The AI has to maintain 8 files with cross-references.
+
+The spec engine uses **runtime interpretation**: the spec is data. The engine reads it at runtime and materializes everything dynamically. No generated files. If the spec changes, the behavior changes. It's the difference between writing SQL by hand and using an ORM — the ORM doesn't generate SQL files you maintain, it interprets your entities at runtime.
+
+### 2.4 The AI advantage
+
+```
+Without spec engine:    AI must write 8 .ts files with correct imports,
+                       decorators, DI tokens, cross-references → 30+ decisions → frequent errors
+
+With spec engine:       AI writes 1 YAML file validated against JSON Schema → 5 sequential decisions → rare errors
+                       If error: engine returns structured validation errors → AI fixes
+```
+
+### 2.5 The Hytale analogy
+
+Hytale's mod system: everything is JSON (mobs, items, blocks, behaviors). When you need custom logic, you attach a script. The JSON says "when X happens, run this script." The script is Turing-complete.
+
+Our model: everything is YAML (resources, fields, permissions, notifications). When you need custom logic, you attach a hook. The YAML says "before create, run this hook." The hook is a pure function with a typed contract.
+
+---
+
+## 3. Spec Format
+
+### 3.1 Top-level structure
 
 ```yaml
 # ─── Extension metadata ──────────────────────────────
@@ -64,86 +111,6 @@ displayName?: string
 description?: string
 author?: string
 
-# ─── Resources ───────────────────────────────────────
-resources:
-  - name: string                # required, unique within extension, kebab-case
-    table: string               # required, must start with ext_<name>_
-    displayName?: string
-    description?: string
-    timestamps?: boolean        # default: true (createdAt, updatedAt)
-    softDelete?: boolean        # default: true (deletedAt)
-    
-    fields:                     # required, at least 1
-      - name: string            # required, camelCase
-        type: FieldType         # required (see 2.3)
-        required?: boolean      # default: false
-        nullable?: boolean      # default: !required
-        unique?: boolean        # default: false
-        default?: any           # default value
-        length?: number         # string/enum: varchar length
-        precision?: number      # decimal: precision
-        scale?: number          # decimal: scale
-        enum?: string[]         # enum: allowed values
-        ref?: string            # ref: target resource name
-        refOnDelete?: 'CASCADE' | 'SET NULL' | 'RESTRICT'  # default: RESTRICT
-        index?: boolean         # default: false
-        validation?:            # field-level validation
-          min?: number
-          max?: number
-          pattern?: string      # regex
-          email?: boolean
-          url?: boolean
-    
-    permissions?:               # RBAC per action
-      list?: Role[]
-      read?: Role[]
-      create?: Role[]
-      update?: Role[]
-      delete?: Role[]
-      fields?:                  # field-level RBAC
-        fieldName:
-          read?: Role[]
-          write?: Role[]
-      rowLevel?:                # row-level security
-        role:
-          filter: string        # expression: 'assigneeId == ${user.id}'
-    
-    hooks?:                     # lifecycle hooks (escape hatch)
-      beforeCreate?: string     # path to handler, relative to spec file
-      afterCreate?: string
-      beforeUpdate?: string
-      afterUpdate?: string
-      beforeDelete?: string
-      afterDelete?: string
-    
-    notifications?:             # declarative notifications
-      - name: string
-        trigger: TriggerSpec    # when to fire
-        channel: 'email' | 'webhook' | 'sms'
-        template?: string       # path to Maizzle/Handlebars template
-        to?: string             # expression or literal
-        subject?: string        # expression or literal
-        payload?: object        # for webhook channel
-    
-    jobs?:                      # scheduled jobs
-      - name: string
-        schedule: 'cron' | 'interval'
-        value: string           # cron expr or interval (60s, 5m, 1h)
-        handler: string         # path to handler
-        queue?: string          # BullMQ queue name (default: 'spec-jobs')
-        retries?: number        # default: 3
-        backoff?: 'exponential' | 'fixed'  # default: exponential
-    
-    webhooks?:                  # inbound webhook endpoints
-      - name: string
-        path: string            # URL path
-        method: 'POST'
-        auth: 'none' | 'hmac' | 'jwt'
-        handler: string         # path to handler
-    
-    seeds?:                     # seed data
-      - object
-
 # ─── Config (optional) ───────────────────────────────
 config?:
   - name: string
@@ -151,16 +118,66 @@ config?:
     default?: any
     description?: string
 
+# ─── Resources ───────────────────────────────────────
+resources: ResourceSpec[]       # required, at least 1
+
+# ─── Views / Dashboards (optional) ───────────────────
+views?: ViewSpec[]
+
 # ─── Overrides (optional) ────────────────────────────
-overrides?:                     # override plugin resources
-  - resource: string
-    fields:
-      add?: FieldSpec[]
-      remove?: string[]
-    permissions?: PermissionSpec
+overrides?: OverrideSpec[]
 ```
 
-### 2.3 FieldType enum
+### 3.2 ResourceSpec
+
+```yaml
+resources:
+  - name: string                # required, kebab-case, unique within extension
+    table: string               # required, must start with ext_<name>_
+    displayName?: string
+    description?: string
+    timestamps?: boolean        # default: true (createdAt, updatedAt)
+    softDelete?: boolean        # default: true (deletedAt)
+    
+    fields: FieldSpec[]         # required, at least 1
+    
+    permissions?: PermissionSpec
+    hooks?: HookSpec
+    notifications?: NotificationSpec[]
+    jobs?: JobSpec[]
+    webhooks?: WebhookSpec[]
+    seeds?: object[]
+    
+    ui?: ResourceUISpec         # frontend rendering hints
+```
+
+### 3.3 FieldSpec
+
+```yaml
+fields:
+  - name: string                # required, camelCase
+    type: FieldType             # required
+    required?: boolean          # default: false
+    nullable?: boolean          # default: !required
+    unique?: boolean            # default: false
+    default?: any
+    length?: number             # string/enum: varchar length
+    precision?: number          # decimal
+    scale?: number              # decimal
+    enum?: string[]             # for enum type
+    ref?: string                # for ref type: target resource name
+    refOnDelete?: 'CASCADE' | 'SET NULL' | 'RESTRICT'  # default: RESTRICT
+    index?: boolean             # default: false
+    validation?:                # field-level validation
+      min?: number
+      max?: number
+      pattern?: string          # regex
+      email?: boolean
+      url?: boolean
+    ui?: FieldUISpec            # frontend rendering hints for this field
+```
+
+### 3.4 FieldType
 
 ```typescript
 type FieldType =
@@ -177,65 +194,185 @@ type FieldType =
   | 'file'        // file reference (uses StorageModule)
 ```
 
-### 2.4 Role type
+### 3.5 PermissionSpec
 
-```typescript
-type Role = 'admin' | 'customer' | 'affiliate' | 'public'
+```yaml
+permissions:
+  list?: Role[]                  # who can list
+  read?: Role[]                  # who can read single
+  create?: Role[]                # who can create
+  update?: Role[]                # who can update
+  delete?: Role[]                # who can delete
+  fields?:                       # field-level RBAC
+    fieldName:
+      read?: Role[]              # who can see this field in responses
+      write?: Role[]             # who can set this field in requests
+  rowLevel?:                     # row-level security
+    role:
+      filter: string             # 'assigneeId == ${user.id}'
 ```
 
-The engine maps these to `RoleEnum` values from `@iam/roles/roles.enum.ts`:
+Role type: `'admin' | 'customer' | 'affiliate' | 'public'`
+
+The engine maps these to `RoleEnum` from `@iam/roles/roles.enum.ts`:
 - `admin` → `RoleEnum.admin` (1)
 - `customer` → `RoleEnum.customer` (2)
 - `affiliate` → `RoleEnum.affiliate` (3)
 - `public` → no auth guard applied
 
-### 2.5 TriggerSpec
+### 3.6 HookSpec
 
-```typescript
-type TriggerSpec =
-  | { on: 'beforeCreate' | 'afterCreate' | 'beforeUpdate' | 'afterUpdate' | 'beforeDelete' | 'afterDelete' }
-  | { on: 'job'; jobName: string }
-  | { on: 'webhook'; webhookName: string }
-```
-
-With optional `when` condition:
 ```yaml
-trigger:
-  on: afterCreate
-  when: 'priority == urgent && assigneeId != null'
+hooks:
+  beforeCreate?: string          # path to handler, relative to spec file
+  afterCreate?: string
+  beforeUpdate?: string
+  afterUpdate?: string
+  beforeDelete?: string
+  afterDelete?: string
 ```
 
-The `when` expression is evaluated against the entity data using a safe expression evaluator (not `eval`). Candidates: `expr-eval` library or a simple custom parser for `==`, `!=`, `&&`, `||`, field access, and `${var}` interpolation.
+### 3.7 NotificationSpec
 
-### 2.6 Validation
+```yaml
+notifications:
+  - name: string
+    trigger:                     # when to fire
+      on: 'beforeCreate' | 'afterCreate' | 'beforeUpdate' | 'afterUpdate' | 'beforeDelete' | 'afterDelete' | 'job' | 'webhook'
+      jobName?: string           # if on: 'job'
+      webhookName?: string       # if on: 'webhook'
+      when?: string              # optional condition: 'priority == urgent && assigneeId != null'
+    channel: 'email' | 'webhook' | 'sms'
+    template?: string            # path to .hbs template (email channel)
+    to?: string                  # expression or literal (email channel)
+    subject?: string             # expression or literal (email channel)
+    payload?: object             # for webhook channel
+    url?: string                 # for webhook channel
+```
 
-The engine validates every spec at load time:
+### 3.8 JobSpec
 
-1. **JSON Schema validation** — structural correctness (required fields, types, enums)
-2. **Cross-reference validation** — `ref` targets exist, `refOnDelete` is valid, hook paths resolve to files, template paths resolve to files
-3. **Conflict detection** — table names don't collide with existing entities, resource names are unique across all loaded specs
-4. **Permission validation** — roles are valid, rowLevel filters reference real fields
+```yaml
+jobs:
+  - name: string
+    schedule: 'cron' | 'interval'
+    value: string                # cron expr or interval (60s, 5m, 1h)
+    handler: string              # path to handler
+    queue?: string               # BullMQ queue name (default: 'spec-jobs')
+    retries?: number             # default: 3
+    backoff?: 'exponential' | 'fixed'  # default: exponential
+```
+
+### 3.9 WebhookSpec
+
+```yaml
+webhooks:
+  - name: string
+    path: string                 # URL path
+    method: 'POST'
+    auth: 'none' | 'hmac' | 'jwt'
+    handler: string              # path to handler
+```
+
+### 3.10 ResourceUISpec
+
+```yaml
+ui:
+  icon: string                   # sidebar icon name
+  view: 'table' | 'kanban' | 'list'   # admin default view
+  kanbanColumn?: string          # field used as kanban column
+  kanbanOrder?: string           # field used to sort cards
+  sidebar:                       # navbar injection
+    heading: string
+    items:
+      - title: string
+        icon: string
+        link: string
+        roles?: Role[]           # visibility filter
+```
+
+### 3.11 FieldUISpec
+
+```yaml
+ui:
+  display: 'text' | 'badge' | 'date' | 'avatar' | 'truncate' | 'icon' | 'link'
+  formInput: 'text' | 'textarea' | 'select' | 'datepicker' | 'file-upload' | 'select-async'
+  link?: boolean                 # clickable in table → detail view
+  colors?: object                # for badge: { pending: '#f59e0b', done: '#22c55e' }
+  truncateLength?: number        # for truncate display
+  labelField?: string            # for ref select-async: which field of target to show
+```
+
+### 3.12 ViewSpec (dashboards)
+
+```yaml
+views:
+  - name: string
+    displayName?: string
+    type: 'dashboard' | 'custom'
+    roles: Role[]
+    panels?: PanelSpec[]         # for type: dashboard
+    
+    handler?: string             # for type: custom
+    component?: string           # for type: custom or custom panels
+```
+
+### 3.13 PanelSpec
+
+```yaml
+panels:
+  - name: string
+    chart: 'stat' | 'donut' | 'bar' | 'line' | 'custom'
+    label?: string               # for stat
+    query?: QuerySpec            # data source
+    transform?: string           # path to transform hook (level 2)
+    component?: string           # path to Vue component (custom chart)
+```
+
+### 3.14 QuerySpec
+
+```yaml
+query:
+  resource: string               # 'task'
+  aggregate: 'count' | 'sum' | 'avg' | 'min' | 'max'
+  aggregateField?: string        # for sum/avg/min/max
+  groupBy?: string               # field to group by
+  groupByInterval?: 'hour' | 'day' | 'week' | 'month'  # for date fields
+  timeRange?: string             # '7d', '30d', '90d', '1y'
+  filter?: string                # 'priority == urgent && status != done'
+  sort?: { field: string, order: 'asc' | 'desc' }
+  limit?: number                 # top N
+  having?: string                # 'count > 5'
+```
+
+### 3.15 Validation
+
+The engine validates every spec at load time in 4 phases:
+
+1. **JSON Schema validation** — structural correctness (required fields, types, enums). Uses `ajv`.
+2. **Cross-reference validation** — `ref` targets exist, `refOnDelete` is valid, hook paths resolve to files, template paths resolve to files.
+3. **Conflict detection** — table names don't collide with existing entities, resource names are unique across all loaded specs.
+4. **Permission validation** — roles are valid, rowLevel filters reference real fields.
 
 If validation fails, the engine logs structured errors and does NOT materialize the resource. Other valid resources still load.
 
 ---
 
-## 3. Lifecycle Pipeline
+## 4. Lifecycle Pipeline
 
-### 3.1 The 7-stage pipeline
+### 4.1 The 7-stage pipeline
 
 Every HTTP request to a spec-driven resource passes through this pipeline:
 
 ```
 Request → Auth → Validation → BeforeHook → DB → AfterHook → Notifications → Response
-           │        │            │         │       │           │
-           │        │            │         │       │           │
-          1        2            3         4       5           6
+           │        │            │         │       │           │              │
+          (1)      (2)          (3)       (4)     (5)         (6)            (7)
 ```
 
-Stage 7 is the HTTP response itself.
+Each stage is independent. Each stage uses existing Foundation modules. The engine orchestrates, never replaces.
 
-### 3.2 Stage 1: Auth Guard
+### 4.2 Stage 1: Auth Guard
 
 ```
 Input:  HTTP request + spec.permissions
@@ -249,9 +386,9 @@ The dynamic controller applies:
 
 For `public` permissions: no guard applied, `req.user` may be null.
 
-For row-level permissions: the controller injects a WHERE clause into the repository query. Example: `customer` with `rowLevel.filter: 'assigneeId == ${user.id}'` → `WHERE "assigneeId" = 42`.
+For row-level permissions: the controller injects a WHERE clause into the repository query.
 
-### 3.3 Stage 2: Validation
+### 4.3 Stage 2: Validation
 
 ```
 Input:  Request body + spec.fields
@@ -259,37 +396,39 @@ Output: Validated data or 400 with field-level errors
 Uses:  Zod schema generated by ValidationFactory
 ```
 
-The Zod schema is built once at materialization time and cached. Validation errors are returned as:
+Validation errors are returned as:
 ```json
 {
   "statusCode": 400,
   "message": "Validation failed",
   "validation": [
     { "field": "title", "message": "String must contain at least 2 character(s)" },
-    { "field": "priority", "message": "Invalid enum value. Expected 'low' | 'medium' | 'high' | 'urgent'" }
+    { "field": "priority", "message": "Invalid enum value" }
   ]
 }
 ```
 
-### 3.4 Stage 3: Before Hook
+Field-level RBAC write permissions are enforced here: fields the user can't write are rejected.
+
+### 4.4 Stage 3: Before Hook
 
 ```
 Input:  Validated data + HookContext
 Output: { data: ModifiedData, proceed: boolean } | throws to abort
-Uses:  HookContext (see section 4)
+Uses:  HookContext (see section 7)
 ```
 
-The hook is a function loaded via `require()`. It receives the validated data and a context object. It can:
+The hook can:
 - Modify data (add fields, transform values)
 - Enrich data (fetch related records, compute defaults)
-- Abort the operation (`proceed: false` or throw `HookAbortError`)
-- Log via `ctx.logger`
+- Abort the operation (`proceed: false` or `ctx.abort()`)
 - Access other repositories via `ctx.getRepository()`
 - Access Foundation services via `ctx.getService()`
+- Write to the trace via `ctx.trace.add()`
 
-If the hook throws, the operation is aborted and the error is returned to the client as a 400 with the hook's error message. If the hook returns `{ proceed: false, error }`, same result.
+If the hook throws `HookAbortError`, the operation is aborted and the error is returned to the client as an HTTP error (default 400). Other errors are caught, logged to ErrorTracker, and returned as 500.
 
-### 3.5 Stage 4: DB Operation
+### 4.5 Stage 4: DB Operation
 
 ```
 Input:  Data (possibly modified by before hook)
@@ -297,15 +436,9 @@ Output: Entity instance
 Uses:  TypeORM dynamic repository (EntitySchema-based)
 ```
 
-Standard TypeORM operations:
-- `create`: `repository.save(data)`
-- `update`: `repository.findOne()` → `Object.assign(existing, data)` → `repository.save(existing)`
-- `delete`: `repository.softDelete(id)` (if softDelete enabled) or `repository.delete(id)`
-- `read`: `repository.findOne()` / `repository.findAndCount()`
-
 Row-level filters from Stage 1 are applied as WHERE clauses here.
 
-### 3.6 Stage 5: After Hook
+### 4.6 Stage 5: After Hook
 
 ```
 Input:  Saved entity + HookContext
@@ -313,116 +446,297 @@ Output: void (side effects only)
 Uses:  HookContext
 ```
 
-The after hook runs after the DB operation succeeds but before the response is sent. It's for side effects:
-- Send notifications
-- Sync to external systems
-- Update related records
-- Log audit trails
+The after hook runs after the DB operation succeeds but before the response is sent. It's for side effects: notifications, external sync, audit trails.
 
-If the after hook throws, the DB operation is NOT rolled back (it already succeeded). The error is logged via `ctx.logger` and reported to `ErrorTrackerService`. The HTTP response still succeeds — the client sees the created/updated entity.
+If the after hook throws, the DB operation is NOT rolled back (it already succeeded). The error is logged via `ctx.logger` and reported to `ErrorTrackerService`. The HTTP response still succeeds.
 
-This is a deliberate choice: after hooks are fire-and-forget. If you need transactional consistency, use a before hook that does everything in one operation, or use a job that retries.
+This is a deliberate choice: after hooks are fire-and-forget. If you need transactional consistency, use a before hook or a job that retries.
 
-### 3.7 Stage 6: Notifications
+### 4.7 Stage 6: Notifications
 
 ```
 Input:  Entity + operation type + spec.notifications
 Output: Side effects (emails, webhooks, SMS)
-Uses:  NotificationDispatcher → MailerService / QueuedMailerService / fetch
+Uses:  NotificationDispatcher → QueuedMailerService / fetch
 ```
 
-The NotificationDispatcher evaluates all notification specs for the resource:
-1. Filter by `trigger.on` matching the current operation
-2. Evaluate `when` condition against entity data
-3. For each matching notification:
-   - `channel: email` → render template with Handlebars, send via `QueuedMailerService.sendMail(EmailJobData)`
-   - `channel: webhook` → POST payload to URL via `fetch`
-   - `channel: sms` → via configured SMS provider (future)
+The NotificationDispatcher:
+1. Filters notifications by `trigger.on` matching the current operation
+2. Evaluates `when` condition against entity data
+3. For each matching notification, dispatches to the appropriate channel
 
-Notifications are async and non-blocking. Failures are logged to ErrorTrackerService and retried by BullMQ (if email channel).
+Notifications are async and non-blocking. Failures are logged to ErrorTrackerService and retried by BullMQ.
 
-### 3.8 Stage 7: HTTP Response
+### 4.8 Stage 7: HTTP Response
 
 ```
 Output: JSON entity + pagination metadata (for list)
 ```
 
-Standard response shape:
-```json
-// Single item
-{ "id": 1, "title": "...", ... }
-
-// Paginated list
-{
-  "data": [...],
-  "meta": { "total": 42, "page": 1, "limit": 20, "totalPages": 3 }
-}
-```
-
-Field-level RBAC is applied here: fields the user can't read are stripped from the response.
+Field-level RBAC read permissions are applied here: fields the user can't read are stripped from the response.
 
 ---
 
-## 4. HookContext
+## 5. SpecTrace
 
-### 4.1 The contract
+### 5.1 Why tracing matters
+
+The spec engine is an interpreter. If something fails — a hook doesn't execute, a notification doesn't fire, a permission is wrong — you need to see exactly what happened at each stage. Without tracing, it's a black box.
+
+### 5.2 SpecTrace structure
+
+Every request builds a trace as it passes through the 7 stages:
+
+```typescript
+interface SpecTrace {
+  requestId: string;              // correlation ID
+  resource: string;
+  operation: 'create' | 'read' | 'update' | 'delete' | 'list';
+  user: { id: number; role: string } | null;
+  stages: TraceStage[];
+  totalDurationMs: number;
+}
+
+interface TraceStage {
+  stage: 'auth' | 'validation' | 'beforeHook' | 'db' | 'afterHook' | 'notifications' | 'response';
+  status: 'pass' | 'fail' | 'skip';
+  durationMs: number;
+  input: unknown;
+  output: unknown;
+  error?: { message: string; code: string };
+  meta?: Record<string, unknown>;
+}
+```
+
+### 5.3 Example trace
+
+```json
+{
+  "requestId": "req_abc123",
+  "resource": "task",
+  "operation": "create",
+  "user": { "id": 1, "role": "admin" },
+  "totalDurationMs": 42,
+  "stages": [
+    { "stage": "auth", "status": "pass", "durationMs": 1, "meta": { "guard": "jwt", "rolesChecked": [1] } },
+    { "stage": "validation", "status": "pass", "durationMs": 2, "meta": { "schema": "task.create", "rulesChecked": 6 } },
+    { "stage": "beforeHook", "status": "pass", "durationMs": 8, "meta": { "hook": "task-before-create", "modified": ["assigneeId", "dueDate"], "proceed": true } },
+    { "stage": "db", "status": "pass", "durationMs": 12, "meta": { "operation": "INSERT", "table": "ext_tasks_task" } },
+    { "stage": "afterHook", "status": "skip", "durationMs": 0, "meta": { "reason": "no afterCreate hook defined" } },
+    { "stage": "notifications", "status": "pass", "durationMs": 19, "meta": { "evaluated": 2, "matched": 1, "fired": [{ "name": "notify-assignee", "channel": "email", "to": "admin@..." }], "skipped": [{ "name": "task-stale", "reason": "when condition false" }] } },
+    { "stage": "response", "status": "pass", "durationMs": 0, "meta": { "fieldsStripped": [], "rowLevelFilterApplied": false } }
+  ]
+}
+```
+
+### 5.4 Access modes
+
+**Dev mode** (`nodeEnv !== 'production'`):
+- `X-Spec-Trace` response header with trace compressed in base64
+- `?_trace=true` query param → response includes `__trace` at the end
+- CLI: `pnpm spec:trace task create --body '{...}' --user admin` → prints colored trace in console
+
+**Prod mode**:
+- Trace logged as structured JSON at debug level
+- If request fails (status >= 400), trace sent to `ErrorTrackerService` with full context
+- `GET /api/v1/_spec/trace/:requestId` — admin-only endpoint to retrieve recent traces
+
+### 5.5 CLI trace output
+
+```
+spec:trace — task.create
+──────────────────────────────────────────────────────
+[1] auth           ✅  1ms   guard=jwt  roles=[admin]
+[2] validation     ✅  2ms   6 rules checked  0 errors
+[3] beforeHook     ✅  8ms   hook=task-before-create
+                        └─ modified: assigneeId=1, dueDate=2026-08-01
+[4] db             ✅ 12ms  INSERT ext_tasks_task → id=42
+[5] afterHook      ⏭️  0ms  no hook defined
+[6] notifications  ✅ 19ms  2 evaluated → 1 matched
+                        └─ 🔥 notify-assignee (email → admin@...)
+                        └─ ⏭️ task-stale (when: false)
+[7] response       ✅  0ms  200 OK
+──────────────────────────────────────────────────────
+Total: 42ms
+```
+
+### 5.6 Trace in hooks
+
+Hooks can write to the trace via `ctx.trace.add()`:
+
+```typescript
+export default async function beforeCreate(data, ctx) {
+  ctx.trace.add('beforeCreate', {
+    decision: 'auto-assign-admin',
+    reason: 'priority=urgent and no assignee',
+  });
+  // ...
+}
+```
+
+`ctx.trace` is a `TraceWriter` that only works in dev mode or tests. In prod, it's a no-op (unless the request fails, in which case the trace is captured regardless).
+
+---
+
+## 6. Error Reporting
+
+### 6.1 The autonomous feedback loop
+
+```
+Spec engine fails
+    │
+    ├── ErrorTrackerService.logError()  ← existing Foundation module
+    │   ├── stores in DB (ErrorLogEntity)
+    │   ├── deduplicates by hash (sha256 of message+source+stack)
+    │   └── increments occurrences if repeated
+    │
+    └── GitHub Issue auto-created
+        ├── title: [spec-engine] Resource "task" failed
+        ├── body: trace + spec + error + source code
+        ├── labels: [bug, spec-engine, auto-generated]
+        └── deduplicated: only 1 issue per unique error hash
+```
+
+### 6.2 What goes into the GitHub issue
+
+```markdown
+## [spec-engine] task.beforeCreate hook failed
+
+**Error**: `TypeError: Cannot read property 'id' of null`
+**Resource**: task
+**Operation**: create
+**Stage**: beforeHook
+**Hook**: ./hooks/task-before-create.ts
+
+### Trace
+[1] auth ✅  [2] validation ✅  [3] beforeHook ❌ TypeError: ...
+
+### Input data
+{ "title": "Fix bug", "priority": "urgent", "status": "pending" }
+
+### Spec (relevant section)
+hooks:
+  beforeCreate: ./hooks/task-before-create.ts
+
+### Hook source
+// ./hooks/task-before-create.ts line 12
+const admin = await userRepo.findOne({ where: { role: { id: 1 } } });
+data.assigneeId = admin.id;  // ← admin is null
+
+### Environment
+- Extension: tasks v1.0.0
+- Foundation: 1.2.0
+- Spec hash: a1b2c3...
+```
+
+### 6.3 SpecErrorReporter
+
+```typescript
+@Injectable()
+export class SpecErrorReporter {
+  constructor(
+    private readonly errorTracker: ErrorTrackerService,
+    private readonly configService: ConfigService<AllConfigType>,
+  ) {}
+
+  async report(error: SpecError): Promise<void> {
+    // 1. Always log to DB
+    await this.errorTracker.logError({
+      message: error.message,
+      source: `spec-engine:${error.resource}:${error.stage}`,
+      stack: error.stack,
+      metadata: {
+        requestId: error.requestId,
+        resource: error.resource,
+        operation: error.operation,
+        stage: error.stage,
+        trace: error.trace,
+        specHash: error.specHash,
+        hookPath: error.hookPath,
+        inputData: error.inputData,
+      },
+    });
+
+    // 2. Open GitHub issue (only on first occurrence, prod only)
+    if (this.shouldCreateIssue(error)) {
+      await this.createGitHubIssue(error);
+    }
+  }
+
+  private shouldCreateIssue(error: SpecError): boolean {
+    // Only on first occurrence (occurrences === 1)
+    // Only in production
+    // Only if GitHub token configured
+    return error.occurrences === 1
+      && this.configService.get('app.nodeEnv') === 'production'
+      && !!this.configService.get('app.githubToken');
+  }
+}
+```
+
+### 6.4 Error types reported
+
+| Error | Stage | Example |
+|---|---|---|
+| Spec invalid | load | `ref target "user" not found` |
+| Hook crash | beforeHook/afterHook | `TypeError in hook` |
+| Notification fail | notifications | `template not found` |
+| Job fail | job | `handler crash` |
+| Webhook handler fail | webhook | `HMAC verification failed` |
+| Validation spec error | load | `field "title" has no type` |
+
+---
+
+## 7. HookContext
+
+### 7.1 The contract
 
 ```typescript
 interface HookContext {
   // ─── Operation metadata ───────────────────────────
   operation: 'create' | 'update' | 'delete' | 'read';
   resource: string;
-  user: AuthenticatedUser | null;   // from req.user (JwtPayloadType)
+  user: AuthenticatedUser | null;
 
   // ─── Data access ──────────────────────────────────
   getRepository(name: string): Repository<any>;
-  // Returns the TypeORM repository for any spec-driven resource.
-  // For existing Foundation entities (User, Role, File), returns
-  // the repository registered by their respective modules.
 
   // ─── Foundation services ──────────────────────────
   getService<T = any>(token: string): T;
-  // Resolves any NestJS provider by DI token.
-  // Known tokens (see 4.3):
-  //   'MailerService'        → MailerService (sync email)
-  //   'QueuedMailerService'  → QueuedMailerService (async email via BullMQ)
-  //   'EmailService'         → EmailService (queue management)
-  //   'FilesService'         → FilesService (file CRUD facade)
+  // Known tokens:
+  //   'MailerService'           → MailerService (sync email)
+  //   'QueuedMailerService'     → QueuedMailerService (async email via BullMQ)
+  //   'EmailService'            → EmailService (queue management)
+  //   'FilesService'            → FilesService (file CRUD facade)
   //   'FilesS3PresignedService' → presigned URL generation
-  //   'ErrorTrackerService'  → ErrorTrackerService (error logging)
-  //   'ConfigService'        → ConfigService<AllConfigType>
+  //   'FilesS3Service'          → S3 file operations
+  //   'FilesLocalService'       → local file operations
+  //   'ErrorTrackerService'     → ErrorTrackerService
+  //   'ConfigService'           → ConfigService<AllConfigType>
 
   // ─── Config ───────────────────────────────────────
   config(key: string): any;
-  // Shortcut for configService.get(key, { infer: true }).
-  // Examples: config('app.notificationEmail'), config('mail.host')
 
   // ─── Email helper ─────────────────────────────────
   sendEmail(data: EmailJobData): Promise<void>;
-  // Shortcut for queudMailerService.sendMail(data).
-  // Uses the same EmailJobData contract as Foundation's queue.
 
   // ─── Logger ───────────────────────────────────────
   logger: Logger;
-  // NestJS Logger scoped to the hook name.
+
+  // ─── Trace ────────────────────────────────────────
+  trace: TraceWriter;
 
   // ─── Abort ────────────────────────────────────────
   abort(message: string, statusCode?: number): never;
-  // Throws HookAbortError, which the engine catches and
-  // returns to the client as an HTTP error (default 400).
 }
 ```
 
-### 4.2 AuthenticatedUser
+### 7.2 AuthenticatedUser
 
 ```typescript
 interface AuthenticatedUser {
   id: number;
-  role: {
-    id: number;       // RoleEnum value
-    name: string;     // 'admin' | 'customer' | 'affiliate'
-    homeRoute?: string;
-  };
+  role: { id: number; name: string; homeRoute?: string };
   sessionId: string;
   language: string;
   iat: number;
@@ -430,11 +744,9 @@ interface AuthenticatedUser {
 }
 ```
 
-This matches the actual `JwtPayloadType` from `@iam/auth/strategies/types/jwt-payload.type.ts`. The `role` is an object (not just an ID), matching how `req.user` is populated after JWT validation.
+Matches the actual `JwtPayloadType` from `@iam/auth/strategies/types/jwt-payload.type.ts`.
 
-### 4.3 Service token registry
-
-The engine maintains a registry of known DI tokens that hooks can resolve:
+### 7.3 Service token registry
 
 ```typescript
 const SERVICE_TOKENS = {
@@ -450,9 +762,9 @@ const SERVICE_TOKENS = {
 } as const;
 ```
 
-`ctx.getService('MailerService')` resolves to the actual class token and retrieves it from NestJS DI. This is NOT a service locator anti-pattern — it's a controlled bridge between the hook's pure function world and NestJS's DI world.
+`ctx.getService('MailerService')` resolves to the actual class token and retrieves it from NestJS DI via `ModuleRef.get(..., { strict: false })`.
 
-### 4.4 Hook signature
+### 7.4 Hook signatures
 
 ```typescript
 // Before hook — can modify data and abort
@@ -461,9 +773,9 @@ interface BeforeHook {
 }
 
 interface BeforeHookResult {
-  data: Record<string, unknown>;  // possibly modified
-  proceed: boolean;               // false = abort
-  error?: string;                 // shown to client if proceed=false
+  data: Record<string, unknown>;
+  proceed: boolean;
+  error?: string;
 }
 
 // After hook — side effects only
@@ -472,19 +784,19 @@ interface AfterHook {
 }
 ```
 
-### 4.5 Hook loading and validation
+### 7.5 Hook loading
 
-At materialization time, the engine:
+At materialization time:
 1. `require(handlerPath)` — loads the handler module
 2. Checks that `module.default` is a function
-3. Wraps it in a typed caller that catches errors and converts them to `HookAbortError` or logs them
-4. If the handler file doesn't exist or doesn't export a function, logs a structured error and skips the hook (the resource still works, just without that hook)
+3. Wraps it in a typed caller that catches errors
+4. If handler file doesn't exist or doesn't export a function, logs error and skips the hook
 
 ---
 
-## 5. Notification System
+## 8. Notification System
 
-### 5.1 Architecture
+### 8.1 Architecture
 
 ```
 spec.notifications
@@ -497,302 +809,174 @@ NotificationDispatcher (provider in SpecEngineModule)
     │
     ├── channel: email
     │   ├── resolves template path (relative to spec file)
-    │   ├── renders Handlebars template with entity data as context
-    │   │   └── template receives: { entity, user, app }
-    │   ├── injects app_url from config (app.backendDomain)
+    │   ├── renders Handlebars template with context
     │   ├── calls QueuedMailerService.sendMail(EmailJobData)
-    │   │   └── EmailJobData = { to, subject, html, templatePath?, context? }
     │   └── BullMQ handles retry (3 attempts, exponential backoff)
     │
     ├── channel: webhook
     │   ├── builds payload from spec.payload + entity data
-    │   ├── POST to URL (expression-evaluated)
+    │   ├── POST to URL via fetch
     │   ├── HMAC signature if auth specified
     │   └── logs failures to ErrorTrackerService
     │
     └── channel: sms (future)
 ```
 
-### 5.2 Maizzle integration
+### 8.2 Maizzle integration
 
-Foundation already has Maizzle (`@maizzle/framework` in dependencies). The workflow:
+Foundation already has Maizzle (`@maizzle/framework`). Workflow:
 
-1. **Source templates** live in `apps/back/emails/` as `.mjml` or `.html` files (Maizzle source)
-2. **Built templates** are compiled by `pnpm maizzle:build` to `apps/back/build/` as `.hbs` files (Handlebars)
-3. **Spec references** point to the built `.hbs` file:
+1. Source templates live in `apps/back/emails/` as `.mjml` or `.html`
+2. Built templates compiled by `pnpm maizzle:build` to `apps/back/build/` as `.hbs` files
+3. Spec references the built `.hbs` file:
 
 ```yaml
 notifications:
   - name: task-assigned
     trigger: { on: afterCreate }
     channel: email
-    template: ./templates/task-assigned.hbs   # relative to spec file
+    template: ./templates/task-assigned.hbs
     to: '${entity.assignee.email}'
     subject: 'Nueva tarea asignada: ${entity.title}'
 ```
 
-4. **At runtime**, the NotificationDispatcher:
-   - Resolves the template path (relative to spec file, absolute if starts with `/`)
-   - Reads the `.hbs` file
-   - Compiles with Handlebars (`{ strict: true }`)
-   - Passes context: `{ entity: {...}, user: {...}, app: { url, name } }`
-   - Calls `QueuedMailerService.sendMail({ to, subject, html: renderedTemplate })`
+4. At runtime, NotificationDispatcher reads the `.hbs` file, compiles with Handlebars, calls `QueuedMailerService.sendMail()`
 
 This matches exactly how `MailerService.sendMail()` works today — the engine just automates the dispatch.
 
-### 5.3 Template context
-
-Every email template receives:
+### 8.3 Template context
 
 ```typescript
 interface EmailTemplateContext {
-  entity: Record<string, unknown>;  // the full entity that triggered the notification
-  user: AuthenticatedUser | null;   // the user who performed the action
+  entity: Record<string, unknown>;
+  user: AuthenticatedUser | null;
   app: {
-    url: string;                    // app.backendDomain from config
-    name: string;                   // app.name from config
-    notificationEmail: string;      // app.notificationEmail
+    url: string;
+    name: string;
+    notificationEmail: string;
   };
-  // Any custom fields from spec.notifications.payload
 }
 ```
 
-Example template:
-```handlebars
-<!-- templates/task-assigned.hbs -->
-<h1>Nueva tarea asignada</h1>
-<p>Te han asignado la tarea: <strong>{{entity.title}}</strong></p>
-<p>Prioridad: {{entity.priority}}</p>
-<p>Fecha límite: {{entity.dueDate}}</p>
-<a href="{{app.url}}/app/tasks/{{entity.id}}">Ver tarea</a>
-```
+### 8.4 Expression evaluation
 
-### 5.4 Expression evaluation
-
-Fields like `to`, `subject`, and `payload` support `${expression}` interpolation:
-
-```yaml
-to: '${entity.assignee.email}'
-subject: 'Nueva tarea: ${entity.title}'
-```
-
-The engine evaluates `${...}` against the template context. For complex logic (conditional recipients, dynamic subjects), use a hook that calls `ctx.sendEmail()` directly.
+Fields like `to`, `subject`, and `payload` support `${expression}` interpolation evaluated against the template context. For complex logic, use a hook that calls `ctx.sendEmail()` directly.
 
 ---
 
-## 6. File Handling
+## 9. File Handling
 
-### 6.1 Spec definition
+### 9.1 Spec definition
 
 ```yaml
 fields:
   - name: attachment
     type: file
-    storage: s3                 # 'local' | 's3' | 's3-presigned' (default: from config file.driver)
-    allowedMimes:               # validated at upload time
-      - 'application/pdf'
-      - 'image/png'
-      - 'image/jpeg'
-    maxSize: 10485760           # 10MB in bytes
-    isPublic: false             # default: false
-    context: 'task_attachment'  # optional categorization
+    storage: s3                 # 'local' | 's3' | 's3-presigned' (default: from config)
+    allowedMimes: ['application/pdf', 'image/png', 'image/jpeg']
+    maxSize: 10485760           # 10MB
+    isPublic: false
+    context: 'task_attachment'
 ```
 
-### 6.2 Upload flow (presigned S3)
+### 9.2 Upload flow (presigned S3)
 
 ```
-1. Client: POST /api/v1/tasks with body:
-   { "title": "...", "attachment": { "name": "doc.pdf", "type": "application/pdf", "size": 50000 } }
-
-2. Engine validation:
-   ├── Check type is in allowedMimes
-   ├── Check size <= maxSize
-   └── If invalid → 400 with field-level error
-
-3. Engine calls FilesS3PresignedService.create(FileUploadDto):
-   ├── Creates FileEntity in DB (path, type, size, name)
-   └── Returns { file, uploadSignedUrl }
-
+1. Client: POST /api/v1/tasks with { attachment: { name, type, size } }
+2. Engine validates mime + size
+3. Engine calls FilesS3PresignedService.create(FileUploadDto)
+   → creates FileEntity in DB
+   → returns { file, uploadSignedUrl }
 4. Engine saves task with attachment = file.id
-
-5. Response:
-   {
-     "id": 1,
-     "title": "...",
-     "attachment": {
-       "fileId": "abc-123",
-       "uploadUrl": "https://s3.../presigned-put-url",
-       "path": "tasks/abc-123.pdf"
-     }
-   }
-
-6. Client uploads file directly to S3 via PUT to uploadUrl
+5. Response includes uploadUrl
+6. Client uploads directly to S3 via PUT
 ```
 
-### 6.3 Read flow
+### 9.3 Read flow
 
 ```
 1. Client: GET /api/v1/tasks/1
-
-2. Engine loads task, sees attachment field of type 'file'
-
-3. Engine calls FilesS3Service.getPresignedUrl(file.path):
-   ├── Returns GET presigned URL (expires in 3600s)
-   └── Or getPublicUrl if isPublic=true
-
-4. Response:
-   {
-     "id": 1,
-     "title": "...",
-     "attachment": {
-       "fileId": "abc-123",
-       "url": "https://s3.../presigned-get-url",
-       "name": "doc.pdf",
-       "type": "application/pdf",
-       "size": 50000
-     }
-   }
+2. Engine sees attachment field of type 'file'
+3. Engine calls FilesS3Service.getPresignedUrl(file.path)
+   → returns GET presigned URL (expires 3600s)
+4. Response includes resolved URL
 ```
 
-### 6.4 Integration with existing StorageModule
-
-The engine does NOT create its own file storage. It uses `FilesService`, `FilesS3PresignedService`, and `FilesS3Service` — the exact same services that Foundation extensions use today.
-
-The `file` field type is handled specially in:
-- `EntityFactory`: stored as `varchar` (file ID is a string UUID)
-- `ValidationFactory`: validates against allowed MIME types and max size
-- `ControllerFactory`: on create/update, calls the appropriate Files service; on read, resolves to a URL
-- `HookContext`: `ctx.getService('FilesS3PresignedService')` available for custom file operations
+Uses `FilesService`, `FilesS3PresignedService`, `FilesS3Service` — exact same services Foundation extensions use today.
 
 ---
 
-## 7. Auth & RBAC
+## 10. Auth & RBAC
 
-### 7.1 What the spec engine consumes from IamModule
+### 10.1 What the engine consumes from IamModule
 
 | Component | From | Used for |
 |---|---|---|
 | `AuthGuard('jwt')` | `@nestjs/passport` | JWT authentication |
 | `RolesGuard` | `@iam/roles/roles.guard` | Role-based authorization |
-| `@Roles(...)` | `@iam/roles/roles.decorator` | Setting required roles on methods |
+| `@Roles(...)` | `@iam/roles/roles.decorator` | Setting required roles |
 | `RoleEnum` | `@iam/roles/roles.enum` | Mapping role names to IDs |
 | `req.user` (JwtPayloadType) | `@iam/auth/strategies/jwt.strategy` | User identity in hooks |
 
-### 7.2 Permission resolution
+### 10.2 Permission resolution
 
-Spec roles → RoleEnum → RolesGuard:
+```
+Spec: permissions.create: [admin]
+  → [RoleEnum.admin] → [1] → @Roles(1) on controller method
+```
+
+### 10.3 Row-level security
 
 ```yaml
 permissions:
-  create: [admin]
-  update: [admin, customer]
-```
-
-```
-Engine:
-  create: [admin] → [RoleEnum.admin] → [1] → @Roles(1)
-  update: [admin, customer] → [1, 2] → @Roles(1, 2)
-```
-
-The RolesGuard already works by comparing `String(req.user?.role?.id)` against the metadata. No changes needed.
-
-### 7.3 Row-level security
-
-```yaml
-permissions:
-  list: [admin, customer]
-  read: [admin, customer]
   rowLevel:
     customer:
       filter: 'assigneeId == ${user.id}'
 ```
 
-The engine translates this into a TypeORM WHERE clause:
-
+Engine translates to TypeORM WHERE clause:
 ```typescript
-// For customer role:
 if (user.role.id === RoleEnum.customer) {
   query.where = { ...query.where, assigneeId: user.id };
 }
 ```
 
-The filter expression supports:
-- `field == ${user.id}` → equality
-- `field != value` → inequality
-- `field in [1, 2, 3]` → IN clause
-- `field == ${user.role.id}` → any user property
+Filter supports: `==`, `!=`, `in [a, b]`, and `${user.*}` interpolation. For complex filters, use a `beforeQuery` hook (future).
 
-For complex filters (joins, OR conditions), use a before hook on the `read` operation that modifies the query. (This requires extending the hook contract to support query modification — see 7.5.)
-
-### 7.4 Field-level RBAC
+### 10.4 Field-level RBAC
 
 ```yaml
 permissions:
   fields:
     assigneeId:
-      read: [admin]           # customer can't see assigneeId
+      read: [admin]           # customer can't see
     position:
       read: [admin]
-      write: [admin]          # customer can't set position
+      write: [admin]          # customer can't set
 ```
 
-On response (Stage 7), the engine strips fields the user can't read. On validation (Stage 2), the engine rejects fields the user can't write.
-
-### 7.5 Future: query-level hooks
-
-For the first version, row-level filters cover the 90% case. For complex queries (join filters, geospatial, full-text), a future `beforeQuery` hook type will allow modifying the TypeORM FindOptions:
-
-```typescript
-interface BeforeQueryHook {
-  (options: FindManyOptions, ctx: HookContext): Promise<FindManyOptions>;
-}
-```
-
-This is not in the first implementation but the design accommodates it.
+On response (Stage 7): fields the user can't read are stripped. On validation (Stage 2): fields the user can't write are rejected.
 
 ---
 
-## 8. Jobs
+## 11. Jobs
 
-### 8.1 Spec definition
-
-```yaml
-jobs:
-  - name: stale-tasks-detector
-    schedule: cron
-    value: '*/5 * * * *'          # 5-minute cron
-    handler: ./handlers/stale-tasks.handler.ts
-    queue: spec-jobs               # BullMQ queue name
-    retries: 3
-    backoff: exponential
-```
-
-### 8.2 Architecture
+### 11.1 Architecture
 
 ```
 SpecEngineModule.register()
     │
     ├── For each job in spec:
     │   ├── BullModule.registerQueue({ name: job.queue })
-    │   ├── queue.add(job.name, { handlerPath, resourceSpec }, { repeat: { pattern: cron } })
-    │   └── Dynamic processor registered for queue
+    │   ├── queue.add(job.name, { handlerPath, resource }, { repeat: { pattern: cron } })
+    │   └── Dynamic processor registered
     │
-    └── DynamicProcessor extends WorkerHost
-        ├── process(job): require(job.data.handlerPath).default(ctx)
-        ├── ctx = HookContext (same as hooks)
-        ├── retries + backoff handled by BullMQ
-        └── failures logged to ErrorTrackerService
+    └── Dual mode (like EmailQueueModule):
+        ├── Redis available → BullMQ queue + processor
+        └── No Redis → setInterval fallback (dev)
 ```
 
-### 8.3 Dual mode (Redis on/off)
-
-Following the exact pattern of `EmailQueueModule`:
-- If `WORKER_HOST` is set and valid → BullMQ queue + processor
-- If not → `setInterval` fallback (for dev without Redis)
-
-The handler is the same in both cases — only the scheduler changes.
-
-### 8.4 Job handler contract
+### 11.2 Job handler contract
 
 ```typescript
 interface JobHandler {
@@ -800,211 +984,351 @@ interface JobHandler {
 }
 ```
 
-The job handler receives the same `HookContext` as hooks — same access to repositories, services, config, logger. This is intentional: jobs are just hooks that run on a schedule instead of on a lifecycle event.
-
-### 8.5 Stale tasks example
-
-```yaml
-jobs:
-  - name: stale-tasks-detector
-    schedule: interval
-    value: 60s
-    handler: ./handlers/stale-tasks.handler.ts
-```
-
-```typescript
-// handlers/stale-tasks.handler.ts
-import type { HookContext } from '@core/spec-engine';
-
-export default async function staleTasksDetector(ctx: HookContext): Promise<void> {
-  const taskRepo = ctx.getRepository('task');
-  const threshold = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24h ago
-
-  const staleTasks = await taskRepo.find({
-    where: { status: 'pending' },
-    // Note: TypeORM EntitySchema doesn't support LessThan directly,
-    // so we use a query builder:
-  });
-
-  const stale = await taskRepo
-    .createQueryBuilder('task')
-    .where('task.status = :status', { status: 'pending' })
-    .andWhere('task.createdAt < :threshold', { threshold })
-    .getMany();
-
-  if (stale.length === 0) {
-    ctx.logger.log('No stale tasks found');
-    return;
-  }
-
-  ctx.logger.warn(`Found ${stale.length} stale tasks`);
-
-  // Send notification to admin
-  await ctx.sendEmail({
-    to: ctx.config('app.notificationEmail'),
-    subject: `${stale.length} tareas pendientes sin actualizar`,
-    templatePath: './templates/stale-tasks.hbs',
-    context: { staleTasks, count: stale.length },
-  });
-}
-```
+Same HookContext as hooks — same access to repositories, services, config, logger. Jobs are hooks that run on a schedule.
 
 ---
 
-## 9. Migrations
+## 12. Migrations
 
-### 9.1 The problem
-
-TypeORM `synchronize: true` works in dev but is dangerous in production. The spec engine needs a way to generate proper migration files from spec changes.
-
-### 9.2 Approach: spec diffing
+### 12.1 Approach: spec diffing
 
 ```
 spec:generate-migration <extension-name>
     │
     ├── Load current spec from extensions/<name>/*.spec.yaml
-    ├── Load previous spec snapshot from DB (table: spec_schema_version)
-    │   └── stored as JSON, keyed by resource name
-    │
+    ├── Load previous spec snapshot from DB (spec_schema_version table)
     ├── Diff current vs previous:
     │   ├── Field added → ADD COLUMN
-    │   ├── Field removed → DROP COLUMN (with --force flag, else warn)
+    │   ├── Field removed → DROP COLUMN (with --force)
     │   ├── Field type changed → ALTER COLUMN TYPE
-    │   ├── Field nullable changed → ALTER COLUMN SET/DROP NOT NULL
-    │   ├── Field default changed → ALTER COLUMN SET/DROP DEFAULT
-    │   ├── Index added → CREATE INDEX
-    │   ├── Index removed → DROP INDEX
+    │   ├── Nullable changed → SET/DROP NOT NULL
+    │   ├── Default changed → SET/DROP DEFAULT
+    │   ├── Index added/removed → CREATE/DROP INDEX
     │   └── Table created (new resource) → CREATE TABLE
     │
-    ├── Generate migration .ts file:
-    │   ├── class: SpecMigration<timestamp><Description>
-    │   ├── up(): ALTER TABLE statements
-    │   ├── down(): REVERSE statements
-    │   └── writes to src/infrastructure/database/migrations/
-    │
-    └── Update spec_schema_version in DB
+    ├── Generate migration .ts file in src/infrastructure/database/migrations/
+    └── Update spec_schema_version
 ```
 
-### 9.3 Spec schema version table
+### 12.2 Spec schema version table
 
 ```sql
 CREATE TABLE spec_schema_version (
   resource_name VARCHAR(100) PRIMARY KEY,
-  spec_hash VARCHAR(64) NOT NULL,        -- sha256 of spec JSON
-  spec_snapshot JSONB NOT NULL,           -- full spec at last migration
+  spec_hash VARCHAR(64) NOT NULL,
+  spec_snapshot JSONB NOT NULL,
   migrated_at TIMESTAMPTZ DEFAULT NOW()
 );
 ```
 
-The engine checks this table at startup. If a spec's hash doesn't match the stored hash, it logs a warning: "Resource 'task' spec has changed since last migration. Run `spec:generate-migration tasks`."
+At startup, if a spec's hash doesn't match the stored hash, logs: "Resource 'task' spec changed. Run `spec:generate-migration tasks`."
 
-### 9.4 Dev mode: synchronize
+### 12.3 Dev vs prod
 
-In development (`nodeEnv !== 'production'`), the engine uses `synchronize: true` for spec-driven entities. This matches Foundation's current behavior — TypeORM auto-creates/alters tables.
-
-In production, `synchronize: false` and migrations are required. The engine blocks startup if spec hashes don't match stored hashes (safety check).
-
-### 9.5 CLI command
-
-```bash
-pnpm spec:generate-migration tasks
-# → reads extensions/tasks/tasks.spec.yaml
-# → diffs against stored snapshot
-# → generates migrations/<timestamp>-SpecTasksAddPriorityField.ts
-# → logs: "Generated migration: AddPriorityField (1 up, 1 down)"
-
-pnpm spec:diff tasks
-# → shows diff between spec and DB schema without generating migration
-```
+- Dev: `synchronize: true` (TypeORM auto-creates/alters)
+- Prod: `synchronize: false`, migrations required. Engine blocks startup if spec hashes don't match.
 
 ---
 
-## 10. Testing
+## 13. Testing
 
-### 10.1 Auto-generated test scaffold
+### 13.1 Three levels
 
-The engine generates test scaffolds from specs. Not runtime — a CLI command that reads the spec and produces a `.spec.ts` file:
+**Level 1: Unit tests per factory**
 
-```bash
-pnpm spec:generate-tests tasks
-# → reads extensions/tasks/tasks.spec.yaml
-# → generates extensions/tasks/tasks.spec.test.ts
+Each factory tested in isolation:
+```typescript
+describe('EntityFactory', () => {
+  it('should create EntitySchema with all field types', () => { ... });
+  it('should map ref to integer column', () => { ... });
+});
+
+describe('ValidationFactory', () => {
+  it('should reject missing required field', () => { ... });
+  it('should enforce enum values', () => { ... });
+});
 ```
 
-### 10.2 What gets generated
+**Level 2: Pipeline integration tests**
 
+Test harness that boots NestJS with SpecEngineModule + in-memory DB and exercises the full pipeline:
 ```typescript
-// Auto-generated test scaffold for tasks spec
-describe('Tasks extension (spec-driven)', () => {
-  // ─── Field validation tests ───────────────────────
-  describe('POST /api/v1/tasks - validation', () => {
-    it('should reject missing title (required)', async () => { /* ... */ });
-    it('should reject title < 2 chars (validation.min)', async () => { /* ... */ });
-    it('should reject title > 200 chars (validation.max)', async () => { /* ... */ });
-    it('should reject invalid priority (enum)', async () => { /* ... */ });
-    it('should reject invalid status (enum)', async () => { /* ... */ });
-    it('should accept valid payload', async () => { /* ... */ });
+describe('Spec pipeline: task.create', () => {
+  it('should create task and fire notifications', async () => {
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/tasks')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ title: 'Test', priority: 'urgent', status: 'pending' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.assigneeId).toBe(1);  // set by beforeHook
+
+    // Check trace
+    const trace = getTrace(res);
+    expect(trace.stages[2].meta.modified).toContain('assigneeId');
+    expect(trace.stages[5].meta.fired).toHaveLength(1);
   });
 
-  // ─── Permission tests ─────────────────────────────
-  describe('POST /api/v1/tasks - permissions', () => {
-    it('should allow admin', async () => { /* ... */ });
-    it('should reject customer (create: [admin])', async () => { /* ... */ });
-    it('should reject unauthenticated', async () => { /* ... */ });
-  });
+  it('should reject customer creating task', async () => {
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/tasks')
+      .set('Authorization', `Bearer ${customerToken}`)
+      .send({ title: 'Test', priority: 'low', status: 'pending' });
 
-  // ─── CRUD tests ───────────────────────────────────
-  describe('CRUD operations', () => {
-    it('should create task', async () => { /* ... */ });
-    it('should list tasks (paginated)', async () => { /* ... */ });
-    it('should find one by id', async () => { /* ... */ });
-    it('should update task', async () => { /* ... */ });
-    it('should soft-delete task', async () => { /* ... */ });
-  });
-
-  // ─── Hook tests (scaffold — needs implementation) ─
-  describe('Hooks', () => {
-    it('beforeCreate: should auto-assign admin for urgent tasks', async () => { /* TODO */ });
-  });
-
-  // ─── Job tests (scaffold) ─────────────────────────
-  describe('Jobs', () => {
-    it('stale-tasks-detector: should find pending tasks > 24h', async () => { /* TODO */ });
-  });
-
-  // ─── Seed tests ───────────────────────────────────
-  describe('Seeds', () => {
-    it('should have 4 seed tasks', async () => { /* ... */ });
+    expect(res.status).toBe(403);
+    const trace = getTrace(res);
+    expect(trace.stages[0].status).toBe('fail');
   });
 });
 ```
 
-### 10.3 What is NOT auto-generated
+**Level 3: Auto-generated tests from spec**
 
-- Hook implementation tests (logic is custom — scaffold only)
-- Job handler tests (logic is custom — scaffold only)
-- Notification delivery tests (depends on email infrastructure)
-- Frontend tests
+`pnpm spec:generate-tests tasks` reads the spec and generates a test file covering:
+- Each required field → missing field → 400 test
+- Each validation rule → invalid value → 400 test
+- Each permission rule → role can/cannot access → 200/403 test
+- Each seed → seed exists in DB test
+- Each hook → scaffold with TODO
+- Each notification → scaffold with TODO
+- Each job → scaffold with TODO
 
-The auto-generated tests cover: validation, permissions, CRUD mechanics, and seeds. These are the boring, repetitive tests that nobody writes but everyone needs. The custom tests (hooks, jobs) are scaffolded with TODO comments.
+### 13.2 Why this matters for AI
 
-### 10.4 Why this matters for AI
-
-When the AI writes a spec and runs `spec:generate-tests`, it gets a test suite that validates the spec's own constraints. If the AI writes `title: { min: 2 }`, the test checks that 1-char titles are rejected. This creates a feedback loop: AI writes spec → tests validate spec → AI runs tests → tests pass or fail with specific errors → AI fixes spec.
+AI writes spec → `spec:generate-tests` → tests validate spec constraints → AI runs tests → pass or fail with specific errors → AI fixes spec. The feedback loop is closed.
 
 ---
 
-## 11. Frontend
+## 14. Views & Dashboards
 
-### 11.1 Phase 1: Metadata API
+### 14.1 Three levels
 
-The spec engine exposes a metadata endpoint:
+| Level | What's declarative | What's code | Coverage |
+|---|---|---|---|
+| 1 — Full declarative | Everything (query + chart) | Nothing | 70% of dashboards |
+| 2 — Hybrid | Query + chart type | Transform hook | 20% |
+| 3 — Full custom | Nothing | Handler + Vue component | 10% |
+
+Each panel in a dashboard picks its level independently.
+
+### 14.2 Level 1: Full declarative
+
+```yaml
+views:
+  - name: task-dashboard
+    type: dashboard
+    roles: [admin]
+    panels:
+      - name: total-tasks
+        chart: stat
+        label: Total Tasks
+        query: { resource: task, aggregate: count }
+
+      - name: tasks-by-status
+        chart: donut
+        query: { resource: task, groupBy: status, aggregate: count }
+
+      - name: tasks-over-time
+        chart: line
+        query:
+          resource: task
+          groupBy: createdAt
+          groupByInterval: day
+          aggregate: count
+          timeRange: 30d
+
+      - name: urgent-open
+        chart: stat
+        label: Urgent Open
+        query:
+          resource: task
+          filter: 'priority == urgent && status != done'
+          aggregate: count
+```
+
+Engine materializes `GET /api/v1/_spec/views/task-dashboard` that executes all queries and returns:
+
+```json
+{
+  "panels": [
+    { "name": "total-tasks", "chart": "stat", "data": { "value": 42 } },
+    { "name": "tasks-by-status", "chart": "donut", "data": { "labels": ["pending", "done"], "values": [12, 15] } },
+    { "name": "tasks-over-time", "chart": "line", "data": { "labels": ["2026-07-01", ...], "values": [3, 5, ...] } }
+  ]
+}
+```
+
+Frontend `SpecDashboard.vue` reads this and renders each panel with a generic component.
+
+### 14.3 QuerySpec → SQL translation
+
+```sql
+-- tasks-by-status
+SELECT status, COUNT(*) as value FROM ext_tasks_task WHERE "deletedAt" IS NULL GROUP BY status;
+
+-- tasks-over-time (day, 30d)
+SELECT DATE("createdAt") as label, COUNT(*) as value
+FROM ext_tasks_task WHERE "createdAt" > NOW() - INTERVAL '30 days' AND "deletedAt" IS NULL
+GROUP BY DATE("createdAt") ORDER BY "createdAt" ASC;
+
+-- urgent-open
+SELECT COUNT(*) as value FROM ext_tasks_task WHERE priority = 'urgent' AND status != 'done' AND "deletedAt" IS NULL;
+```
+
+### 14.4 Level 2: Hybrid (query + transform hook)
+
+```yaml
+panels:
+  - name: burndown
+    chart: custom
+    component: ./frontend/components/BurndownChart.vue
+    query:
+      resource: task
+      groupBy: createdAt
+      groupByInterval: day
+      aggregate: count
+      timeRange: 14d
+    transform: ./hooks/burndown-transform.ts
+```
+
+Engine executes the query → passes raw data to the transform hook → hook returns transformed data → frontend renders with custom component.
+
+```typescript
+// hooks/burndown-transform.ts
+export default async function burndownTransform(
+  rawData: { labels: string[]; values: number[] },
+  ctx: ViewTransformContext,
+): Promise<BurndownData> {
+  const taskRepo = ctx.getRepository('task');
+  const totalTasks = rawData.values.reduce((a, b) => a + b, 0);
+  // ... calculate ideal vs actual
+  return { labels: rawData.labels, ideal, actual, total: totalTasks };
+}
+```
+
+### 14.5 Level 3: Full custom
+
+```yaml
+views:
+  - name: team-analytics
+    type: custom
+    roles: [admin]
+    handler: ./handlers/team-analytics.handler.ts
+    component: ./frontend/components/TeamAnalytics.vue
+```
+
+Handler receives `HookContext` with full access to repositories and services. Returns arbitrary JSON. Frontend renders with custom component.
+
+### 14.6 Coverage table
+
+| Dashboard | Level | Declarative | Code |
+|---|---|---|---|
+| Count by status | 1 | Everything | Nothing |
+| Revenue by month | 1 | Everything | Nothing |
+| Tasks over time | 1 | Everything | Nothing |
+| Top 10 by value | 1 | Everything | Nothing |
+| Burn-down chart | 2 | Query | Transform hook |
+| Conversion funnel | 2 | Query | Transform hook |
+| Velocity per sprint | 2 | Query | Transform hook |
+| Cohort retention | 3 | Nothing | Handler + component |
+| Predictive capacity | 3 | Nothing | Handler + component |
+
+---
+
+## 15. Frontend
+
+### 15.1 The separation: deterministic vs custom
+
+| Deterministic (spec → auto-generated) | Custom (Nuxt layer override) |
+|---|---|
+| DataTable with pagination, sort, filter | Kanban with drag-and-drop |
+| Create/edit form | Dashboard with charts |
+| Detail view (read-only) | Timeline custom |
+| Navbar items + role visibility | Portals with branding |
+| Badges with colors | Calendar with events |
+| Select, datepicker, textarea inputs | Map with markers |
+| Avatar for user ref | Wizard multi-step |
+| File upload widget | Custom visualizations |
+
+Rule: **if it can be generated from field type + UI hints, it's deterministic. If it needs UI logic, it's custom.**
+
+### 15.2 Deterministic admin UI
+
+The spec defines UI hints. The frontend has ONE generic Nuxt layer that reads metadata and renders:
 
 ```
-GET /api/v1/_spec/resources
+modules/spec-crud/              ← ONE implementation for all resources
+├── composables/
+│   └── useSpecResource.ts      ← fetches metadata, provides CRUD composable
+├── components/
+│   ├── SpecDataTable.vue       ← table: columns from fields, display from ui.display
+│   ├── SpecDataForm.vue        ← form: inputs from fields, formInput from ui.formInput
+│   ├── SpecDetail.vue          ← read-only detail view
+│   ├── SpecFieldRenderer.vue   ← switch by ui.display (badge, date, avatar, truncate, icon)
+│   ├── SpecFieldInput.vue      ← switch by ui.formInput (text, select, datepicker, textarea, file-upload)
+│   └── SpecDashboard.vue       ← renders dashboard panels from view spec
+└── pages/
+    └── app/[resource]/
+        ├── index.vue           ← list/table view (auto)
+        ├── new.vue             ← create form (auto)
+        └── [id].vue            ← edit form + detail (auto)
 ```
 
-Returns all loaded specs as JSON:
+`SpecDataTable` reads fields from spec, renders columns according to `ui.display`. `SpecDataForm` reads fields, renders inputs according to `ui.formInput`. Uses `@base/ui-app/` components (Table, Button, Input, Select, Badge) — no custom components.
+
+### 15.3 Navbar injection
+
+Replaces the current `plugins/nav.ts` pattern. The spec declares sidebar items:
+
+```yaml
+ui:
+  sidebar:
+    heading: Tasks
+    items:
+      - title: Tasks
+        icon: CheckSquare
+        link: /app/tasks
+        roles: [admin, customer]
+      - title: My Tasks
+        icon: User
+        link: /app/tasks/mine
+        roles: [customer]
+```
+
+Frontend reads `GET /api/v1/_spec/resources`, extracts sidebar items, filters by user role, injects into nav. Zero TS code. If spec is deleted, item disappears.
+
+### 15.4 Custom UI override
+
+For UI that metadata can't express, a Nuxt layer per extension overrides the generic:
+
+```
+extensions/tasks/
+├── tasks.spec.yaml
+├── frontend/                    ← Nuxt layer override
+│   ├── pages/
+│   │   └── app/tasks/
+│   │       ├── index.vue        ← override: kanban instead of table
+│   │       └── dashboard.vue    ← new page, not in generic
+│   └── components/
+│       ├── KanbanBoard.vue
+│       └── TaskCard.vue
+```
+
+Override layer extends the generic. Custom pages override generic pages. The rest renders from metadata. **You can mix — not all-or-nothing.**
+
+### 15.5 What does NOT go in the spec
+
+- Vue components
+- UI logic (complex conditionals, loops)
+- CSS styles
+- Composables
+- Pinia state
+
+Those go in the Nuxt layer override. The spec only says "this field is a badge with these colors" — the how is the component's job.
+
+### 15.6 Metadata API
+
+`GET /api/v1/_spec/resources` returns all loaded specs with UI hints:
 
 ```json
 {
@@ -1012,70 +1336,28 @@ Returns all loaded specs as JSON:
     {
       "name": "task",
       "displayName": "Task",
+      "route": "/api/v1/tasks",
+      "ui": { "icon": "CheckSquare", "view": "table", "sidebar": { ... } },
       "fields": [
-        { "name": "title", "type": "string", "required": true, "validation": { "min": 2, "max": 200 } },
-        { "name": "status", "type": "enum", "enum": ["pending", "in_progress", "review", "done", "blocked"] },
-        ...
+        { "name": "title", "type": "string", "ui": { "display": "text", "formInput": "text", "link": true } },
+        { "name": "status", "type": "enum", "enum": ["pending", "done"], "ui": { "display": "badge", "formInput": "select", "colors": { ... } } }
       ],
-      "permissions": { "list": ["admin", "customer"], ... },
-      "route": "/api/v1/tasks"
+      "permissions": { "list": ["admin", "customer"], ... }
     }
+  ],
+  "views": [
+    { "name": "task-dashboard", "panels": [...] }
   ]
 }
 ```
 
-### 11.2 Phase 2: Generic Nuxt layer
-
-A Nuxt layer (`modules/spec-crud/`) that reads the metadata and renders generic CRUD:
-
-```
-modules/spec-crud/
-├── composables/
-│   └── useSpecResource.ts     ← fetches metadata, provides CRUD composable
-├── components/
-│   ├── SpecDataTable.vue      ← table with columns from fields
-│   ├── SpecDataForm.vue       ← form with inputs from fields
-│   ├── SpecFieldRenderer.vue  ← renders field by type (string, enum, date, file, ref)
-│   └── SpecKanbanBoard.vue    ← kanban view for resources with status field
-└── pages/
-    └── app/[resource]/
-        ├── index.vue          ← list view
-        ├── [id].vue           ← detail view
-        └── new.vue            ← create view
-```
-
-The Nuxt layer is **one implementation** that adapts to any spec. No code generation per resource.
-
-### 11.3 Phase 3: Override layer
-
-For resources that need custom UI, a Nuxt layer per extension overrides the generic components:
-
-```
-extensions/tasks/
-├── tasks.spec.yaml
-├── frontend/                   ← Nuxt layer
-│   ├── pages/
-│   │   └── app/tasks/
-│   │       └── kanban.vue      ← custom kanban view
-│   └── components/
-│       └── TaskCard.vue        ← custom card component
-```
-
-The override layer extends the generic layer. Custom pages override generic pages. Generic pages handle the rest.
-
 ---
 
-## 12. Plugin System
+## 16. Plugin System
 
-### 12.1 What is a plugin
+### 16.1 What is a plugin
 
-A plugin is a reusable spec package. It contains:
-- `plugin.spec.yaml` — resource definitions, permissions, jobs, webhooks
-- `handlers/` — hook and job handler .ts files
-- `templates/` — Maizzle/Handlebars email templates
-- `README.md` — documentation
-
-### 12.2 Plugin structure
+A reusable spec package: spec YAML + handlers + templates. Like Hytale mods.
 
 ```
 plugins/stripe/
@@ -1089,19 +1371,16 @@ plugins/stripe/
 └── README.md
 ```
 
-### 12.3 Plugin installation
+### 16.2 Installation
 
 ```bash
 pnpm spec:add plugin:stripe
-# → copies plugins/stripe/ to extensions/stripe/
+# → copies to extensions/stripe/
 # → updates spec-registry.json
 # → pnpm migration:generate SpecStripeInit
-# → pnpm migration:run
 ```
 
-### 12.4 Plugin overrides
-
-An app can override plugin resources:
+### 16.3 Overrides
 
 ```yaml
 # extensions/app/tasks.spec.yaml
@@ -1116,43 +1395,27 @@ overrides:
       afterCreate: ./hooks/sync-sku.ts
 ```
 
-The engine merges the plugin spec with the override spec at load time.
-
-### 12.5 Plugin registry
-
-```json
-// spec-registry.json
-{
-  "plugins": [
-    { "name": "stripe", "version": "1.0.0", "source": "npm:@foundation/plugin-stripe" },
-    { "name": "email-templates", "version": "1.0.0", "source": "local:./plugins/email-templates" }
-  ]
-}
-```
-
-Future: npm packages (`@foundation/plugin-stripe`) that ship as installable spec packages.
+Engine merges plugin spec with override spec at load time.
 
 ---
 
-## 13. AI Agent Integration
+## 17. AI Agent Integration
 
-### 13.1 The spec as LLM surface area
-
-The AI writes specs. The engine validates and materializes them. The feedback loop:
+### 17.1 The spec as LLM surface area
 
 ```
 1. AI reads PRD (natural language)
 2. AI writes spec YAML
-3. Engine validates spec against JSON Schema
+3. Engine validates against JSON Schema
    ├── Valid → materialize → run tests → return results
-   └── Invalid → return structured errors → AI fixes spec
+   └── Invalid → structured errors → AI fixes spec
 4. AI runs auto-generated tests
    ├── Pass → done
    └── Fail → AI reads test output → fixes spec or hook → retest
 5. AI commits spec + handlers
 ```
 
-### 13.2 What the AI never touches
+### 17.2 What the AI never touches
 
 - NestJS module wiring
 - TypeORM decorators
@@ -1161,16 +1424,15 @@ The AI writes specs. The engine validates and materializes them. The feedback lo
 - DI tokens
 - Import paths
 
-### 13.3 What the AI writes
+### 17.3 What the AI writes
 
 - `*.spec.yaml` — declarative resource definition
 - `handlers/*.ts` — pure functions with typed contracts
 - `templates/*.hbs` — Handlebars email templates
 
-### 13.4 Hermes skill for spec-driven development
+### 17.4 Hermes skill
 
-A Hermes skill (`spec-driven-development`) that:
-
+A `spec-driven-development` skill that:
 1. Loads the spec JSON Schema
 2. Reads the user's PRD
 3. Generates the spec YAML
@@ -1180,13 +1442,24 @@ A Hermes skill (`spec-driven-development`) that:
 7. Iterates until green
 8. Commits
 
-This is the "máquina de hacer apps" — the AI writes specs, the engine materializes them, the tests validate them, and the loop runs until everything is green.
+### 17.5 Error → GitHub Issue → AI fix loop
+
+When a spec-driven resource fails in production:
+1. `SpecErrorReporter` logs to ErrorTracker DB (with trace + spec + input)
+2. `SpecErrorReporter` opens GitHub issue (deduplicated by hash)
+3. AI agent (Hermes cron job or manual trigger) reads the issue
+4. AI has: error message, trace, spec section, hook source, input data
+5. AI fixes the hook or spec
+6. AI commits, opens PR, links PR to issue
+7. Issue auto-closes on merge
+
+This is the autonomous self-healing loop.
 
 ---
 
-## 14. Module Wiring
+## 18. Module Wiring
 
-### 14.1 SpecEngineModule structure
+### 18.1 SpecEngineModule file structure
 
 ```
 core/spec-engine/
@@ -1195,44 +1468,42 @@ core/spec-engine/
 ├── spec-validator.ts              ← JSON Schema + cross-ref validation
 ├── entity-factory.ts              ← ResourceSpec → TypeORM EntitySchema
 ├── validation-factory.ts          ← ResourceSpec → Zod schema
-├── controller-factory.ts          ← ResourceSpec → NestJS controller
+├── controller-factory.ts          ← ResourceSpec → NestJS controller (CRUD)
+├── webhook-controller-factory.ts  ← Creates dynamic webhook controllers
 ├── hook-executor.ts               ← Loads + executes hooks with typed contracts
+├── hook-context.ts                ← HookContext interface + implementation
 ├── notification-dispatcher.ts     ← Evaluates triggers + dispatches to channels
 ├── job-scheduler.ts               ← Registers BullMQ repeatable jobs
-├── webhook-controller-factory.ts  ← Creates dynamic webhook controllers
 ├── spec-job-runner.ts             ← Fallback setInterval runner (no Redis)
+├── spec-trace.ts                  ← SpecTrace builder + TraceWriter
+├── spec-error-reporter.ts         ← ErrorTracker + GitHub issue creation
+├── service-registry.ts            ← DI token registry for getService()
+├── view-controller-factory.ts     ← Creates dynamic view/dashboard endpoints
+├── query-builder.ts               ← QuerySpec → TypeORM QueryBuilder
+├── meta-controller.ts             ← GET /api/v1/_spec/resources endpoint
 ├── migration-generator.ts         ← CLI: spec diff → migration file
 ├── test-generator.ts              ← CLI: spec → test scaffold
-├── meta-controller.ts             ← GET /api/v1/_spec/resources endpoint
 ├── spec.types.ts                  ← All TypeScript types
-├── hook-context.ts                ← HookContext interface + implementation
-└── service-registry.ts            ← DI token registry for getService()
+└── README.md
 ```
 
-### 14.2 Dependencies on Foundation modules
+### 18.2 Dependencies on Foundation modules
 
 ```
-SpecEngineModule imports:
-  ├── TypeOrmModule.forFeature([...dynamicEntitySchemas])
-  │   └── registers repositories for all spec-driven resources
-  │
-  └── Depends on (already in AppModule, not imported directly):
-      ├── IamModule          → AuthGuard, RolesGuard, RoleEnum (tree-shaken at compile)
-      ├── MailerModule        → MailerService (accessed via HookContext.getService)
-      ├── EmailQueueModule    → QueuedMailerService, EmailService (accessed via HookContext)
-      ├── StorageModule       → FilesService, FilesS3PresignedService (accessed via HookContext)
-      ├── ErrorTrackerModule  → ErrorTrackerService (accessed via HookContext)
-      └── ConfigModule        → ConfigService (accessed via HookContext)
+SpecEngineModule relies on (already in AppModule, not imported directly):
+  ├── IamModule          → AuthGuard, RolesGuard, RoleEnum
+  ├── MailerModule        → MailerService (via HookContext.getService)
+  ├── EmailQueueModule    → QueuedMailerService, EmailService
+  ├── StorageModule       → FilesService, FilesS3PresignedService
+  ├── ErrorTrackerModule  → ErrorTrackerService
+  └── ConfigModule        → ConfigService
 ```
 
-The SpecEngineModule does NOT import these modules. It relies on them being already available in the NestJS application (they're global or part of FoundationModule). The `HookContext.getService()` implementation uses `ModuleRef` to resolve providers from the global DI container.
+The SpecEngineModule does NOT import these. It uses `ModuleRef.get(..., { strict: false })` to resolve providers from the global DI container.
 
-### 14.3 ModuleRef for service resolution
+### 18.3 ModuleRef for service resolution
 
 ```typescript
-// hook-context.ts
-import { ModuleRef } from '@nestjs/core';
-
 export class HookContextImpl implements HookContext {
   constructor(
     private readonly moduleRef: ModuleRef,
@@ -1240,18 +1511,16 @@ export class HookContextImpl implements HookContext {
     private readonly user: AuthenticatedUser | null,
     private readonly resource: string,
     private readonly operation: string,
+    private readonly trace: TraceWriter,
   ) {}
 
   getService<T>(token: string): T {
     const serviceToken = SERVICE_TOKENS[token];
-    if (!serviceToken) {
-      throw new Error(`Unknown service: ${token}. Available: ${Object.keys(SERVICE_TOKENS).join(', ')}`);
-    }
+    if (!serviceToken) throw new Error(`Unknown service: ${token}`);
     return this.moduleRef.get(serviceToken, { strict: false });
   }
 
   getRepository(name: string): Repository<any> {
-    // Spec-driven resources are registered with their resource name as token
     return this.moduleRef.get('Repository_' + name, { strict: false });
   }
 
@@ -1260,125 +1529,65 @@ export class HookContextImpl implements HookContext {
   }
 
   async sendEmail(data: EmailJobData): Promise<void> {
-    const queuedMailer = this.getService<QueuedMailerService>('QueuedMailerService');
-    return queuedMailer.sendMail(data);
+    return this.getService<QueuedMailerService>('QueuedMailerService').sendMail(data);
   }
-
-  // ...
 }
 ```
 
-`ModuleRef.get(..., { strict: false })` resolves providers from any module in the application — not just the current module. This is how the HookContext bridges to Foundation's services without importing them all.
-
 ---
 
-## 15. What the spike got wrong
+## 19. Implementation Roadmap
 
-### 15.1 Repository injection
+Ordered by dependency and impact. Each step builds on the previous.
 
-The spike uses `@Inject(entitySchemaName)` in the dynamic controller. This works when `TypeOrmModule.forFeature([entitySchema])` registers the repository with the entity schema name as token. But `EntitySchema.name` is the entity name, and TypeORM registers repositories by entity class or entity schema name. This needs to be verified — the token might be `Repository_<entityName>` or just `<entityName>`.
+### Phase A — Core engine (makes the tasks demo real)
 
-**Fix**: Use `DataSource.getRepository(entitySchema)` or register repositories explicitly with `TypeOrmModule.forFeature([entitySchema], '<resourceName>')` and inject with `@Inject('<resourceName>')`.
+| # | Task | What it delivers |
+|---|---|---|
+| A1 | SpecTrace | Trace builder + TraceWriter + dev/prod modes |
+| A2 | HookContext + HookExecutor | Hooks with typed contracts, ModuleRef bridge to Foundation |
+| A3 | NotificationDispatcher | Maizzle templates + QueuedMailerService + expression eval |
+| A4 | WebhookControllerFactory | Inbound webhook endpoints with HMAC/JWT auth |
+| A5 | EntitySchema relations | ref fields as real FKs (many-to-one via EntitySchema relations) |
+| A6 | Rewrite tasks spec | Full tasks.spec.yaml with hooks, notifications, jobs, UI hints, dashboard |
+| A7 | SpecErrorReporter | ErrorTracker logging + GitHub issue creation |
 
-### 15.2 No HookContext
+### Phase B — Production safety
 
-The spike has no hooks, no notifications, no lifecycle. It's pure CRUD. The handlers (stale-tasks.handler.ts) receive a `JobContext` with just a logger — no access to repositories or services.
+| # | Task | What it delivers |
+|---|---|---|
+| B1 | JSON Schema validation | ajv validation of every spec before materialization |
+| B2 | Row-level + field-level RBAC | Multi-tenant support, field stripping |
+| B3 | Migration generator | spec:generate-migration CLI, spec diffing, ALTER TABLE |
+| B4 | Test generator | spec:generate-tests CLI, auto-generated test scaffolds |
+| B5 | Pipeline integration tests | Test harness with in-memory DB, trace assertions |
 
-**Fix**: Implement the full `HookContext` with `ModuleRef` as described in section 14.3.
+### Phase C — Full-stack
 
-### 15.3 No NotificationDispatcher
+| # | Task | What it delivers |
+|---|---|---|
+| C1 | MetaController | GET /api/v1/_spec/resources with UI hints |
+| C2 | Nuxt spec-crud layer | SpecDataTable, SpecDataForm, SpecFieldRenderer, SpecFieldInput |
+| C3 | Navbar auto-injection | Sidebar items from spec metadata, role-filtered |
+| C4 | SpecDashboard.vue | Generic dashboard renderer for level-1 panels |
+| C5 | Override layer support | Nuxt layer per extension for custom UI |
 
-The spike mentions notifications in the spec but has no implementation.
+### Phase D — Ecosystem
 
-**Fix**: Implement `NotificationDispatcher` as a provider that evaluates triggers and dispatches to channels.
+| # | Task | What it delivers |
+|---|---|---|
+| D1 | Plugin format | plugin.spec.yaml, spec-registry.json, spec:add CLI |
+| D2 | Plugin overrides | Merge plugin spec with app overrides |
+| D3 | Hermes skill | spec-driven-development skill for autonomous spec generation |
+| D4 | Error → Issue → Fix loop | AI reads GitHub issues, fixes spec/hooks, opens PRs |
 
-### 15.4 No JSON Schema validation
+### Phase E — Advanced
 
-The spike parses YAML and does basic structural validation, but no formal JSON Schema validation.
-
-**Fix**: Write a JSON Schema for the spec format and validate with `ajv` before materializing.
-
-### 15.5 No webhook controller materialization
-
-The spike defines webhooks in spec but doesn't create controllers for them.
-
-**Fix**: Implement `WebhookControllerFactory` that creates dynamic controllers for inbound webhooks with HMAC/JWT auth.
-
-### 15.6 No migration generation
-
-The spike relies on `synchronize: true` only.
-
-**Fix**: Implement `migration-generator.ts` with spec diffing (section 9).
-
-### 15.7 No test generation
-
-No tests at all.
-
-**Fix**: Implement `test-generator.ts` (section 10).
-
-### 15.8 No metadata API
-
-No way for the frontend to discover spec-driven resources.
-
-**Fix**: Implement `MetaController` with `GET /api/v1/_spec/resources` (section 11).
-
-### 15.9 EntitySchema relations
-
-The spike stores `ref` fields as integer columns, not actual FK relations. No `@ManyToOne` equivalent in EntitySchema.
-
-**Fix**: Use `EntitySchema` relations feature:
-```typescript
-relations: {
-  assignee: {
-    type: 'many-to-one',
-    target: 'user',  // or the entity name
-    joinColumn: { name: 'assigneeId' },
-    onDelete: 'SET NULL',
-  },
-}
-```
-This requires knowing the target entity's schema at materialization time. The engine resolves refs after loading all specs.
-
-### 15.10 File field type
-
-The spike doesn't handle `type: file`.
-
-**Fix**: Implement file field handling as described in section 6.
-
-### 15.11 Expression evaluator
-
-The spike has no `when` condition evaluator for notifications.
-
-**Fix**: Add `expr-eval` or a custom expression parser for `when` conditions and `${interpolation}`.
-
-### 15.12 Row-level security
-
-Not implemented.
-
-**Fix**: Apply WHERE clauses in the dynamic controller based on `rowLevel` spec.
-
-### 15.13 Field-level RBAC
-
-Not implemented.
-
-**Fix**: Strip fields on response based on `permissions.fields[].read`.
-
----
-
-## Implementation order
-
-Ordered by dependency and impact:
-
-1. **HookContext + HookExecutor** — without this, the engine is just CRUD
-2. **NotificationDispatcher** — the most visible feature for clients
-3. **WebhookControllerFactory** — completes the tasks demo
-4. **EntitySchema relations** — ref fields as real FKs
-5. **JSON Schema validation** — safety net for AI-generated specs
-6. **Row-level + field-level RBAC** — multi-tenant support
-7. **Migration generator** — production-ready
-8. **Test generator** — AI feedback loop
-9. **MetaController** — frontend integration
-10. **Plugin system** — reusability
-11. **Frontend Nuxt layer** — full-stack
-
-Each step builds on the previous one. Steps 1-3 make the tasks demo real. Steps 4-6 make it production-safe. Steps 7-8 make it AI-driven. Steps 9-11 make it full-stack.
+| # | Task | What it delivers |
+|---|---|---|
+| E1 | View controller factory | Dynamic endpoints for dashboards (level 1 + 2) |
+| E2 | QuerySpec → SQL | Declarative queries translated to TypeORM QueryBuilder |
+| E3 | Transform hooks for views | Level-2 dashboards (query + transform) |
+| E4 | beforeQuery hooks | Complex query modification for advanced filtering |
+| E5 | SMS channel | NotificationDispatcher SMS support |
+| E6 | Plugin npm packages | Installable via npm, not just copy |
