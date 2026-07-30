@@ -213,8 +213,8 @@ export class HookExecutor {
       // Also report via SpecErrorReporter for Telegram + GitHub issue
       if (this.errorReporter) {
         try {
-          const { computeSpecErrorHash } = require('./spec-error-reporter');
-          this.errorReporter.report({
+            // Use the static import of computeSpecErrorHash (top of file)
+        this.errorReporter.report({
             message: `After hook failed: ${(err as Error).message}`,
             source: `spec-engine:${ctx.resource}:${ctx.operation}`,
             stack: (err as Error).stack,

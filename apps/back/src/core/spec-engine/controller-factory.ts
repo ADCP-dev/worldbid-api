@@ -63,7 +63,7 @@ const ROLE_MAP: Record<PermissionRole, number | null> = {
   admin: RoleEnum.admin,
   customer: RoleEnum.customer,
   affiliate: RoleEnum.affiliate,
-  public: null,
+  public: null, // 'public' means no auth required — handled specially below
 };
 
 
@@ -194,6 +194,20 @@ export class ControllerFactory {
             if (!allowedRoles.includes(user.role?.id)) continue; // strip field
           }
           result[key] = value;
+        }
+        return result;
+      }
+
+      // ─── Helper: sanitize hook output — only allow spec fields ──
+      private sanitizeHookOutput(
+        data: Record<string, unknown>,
+      ): Record<string, unknown> {
+        const allowedFields = new Set(spec.fields.map(f => f.name));
+        const result: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(data)) {
+          if (allowedFields.has(key)) {
+            result[key] = value;
+          }
         }
         return result;
       }
@@ -407,7 +421,7 @@ export class ControllerFactory {
           trace.startStage('beforeHook');
           const ctx = this.buildContext(user, 'create', trace);
           const hookResult = await hookExecutor.executeBeforeHook(allHooks.beforeCreate, data, ctx, trace);
-          data = hookResult.data;
+          data = this.sanitizeHookOutput(hookResult.data);
         } else {
           trace.skipStage('beforeHook', 'no beforeCreate hook defined');
         }
@@ -508,7 +522,7 @@ export class ControllerFactory {
           trace.startStage('beforeHook');
           const ctx = this.buildContext(user, 'update', trace);
           const hookResult = await hookExecutor.executeBeforeHook(allHooks.beforeUpdate, data, ctx, trace);
-          data = hookResult.data;
+          data = this.sanitizeHookOutput(hookResult.data);
         } else {
           trace.skipStage('beforeHook', 'no beforeUpdate hook defined');
         }
@@ -523,12 +537,19 @@ export class ControllerFactory {
           this.attachTrace(res, trace);
           throw new NotFoundException(`${displayName} with ID ${id} not found`);
         }
-        Object.assign(existing, data);
-        let saved: any;
+        // Use partial update instead of full save to avoid race condition
+        // Only update the fields present in validated data (not full row)
         try {
-          saved = await this.repository.save(existing);
-          trace.endStage('db', 'pass', { operation: 'UPDATE', table: spec.table, id: saved.id });
-        } catch (err) {
+          await this.repository.update(numericId, data);
+          // Reload to get the updated entity for response
+          const saved = await this.repository.findOne({ where });
+          trace.endStage('db', 'pass', { operation: 'UPDATE', table: spec.table, id: numericId });
+          if (!saved) {
+            trace.endStage('db', 'fail', { error: 'Not found after update' });
+            trace.finish();
+            this.attachTrace(res, trace);
+            throw new NotFoundException(`${displayName} with ID ${id} not found after update`);
+          }
           trace.endStage('db', 'fail', { error: (err as Error).message });
           trace.finish();
           this.attachTrace(res, trace);

@@ -173,7 +173,7 @@ export class WebhookControllerFactory {
           throw new UnauthorizedException('Missing signature header');
         }
 
-        if (!this.webhookSecret) {
+        if (!this.webhookSecret || this.webhookSecret === '') {
           this.logger.error(
             `No WEBHOOK_HMAC_SECRET configured for webhook '${this.webhookName}'`,
           );

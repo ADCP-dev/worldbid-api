@@ -232,6 +232,9 @@ export class SpecPluginManager {
     extensionSpec: ExtensionSpec,
     overrides: OverrideSpec[],
   ): Promise<ExtensionSpec> {
+    // Note: after applying overrides, the merged spec should be
+    // re-validated via SpecValidator.validateAll() by the caller
+    // to ensure no invalid fields, permissions, or hooks were introduced.
     // Deep clone so the caller's object is never mutated.
     const result: ExtensionSpec = JSON.parse(JSON.stringify(extensionSpec));
 

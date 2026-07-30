@@ -177,8 +177,10 @@ function formatDefault(value: unknown, type: FieldType): string {
     case 'json':
       return `'${JSON.stringify(value).replace(/'/g, "''")}'`;
     case 'datetime':
-    case 'date':
-      return `'${String(value)}'`;
+    case 'date': {
+      const str = String(value).replace(/'/g, "''");
+      return `'${str}'`;
+    };
     default:
       return `'${String(value).replace(/'/g, "''")}'`;
   }

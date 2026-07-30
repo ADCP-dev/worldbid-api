@@ -38,22 +38,26 @@ import type { ErrorTrackerService } from '@src/modules/error-tracker/error-track
  * (or even private) issue tracker.
  */
 const SENSITIVE_KEY_PATTERNS = [
-  /^password$/i,
-  /^passwd$/i,
-  /^secret$/i,
-  /^token$/i,
-  /^authorization$/i,
-  /^auth$/i,
-  /^apiKey$/i,
-  /^api[_-]?key$/i,
-  /^private[_-]?key$/i,
-  /^refresh[_-]?token$/i,
-  /^access[_-]?token$/i,
-  /^cookie$/i,
-  /^session[_-]?id$/i,
-  /^ssn$/i,
-  /^credit[_-]?card$/i,
-  /^cvv$/i,
+  /password/i,
+  /passwd/i,
+  /secret/i,
+  /token/i,
+  /authorization/i,
+  /auth/i,
+  /apikey/i,
+  /api[_-]?key/i,
+  /private[_-]?key/i,
+  /refresh/i,
+  /access/i,
+  /cookie/i,
+  /session/i,
+  /ssn/i,
+  /credit/i,
+  /cvv/i,
+  /credential/i,
+  /bearer/i,
+  /jwt/i,
+  /secret[_-]?key/i,
 ];
 
 /**
@@ -403,7 +407,7 @@ export class SpecErrorReporter {
     if (error.hookPath) {
       lines.push('### Hook');
       lines.push('');
-      lines.push(`**Path:** \`${error.hookPath}\``);
+      lines.push(`**Path:** \`${require('path').basename(error.hookPath)}\``);
       lines.push('');
     }
 
@@ -508,7 +512,7 @@ export class SpecErrorReporter {
     if (error.resource) lines.push(`📦 Resource: <code>${this.escapeHtml(error.resource)}</code>`);
     if (error.operation) lines.push(`⚡ Operation: <code>${this.escapeHtml(error.operation)}</code>`);
     if (error.stage) lines.push(`🔧 Stage: <code>${this.escapeHtml(error.stage)}</code>`);
-    if (error.hookPath) lines.push(`🪩 Hook: <code>${this.escapeHtml(error.hookPath)}</code>`);
+    if (error.hookPath) lines.push(`🪩 Hook: <code>${this.escapeHtml(require('path').basename(error.hookPath))}</code>`);
     lines.push(`🔑 Hash: <code>${this.escapeHtml(error.hash.slice(0, 16))}</code>`);
     lines.push(`📊 Occurrences: ${error.occurrences}`);
 

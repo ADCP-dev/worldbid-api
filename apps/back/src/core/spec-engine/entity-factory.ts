@@ -51,11 +51,13 @@ export class EntityFactory {
 
         // Create the relation (many-to-one)
         // The relation target is the resource name, which maps to
-        // an EntitySchema with that name
+        // an EntitySchema with that name. For Foundation entities like 'user',
+        // the registered entity name is 'User' (capitalized).
         const relationName = this.fieldToRelationName(field.name);
+        const refTarget = field.ref === 'user' ? 'User' : field.ref!;
         relations[relationName] = {
           type: 'many-to-one',
-          target: () => field.ref!,
+          target: () => refTarget as any,
           joinColumn: { name: field.name },
           onDelete: field.refOnDelete || 'RESTRICT',
           nullable: field.nullable ?? !field.required,
