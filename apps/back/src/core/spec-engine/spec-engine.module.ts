@@ -258,6 +258,7 @@ export class SpecEngineModule {
     afterUpdate?: LoadedHook;
     beforeDelete?: LoadedHook;
     afterDelete?: LoadedHook;
+    beforeQuery?: LoadedHook;
   } {
     if (!hooks) return {};
 
@@ -268,6 +269,7 @@ export class SpecEngineModule {
       afterUpdate: hookExecutor.loadHook(hooks.afterUpdate, extensionDir, resourceName, 'afterUpdate') || undefined,
       beforeDelete: hookExecutor.loadHook(hooks.beforeDelete, extensionDir, resourceName, 'beforeDelete') || undefined,
       afterDelete: hookExecutor.loadHook(hooks.afterDelete, extensionDir, resourceName, 'afterDelete') || undefined,
+      beforeQuery: hookExecutor.loadHook(hooks.beforeQuery, extensionDir, resourceName, 'beforeQuery') || undefined,
     };
   }
 

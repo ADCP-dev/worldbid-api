@@ -12,21 +12,23 @@
  */
 
 import { Logger, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import { FindManyOptions } from 'typeorm';
 import * as path from 'path';
 
 import type {
   BeforeHook,
   BeforeHookResult,
+  BeforeQueryHook,
   AfterHook,
   HookContext,
 } from './spec.types';
 import { HookAbortError } from './spec.types';
 import type { TraceBuilder } from './spec-trace';
 
-export type HookType = 'beforeCreate' | 'afterCreate' | 'beforeUpdate' | 'afterUpdate' | 'beforeDelete' | 'afterDelete';
+export type HookType = 'beforeCreate' | 'afterCreate' | 'beforeUpdate' | 'afterUpdate' | 'beforeDelete' | 'afterDelete' | 'beforeQuery';
 
 export interface LoadedHook {
-  handler: BeforeHook | AfterHook;
+  handler: BeforeHook | AfterHook | BeforeQueryHook;
   path: string;
 }
 
@@ -187,6 +189,58 @@ export class HookExecutor {
         hook: hook.path,
         error: (err as Error).message,
       }, undefined, undefined, { message: (err as Error).message, code: 'HOOK_ERROR' });
+    }
+  }
+
+  /**
+   * Execute a beforeQuery hook.
+   * The hook receives the current FindManyOptions and may modify them
+   * (add WHERE clauses, joins, relations, etc.).
+   * Returns the (possibly modified) options.
+   * Errors are caught and logged — the hook fails gracefully and the
+   * original options are returned so the query can still run.
+   */
+  async executeBeforeQueryHook(
+    hook: LoadedHook,
+    options: FindManyOptions,
+    ctx: HookContext,
+    trace: TraceBuilder,
+  ): Promise<FindManyOptions> {
+    const startTime = Date.now();
+
+    try {
+      const modified = await (hook.handler as BeforeQueryHook)(options, ctx);
+
+      trace.endStage('beforeHook', 'pass', {
+        hook: hook.path,
+        modified: true,
+        durationMs: Date.now() - startTime,
+      });
+
+      return modified;
+    } catch (err) {
+      // beforeQuery hooks fail gracefully — log but return original options
+      this.logger.error(
+        `beforeQuery hook "${hook.path}" failed: ${(err as Error).message}`,
+        (err as Error).stack,
+      );
+
+      try {
+        await ctx.logError(
+          `beforeQuery hook failed: ${(err as Error).message}`,
+          `spec-engine:${ctx.resource}:${ctx.operation}`,
+          { hookPath: hook.path, error: (err as Error).stack },
+        );
+      } catch {
+        // ErrorTracker not available — already logged above
+      }
+
+      trace.endStage('beforeHook', 'fail', {
+        hook: hook.path,
+        error: (err as Error).message,
+      }, undefined, undefined, { message: (err as Error).message, code: 'HOOK_ERROR' });
+
+      return options;
     }
   }
 

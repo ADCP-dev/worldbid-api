@@ -232,6 +232,11 @@ export class SpecErrorReporter {
         // Already handled inside createGitHubIssue, but guard the promise too.
         this.logger.debug(`GitHub issue creation rejected: ${(err as Error).message}`);
       });
+
+      // 3. Send Telegram notification on first occurrence in production.
+      this.sendTelegramNotification(error).catch((err) => {
+        this.logger.debug(`Telegram notification rejected: ${(err as Error).message}`);
+      });
     }
   }
 
@@ -437,6 +442,96 @@ export class SpecErrorReporter {
     lines.push('');
     lines.push('</details>');
     lines.push('');
+  }
+
+  // ─── Telegram notification ────────────────────────────────────────────────
+
+  /**
+   * Send a Telegram message for a spec engine error.
+   *
+   * Only fires on first occurrence (dedup by hash) in production.
+   * Uses TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID env vars.
+   * Silent if not configured — no crash, no noise.
+   */
+  private async sendTelegramNotification(error: SpecError): Promise<void> {
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const chatId = process.env.TELEGRAM_CHAT_ID;
+
+    if (!botToken || !chatId) {
+      this.logger.debug(
+        'TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set — skipping Telegram notification',
+      );
+      return;
+    }
+
+    const message = this.buildTelegramMessage(error);
+
+    try {
+      const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: message,
+          parse_mode: 'HTML',
+          disable_web_page_preview: true,
+        }),
+      });
+
+      if (!res.ok) {
+        const body = await res.text().catch(() => '');
+        this.logger.error(
+          `Telegram API returned ${res.status}: ${body.slice(0, 200)}`,
+        );
+      }
+    } catch (err) {
+      this.logger.error(
+        `Failed to send Telegram notification: ${(err as Error).message}`,
+      );
+    }
+  }
+
+  /**
+   * Build a concise Telegram message for an error.
+   * Uses HTML parse_mode. Keep it short — Telegram messages should be scannable.
+   */
+  private buildTelegramMessage(error: SpecError): string {
+    const lines: string[] = [];
+
+    lines.push('🚨 <b>Spec Engine Error</b>');
+    lines.push('');
+    lines.push(`<b>${this.escapeHtml(truncate(error.message, 200))}</b>`);
+    lines.push('');
+
+    if (error.resource) lines.push(`📦 Resource: <code>${error.resource}</code>`);
+    if (error.operation) lines.push(`⚡ Operation: <code>${error.operation}</code>`);
+    if (error.stage) lines.push(`🔧 Stage: <code>${error.stage}</code>`);
+    if (error.hookPath) lines.push(`🪩 Hook: <code>${error.hookPath}</code>`);
+    lines.push(`🔑 Hash: <code>${error.hash.slice(0, 16)}</code>`);
+    lines.push(`📊 Occurrences: ${error.occurrences}`);
+
+    if (error.trace && error.trace.stages.length > 0) {
+      lines.push('');
+      lines.push('<b>Trace:</b>');
+      const failedStages = error.trace.stages.filter((s) => s.status === 'fail');
+      for (const s of failedStages) {
+        lines.push(`  ❌ <code>${s.stage}</code> — ${s.error?.message || 'failed'}`);
+      }
+      lines.push(`  Total: ${error.trace.totalDurationMs}ms`);
+    }
+
+    return lines.join('\n');
+  }
+
+  /**
+   * Escape HTML special characters for Telegram's HTML parse_mode.
+   */
+  private escapeHtml(str: string): string {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
   }
 
   // ─── Utilities ────────────────────────────────────────────────────────────

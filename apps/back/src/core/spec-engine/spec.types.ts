@@ -6,6 +6,8 @@
  * auth, hooks, notifications, jobs, webhooks, views — all at runtime.
  */
 
+import type { FindManyOptions } from 'typeorm';
+
 // ─── Field Types ────────────────────────────────────────────────────────────
 
 export type FieldType =
@@ -86,8 +88,6 @@ export interface PermissionSpec {
   rowLevel?: Record<string, RowLevelSpec>; // keyed by role name
 }
 
-// ─── Hook Spec ──────────────────────────────────────────────────────────────
-
 export interface HookSpec {
   beforeCreate?: string;
   afterCreate?: string;
@@ -95,6 +95,7 @@ export interface HookSpec {
   afterUpdate?: string;
   beforeDelete?: string;
   afterDelete?: string;
+  beforeQuery?: string;
 }
 
 // ─── Notification Spec ──────────────────────────────────────────────────────
@@ -325,6 +326,11 @@ export type AfterHook = (
   entity: Record<string, unknown>,
   ctx: HookContext,
 ) => Promise<void>;
+
+export type BeforeQueryHook = (
+  options: FindManyOptions,
+  ctx: HookContext,
+) => Promise<FindManyOptions>;
 
 export type JobHandler = (ctx: HookContext) => Promise<void>;
 

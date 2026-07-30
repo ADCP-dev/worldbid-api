@@ -35,7 +35,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { Repository } from 'typeorm';
+import { Repository, FindManyOptions } from 'typeorm';
 import { z } from 'zod';
 import type { Request, Response } from 'express';
 
@@ -92,6 +92,7 @@ export interface ControllerFactoryParams {
     afterUpdate?: LoadedHook;
     beforeDelete?: LoadedHook;
     afterDelete?: LoadedHook;
+    beforeQuery?: LoadedHook;
   };
 }
 
@@ -240,13 +241,30 @@ export class ControllerFactory {
         const skip = (pageNum - 1) * limitNum;
 
         const where = this.applyRowLevelFilter(user, {});
-        const [items, total] = await this.repository.findAndCount({
+
+        // beforeQuery hook — allows complex query modification (joins, extra WHERE, relations)
+        let queryOptions: FindManyOptions = {
           skip,
           take: limitNum,
           where,
           order: { id: 'DESC' as any },
           withDeleted: false,
-        });
+        };
+
+        if (allHooks.beforeQuery) {
+          trace.startStage('beforeHook');
+          const ctx = this.buildContext(user, 'list', trace);
+          queryOptions = await hookExecutor.executeBeforeQueryHook(
+            allHooks.beforeQuery,
+            queryOptions,
+            ctx,
+            trace,
+          );
+        } else {
+          trace.skipStage('beforeHook', 'no beforeQuery hook defined');
+        }
+
+        const [items, total] = await this.repository.findAndCount(queryOptions);
 
         trace.endStage('db', 'pass', { operation: 'SELECT', table: spec.table, count: items.length });
 
@@ -254,7 +272,6 @@ export class ControllerFactory {
         const sanitized = items.map((item: any) => this.applyFieldReadPerms(item, user));
 
         trace.skipStage('validation', 'not applicable to list');
-        trace.skipStage('beforeHook', 'not applicable to list');
         trace.skipStage('afterHook', 'not applicable to list');
         trace.skipStage('notifications', 'not applicable to list');
 
