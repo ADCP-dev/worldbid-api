@@ -1,0 +1,128 @@
+# Tasks Extension Spec
+# This file IS the extension. The SpecEngine reads it and materializes everything.
+# No .ts files needed except for job/webhook handlers (escape hatch).
+
+name: tasks
+version: 1.0.0
+displayName: Tasks
+description: Kanban-style task management with stale task alerts
+
+resources:
+  # ─── Task Board ─────────────────────────────────────────
+  - name: task
+    table: ext_tasks_task
+    displayName: Task
+    description: A kanban task card
+    timestamps: true
+    softDelete: true
+    fields:
+      - name: title
+        type: string
+        required: true
+        length: 200
+        validation:
+          min: 2
+          max: 200
+      - name: description
+        type: text
+        nullable: true
+      - name: status
+        type: enum
+        required: true
+        default: pending
+        enum: [pending, in_progress, review, done, blocked]
+        index: true
+      - name: priority
+        type: enum
+        required: true
+        default: medium
+        enum: [low, medium, high, urgent]
+        index: true
+      - name: assigneeId
+        type: ref
+        ref: user
+        nullable: true
+        refOnDelete: SET NULL
+        index: true
+      - name: dueDate
+        type: datetime
+        nullable: true
+        index: true
+      - name: position
+        type: integer
+        default: 0
+      - name: metadata
+        type: json
+        default: {}
+    permissions:
+      list: [admin, customer]
+      read: [admin, customer]
+      create: [admin]
+      update: [admin, customer]
+      delete: [admin]
+    seeds:
+      - title: Setup project repository
+        status: done
+        priority: high
+        position: 0
+      - title: Design database schema
+        status: in_progress
+        priority: medium
+        position: 1
+      - title: Write API documentation
+        status: pending
+        priority: low
+        position: 2
+      - title: Deploy staging environment
+        status: blocked
+        priority: urgent
+        dueDate: "2026-08-15T00:00:00Z"
+        position: 3
+
+    # ─── Job: detect stale tasks (pending > 24h) ──────────
+    jobs:
+      - name: stale-tasks-detector
+        schedule: interval
+        value: 60s
+        handler: ./handlers/stale-tasks.handler.ts
+        description: Detects tasks that have been pending for too long and fires webhook
+
+    # ─── Webhook: receive external stale alerts ───────────
+    webhooks:
+      - path: tasks/webhooks/stale
+        method: POST
+        auth: hmac
+        handler: ./handlers/stale-webhook.handler.ts
+        description: Receives external alerts about stale tasks
+
+  # ─── Task Comment (nested resource) ─────────────────────
+  - name: task-comment
+    table: ext_tasks_comment
+    displayName: Task Comment
+    description: Comments on tasks
+    timestamps: true
+    softDelete: true
+    fields:
+      - name: taskId
+        type: ref
+        ref: task
+        required: true
+        refOnDelete: CASCADE
+        index: true
+      - name: authorId
+        type: ref
+        ref: user
+        nullable: true
+        refOnDelete: SET NULL
+      - name: content
+        type: text
+        required: true
+        validation:
+          min: 1
+          max: 5000
+    permissions:
+      list: [admin, customer]
+      read: [admin, customer]
+      create: [admin, customer]
+      update: [admin]
+      delete: [admin]
