@@ -28,6 +28,7 @@ import { ModuleRef } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 
 import { SpecLoader, LoadedSpec } from './spec-loader';
+import { SpecValidator } from './spec-validator';
 import { EntityFactory } from './entity-factory';
 import { ControllerFactory } from './controller-factory';
 import { ValidationFactory } from './validation-factory';
@@ -37,6 +38,7 @@ import { SpecErrorReporter } from './spec-error-reporter';
 import { SpecJobRunner } from './spec-job-runner';
 import { WebhookControllerFactory } from './webhook-controller-factory';
 import { SpecEngineBootService } from './spec-engine-boot';
+import { SpecMetaController } from './meta-controller';
 import type { ResourceSpec, HookSpec } from './spec.types';
 import type { LoadedHook } from './hook-executor';
 
@@ -68,13 +70,20 @@ export class SpecEngineModule {
       }
     }
 
-    // Validate all resources
-    for (const [name, res] of resourceSpecs) {
-      const errors = SpecLoader.validateResource(res, resourceSpecs);
-      if (errors.length > 0) {
-        logger.error(`❌ Resource "${name}" has validation errors:`);
-        errors.forEach((e) => logger.error(`   ${e}`));
-      }
+    // Validate all resources using SpecValidator
+    const validationResult = SpecValidator.validateAll(loadedSpecs);
+    if (validationResult.errors.length > 0) {
+      logger.error(`❌ ${validationResult.errors.length} validation error(s) found:`);
+      validationResult.errors.forEach((e) => {
+        const ctx = [e.resource, e.field].filter(Boolean).join('.');
+        logger.error(`   ${ctx ? `[${ctx}] ` : ''}${e.message}${e.suggestion ? ` → ${e.suggestion}` : ''}`);
+      });
+    }
+    if (validationResult.warnings.length > 0) {
+      validationResult.warnings.forEach((w) => {
+        const ctx = [w.resource, w.field].filter(Boolean).join('.');
+        logger.warn(`⚠️  ${ctx ? `[${ctx}] ` : ''}${w.message}`);
+      });
     }
 
     // Phase 3: Create shared providers
@@ -210,6 +219,9 @@ export class SpecEngineModule {
       provide: 'SPEC_ENTITY_SCHEMAS',
       useValue: entitySchemas,
     });
+
+    // Register meta controller (spec metadata API)
+    controllers.push(SpecMetaController as any);
 
     logger.log(
       `Spec engine ready: ${entitySchemas.length} entities, ${controllers.length} controllers`,

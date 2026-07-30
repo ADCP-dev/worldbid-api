@@ -219,7 +219,7 @@ export class WebhookControllerFactory {
 
         if (bufA.length !== bufB.length) {
           // Still run a comparison to keep timing constant-ish.
-          timingSafeEqual(bufB, bufB);
+          crypto.timingSafeEqual(bufB, bufB);
           return false;
         }
 

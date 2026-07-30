@@ -65,6 +65,14 @@ const ROLE_MAP: Record<PermissionRole, number | null> = {
   public: null,
 };
 
+
+// Free function for role resolution (used inside dynamic controller class)
+function resolveRolesArray(roles: PermissionRole[]): number[] {
+  return roles
+    .map((r) => ROLE_MAP[r])
+    .filter((r): r is number => r !== null);
+}
+
 export interface MaterializedController {
   controllerClass: any;
   entitySchemaName: string;
@@ -194,7 +202,7 @@ export class ControllerFactory {
         for (const [key, value] of Object.entries(entity)) {
           const fieldRule = fieldPerms[key];
           if (fieldRule?.read) {
-            const allowedRoles = this.resolveRoles(fieldRule.read);
+            const allowedRoles = resolveRolesArray(fieldRule.read);
             if (!allowedRoles.includes(user.role?.id)) continue;
           }
           result[key] = value;
@@ -371,7 +379,7 @@ export class ControllerFactory {
             extensionDir,
             appConfig: getAppConfig(),
           });
-          trace.endStage('notifications', 'pass', summary);
+          trace.endStage('notifications', 'pass', summary as unknown as Record<string, unknown>);
         } else {
           trace.skipStage('notifications', 'no notifications defined');
         }
@@ -463,7 +471,7 @@ export class ControllerFactory {
             extensionDir,
             appConfig: getAppConfig(),
           });
-          trace.endStage('notifications', 'pass', summary);
+          trace.endStage('notifications', 'pass', summary as unknown as Record<string, unknown>);
         } else {
           trace.skipStage('notifications', 'no notifications defined');
         }
@@ -508,12 +516,13 @@ export class ControllerFactory {
         if (allHooks.beforeDelete) {
           trace.startStage('beforeHook');
           const ctx = this.buildContext(user, 'delete', trace);
-          await hookExecutor.executeBeforeHook(
+          const hookResult = await hookExecutor.executeBeforeHook(
             allHooks.beforeDelete,
-            entity,
+            entity as Record<string, unknown>,
             ctx,
             trace,
           );
+          // For delete, we don't modify the entity — just check proceed
         } else {
           trace.skipStage('beforeHook', 'no beforeDelete hook defined');
         }
@@ -523,7 +532,7 @@ export class ControllerFactory {
         if (allHooks.afterDelete) {
           trace.startStage('afterHook');
           const ctx = this.buildContext(user, 'delete', trace);
-          await hookExecutor.executeAfterHook(entity, ctx, trace);
+          await hookExecutor.executeAfterHook(allHooks.afterDelete, entity, ctx, trace);
         } else {
           trace.skipStage('afterHook', 'no afterDelete hook defined');
         }
@@ -540,7 +549,7 @@ export class ControllerFactory {
             extensionDir,
             appConfig: getAppConfig(),
           });
-          trace.endStage('notifications', 'pass', summary);
+          trace.endStage('notifications', 'pass', summary as unknown as Record<string, unknown>);
         } else {
           trace.skipStage('notifications', 'no notifications defined');
         }

@@ -25,7 +25,7 @@ import type { TraceBuilder } from './spec-trace';
 
 export type HookType = 'beforeCreate' | 'afterCreate' | 'beforeUpdate' | 'afterUpdate' | 'beforeDelete' | 'afterDelete';
 
-interface LoadedHook {
+export interface LoadedHook {
   handler: BeforeHook | AfterHook;
   path: string;
 }
