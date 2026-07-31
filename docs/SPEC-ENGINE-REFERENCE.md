@@ -191,14 +191,31 @@ permissions:
 ### Role type
 
 ```typescript
-type Role = 'admin' | 'customer' | 'affiliate' | 'public';
+type BuiltinRole = 'admin' | 'user';
+type PermissionRole = BuiltinRole | string; // string allows custom roles from spec
 ```
 
-Mapeo a RoleEnum de Foundation:
+Built-in roles siempre disponibles:
 - `admin` → `RoleEnum.admin` (1)
-- `customer` → `RoleEnum.customer` (2)
-- `affiliate` → `RoleEnum.affiliate` (3)
-- `public` → sin guard (advertencia: requiere configuración especial)
+- `user` → `RoleEnum.customer` (2) — mapea a customer en Foundation
+
+**Custom roles** se definen por extensión en `ExtensionSpec.roles`:
+
+```yaml
+roles:
+  - name: manager
+    description: Can manage tasks but not settings
+    permissions: [task.read, task.update]
+  - name: viewer
+    description: Read-only access
+    permissions: [task.read]
+
+roleSeeds:
+  - { userId: 5, role: manager }
+  - { userId: 8, role: viewer }
+```
+
+El `SpecValidator` valida que todos los roles usados en `permissions` existen en built-in o en `roles` de la extensión.
 
 ### Field-level RBAC
 
@@ -679,7 +696,7 @@ interface HookContext {
   //   config('app.backendDomain')     → string
   //   config('mail.host')             → string | undefined
   //   config('worker.enabled')        → boolean
-  //   config('file.driver')           → 'local' | 's3' | 's3-presigned' | 'b2'
+  //   config('file.driver')           → 'local' | 's3' | 's3-presigned' | 's3'  // B2 uses S3-compatible API
 
   // ─── Helper de email ──────────────────────────────────
   sendEmail(data: EmailJobDataLike): Promise<void>;
@@ -711,7 +728,7 @@ interface AuthenticatedUser {
   id: number;
   role: {
     id: number;       // RoleEnum value (1=admin, 2=customer, 3=affiliate)
-    name: string;     // 'admin' | 'customer' | 'affiliate'
+    name: string;     // 'admin' | 'user'
     homeRoute?: string;
   };
   sessionId: string;
@@ -814,7 +831,7 @@ Trace:
 | `AuthGuard('jwt')` | `@nestjs/passport` | Aplicado a todos los controllers dinámicos |
 | `RolesGuard` | `@iam/roles/roles.guard` | Verifica `@Roles()` metadata |
 | `@Roles(...)` | `@iam/roles/roles.decorator` | Aplicado por método con RoleEnum values |
-| `RoleEnum` | `@iam/roles/roles.enum` | Mapeo: admin=1, customer=2, affiliate=3 |
+| `RoleEnum` | `@iam/roles/roles.enum` | Mapeo: admin=1, customer=2, affiliate = 3  // deprecated |
 | `JwtPayloadType` | `@iam/auth/strategies/types/jwt-payload.type.ts` | Estructura de `req.user` → `AuthenticatedUser` |
 | `OptionalAuthGuard` | `@iam/auth/guards` | Para endpoints que aceptan auth opcional |
 | `ApiKeyGuard` | `@iam/auth/guards` | Para auth vía API Key |
@@ -838,7 +855,7 @@ Trace:
 # Spec
 permissions:
   create: [admin]
-  update: [admin, customer]
+  update: [admin, user]
   rowLevel:
     customer:
       filter: 'assigneeId == ${user.id}'
@@ -952,7 +969,7 @@ Foundation ya tiene Maizzle (`@maizzle/framework`):
 ```typescript
 // config/file-config.type.ts
 type FileConfig = {
-  driver: 'local' | 's3' | 's3-presigned' | 'b2';
+  driver: 'local' | 's3' | 's3-presigned' | 's3'  // B2 uses S3-compatible API;
   accessKeyId?: string;
   secretAccessKey?: string;
   awsDefaultS3Bucket?: string;
@@ -1258,8 +1275,8 @@ fields:
     enum: [pending, in_progress, review, done, blocked]
     stateMachine:
       transitions:
-        - { from: pending, to: in_progress, roles: [admin, customer] }
-        - { from: in_progress, to: review, roles: [admin, customer] }
+        - { from: pending, to: in_progress, roles: [admin, user] }
+        - { from: in_progress, to: review, roles: [admin, user] }
         - { from: review, to: done, roles: [admin] }
         - { from: blocked, to: pending, roles: [admin] }
         - { from: done, to: in_progress, roles: [admin] }

@@ -65,18 +65,17 @@ import { OutboundWebhookDispatcher } from './spec-engine-outbound-webhooks';
 import { SpecScheduledActionManager } from './spec-engine-scheduled-actions';
 
 // Role name → RoleEnum value map
-const ROLE_MAP: Record<PermissionRole, number | null> = {
+const BUILTIN_ROLE_MAP: Record<string, number | null> = {
   admin: RoleEnum.admin,
-  customer: RoleEnum.customer,
-  affiliate: RoleEnum.affiliate,
-  public: null, // 'public' means no auth required — handled specially below
+  user: RoleEnum.customer,
+  public: null,
 };
 
 
 // Free function for role resolution (used inside dynamic controller class)
 function resolveRolesArray(roles: PermissionRole[]): number[] {
   return roles
-    .map((r) => ROLE_MAP[r])
+    .map((r) => BUILTIN_ROLE_MAP[r])
     .filter((r): r is number => r !== null);
 }
 
@@ -271,7 +270,7 @@ export class ControllerFactory {
         switch (roleId) {
           case RoleEnum.admin: return 'admin';
           case RoleEnum.customer: return 'customer';
-          case RoleEnum.affiliate: return 'affiliate';
+          // Custom roles resolved by name from spec registry
           default: return '__denied__'; // Fail closed for unknown roles
         }
       }
@@ -1112,7 +1111,7 @@ export class ControllerFactory {
    */
   private static resolveRoles(roles: PermissionRole[]): number[] {
     return roles
-      .map((r) => ROLE_MAP[r])
+      .map((r) => BUILTIN_ROLE_MAP[r])
       .filter((r): r is number => r !== null);
   }
 

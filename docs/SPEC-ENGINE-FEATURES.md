@@ -118,8 +118,8 @@ fields:
     enum: [pending, in_progress, review, done, blocked]
     stateMachine:
       transitions:
-        - { from: pending, to: in_progress, roles: [admin, customer] }
-        - { from: in_progress, to: review, roles: [admin, customer] }
+        - { from: pending, to: in_progress, roles: [admin, user] }
+        - { from: in_progress, to: review, roles: [admin, user] }
         - { from: review, to: done, roles: [admin] }
         - { from: blocked, to: pending, roles: [admin] }
         - { from: done, to: in_progress, roles: [admin] }  # reopen

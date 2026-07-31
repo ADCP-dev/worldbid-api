@@ -98,10 +98,10 @@ resources:
         default: {}
 
     permissions:
-      list: [admin, customer]
-      read: [admin, customer]
+      list: [admin, user]
+      read: [admin, user]
       create: [admin]
-      update: [admin, customer]
+      update: [admin, user]
       delete: [admin]
       fields:
         position:
@@ -110,7 +110,7 @@ resources:
         assigneeId:
           read: [admin]
       rowLevel:
-        customer:
+        user:
           filter: 'assigneeId == ${user.id}'
 
     hooks:
@@ -184,7 +184,7 @@ resources:
           - title: My Tasks
             icon: User
             link: /app/tasks/mine
-            roles: [customer]
+            roles: [user]
 
   # ─── Task Comment (nested resource) ─────────────────────
   - name: task-comment
@@ -216,9 +216,9 @@ resources:
           truncateLength: 80
           formInput: textarea
     permissions:
-      list: [admin, customer]
-      read: [admin, customer]
-      create: [admin, customer]
+      list: [admin, user]
+      read: [admin, user]
+      create: [admin, user]
       update: [admin]
       delete: [admin]
 

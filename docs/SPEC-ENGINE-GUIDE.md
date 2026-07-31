@@ -150,10 +150,10 @@ resources:
         default: {}
 
     permissions:
-      list: [admin, customer]
-      read: [admin, customer]
+      list: [admin, user]
+      read: [admin, user]
       create: [admin]
-      update: [admin, customer]
+      update: [admin, user]
       delete: [admin]
       fields:
         position: { read: [admin], write: [admin] }
@@ -202,7 +202,7 @@ resources:
         heading: Tasks
         items:
           - { title: All Tasks, icon: CheckSquare, link: /app/tasks, roles: [admin] }
-          - { title: My Tasks, icon: User, link: /app/tasks/mine, roles: [customer] }
+          - { title: My Tasks, icon: User, link: /app/tasks/mine, roles: [user] }
 
 views:
   - name: task-dashboard
@@ -616,7 +616,7 @@ fields:
     enum: [pending, in_progress, review, done, blocked]
     stateMachine:
       transitions:
-        - { from: pending, to: in_progress, roles: [admin, customer] }
+        - { from: pending, to: in_progress, roles: [admin, user] }
         - { from: review, to: done, roles: [admin] }
         - { from: done, to: in_progress, roles: [admin] }
 ```

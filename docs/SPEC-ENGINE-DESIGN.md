@@ -212,7 +212,7 @@ permissions:
       filter: string             # 'assigneeId == ${user.id}'
 ```
 
-Role type: `'admin' | 'customer' | 'affiliate' | 'public'`
+Role type: `'admin' | 'user' | 'public'`
 
 The engine maps these to `RoleEnum` from `@iam/roles/roles.enum.ts`:
 - `admin` → `RoleEnum.admin` (1)
@@ -1288,11 +1288,11 @@ ui:
       - title: Tasks
         icon: CheckSquare
         link: /app/tasks
-        roles: [admin, customer]
+        roles: [admin, user]
       - title: My Tasks
         icon: User
         link: /app/tasks/mine
-        roles: [customer]
+        roles: [user]
 ```
 
 Frontend reads `GET /api/v1/_spec/resources`, extracts sidebar items, filters by user role, injects into nav. Zero TS code. If spec is deleted, item disappears.

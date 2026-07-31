@@ -62,7 +62,7 @@ export interface FieldSpec {
   stateMachine?: StateMachineSpec;
   includeable?: boolean;
   // File-specific
-  storage?: 'local' | 's3' | 's3-presigned';
+  storage?: 'local' | 's3' | 's3-presigned';  // B2 uses s3/s3-presigned with custom endpoint
   allowedMimes?: string[];
   maxSize?: number;
   isPublic?: boolean;
@@ -71,7 +71,10 @@ export interface FieldSpec {
 
 // ─── Permission Spec ────────────────────────────────────────────────────────
 
-export type PermissionRole = 'admin' | 'customer' | 'affiliate' | 'public';
+// Built-in roles always available. Custom roles are defined per-extension
+// in ExtensionSpec.roles and seeded via ExtensionSpec.roleSeeds.
+export type BuiltinRole = 'admin' | 'user';
+export type PermissionRole = BuiltinRole | string; // string allows custom roles from spec
 export type PermissionAction = 'list' | 'read' | 'create' | 'update' | 'delete';
 
 export interface FieldPermissionSpec {
@@ -364,6 +367,12 @@ export interface OverrideSpec {
   hooks?: HookSpec;
 }
 
+export interface RoleDefSpec {
+  name: string;                   // unique within extension, kebab-case
+  description?: string;
+  permissions?: string[];          // hint for admin UI (not enforced by engine)
+}
+
 export interface ExtensionSpec {
   name: string;
   version: string;
@@ -371,6 +380,8 @@ export interface ExtensionSpec {
   description?: string;
   author?: string;
   config?: ConfigItemSpec[];
+  roles?: RoleDefSpec[];           // custom roles defined by this extension
+  roleSeeds?: Record<string, unknown>[];  // seed role assignments
   resources: ResourceSpec[];
   views?: ViewSpec[];
   overrides?: OverrideSpec[];

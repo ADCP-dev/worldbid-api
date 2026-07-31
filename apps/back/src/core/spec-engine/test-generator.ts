@@ -466,7 +466,7 @@ function buildPermissionTests(spec: ResourceSpec): TestBlock[] {
   const permissions = spec.permissions;
   if (!permissions) return blocks;
 
-  const roles: PermissionRole[] = ['admin', 'customer', 'affiliate', 'public'];
+  const roles: PermissionRole[] = ['admin', 'user', 'public'];
 
   for (const action of ALL_ACTIONS) {
     const allowedRoles = permissions[action];
@@ -676,7 +676,7 @@ function renderTestFile(
   const rolesLine = `const tokensByRole: Record<string, string> = {
     admin: adminToken,
     customer: customerToken,
-    affiliate: affiliateToken,
+    affiliate: userToken,
     public: '',
   };`;
 
@@ -709,7 +709,7 @@ describe('${specName} extension', () => {
   let app: INestApplication;
   let adminToken: string;
   let customerToken: string;
-  let affiliateToken: string;
+  let userToken: string;
   let createdId: number;
 
   ${rolesLine}
@@ -727,7 +727,7 @@ describe('${specName} extension', () => {
     // TODO: authenticate as each role and capture tokens
     adminToken = 'admin-token-placeholder';
     customerToken = 'customer-token-placeholder';
-    affiliateToken = 'affiliate-token-placeholder';
+    userToken = 'user-token-placeholder';
   });
 
   afterAll(async () => {

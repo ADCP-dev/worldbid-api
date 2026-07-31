@@ -80,7 +80,8 @@ export interface ActionFactoryResult {
 const ROLE_MAP: Record<PermissionRole, number | null> = {
   admin: RoleEnum.admin,
   customer: RoleEnum.customer,
-  affiliate: RoleEnum.affiliate,
+  user: RoleEnum.customer,
+  // Custom roles resolved at runtime
   public: null,
 };
 

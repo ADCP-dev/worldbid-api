@@ -42,7 +42,9 @@ const VALID_FIELD_TYPES = [
   'datetime', 'date', 'json', 'enum', 'ref', 'file',
 ];
 
-const VALID_ROLES: PermissionRole[] = ['admin', 'customer', 'affiliate', 'public'];
+// Built-in roles are always valid. Custom roles are collected from
+// ExtensionSpec.roles at validation time.
+const BUILTIN_ROLES: string[] = ['admin', 'user', 'public'];
 
 const VALID_REF_ON_DELETE = ['CASCADE', 'SET NULL', 'RESTRICT'];
 
@@ -380,7 +382,7 @@ export class SpecValidator {
         }
         if (item.roles) {
           for (const role of item.roles) {
-            if (!VALID_ROLES.includes(role)) {
+            if (!BUILTIN_ROLES.includes(role)) {
               errors.push({
                 resource: spec.name,
                 message: `Sidebar item "${item.title}" invalid role "${role}"`,
@@ -406,10 +408,10 @@ export class SpecValidator {
     const checkRoles = (roles: PermissionRole[] | undefined, action: string) => {
       if (!roles) return;
       for (const role of roles) {
-        if (!VALID_ROLES.includes(role)) {
+        if (!BUILTIN_ROLES.includes(role)) {
           errors.push({
             message: `Invalid role "${role}" in permissions.${action}`,
-            suggestion: `Valid roles: ${VALID_ROLES.join(', ')}`,
+            suggestion: `Valid roles: ${BUILTIN_ROLES.join(', ')}`,
           });
         }
       }
@@ -437,7 +439,7 @@ export class SpecValidator {
     // Row-level filters
     if (perms.rowLevel) {
       for (const [role, rule] of Object.entries(perms.rowLevel)) {
-        if (!VALID_ROLES.includes(role as PermissionRole)) {
+        if (!BUILTIN_ROLES.includes(role as PermissionRole)) {
           errors.push({
             message: `Row-level filter for invalid role "${role}"`,
           });

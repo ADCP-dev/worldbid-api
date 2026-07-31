@@ -9,7 +9,7 @@ class EnvironmentVariablesValidator {
   FILE_DRIVER: FileDriver;
 
   @ValidateIf((envValues) =>
-    [FileDriver.S3, FileDriver.S3_PRESIGNED, FileDriver.B2].includes(
+    [FileDriver.S3, FileDriver.S3_PRESIGNED].includes(
       envValues.FILE_DRIVER,
     ),
   )
@@ -17,7 +17,7 @@ class EnvironmentVariablesValidator {
   ACCESS_KEY_ID: string;
 
   @ValidateIf((envValues) =>
-    [FileDriver.S3, FileDriver.S3_PRESIGNED, FileDriver.B2].includes(
+    [FileDriver.S3, FileDriver.S3_PRESIGNED].includes(
       envValues.FILE_DRIVER,
     ),
   )
@@ -25,7 +25,7 @@ class EnvironmentVariablesValidator {
   SECRET_ACCESS_KEY: string;
 
   @ValidateIf((envValues) =>
-    [FileDriver.S3, FileDriver.S3_PRESIGNED, FileDriver.B2].includes(
+    [FileDriver.S3, FileDriver.S3_PRESIGNED].includes(
       envValues.FILE_DRIVER,
     ),
   )
@@ -34,7 +34,7 @@ class EnvironmentVariablesValidator {
   AWS_DEFAULT_S3_BUCKET: string;
 
   @ValidateIf((envValues) =>
-    [FileDriver.S3, FileDriver.S3_PRESIGNED, FileDriver.B2].includes(
+    [FileDriver.S3, FileDriver.S3_PRESIGNED].includes(
       envValues.FILE_DRIVER,
     ),
   )
@@ -45,9 +45,7 @@ class EnvironmentVariablesValidator {
   @IsString()
   AWS_S3_ENDPOINT: string;
 
-  @ValidateIf((envValues) => envValues.FILE_DRIVER === FileDriver.B2)
-  @IsString()
-  B2_ENDPOINT: string;
+  // B2 uses S3 endpoint — no separate B2 config needed
 }
 
 export default registerAs<FileConfig>('file', () => {

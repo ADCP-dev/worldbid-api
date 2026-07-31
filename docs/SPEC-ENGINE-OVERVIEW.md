@@ -466,10 +466,10 @@ resources:
         type: json
         default: {}
     permissions:
-      list: [admin, customer]
-      read: [admin, customer]
+      list: [admin, user]
+      read: [admin, user]
       create: [admin]
-      update: [admin, customer]
+      update: [admin, user]
       delete: [admin]
       fields:
         assigneeId: { read: [admin] }
@@ -495,11 +495,11 @@ resources:
           - title: Clientes
             icon: Users
             link: /app/clients
-            roles: [admin, customer]
+            roles: [admin, user]
           - title: Mis clientes
             icon: User
             link: /app/clients/mine
-            roles: [customer]
+            roles: [user]
     seeds:
       - name: Tech Corp
         statusId: 1
@@ -523,8 +523,8 @@ resources:
         default: 0
         ui: { display: text, formInput: text }
     permissions:
-      list: [admin, customer]
-      read: [admin, customer]
+      list: [admin, user]
+      read: [admin, user]
       create: [admin]
       update: [admin]
       delete: [admin]
@@ -554,8 +554,8 @@ resources:
         type: integer
         default: 0
     permissions:
-      list: [admin, customer]
-      read: [admin, customer]
+      list: [admin, user]
+      read: [admin, user]
       create: [admin]
       update: [admin]
       delete: [admin]
@@ -595,8 +595,8 @@ resources:
         nullable: true
         ui: { display: text, formInput: text }
     permissions:
-      list: [admin, customer]
-      read: [admin, customer]
+      list: [admin, user]
+      read: [admin, user]
       create: [admin]
       update: [admin]
       delete: [admin]
@@ -635,9 +635,9 @@ resources:
         required: true
         ui: { display: date, formInput: datepicker }
     permissions:
-      list: [admin, customer]
-      read: [admin, customer]
-      create: [admin, customer]
+      list: [admin, user]
+      read: [admin, user]
+      create: [admin, user]
       update: [admin]
       delete: [admin]
     hooks:
@@ -758,7 +758,7 @@ graph LR
     subgraph "IamModule"
         JWT[JwtStrategy]
         GUARD[RolesGuard]
-        ROLES[RoleEnum: admin=1, customer=2, affiliate=3]
+        ROLES[RoleEnum: admin=1, customer=2, affiliate = 3  // deprecated]
         DECOR[Roles decorator]
         USER[User Entity]
         SESSION[Session Entity]
@@ -1034,8 +1034,8 @@ fields:
     enum: [pending, in_progress, review, done, blocked]
     stateMachine:
       transitions:
-        - { from: pending, to: in_progress, roles: [admin, customer] }
-        - { from: in_progress, to: review, roles: [admin, customer] }
+        - { from: pending, to: in_progress, roles: [admin, user] }
+        - { from: in_progress, to: review, roles: [admin, user] }
         - { from: review, to: done, roles: [admin] }
         - { from: blocked, to: pending, roles: [admin] }
         - { from: done, to: in_progress, roles: [admin] }  # reopen
