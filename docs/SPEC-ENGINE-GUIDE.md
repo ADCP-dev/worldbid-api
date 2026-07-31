@@ -222,7 +222,7 @@ views:
 - [ ] Todos los hook/job/webhook handler paths apuntan a archivos que existen (o los crearás)
 - [ ] Todos los template paths apuntan a `.hbs` que existen (o los crearás)
 - [ ] Table names empiezan con `ext_`
-- [ ] Permisos usan roles válidos: admin, customer, affiliate
+- [ ] Permisos usan roles válidos: admin, user, o custom roles definidos en la spec
 - [ ] `rowLevel.filter` usa la sintaxis `field == ${user.id}`
 - [ ] `enum` fields tienen `enum: [...]` con valores
 - [ ] `required: true` fields tienen valor default en seeds o son proveídos por el cliente
@@ -480,7 +480,7 @@ El frontend:
 2. Renderiza `SpecDataTable` con columnas desde fields + ui.display
 3. Renderiza `SpecDataForm` con inputs desde fields + ui.formInput
 4. Inyecta sidebar items desde spec.ui.sidebar (filtrados por rol)
-5. Renderiza `SpecDashboard` con charts SVG para panels
+5. Renderiza `SpecDashboard` con Apache ECharts para panels
 
 ### Cuándo necesitas frontend custom
 
@@ -739,7 +739,7 @@ export default async function beforeCreate(data, ctx) {
 permissions:
   create: [admin]
   rowLevel:
-    customer:
+    user:
       filter: 'assigneeId == ${user.id}'
 
 # ❌ Mal: permisos en el hook

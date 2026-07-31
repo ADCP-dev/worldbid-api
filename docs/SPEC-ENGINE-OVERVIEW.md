@@ -758,7 +758,7 @@ graph LR
     subgraph "IamModule"
         JWT[JwtStrategy]
         GUARD[RolesGuard]
-        ROLES[RoleEnum: admin=1, customer=2, affiliate = 3  // deprecated]
+        ROLES[RoleEnum: admin=1, user=2]
         DECOR[Roles decorator]
         USER[User Entity]
         SESSION[Session Entity]

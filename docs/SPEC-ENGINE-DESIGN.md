@@ -217,7 +217,6 @@ Role type: `'admin' | 'user' | 'public'`
 The engine maps these to `RoleEnum` from `@iam/roles/roles.enum.ts`:
 - `admin` → `RoleEnum.admin` (1)
 - `customer` → `RoleEnum.customer` (2)
-- `affiliate` → `RoleEnum.affiliate` (3)
 - `public` → no auth guard applied
 
 ### 3.6 HookSpec
@@ -930,7 +929,7 @@ Spec: permissions.create: [admin]
 ```yaml
 permissions:
   rowLevel:
-    customer:
+    user:
       filter: 'assigneeId == ${user.id}'
 ```
 
@@ -1557,7 +1556,7 @@ Ordered by dependency and impact. Each step builds on the previous.
 | # | Task | What it delivers |
 |---|---|---|
 | B1 | JSON Schema validation | ajv validation of every spec before materialization |
-| B2 | Row-level + field-level RBAC | Multi-tenant support, field stripping |
+
 | B3 | Migration generator | spec:generate-migration CLI, spec diffing, ALTER TABLE |
 | B4 | Test generator | spec:generate-tests CLI, auto-generated test scaffolds |
 | B5 | Pipeline integration tests | Test harness with in-memory DB, trace assertions |

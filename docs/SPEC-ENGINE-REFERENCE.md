@@ -238,7 +238,7 @@ permissions:
 ```yaml
 permissions:
   rowLevel:
-    customer:
+    user:
       filter: 'assigneeId == ${user.id}'
 ```
 
@@ -696,7 +696,7 @@ interface HookContext {
   //   config('app.backendDomain')     → string
   //   config('mail.host')             → string | undefined
   //   config('worker.enabled')        → boolean
-  //   config('file.driver')           → 'local' | 's3' | 's3-presigned' | 's3'  // B2 uses S3-compatible API
+  //   config('file.driver')           → 'local' | 's3' | 's3-presigned'  // B2 uses S3-compatible API
 
   // ─── Helper de email ──────────────────────────────────
   sendEmail(data: EmailJobDataLike): Promise<void>;
@@ -727,7 +727,7 @@ interface HookContext {
 interface AuthenticatedUser {
   id: number;
   role: {
-    id: number;       // RoleEnum value (1=admin, 2=customer, 3=affiliate)
+    id: number;       // RoleEnum value (1=admin, 2=user)
     name: string;     // 'admin' | 'user'
     homeRoute?: string;
   };
@@ -831,7 +831,7 @@ Trace:
 | `AuthGuard('jwt')` | `@nestjs/passport` | Aplicado a todos los controllers dinámicos |
 | `RolesGuard` | `@iam/roles/roles.guard` | Verifica `@Roles()` metadata |
 | `@Roles(...)` | `@iam/roles/roles.decorator` | Aplicado por método con RoleEnum values |
-| `RoleEnum` | `@iam/roles/roles.enum` | Mapeo: admin=1, customer=2, affiliate = 3  // deprecated |
+| `RoleEnum` | `@iam/roles/roles.enum` | Mapeo: admin=1, user=2 (custom roles via spec) |
 | `JwtPayloadType` | `@iam/auth/strategies/types/jwt-payload.type.ts` | Estructura de `req.user` → `AuthenticatedUser` |
 | `OptionalAuthGuard` | `@iam/auth/guards` | Para endpoints que aceptan auth opcional |
 | `ApiKeyGuard` | `@iam/auth/guards` | Para auth vía API Key |
@@ -857,7 +857,7 @@ permissions:
   create: [admin]
   update: [admin, user]
   rowLevel:
-    customer:
+    user:
       filter: 'assigneeId == ${user.id}'
   fields:
     position:
@@ -969,7 +969,7 @@ Foundation ya tiene Maizzle (`@maizzle/framework`):
 ```typescript
 // config/file-config.type.ts
 type FileConfig = {
-  driver: 'local' | 's3' | 's3-presigned' | 's3'  // B2 uses S3-compatible API;
+  driver: 'local' | 's3' | 's3-presigned'  // B2 uses S3-compatible API;
   accessKeyId?: string;
   secretAccessKey?: string;
   awsDefaultS3Bucket?: string;
