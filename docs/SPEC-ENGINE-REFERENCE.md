@@ -1154,3 +1154,416 @@ pnpm spec:list                 # lista plugins instalados (spec-registry.json)
 pnpm spec:trace task create --body '{"title":"test","priority":"urgent"}' --user admin
 # Imprime trace con colores en consola
 ```
+
+---
+
+## 21. Filtros y ordenación
+
+### Spec
+
+```yaml
+fields:
+  - name: status
+    type: enum
+    enum: [pending, in_progress, done]
+    ui:
+      filterable: true
+      sortable: true
+      filterType: select         # select | text | dateRange | boolean
+  - name: createdAt
+    type: datetime
+    ui:
+      sortable: true
+      filterable: true
+      filterType: dateRange
+```
+
+### API
+
+```
+# Filtrar por status (valores múltiples separados por coma)
+GET /tasks?filter[status]=pending,in_progress
+
+# Filtrar por rango de fechas
+GET /tasks?filter[createdAt]=2026-01-01,2026-12-31
+
+# Ordenar (prefijo - para DESC)
+GET /tasks?sort=-createdAt,priority
+```
+
+### Seguridad
+
+- Solo campos con `ui.filterable: true` aceptan filtros
+- Solo campos con `ui.sortable: true` aceptan sort
+- Nombres de campos validados contra spec (previene SQL injection)
+- Filtros se aplican DESPUÉS del row-level filter
+
+---
+
+## 22. Acciones custom
+
+### Spec
+
+```yaml
+actions:
+  - name: assign
+    method: POST
+    path: ':id/assign'
+    auth: [admin]
+    input:
+      - name: assigneeId
+        type: ref
+        ref: user
+        required: true
+    handler: ./actions/assign.handler.ts
+    ui:
+      label: Asignar
+      icon: UserPlus
+      buttonLocation: row       # row | bulk | header
+      confirm: "¿Asignar esta tarea?"
+```
+
+### Handler
+
+```typescript
+export default async function assign(
+  entityId: number,              // null para bulk actions
+  input: { assigneeId: number },
+  ctx: HookContext,
+): Promise<Record<string, unknown>> {
+  const taskRepo = ctx.getRepository('task');
+  await taskRepo.update(entityId, input);
+  return await taskRepo.findOne({ where: { id: entityId } });
+}
+```
+
+### UI buttonLocation
+
+| Location | Dónde aparece | Cuándo |
+|---|---|---|
+| `row` | En cada fila de la tabla | Siempre |
+| `bulk` | Barra superior | Cuando hay filas seleccionadas |
+| `header` | Barra superior | Siempre |
+
+---
+
+## 23. State machine
+
+### Spec
+
+```yaml
+fields:
+  - name: status
+    type: enum
+    enum: [pending, in_progress, review, done, blocked]
+    stateMachine:
+      transitions:
+        - { from: pending, to: in_progress, roles: [admin, customer] }
+        - { from: in_progress, to: review, roles: [admin, customer] }
+        - { from: review, to: done, roles: [admin] }
+        - { from: blocked, to: pending, roles: [admin] }
+        - { from: done, to: in_progress, roles: [admin] }
+      ui:
+        showTransitionButtons: true
+```
+
+### Validación
+
+El engine valida en `beforeUpdate`:
+1. Carga la entity existente
+2. Compara `existing.status` con `data.status`
+3. Si son diferentes: busca la transición `from → to` en `stateMachine.transitions`
+4. Si no existe → 400 `Invalid state transition from X to Y`
+5. Si existe pero `roles` no incluye el rol del user → 403
+
+---
+
+## 24. ?include= relations
+
+### Spec
+
+```yaml
+fields:
+  - name: assigneeId
+    type: ref
+    ref: user
+    includeable: true
+  - name: projectId
+    type: ref
+    ref: project
+    includeable: true
+```
+
+### API
+
+```
+# Sin include — devuelve solo FKs
+GET /tasks/1
+→ { id: 1, title: "...", assigneeId: 42, projectId: 5 }
+
+# Con include — carga las relations
+GET /tasks/1?include=assignee,project
+→ {
+  id: 1, title: "...", assigneeId: 42, projectId: 5,
+  assignee: { id: 42, firstName: "Adrián", email: "..." },
+  project: { id: 5, name: "Foundation" }
+}
+
+# Lista con include
+GET /tasks?include=assignee
+→ { data: [{ id: 1, ..., assignee: {...} }, ...] }
+```
+
+### Seguridad
+
+- Solo campos con `includeable: true` se aceptan en `?include=`
+- Campos no-includeable se rechazan con 400
+- Relations se cargan via TypeORM `relations` option
+
+---
+
+## 25. Audit log
+
+### Spec
+
+```yaml
+# Boolean — auditar todo
+audit: true
+
+# Granular
+audit:
+  operations: [create, update, delete]   # cuáles auditar
+  fields: [status, assigneeId, priority]  # solo estos campos
+  exclude: [metadata]                      # no auditar estos
+```
+
+### Tabla de audit
+
+El engine crea dinámicamente `ext_<resource>_audit`:
+
+| Column | Type | Descripción |
+|---|---|---|
+| id | serial PK | Auto-increment |
+| entityId | integer | ID de la entity auditada |
+| operation | varchar | create / update / delete |
+| field | varchar | Campo que cambió |
+| oldValue | text nullable | Valor anterior |
+| newValue | text nullable | Valor nuevo |
+| userId | integer nullable | Quien hizo el cambio |
+| timestamp | timestamptz | Cuándo (default now()) |
+
+### Endpoint
+
+```
+GET /api/v1/tasks/:id/audit
+→ [
+  { id: 1, entityId: 42, operation: "update", field: "status", oldValue: "pending", newValue: "done", userId: 1, timestamp: "2026-07-31T..." },
+  { id: 2, entityId: 42, operation: "update", field: "assigneeId", oldValue: null, newValue: 1, userId: 1, timestamp: "2026-07-31T..." }
+]
+```
+
+---
+
+## 26. Acciones programadas por entidad
+
+### Spec
+
+```yaml
+scheduledActions:
+  - name: reminder-3-days-before
+    trigger: dueDate            # campo de la entity
+    offset: -3d                 # 3 días antes
+    handler: ./actions/send-reminder.handler.ts
+    cancelOnUpdate: true        # si la entity cambia, reprogramar
+
+  - name: followup-1-week-after
+    trigger: createdAt
+    offset: +7d                 # 1 semana después
+    handler: ./actions/followup.handler.ts
+```
+
+### Offset syntax
+
+| Format | Significado |
+|---|---|
+| `-3d` | 3 días antes del trigger |
+| `+7d` | 7 días después del trigger |
+| `-1h` | 1 hora antes |
+| `+30m` | 30 minutos después |
+
+### Funcionamiento
+
+1. Cuando se crea/actualiza una entity con `dueDate`, el engine calcula `delay = dueDate - 3d - now()`
+2. Si `delay > 0`: programa un BullMQ delayed job
+3. Si `cancelOnUpdate: true`: cancela el job anterior (ID: `${resource}_${entityId}_${actionName}`)
+
+### Handler
+
+```typescript
+export default async function sendReminder(
+  entity: Record<string, unknown>,
+  ctx: HookContext,
+): Promise<void> {
+  await ctx.sendEmail({
+    to: ctx.config('app.notificationEmail'),
+    subject: `Recordatorio: ${entity.title}`,
+    text: `La tarea vence en 3 días`,
+  });
+}
+```
+
+---
+
+## 27. Campos computados
+
+### Spec
+
+```yaml
+fields:
+  # Count — cuenta entities relacionadas
+  - name: commentCount
+    type: computed
+    compute:
+      type: count
+      relation: task-comment       # recurso a contar
+      foreignKey: taskId            # FK en el recurso relacionado
+
+  # Expression — evalúa una condición
+  - name: isOverdue
+    type: computed
+    compute:
+      type: expression
+      expression: 'dueDate != null && dueDate < now() && status != done'
+
+  # Template — interpola campos
+  - name: fullName
+    type: computed
+    compute:
+      type: template
+      template: '${firstName} ${lastName}'
+```
+
+### Comportamiento
+
+- Los campos computados **NO se almacenan en DB** — no crean columnas
+- Se calculan en la Stage 7 (Response) antes de `applyFieldReadPerms`
+- `count`: hace `repo.count({ where: { [foreignKey]: entity.id } })`
+- `expression`: usa el mismo evaluator seguro que `when` en notifications
+- `template`: usa el mismo interpolador que `${...}` en notifications
+- Errores se catchean — el campo se setea a `null` si falla
+
+---
+
+## 28. Webhooks salientes (subscriptions)
+
+### Spec
+
+```yaml
+outboundWebhooks:
+  - name: task-events
+    events: [task.created, task.updated, task.deleted, task.assigned]
+    subscriptionModel: dynamic     # dynamic | static
+
+  - name: static-webhook
+    events: [task.created]
+    subscriptionModel: static
+    url: https://external.com/webhook
+```
+
+### Dynamic subscriptions
+
+- `POST /api/v1/tasks/webhooks/subscribe` — registra una URL para recibir eventos
+  ```json
+  { "url": "https://external.com/webhook", "events": ["task.created"] }
+  ```
+- El engine almacena suscripciones en `spec_webhook_subscriptions`
+- Cuando un evento ocurre, POST a todas las URLs suscritas a ese evento
+
+### Payload enviado
+
+```json
+{
+  "event": "task.created",
+  "entity": { "id": 42, "title": "Fix bug", ... },
+  "timestamp": "2026-07-31T10:00:00Z"
+}
+```
+
+### Seguridad
+
+- HMAC-SHA256 signature en header `X-Spec-Signature-256`
+- SSRF protection: private IPs bloqueadas (127.x, 10.x, 172.16-31.x, 192.168.x, 169.254.x, ::1, fc00::/7)
+- Fire-and-forget: errores no bloquean la response
+
+---
+
+## 29. Soft delete con restore
+
+### Spec
+
+```yaml
+softDelete: true    # default: true
+```
+
+### Endpoints generados
+
+| Endpoint | Descripción |
+|---|---|
+| `DELETE /tasks/:id` | Soft delete (setea `deletedAt = now()`) |
+| `POST /tasks/:id/restore` | Undo del soft delete (`deletedAt = null`) |
+| `GET /tasks?deleted=true` | Ver eliminados (admin only) |
+
+---
+
+## 30. Import/export
+
+### Import
+
+```yaml
+importConfig:
+  format: csv
+  mapping:              # mapea cabeceras CSV a campos spec
+    Titulo: title
+    Estado: status
+    Prioridad: priority
+  uniqueKey: title      # si ya existe una entity con ese title, actualizar
+  handler: ./import/task-import.handler.ts   # transformación opcional
+```
+
+```
+POST /api/v1/tasks/import
+Content-Type: text/csv
+
+Titulo,Estado,Prioridad
+Fix bug,pending,high
+Write docs,done,low
+```
+
+Response:
+```json
+{
+  "created": 1,
+  "updated": 1,
+  "errors": []
+}
+```
+
+### Export
+
+```yaml
+exportConfig:
+  format: csv
+  fields: [id, title, status, priority, assigneeId, dueDate]
+  handler: ./export/task-export.handler.ts   # transformación opcional
+```
+
+```
+GET /api/v1/tasks/export?format=csv
+→ CSV con las columnas especificadas
+```
+
+### Validación de import
+
+- Cada fila se valida contra el Zod schema generado desde `spec.fields`
+- Si una fila falla validación: se añade al array `errors` y se continúa
+- Si `uniqueKey` está definido: busca existing entity, si existe → update, si no → create

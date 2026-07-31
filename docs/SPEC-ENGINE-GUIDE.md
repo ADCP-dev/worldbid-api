@@ -560,6 +560,156 @@ Compresión: 6.6x menos código
 
 ---
 
+## Features avanzadas
+
+### Filtros y sorting
+
+```yaml
+fields:
+  - name: status
+    type: enum
+    enum: [pending, in_progress, done]
+    ui:
+      filterable: true
+      sortable: true
+      filterType: select
+```
+
+```
+GET /tasks?filter[status]=pending,in_progress&sort=-createdAt,priority
+```
+
+Solo campos con `filterable`/`sortable: true` se aceptan. Validación contra spec previene SQL injection.
+
+### Acciones custom
+
+```yaml
+actions:
+  - name: assign
+    method: POST
+    path: ':id/assign'
+    auth: [admin]
+    input:
+      - { name: assigneeId, type: ref, ref: user, required: true }
+    handler: ./actions/assign.handler.ts
+    ui:
+      label: Asignar
+      icon: UserPlus
+      buttonLocation: row
+```
+
+```typescript
+// actions/assign.handler.ts
+export default async function assign(entityId: number, input: { assigneeId: number }, ctx: HookContext) {
+  const taskRepo = ctx.getRepository('task');
+  await taskRepo.update(entityId, input);
+  return await taskRepo.findOne({ where: { id: entityId } });
+}
+```
+
+### State machine
+
+```yaml
+fields:
+  - name: status
+    type: enum
+    enum: [pending, in_progress, review, done, blocked]
+    stateMachine:
+      transitions:
+        - { from: pending, to: in_progress, roles: [admin, customer] }
+        - { from: review, to: done, roles: [admin] }
+        - { from: done, to: in_progress, roles: [admin] }
+```
+
+El engine valida transiciones automáticamente en update.
+
+### ?include= relations
+
+```yaml
+fields:
+  - name: assigneeId
+    type: ref
+    ref: user
+    includeable: true
+```
+
+```
+GET /tasks/1?include=assignee → { ..., assignee: { id: 42, firstName: "Adrián" } }
+```
+
+### Audit log
+
+```yaml
+audit:
+  operations: [create, update, delete]
+  fields: [status, assigneeId, priority]
+```
+
+El engine crea `ext_<resource>_audit` y loguea cambios automáticamente. `GET /tasks/:id/audit`.
+
+### Acciones programadas
+
+```yaml
+scheduledActions:
+  - name: reminder-3-days-before
+    trigger: dueDate
+    offset: -3d
+    handler: ./actions/send-reminder.handler.ts
+    cancelOnUpdate: true
+```
+
+BullMQ delayed job calculado desde `dueDate - 3d`. Se cancela y reprograma si la entity cambia.
+
+### Campos computados
+
+```yaml
+fields:
+  - name: commentCount
+    type: computed
+    compute: { type: count, relation: task-comment, foreignKey: taskId }
+  - name: isOverdue
+    type: computed
+    compute: { type: expression, expression: 'dueDate != null && dueDate < now() && status != done' }
+```
+
+No se almacenan en DB. Se calculan en runtime en la response.
+
+### Webhooks salientes
+
+```yaml
+outboundWebhooks:
+  - name: task-events
+    events: [task.created, task.updated, task.deleted]
+    subscriptionModel: dynamic
+```
+
+`POST /tasks/webhooks/subscribe` registra URLs. El engine envía eventos con HMAC + SSRF protection.
+
+### Soft delete restore
+
+```yaml
+softDelete: true
+```
+
+`POST /tasks/:id/restore` undo del soft delete. `GET /tasks?deleted=true` ve eliminados.
+
+### Import/export CSV
+
+```yaml
+importConfig:
+  format: csv
+  mapping: { Titulo: title, Estado: status }
+  uniqueKey: title
+
+exportConfig:
+  format: csv
+  fields: [id, title, status, priority]
+```
+
+`POST /tasks/import` acepta CSV. `GET /tasks/export?format=csv` genera CSV.
+
+---
+
 ## Patrones
 
 ### Patrones buenos

@@ -950,7 +950,277 @@ Ambas coexisten. Puedes tener `extensions/crm/` (tradicional) y `extensions/task
 
 ---
 
-## 7. Comparación con alternativas
+## 7. Las 10 features avanzadas
+
+El spec engine va más allá de CRUD. Estas son las features que lo convierten en un producto real:
+
+### 7.1 Filtros y ordenación en findAll
+
+```yaml
+fields:
+  - name: status
+    type: enum
+    enum: [pending, in_progress, done]
+    ui:
+      filterable: true        # genera control de filtro en la tabla
+      sortable: true           # columna clickable para ordenar
+      filterType: select        # select | text | dateRange | boolean
+
+  - name: createdAt
+    type: datetime
+    ui:
+      sortable: true
+      filterable: true
+      filterType: dateRange
+```
+
+```
+GET /tasks?filter[status]=pending,in_progress&sort=-createdAt,priority
+```
+
+Solo campos marcados como `filterable`/`sortable` se aceptan (seguridad: no se puede filtrar por campos que el user no puede ver).
+
+### 7.2 Acciones custom (non-CRUD endpoints)
+
+CRUD no cubre "asignar task", "duplicar cliente", "archivar proyecto":
+
+```yaml
+actions:
+  - name: assign
+    method: POST
+    path: ':id/assign'
+    auth: [admin]
+    input:
+      - { name: assigneeId, type: ref, ref: user, required: true }
+    handler: ./actions/assign.handler.ts
+    ui:
+      label: Asignar
+      icon: UserPlus
+      buttonLocation: row        # row | bulk | header
+      confirm: "¿Asignar esta tarea?"
+
+  - name: bulk-assign
+    method: POST
+    path: 'bulk/assign'
+    auth: [admin]
+    input:
+      - { name: taskIds, type: json, required: true }
+      - { name: assigneeId, type: ref, ref: user, required: true }
+    handler: ./actions/bulk-assign.handler.ts
+    ui:
+      label: Asignar selección
+      icon: Users
+      buttonLocation: bulk        # aparece cuando seleccionas filas
+
+  - name: export-csv
+    method: GET
+    path: 'export/csv'
+    auth: [admin]
+    handler: ./actions/export.handler.ts
+    ui:
+      label: Exportar CSV
+      icon: Download
+      buttonLocation: header       # botón en la barra superior
+```
+
+El handler recibe `(entityId, input, ctx)` — mismo HookContext que los hooks. El frontend renderiza los botones desde `ui.buttonLocation`.
+
+### 7.3 State machine para enums
+
+```yaml
+fields:
+  - name: status
+    type: enum
+    enum: [pending, in_progress, review, done, blocked]
+    stateMachine:
+      transitions:
+        - { from: pending, to: in_progress, roles: [admin, customer] }
+        - { from: in_progress, to: review, roles: [admin, customer] }
+        - { from: review, to: done, roles: [admin] }
+        - { from: blocked, to: pending, roles: [admin] }
+        - { from: done, to: in_progress, roles: [admin] }  # reopen
+      ui:
+        showTransitionButtons: true
+```
+
+El engine valida transiciones en `beforeUpdate`:
+- Si `from → to` no está en las transitions → 400 `Invalid state transition`
+- Si el user no tiene el rol permitido → 403
+
+### 7.4 ?include= relations
+
+Evita N+1 queries:
+
+```yaml
+fields:
+  - name: assigneeId
+    type: ref
+    ref: user
+    includeable: true        # se puede pedir con ?include=assignee
+```
+
+```
+GET /tasks/1?include=assignee,comments
+→ {
+  id: 1, title: "Fix bug", assigneeId: 42,
+  assignee: { id: 42, firstName: "Adrián", email: "..." },
+  comments: [{ id: 1, content: "Working on it" }]
+}
+```
+
+Solo relations de campos con `includeable: true` se aceptan. Sin `?include`, devuelve solo el FK.
+
+### 7.5 Audit log
+
+```yaml
+audit: true
+# o granular:
+audit:
+  operations: [create, update, delete]
+  fields: [status, assigneeId, priority]  # solo auditar estos
+  exclude: [metadata]                      # no auditar estos
+```
+
+El engine crea `ext_<resource>_audit` con: id, entityId, operation, field, oldValue, newValue, userId, timestamp.
+
+`GET /api/v1/tasks/:id/audit` devuelve el historial de cambios.
+
+### 7.6 Acciones programadas por entidad
+
+```yaml
+scheduledActions:
+  - name: reminder-3-days-before
+    trigger: dueDate         # campo de la entity
+    offset: -3d              # 3 días antes del dueDate
+    handler: ./actions/send-reminder.handler.ts
+    cancelOnUpdate: true     # si la entity cambia, reprogramar
+```
+
+El engine programa un BullMQ delayed job con `delay` calculado desde `entity.dueDate - 3d`. Si `cancelOnUpdate` y la entity se actualiza, el job anterior se cancela y se reprograma.
+
+### 7.7 Campos computados
+
+```yaml
+fields:
+  - name: commentCount
+    type: computed
+    compute:
+      type: count
+      relation: task-comment
+      foreignKey: taskId
+    ui: { display: text, sortable: true }
+
+  - name: isOverdue
+    type: computed
+    compute:
+      type: expression
+      expression: 'dueDate != null && dueDate < now() && status != done'
+    ui: { display: badge, colors: { true: '#ef4444', false: '#22c55e' } }
+
+  - name: fullName
+    type: computed
+    compute:
+      type: template
+      template: '${firstName} ${lastName}'
+```
+
+Los campos computados no se almacenan en DB. Se calculan en runtime en la response (Stage 7).
+
+### 7.8 Webhooks salientes (subscriptions)
+
+```yaml
+outboundWebhooks:
+  - name: task-events
+    events: [task.created, task.updated, task.deleted]
+    subscriptionModel: dynamic    # los externos se registran via POST /subscribe
+```
+
+- `POST /api/v1/tasks/webhooks/subscribe` — registro de webhook URL
+- Cuando un evento ocurre, POST a todas las URLs suscritas
+- HMAC signature en cada envío (igual que Stripe)
+- SSRF protection (private IPs bloqueadas)
+
+### 7.9 Soft delete con restore
+
+```yaml
+softDelete: true
+# el engine añade automáticamente:
+# POST /tasks/:id/restore → undoes soft delete
+# GET /tasks?deleted=true → ver eliminados (admin only)
+```
+
+### 7.10 Import/export CSV
+
+```yaml
+importConfig:
+  format: csv
+  mapping: { Titulo: title, Estado: status }
+  uniqueKey: title        # si existe, actualizar en vez de duplicar
+  handler: ./import/task-import.handler.ts
+
+exportConfig:
+  format: csv
+  fields: [id, title, status, priority, assigneeId, dueDate]
+  handler: ./export/task-export.handler.ts
+```
+
+- `POST /api/v1/tasks/import` — acepta CSV, valida contra Zod, crea/actualiza
+- `GET /api/v1/tasks/export?format=csv` — genera CSV con los campos especificados
+
+### Diagrama de cobertura actualizado
+
+```mermaid
+graph TD
+    subgraph "✅ Totalmente cubierto"
+        CRUD[CRUD estándar]
+        VAL[Validación Zod]
+        AUTH[Auth + RBAC]
+        ROW[Row-level security]
+        FIELD[Field-level RBAC]
+        HOOK[Lifecycle hooks]
+        EMAIL[Notificaciones email]
+        WEBHOOK_OUT[Webhook saliente]
+        JOB[Jobs programados]
+        WEBHOOK_IN[Webhook entrante HMAC/JWT]
+        DASH1[Dashboards nivel 1]
+        DASH2[Dashboards nivel 2]
+        MIGR[Migration generator]
+        TEST[Test generator]
+        FRONTEND[Frontend admin automático]
+        SIDEBAR[Navbar auto-injection]
+        ERROR[Error tracking + Telegram]
+        TRACE[SpecTrace observabilidad]
+        PLUGIN[Plugin system]
+        FILE_S3[Archivos S3 presigned]
+        FILTER[**Filtros + sorting**]
+        ACTIONS[**Acciones custom**]
+        STATE[**State machine**]
+        INCLUDE[**?include= relations**]
+        AUDIT[**Audit log**]
+        SCHED[**Acciones programadas**]
+        COMPUTED[**Campos computados**]
+        OUT_WEBHOOK[**Webhooks salientes**]
+        RESTORE[**Soft delete restore**]
+        IMPORT_EXPORT[**Import/export CSV**]
+    end
+
+    subgraph "❌ No cubierto"
+        WS[WebSocket / real-time]
+        POLY[Relaciones polimórficas custom]
+        I18N[Traducciones de campos]
+        M2M[Many-to-many directo]
+        O2O[One-to-one directo]
+        TX[Transacciones multi-recurso]
+        GRAPHQL[GraphQL]
+        TENANT[Multi-tenant DB isolation]
+        MW[Custom middleware]
+        CIRCULAR[Refs circulares]
+    end
+```
+
+---
+
+## 8. Comparación con alternativas
 
 | | Foundation + Hygen | Spec Engine | Salesforce | Directus | Hasura |
 |---|---|---|---|---|---|
