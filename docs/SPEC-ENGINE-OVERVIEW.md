@@ -850,10 +850,103 @@ graph LR
 | Multi-tenant DB isolation | — | — | ❌ Require TypeORM tenant config |
 | GraphQL | — | — | ❌ NestJS Resolver nativo |
 
+### Lo que la spec NO cubre (límites reales)
+
+| Escenario | Cubierto | Limitación | Workaround |
+|---|---|---|---|
+| **WebSocket / real-time** | ❌ | El spec engine solo genera HTTP REST controllers. No crea NestJS Gateways. No hay `type: websocket` en FieldType. | Escribir un NestJS Gateway tradicional en `extensions/<name>/` con `@WebSocketGateway()`. La spec define el recurso HTTP; el Gateway es código adicional. |
+| **Relaciones polimórficas** | 🟡 Parcial | El `ref` apunta a un recurso específico (`ref: user`). No existe `ref: [user, client, task]` (polimorfismo). TypeORM EntitySchema no soporta `@ManyToOne` a múltiples targets. | Para archivos: el `FileEntity` de Foundation ya es polimórfico (`entityName` + `entityId` + `context`). El campo `type: file` usa este sistema. Para traducciones: el `TranslationEntity` usa `section` + `key` + `lang`. Para otros casos polimórficos: usar un campo `string` con el nombre de la entidad + un campo `integer` con el ID, validados en un hook. |
+| **Archivos** | ✅ | `type: file` usa `FileEntity` (polimórfica: `entityName` + `entityId`). `FilesS3PresignedService` genera presigned URLs. `ImageProcessingService` optimiza. | Funciona. El FileEntity almacena el tipo de entidad y el ID, cualquier recurso spec-driven puede tener archivos. |
+| **Traducciones (i18n)** | ❌ | No hay `type: translated` en FieldType. El `TranslationEntity` de Foundation usa su propio sistema (section + key + lang). El spec engine no genera endpoints de traducción. | Para campos traducibles: usar un campo `json` con `{ es: "...", en: "..." }` y renderizar el idioma correcto en el frontend. O usar el `TranslationsModule` de Foundation como extensión tradicional. |
+| **Triggers cruzados entre recursos** | 🟡 Parcial | Las notificaciones se disparan por operaciones del MISMO recurso (`trigger.on: afterCreate` en `task`). No puedes disparar una notificación en `client` cuando se crea un `task`. | Usar un `afterCreate` hook en `task` que llame a `ctx.getRepository('client')` y luego `ctx.sendEmail()`. O usar BullMQ para encolar un job que procese el cross-trigger. |
+| **Dependencias circulares entre recursos** | ❌ | Si `task` tiene `ref: project` y `project` tiene `ref: task`, el `EntityFactory` crea ambas relations, pero TypeORM puede tener problemas con circular loading. El `SpecValidator` no detecta ciclos de refs. | Evitar refs circulares. Usar lazy loading (`{ eager: false }` — que es el default). Si necesitas bidireccional, definir solo un lado y usar un hook para cargar el otro. |
+| **Many-to-many** | ❌ | No hay `type: many-to-many` o `type: hasMany`. El `ref` crea many-to-one (FK). Para una relación N:M necesitas una tabla intermedia. | Crear un recurso intermedio: `task-tag` con `ref: task` + `ref: tag`. Es el patrón de tabla pivote como recurso. Funciona pero requiere 2 queries para cargar. |
+| **One-to-one** | ❌ | No hay `type: one-to-one`. | Usar `ref` con `unique: true`. Funciona como un FK 1:1 a nivel de DB, pero la relation se carga como many-to-one. |
+| **Queries con JOIN entre recursos** | 🟡 Parcial | `QuerySpec` no soporta JOINs. Cada query se ejecuta contra un solo recurso. No puedes hacer `SELECT tasks.*, clients.name FROM tasks JOIN clients`. | Para dashboards: hacer queries separadas por recurso y combinar en un transform hook. Para listas: usar un `beforeQuery` hook que añada `relations: ['client']` para que TypeORM cargue la relación. |
+| **Transacciones multi-recurso** | ❌ | No hay `type: transaction`. Si un hook modifica `task` y `client` en la misma operación, no hay transaction. Si `task.save()` falla, `client` ya fue modificado. | Usar TypeORM's `DataSource.transaction()` dentro del hook. El `HookContext` no expone `DataSource` directamente, pero `ctx.getService('ConfigService')` puede acceder al `DataSource` via DI. O restructurar para que cada modificación sea independiente. |
+| **Eventos de cambio de campo** | 🟡 Parcial | `trigger.on: afterUpdate` se dispara en cualquier update. No hay `when: 'status changed from pending to done'`. El `when` evalúa el estado actual, no el anterior. | En el `beforeUpdate` hook, comparar `existing.status` con `data.status`. Si cambió, guardar el valor anterior en `ctx.trace` o en metadata. El `afterUpdate` hook puede leer el trace. |
+| **GraphQL** | ❌ | El spec engine genera REST controllers. No genera GraphQL resolvers. | Escribir NestJS GraphQL resolvers tradicional. O usar el `MetaController` para generar un schema GraphQL desde la metadata (futuro). |
+| **Multi-tenant DB isolation** | ❌ | No hay `type: tenant`. Row-level filter funciona por usuario, no por tenant. No hay aislamiento a nivel de schema. | Usar `rowLevel` con `tenantId == ${user.tenantId}`. Funciona para filtrado pero no para aislamiento de schema. Para aislamiento real: usar TypeORM multi-tenant config. |
+| **Soft delete con cascada** | 🟡 Parcial | `softDelete` en `task` no hace cascada a `task-comment`. Si `task` se soft-deletea, los comments siguen siendo visibles. | En el `afterDelete` hook de `task`, hacer `ctx.getRepository('task-comment').softDelete({ taskId: id })`. |
+| **Validación condicional** | 🟡 Parcial | La validación Zod es estática (definida en la spec). No puedes decir "si priority=urgent, dueDate es required". | En el `beforeCreate` hook, validar condicionalmente y abortar con `ctx.abort()`. El Zod no lo cubre pero el hook sí. |
+| **Custom middleware** | ❌ | No hay `middleware` en la spec. | Escribir NestJS middleware tradicional. La spec no reemplaza NestJS, lo extiende. |
+
+### Diagrama de cobertura
+
+```mermaid
+graph TD
+    subgraph "✅ Totalmente cubierto (declarativo)"
+        CRUD[CRUD estándar]
+        VAL[Validación Zod]
+        AUTH[Auth + RBAC]
+        ROW[Row-level security]
+        FIELD[Field-level RBAC]
+        HOOK[Lifecycle hooks]
+        EMAIL[Notificaciones email]
+        WEBHOOK_OUT[Webhook saliente]
+        JOB[Jobs programados]
+        WEBHOOK_IN[Webhook entrante HMAC/JWT]
+        STAT[Dashboards nivel 1]
+        HYBRID[Dashboards nivel 2]
+        MIGR[Migration generator]
+        TEST[Test generator]
+        FRONTEND[Frontend admin automático]
+        SIDEBAR[Navbar auto-injection]
+        ERROR[Error tracking + Telegram]
+        TRACE[SpecTrace observabilidad]
+        PLUGIN[Plugin system]
+        FILE_S3[Archivos S3 presigned]
+    end
+
+    subgraph "🟡 Parcialmente cubierto (con workaround)"
+        POLY_FILE[Archivos polimórficos<br/>FileEntity ya lo soporta]
+        CROSS[Triggers cruzados<br/>vía hook + ctx.getRepository]
+        COND[Validación condicional<br/>vía beforeCreate hook + ctx.abort]
+        JOIN[JOINs en queries<br/>vía beforeQuery hook relations]
+        EVENT[Eventos de cambio de campo<br/>vía beforeUpdate comparison]
+        CASCADE[Soft delete cascada<br/>vía afterDelete hook]
+        DASH3[Dashboards nivel 3<br/>handler + Vue component]
+    end
+
+    subgraph "❌ No cubierto (escribir NestJS tradicional)"
+        WS[WebSocket / real-time]
+        POLY[Relaciones polimórficas custom]
+        I18N[Traducciones de campos]
+        M2M[Many-to-many directo]
+        O2O[One-to-one directo]
+        TX[Transacciones multi-recurso]
+        GRAPHQL[GraphQL]
+        TENANT[Multi-tenant DB isolation]
+        MW[Custom middleware]
+        CIRCULAR[Refs circulares]
+    end
+
+    FILE_S3 --> POLY_FILE
+    HOOK --> CROSS
+    HOOK --> COND
+    HOOK --> CASCADE
+    HOOK --> EVENT
+    HOOK --> JOIN
+```
+
 ### La regla de oro
 
 > Si la lógica cabe en una función con input/output claro → hook.
 > Si necesitas estado, múltiples servicios interactuando, o WebSocket → extensión tradicional de NestJS.
+
+### ¿Cuándo usar spec engine vs extensión tradicional?
+
+| Usa spec engine | Usa extensión tradicional |
+|---|---|
+| CRUD con validación y permisos | WebSocket / real-time |
+| Notificaciones por email | GraphQL resolvers |
+| Jobs programados | Multi-tenant DB isolation |
+| Webhooks entrantes | Relaciones polimórficas complejas |
+| Dashboards declarativos | Transacciones multi-recurso |
+| Frontend admin automático | Middleware custom |
+| Lógica custom vía hooks | Integraciones con APIs externas complejas |
+
+Ambas coexisten. Puedes tener `extensions/crm/` (tradicional) y `extensions/tasks/` (spec-driven) en la misma app.
 
 ---
 
