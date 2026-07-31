@@ -39,6 +39,8 @@ import { NotificationDispatcher } from './notification-dispatcher';
 import { SpecErrorReporter } from './spec-error-reporter';
 import { SpecJobRunner } from './spec-job-runner';
 import { WebhookControllerFactory } from './webhook-controller-factory';
+import { SpecEngineActionFactory } from './spec-engine-action-factory';
+import { createSpecWebhookSubscriptionSchema } from './spec-engine-scheduled-actions';
 import { SpecEngineBootService } from './spec-engine-boot';
 import { SpecMetaController } from './meta-controller';
 import type { ResourceSpec, HookSpec } from './spec.types';
@@ -175,6 +177,28 @@ export class SpecEngineModule {
               }
             }
           }
+
+          // Create custom action controller (non-CRUD endpoints)
+          if (resource.actions && resource.actions.length > 0) {
+            try {
+              const actionResult = SpecEngineActionFactory.create(
+                resource,
+                resource.name,
+                loaded.dir,
+                process.env.NODE_ENV !== 'production',
+              );
+              if (actionResult) {
+                controllers.push(actionResult.controllerClass);
+                logger.log(
+                  `  ↳ Actions: ${resource.actions.length} endpoint(s) (${resource.actions.map((a) => a.path).join(', ')})`,
+                );
+              }
+            } catch (err) {
+              logger.error(
+                `  ↳ Failed to create actions for "${resource.name}": ${(err as Error).message}`,
+              );
+            }
+          }
         } catch (err) {
           logger.error(
             `❌ Failed to materialize resource "${resource.name}": ${(err as Error).message}`,
@@ -184,6 +208,16 @@ export class SpecEngineModule {
     }
 
     // Phase 5: Register TypeORM with all dynamic entity schemas
+    // If any resource uses dynamic outbound webhooks, register the shared
+    // spec_webhook_subscriptions table schema as well.
+    const hasDynamicWebhooks = loadedSpecs.some((loaded) =>
+      loaded.spec.resources.some(
+        (r) => r.outboundWebhooks?.some((w) => w.subscriptionModel === 'dynamic'),
+      ),
+    );
+    if (hasDynamicWebhooks) {
+      entitySchemas.push(createSpecWebhookSubscriptionSchema());
+    }
     if (entitySchemas.length > 0) {
       imports.push(TypeOrmModule.forFeature(entitySchemas));
     }

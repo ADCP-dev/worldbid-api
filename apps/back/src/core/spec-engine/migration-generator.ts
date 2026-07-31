@@ -99,6 +99,7 @@ const FIELD_TYPE_TO_SQL: Record<FieldType, string> = {
   enum: 'character varying',
   ref: 'integer',
   file: 'character varying',
+  computed: 'integer', // computed fields are not stored, but included for type completeness
 };
 
 /**

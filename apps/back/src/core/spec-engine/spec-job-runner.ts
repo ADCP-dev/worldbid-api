@@ -251,9 +251,26 @@ export class SpecJobProcessor extends WorkerHost {
   /**
    * Process a single job from the queue.
    * BullMQ handles retries automatically if this throws.
+   *
+   * Supports two job shapes:
+   *   - SpecJobData: repeatable spec jobs (cron / interval)
+   *   - ScheduledActionJobData: entity-level delayed scheduled actions
+   *     (identified by presence of `actionName` + `entityId`)
    */
   async process(job: Job<SpecJobData>): Promise<void> {
-    const { resourceName, handler: handlerPath, extensionDir, jobName } = job.data;
+    const data = job.data as any;
+    // Scheduled-action job?
+    if (data && typeof data.actionName === 'string' && typeof data.entityId === 'number') {
+      const { SpecScheduledActionManager } = require('./spec-engine-scheduled-actions');
+      this.logger.log(
+        `Processing scheduled action "${data.actionName}" (id: ${job.id}, entity: ${data.resourceName}#${data.entityId}, attempt: ${job.attemptsMade + 1}/${job.opts.attempts})`,
+      );
+      await SpecScheduledActionManager.execute({ data, logger: this.logger });
+      this.logger.log(`Scheduled action "${data.actionName}" completed successfully`);
+      return;
+    }
+
+    const { resourceName, handler: handlerPath, extensionDir, jobName } = data;
     this.logger.log(`Processing job "${jobName}" (id: ${job.id}, attempt: ${job.attemptsMade + 1}/${job.opts.attempts})`);
 
     const handler = loadJobHandler(extensionDir, handlerPath, this.logger, jobName);

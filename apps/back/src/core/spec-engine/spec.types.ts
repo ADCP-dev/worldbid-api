@@ -21,7 +21,8 @@ export type FieldType =
   | 'json'
   | 'enum'
   | 'ref'
-  | 'file';
+  | 'file'
+  | 'computed';
 
 export interface FieldValidationSpec {
   min?: number;
@@ -56,6 +57,10 @@ export interface FieldSpec {
   index?: boolean;
   validation?: FieldValidationSpec;
   ui?: FieldUISpec;
+  // ─── New features ───
+  compute?: ComputeSpec;
+  stateMachine?: StateMachineSpec;
+  includeable?: boolean;
   // File-specific
   storage?: 'local' | 's3' | 's3-presigned';
   allowedMimes?: string[];
@@ -152,13 +157,117 @@ export interface WebhookSpec {
   handler: string;
 }
 
-// ─── UI Spec ────────────────────────────────────────────────────────────────
+// ─── Outbound Webhook (subscriptions) ───────────────────────────────────────
+
+export interface OutboundWebhookSpec {
+  name: string;
+  events: string[];              // ej: ['task.created', 'task.updated']
+  subscriptionModel: 'static' | 'dynamic';
+  url?: string;                  // static: URL fija. dynamic: via POST subscribe
+  handler?: string;              // optional transform before sending
+}
+
+// ─── Custom Action Spec ────────────────────────────────────────────────────
+
+export interface ActionInputSpec {
+  name: string;
+  type: FieldType;
+  required?: boolean;
+  ref?: string;
+}
+
+export interface ActionSpec {
+  name: string;
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  path: string;                   // ej: ':id/assign' or 'bulk/assign'
+  auth?: PermissionRole[];        // default: resource create permissions
+  input?: ActionInputSpec[];
+  handler: string;                // path to handler, relative to spec
+  ui?: {
+    label?: string;
+    icon?: string;
+    buttonLocation?: 'row' | 'bulk' | 'header';
+    confirm?: string;             // confirm dialog message
+  };
+}
+
+// ─── State Machine Spec ────────────────────────────────────────────────────
+
+export interface StateTransitionSpec {
+  from: string;
+  to: string;
+  roles?: PermissionRole[];
+}
+
+export interface StateMachineSpec {
+  transitions: StateTransitionSpec[];
+  ui?: {
+    showTransitionButtons?: boolean;
+  };
+}
+
+// ─── Audit Spec ────────────────────────────────────────────────────────────
+
+export interface AuditSpec {
+  operations?: ('create' | 'update' | 'delete')[];
+  fields?: string[];              // only audit these fields (default: all)
+  exclude?: string[];             // don't audit these fields
+}
+
+// ─── Scheduled Action Spec (entity-level) ─────────────────────────────────
+
+export interface ScheduledActionSpec {
+  name: string;
+  trigger: string;                // field name (ej: 'dueDate')
+  offset: string;                 // ej: '-3d', '+1h', '+7d'
+  handler: string;                // path to handler
+  cancelOnUpdate?: boolean;       // reprogram if entity changes
+}
+
+// ─── Computed Field Spec ──────────────────────────────────────────────────
+
+export interface ComputeSpec {
+  type: 'count' | 'expression' | 'template';
+  relation?: string;              // for count: related resource name
+  foreignKey?: string;            // for count: FK field in related resource
+  expression?: string;            // for expression: 'dueDate != null && dueDate < now()'
+  template?: string;              // for template: '${firstName} ${lastName}'
+}
+
+// ─── Import/Export Spec ────────────────────────────────────────────────────
+
+export interface ImportSpec {
+  format: 'csv' | 'json';
+  mapping?: Record<string, string>;
+  uniqueKey?: string;             // if exists, update instead of duplicate
+  handler?: string;
+}
+
+export interface ExportSpec {
+  format: 'csv' | 'json';
+  fields?: string[];
+  handler?: string;
+}
+
+// ─── UI Spec additions ─────────────────────────────────────────────────────
 
 export interface SidebarItemSpec {
   title: string;
   icon: string;
   link: string;
   roles?: PermissionRole[];
+}
+
+export interface FieldUISpec {
+  display?: 'text' | 'badge' | 'date' | 'avatar' | 'truncate' | 'icon' | 'link';
+  formInput?: 'text' | 'textarea' | 'select' | 'datepicker' | 'file-upload' | 'select-async';
+  link?: boolean;
+  colors?: Record<string, string>;
+  truncateLength?: number;
+  labelField?: string;
+  filterable?: boolean;
+  sortable?: boolean;
+  filterType?: 'text' | 'select' | 'dateRange' | 'boolean';
 }
 
 export interface ResourceUISpec {
@@ -189,6 +298,13 @@ export interface ResourceSpec {
   webhooks?: WebhookSpec[];
   seeds?: Record<string, unknown>[];
   ui?: ResourceUISpec;
+  // ─── New features ───
+  actions?: ActionSpec[];
+  audit?: AuditSpec | boolean;
+  scheduledActions?: ScheduledActionSpec[];
+  outboundWebhooks?: OutboundWebhookSpec[];
+  importConfig?: ImportSpec;
+  exportConfig?: ExportSpec;
 }
 
 // ─── View / Dashboard Spec ──────────────────────────────────────────────────

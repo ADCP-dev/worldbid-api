@@ -35,7 +35,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { Repository, FindManyOptions } from 'typeorm';
+import { Repository, FindManyOptions, FindOneOptions } from 'typeorm';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { z } from 'zod';
 import type { Request, Response } from 'express';
@@ -49,6 +49,7 @@ import type {
   PermissionRole,
   HookContext,
   AuthenticatedUser,
+  FieldSpec,
 } from './spec.types';
 import { HookAbortError } from './spec.types';
 import { ValidationFactory } from './validation-factory';
@@ -57,6 +58,11 @@ import { HookExecutor, LoadedHook } from './hook-executor';
 import { NotificationDispatcher } from './notification-dispatcher';
 import { HookContextImpl } from './hook-context';
 import { SpecEngineBootService } from './spec-engine-boot';
+import { StateMachineValidator } from './spec-engine-state-machine';
+import { SpecAuditLogger } from './spec-engine-audit';
+import { ComputedFieldResolver } from './spec-engine-computed';
+import { OutboundWebhookDispatcher } from './spec-engine-outbound-webhooks';
+import { SpecScheduledActionManager } from './spec-engine-scheduled-actions';
 
 // Role name → RoleEnum value map
 const ROLE_MAP: Record<PermissionRole, number | null> = {
@@ -276,6 +282,9 @@ export class ControllerFactory {
       async findAll(
         @Query('page') page?: string,
         @Query('limit') limit?: string,
+        @Query('sort') sortParam?: string,
+        @Query('include') includeParam?: string,
+        @Query() query?: Record<string, unknown>,
         @Req() req?: Request,
         @Res({ passthrough: true }) res?: Response,
       ) {
@@ -290,16 +299,33 @@ export class ControllerFactory {
         const limitNum = limit && Number.isFinite(Number(limit)) ? Math.max(1, Math.min(100, Math.floor(Number(limit)))) : 20;
         const skip = (pageNum - 1) * limitNum;
 
-        const where = this.applyRowLevelFilter(user, {});
+        // Row-level filter first
+        const rowWhere = this.applyRowLevelFilter(user, {});
+        // Apply user-supplied filters AFTER row-level filter (defense-in-depth)
+        const parsedFilters = query ? ControllerFactory.parseFilters(query, spec) : {};
+        const where = { ...rowWhere, ...parsedFilters };
+
+        // Sorting — defaults to id DESC if nothing valid specified
+        const parsedSort = sortParam ? ControllerFactory.parseSort(sortParam, spec) : {};
+        const order = Object.keys(parsedSort).length > 0 ? parsedSort : { id: 'DESC' as const };
+
+        // Includes — validated against includeable fields
+        const relations = includeParam ? ControllerFactory.parseIncludes(includeParam, spec) : [];
 
         // beforeQuery hook — allows complex query modification (joins, extra WHERE, relations)
         let queryOptions: FindManyOptions = {
           skip,
           take: limitNum,
           where,
-          order: { id: 'DESC' as any },
+          order: order as any,
           withDeleted: false,
         };
+        if (relations.length > 0) {
+          queryOptions.relations = relations.reduce(
+            (acc, name) => ({ ...acc, [name]: true }),
+            {} as Record<string, boolean>,
+          );
+        }
 
         if (allHooks.beforeQuery) {
           trace.startStage('beforeHook');
@@ -342,6 +368,7 @@ export class ControllerFactory {
       @Roles(...readRoles)
       async findOne(
         @Param('id') id: string,
+        @Query('include') includeParam?: string,
         @Req() req?: Request,
         @Res({ passthrough: true }) res?: Response,
       ) {
@@ -357,7 +384,16 @@ export class ControllerFactory {
 
         trace.startStage('db');
         const where = this.applyRowLevelFilter(user, { id: Number(id) });
-        const entity = await this.repository.findOne({ where });
+        // Includes — validated against includeable fields
+        const relations = includeParam ? ControllerFactory.parseIncludes(includeParam, spec) : [];
+        const findOneOpts: FindOneOptions = { where };
+        if (relations.length > 0) {
+          (findOneOpts as any).relations = relations.reduce(
+            (acc, name) => ({ ...acc, [name]: true }),
+            {} as Record<string, boolean>,
+          );
+        }
+        const entity = await this.repository.findOne(findOneOpts);
         trace.endStage('db', 'pass', { operation: 'SELECT', table: spec.table, found: !!entity });
 
         if (!entity) {
@@ -372,7 +408,24 @@ export class ControllerFactory {
         trace.skipStage('notifications', 'not applicable to read');
 
         trace.startStage('response');
-        const sanitized = this.applyFieldReadPerms(entity, user);
+        // Resolve computed fields before applying read permissions, so
+        // computed values appear in the read response and are subject to
+        // field-level read RBAC like any stored field.
+        let entityForResponse: Record<string, unknown> = entity;
+        if (spec.fields.some((f) => f.type === 'computed')) {
+          const ctx = this.buildContext(user, 'read', trace);
+          entityForResponse = await ComputedFieldResolver.resolve(
+            entity,
+            spec,
+            ctx,
+          ).catch((err: unknown) => {
+            this.logger.debug(
+              `Computed field resolution failed for ${resourceName}#${id}: ${(err as Error).message}`,
+            );
+            return entity as Record<string, unknown>;
+          });
+        }
+        const sanitized = this.applyFieldReadPerms(entityForResponse, user);
         trace.endStage('response', 'pass');
 
         trace.finish();
@@ -448,6 +501,9 @@ export class ControllerFactory {
         } else {
           trace.skipStage('afterHook', 'no afterCreate hook defined');
         }
+
+        // Outbound webhooks + scheduled actions (fire-and-forget)
+        this.afterEntityCreate(saved, spec, user, trace);
 
         // Stage 6: Notifications
         if (notifications.length > 0) {
@@ -537,6 +593,27 @@ export class ControllerFactory {
           this.attachTrace(res, trace);
           throw new NotFoundException(`${displayName} with ID ${id} not found`);
         }
+
+        // State machine validation — if any field being updated has a
+        // stateMachine, validate the transition from the current value to
+        // the new value before mutating the database.
+        const roleName = user ? this.roleIdToName(user.role?.id) : '__denied__';
+        for (const f of spec.fields) {
+          if (!f.stateMachine) continue;
+          const newValue = data[f.name];
+          if (newValue === undefined) continue;
+          const from = String(existing[f.name]);
+          const to = String(newValue);
+          if (from === to) continue; // no transition requested
+          const outcome = StateMachineValidator.validateTransition(spec, f, from, to, roleName);
+          if (!outcome.valid) {
+            trace.endStage('db', 'fail', { error: outcome.error });
+            trace.finish();
+            this.attachTrace(res, trace);
+            throw new BadRequestException(outcome.error);
+          }
+        }
+
         // Use partial update instead of full save to avoid race condition
         // Only update the fields present in validated data (not full row)
         let saved: any;
@@ -558,6 +635,14 @@ export class ControllerFactory {
           throw err;
         }
 
+        // Audit log — if spec.audit is enabled, compare old vs new values for
+        // changed fields and write one audit row per changed field. Fire-and-
+        // forget: never awaited, never throws. Only fields allowed by
+        // AuditSpec.fields / AuditSpec.exclude are audited.
+        this.maybeAudit(existing, data, spec, user).catch((err: unknown) => {
+          this.logger.debug(`Audit log error swallowed: ${(err as Error).message}`);
+        });
+
         // Stage 5: After hook
         if (allHooks.afterUpdate) {
           trace.startStage('afterHook');
@@ -566,6 +651,9 @@ export class ControllerFactory {
         } else {
           trace.skipStage('afterHook', 'no afterUpdate hook defined');
         }
+
+        // Outbound webhooks + reschedule scheduled actions (fire-and-forget)
+        this.afterEntityUpdate(saved, spec, user, trace);
 
         // Stage 6: Notifications
         if (notifications.length > 0) {
@@ -587,7 +675,26 @@ export class ControllerFactory {
 
         // Stage 7: Response
         trace.startStage('response');
-        const sanitized = this.applyFieldReadPerms(saved, user);
+        // Resolve computed fields before field-level read permissions are
+        // applied so that computed values are included in the response and
+        // can be filtered by read perms just like stored fields. Awaited but
+        // errors are caught so a computed-field failure never breaks the
+        // response (the resolver itself also guards per-field).
+        let entityForResponse: Record<string, unknown> = saved;
+        if (spec.fields.some((f) => f.type === 'computed')) {
+          const ctx = this.buildContext(user, 'update', trace);
+          entityForResponse = await ComputedFieldResolver.resolve(
+            saved,
+            spec,
+            ctx,
+          ).catch((err: unknown) => {
+            this.logger.debug(
+              `Computed field resolution failed for ${resourceName}#${numericId}: ${(err as Error).message}`,
+            );
+            return saved as Record<string, unknown>;
+          });
+        }
+        const sanitized = this.applyFieldReadPerms(entityForResponse, user);
         trace.endStage('response', 'pass');
 
         trace.finish();
@@ -650,6 +757,9 @@ export class ControllerFactory {
           trace.skipStage('afterHook', 'no afterDelete hook defined');
         }
 
+        // Outbound webhooks (fire-and-forget)
+        this.afterEntityDelete(entity as Record<string, unknown>, spec, user, trace);
+
         // Notifications
         if (notifications.length > 0) {
           trace.startStage('notifications');
@@ -702,6 +812,173 @@ export class ControllerFactory {
         }
       }
 
+      // ─── Helper: audit log changed fields ─────────────────
+      /**
+       * If spec.audit is enabled, compare old vs new values for the fields
+       * present in `newValues` and write one audit row per changed field via
+       * SpecAuditLogger. Respects AuditSpec.fields (allow-list) and
+       * AuditSpec.exclude (deny-list). Fire-and-forget at the call site.
+       */
+      private async maybeAudit(
+        existing: Record<string, unknown>,
+        newValues: Record<string, unknown>,
+        spec: ResourceSpec,
+        user: AuthenticatedUser | null,
+      ): Promise<void> {
+        if (!spec.audit) return;
+
+        // Resolve the audit logger lazily from the DI container via the
+        // boot service's ModuleRef. If it isn't available, silently bail.
+        let auditLogger: SpecAuditLogger | null = null;
+        try {
+          const moduleRef = SpecEngineBootService.getModuleRef();
+          auditLogger = moduleRef.get(SpecAuditLogger, { strict: false });
+        } catch {
+          return; // SpecAuditLogger not registered — auditing disabled.
+        }
+        if (!auditLogger) return;
+
+        // Determine which fields to audit.
+        const auditSpec = spec.audit === true ? {} : spec.audit;
+        const allowedFields = auditSpec.fields ? new Set(auditSpec.fields) : null;
+        const excludeFields = auditSpec.exclude ? new Set(auditSpec.exclude) : new Set<string>();
+
+        const entityId = Number((existing as any).id);
+        const userId = user ? user.id : null;
+
+        for (const [field, newValue] of Object.entries(newValues)) {
+          // Skip fields not in the allow-list (if defined).
+          if (allowedFields && !allowedFields.has(field)) continue;
+          // Skip excluded fields.
+          if (excludeFields.has(field)) continue;
+          // Skip 'id' — it never changes on update.
+          if (field === 'id') continue;
+
+          const oldValue = (existing as any)[field];
+          // Only audit fields that actually changed.
+          if (this.valuesEqual(oldValue, newValue)) continue;
+
+          auditLogger
+            .log({
+              resource: resourceName,
+              entityId,
+              operation: 'update',
+              field,
+              oldValue,
+              newValue,
+              userId,
+            })
+            .catch((err: unknown) => {
+              this.logger.debug(
+                `Audit log write failed for ${resourceName}#${entityId}/${field}: ${(err as Error).message}`,
+              );
+            });
+        }
+      }
+
+      /**
+       * Loose equality for audit comparison — mirrors the semantics used by
+       * the notification `when` parser (null/undefined treated as equal,
+       * everything else stringified for comparison).
+       */
+      private valuesEqual(a: unknown, b: unknown): boolean {
+        if (a == null && b == null) return true;
+        if (a == null || b == null) return false;
+        return String(a) === String(b);
+      }
+
+      // ─── Helper: outbound webhooks + scheduled actions ─────────────────
+      /**
+       * Fire outbound webhooks for an entity event, and schedule any
+       * entity-level scheduled actions. Fire-and-forget: never throws.
+       */
+      private async dispatchOutboundAndScheduled(
+        event: string,
+        entity: Record<string, unknown>,
+        spec: ResourceSpec,
+        user: AuthenticatedUser | null,
+        trace: TraceBuilder,
+        scheduleActions: boolean,
+      ): Promise<void> {
+        const ctx = this.buildContext(user, event, trace);
+        // Outbound webhooks
+        if (spec.outboundWebhooks && spec.outboundWebhooks.length > 0) {
+          OutboundWebhookDispatcher.dispatch({
+            webhooks: spec.outboundWebhooks,
+            event,
+            entity,
+            ctx,
+          }).catch((err: unknown) => {
+            this.logger.debug(
+              `Outbound webhook dispatch error swallowed: ${(err as Error).message}`,
+            );
+          });
+        }
+        // Scheduled actions (entity-level delayed jobs)
+        if (scheduleActions && spec.scheduledActions && spec.scheduledActions.length > 0) {
+          for (const action of spec.scheduledActions) {
+            SpecScheduledActionManager.schedule({
+              entity,
+              spec,
+              action,
+              ctx,
+            }).catch((err: unknown) => {
+              this.logger.debug(
+                `Scheduled action "${action.name}" error swallowed: ${(err as Error).message}`,
+              );
+            });
+          }
+        }
+      }
+
+      private afterEntityCreate(
+        entity: Record<string, unknown>,
+        spec: ResourceSpec,
+        user: AuthenticatedUser | null,
+        trace: TraceBuilder,
+      ): void {
+        void this.dispatchOutboundAndScheduled(
+          `${spec.name}.created`,
+          entity,
+          spec,
+          user,
+          trace,
+          true,
+        );
+      }
+
+      private afterEntityUpdate(
+        entity: Record<string, unknown>,
+        spec: ResourceSpec,
+        user: AuthenticatedUser | null,
+        trace: TraceBuilder,
+      ): void {
+        void this.dispatchOutboundAndScheduled(
+          `${spec.name}.updated`,
+          entity,
+          spec,
+          user,
+          trace,
+          true,
+        );
+      }
+
+      private afterEntityDelete(
+        entity: Record<string, unknown>,
+        spec: ResourceSpec,
+        user: AuthenticatedUser | null,
+        trace: TraceBuilder,
+      ): void {
+        void this.dispatchOutboundAndScheduled(
+          `${spec.name}.deleted`,
+          entity,
+          spec,
+          user,
+          trace,
+          false,
+        );
+      }
+
       // ─── Helper: attach trace to response ───────────────
       private attachTrace(res: Response | undefined, trace: TraceBuilder): void {
         if (!res || !trace.isActive()) return;
@@ -722,6 +999,112 @@ export class ControllerFactory {
       controllerClass: SpecDynamicController,
       entitySchemaName,
     };
+  }
+
+  /**
+   * Parse `?filter[field]=value` query params into a TypeORM `where` fragment.
+   *
+   * Only fields whose `ui.filterable` is true are accepted; unknown filter
+   * field names are silently ignored (defense-in-depth against SQL injection,
+   * since field names are never interpolated into raw SQL).
+   *
+   * A comma-separated value (e.g. `?status=open,closed`) becomes an `In (...)`
+   * clause via TypeORM's FindOperator.
+   */
+  private static parseFilters(
+    query: Record<string, unknown>,
+    spec: ResourceSpec,
+  ): Record<string, unknown> {
+    const filterParam = query['filter'];
+    if (!filterParam || typeof filterParam !== 'object') return {};
+
+    const filters = filterParam as Record<string, string>;
+    const filterable = new Set(
+      spec.fields.filter((f) => f.ui?.filterable).map((f) => f.name),
+    );
+
+    const result: Record<string, unknown> = {};
+    for (const [field, value] of Object.entries(filters)) {
+      if (!filterable.has(field)) continue;
+      if (typeof value !== 'string' || value.length === 0) continue;
+      const parts = value.split(',').map((v) => v.trim()).filter(Boolean);
+      if (parts.length === 0) continue;
+      if (parts.length === 1) {
+        result[field] = parts[0];
+      } else {
+        // Use a simple In operator via TypeORM FindOperator
+        const { In } = require('typeorm');
+        result[field] = In(parts);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Parse `?sort=-field1,field2` into a TypeORM `order` fragment.
+   *
+   * Only fields whose `ui.sortable` is true can be sorted. A `-` prefix
+   * means DESC, otherwise ASC. Unknown field names are ignored.
+   */
+  private static parseSort(
+    sortParam: string,
+    spec: ResourceSpec,
+  ): Record<string, 'ASC' | 'DESC'> {
+    if (!sortParam || typeof sortParam !== 'string') return {};
+    const sortable = new Set(
+      spec.fields.filter((f) => f.ui?.sortable).map((f) => f.name),
+    );
+    const result: Record<string, 'ASC' | 'DESC'> = {};
+    for (const raw of sortParam.split(',')) {
+      const token = raw.trim();
+      if (!token) continue;
+      const desc = token.startsWith('-');
+      const field = desc ? token.slice(1) : token;
+      if (!sortable.has(field)) continue;
+      result[field] = desc ? 'DESC' : 'ASC';
+    }
+    return result;
+  }
+
+  /**
+   * Parse `?include=assignee,comments` into a list of relation names to load.
+   *
+   * Only relations for fields with `includeable: true` can be included.
+   * The relation name is derived from the field name by stripping a trailing
+   * `Id` suffix (e.g. `assigneeId` → `assignee`), mirroring loadForNotifications.
+   */
+  private static parseIncludes(
+    includeParam: string,
+    spec: ResourceSpec,
+  ): string[] {
+    if (!includeParam || typeof includeParam !== 'string') return [];
+    const includeable = spec.fields.filter((f) => f.includeable);
+    // Build a lookup from both the raw field name and the relation name
+    // (field name without trailing `Id`) so callers can request either form.
+    const allowed = new Set<string>();
+    for (const f of includeable) {
+      allowed.add(f.name);
+      const rel = f.name.replace(/Id$/, '');
+      if (rel !== f.name) allowed.add(rel);
+    }
+    const result: string[] = [];
+    for (const raw of includeParam.split(',')) {
+      const token = raw.trim();
+      if (!token) continue;
+      if (!allowed.has(token)) continue;
+      // Always use the relation name (without `Id`) for TypeORM
+      result.push(token.replace(/Id$/, ''));
+    }
+    // De-duplicate while preserving order without relying on Set iteration
+    const seen = new Set<string>();
+    const unique: string[] = [];
+    for (const r of result) {
+      if (!seen.has(r)) {
+        seen.add(r);
+        unique.push(r);
+      }
+    }
+    return unique;
   }
 
   /**
