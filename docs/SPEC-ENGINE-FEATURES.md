@@ -1,6 +1,6 @@
 # Spec Engine — 10 Features Avanzadas
 
-> Las 10 features que llevan el spec engine de "demo interesante" a "producto real".
+> Las 10+ features que llevan el spec engine de "demo interesante" a "producto real".
 
 ---
 
@@ -257,12 +257,70 @@ exportConfig:
 - `POST /api/v1/tasks/import` — acepta CSV, valida, crea/actualiza
 - `GET /api/v1/tasks/export?format=csv` — genera CSV
 
+## 11. Transacciones multi-recurso
+
+Cada operación create/update/delete corre dentro de una transacción TypeORM por defecto (`transactional: true` en `ResourceSpec`). Hooks pueden abrir transacciones explícitas con `ctx.transaction()` para coordinar escrituras en múltiples recursos.
+
+```yaml
+resources:
+  - name: invoice
+    table: ext_invoicing_invoice
+    transactional: true
+```
+
+```typescript
+export default async function beforeCreate(data, ctx) {
+  const invoice = await ctx.transaction(async (txCtx) => {
+    const invRepo = txCtx.getRepository('invoice');
+    const logRepo = txCtx.getRepository('invoice-log');
+    const saved = await invRepo.save(data);
+    await logRepo.save({ invoiceId: saved.id, action: 'created' });
+    return saved;
+  });
+  data.id = invoice.id;
+  return { data, proceed: true };
+}
+```
+
+Notificaciones, webhooks salientes y scheduled actions se disparan siempre fuera de la transacción.
+
+## 12. Many-to-many declarativo
+
+Campo `type: many-to-many` que genera automáticamente una tabla intermedia con PK compuesta y expone endpoints de relación.
+
+```yaml
+fields:
+  - name: tags
+    type: many-to-many
+    ref: tag
+    joinTable: ext_demo_project_tags
+    throughFields: { from: projectId, to: tagId }
+```
+
+Endpoints materializados (ejemplo para `project.tags`):
+
+| Método | Ruta | Acción |
+|---|---|---|
+| GET    | `/projects/:id/tags` | Listar IDs vinculados |
+| POST   | `/projects/:id/tags` | Vincular IDs |
+| DELETE | `/projects/:id/tags/:relatedId` | Desvincular uno |
+| PUT    | `/projects/:id/tags` | Reemplazar set completo |
+
+Validación: `z.array(z.number().int().positive())`. La migración genera la tabla intermedia automáticamente.
+
 ---
 
 ## Archivos creados
 
 | Archivo | Feature | Líneas |
 |---|---|---|
+| `hook-context.ts` | HookContext transactions + getRepository con manager | 228 |
+| `controller-factory.ts` | Transaction wrapper + many-to-many sync | ~1377 |
+| `entity-factory.ts` | Many-to-many EntitySchema + join table | 289 |
+| `validation-factory.ts` | Many-to-many Zod schema | 138 |
+| `spec-validator.ts` | Validación de many-to-many, computed, beforeQuery | 558 |
+| `migration-generator.ts` | Join table CREATE TABLE | 797 |
+| `__tests__/spec-engine.spec.ts` | 12 tests (transactions + M:N) | 365 |
 | `spec-engine-state-machine.ts` | State machine | 50 |
 | `spec-engine-audit.ts` | Audit log | 260 |
 | `spec-engine-computed.ts` | Computed fields | 330 |
@@ -278,6 +336,8 @@ exportConfig:
 compute?: ComputeSpec;          // campos computados
 stateMachine?: StateMachineSpec; // transiciones de estado
 includeable?: boolean;          // ?include= relations
+joinTable?: string;             // many-to-many join table name
+throughFields?: { from: string; to: string }; // many-to-many column names
 
 // Nuevos en FieldUISpec
 filterable?: boolean;
@@ -291,7 +351,8 @@ scheduledActions?: ScheduledActionSpec[];
 outboundWebhooks?: OutboundWebhookSpec[];
 importConfig?: ImportSpec;
 exportConfig?: ExportSpec;
+transactional?: boolean;      // default true
 
 // Nuevos en FieldType
-'computed'
+'computed' | 'many-to-many'
 ```

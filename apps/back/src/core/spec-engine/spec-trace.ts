@@ -38,7 +38,14 @@ export class TraceBuilder implements TraceWriter {
 
   constructor(
     resource: string,
-    operation: 'create' | 'read' | 'update' | 'delete' | 'list' | 'webhook' | 'job',
+    operation:
+      | 'create'
+      | 'read'
+      | 'update'
+      | 'delete'
+      | 'list'
+      | 'webhook'
+      | 'job',
     user: { id: number; role: string } | null,
     private readonly logger: Logger,
     isDev: boolean,
@@ -118,7 +125,9 @@ export class TraceBuilder implements TraceWriter {
     if (!this._active) return;
 
     // Find the last stage matching this name, or add a meta entry
-    const existing = [...this.trace.stages].reverse().find((s) => s.stage === stage);
+    const existing = [...this.trace.stages]
+      .reverse()
+      .find((s) => s.stage === stage);
     if (existing) {
       existing.meta = { ...existing.meta, ...meta };
     } else {
@@ -188,9 +197,12 @@ export class TraceBuilder implements TraceWriter {
   print(logger: Logger): void {
     const statusIcon = (s: TraceStageStatus) => {
       switch (s) {
-        case 'pass': return '✅';
-        case 'fail': return '❌';
-        case 'skip': return '⏭️';
+        case 'pass':
+          return '✅';
+        case 'fail':
+          return '❌';
+        case 'skip':
+          return '⏭️';
       }
     };
 
@@ -202,15 +214,20 @@ export class TraceBuilder implements TraceWriter {
       const num = `[${i + 1}]`;
       const icon = statusIcon(s.status);
       const dur = `${s.durationMs}ms`;
-      logger.log(`${num.padEnd(5)} ${s.stage.padEnd(14)} ${icon}  ${dur.padStart(5)}`);
+      logger.log(
+        `${num.padEnd(5)} ${s.stage.padEnd(14)} ${icon}  ${dur.padStart(5)}`,
+      );
 
       if (s.meta) {
         const metaStr = Object.entries(s.meta)
           .map(([k, v]) => {
             if (k === 'reason') return `  └─ ${k}: ${v}`;
-            if (k === 'modified' && Array.isArray(v)) return `  └─ modified: ${(v as string[]).join(', ')}`;
-            if (k === 'fired' && Array.isArray(v)) return `  └─ fired: ${(v as any[]).map((f) => f.name).join(', ')}`;
-            if (k === 'skipped' && Array.isArray(v)) return `  └─ skipped: ${(v as any[]).map((f) => f.name).join(', ')}`;
+            if (k === 'modified' && Array.isArray(v))
+              return `  └─ modified: ${(v as string[]).join(', ')}`;
+            if (k === 'fired' && Array.isArray(v))
+              return `  └─ fired: ${(v as any[]).map((f) => f.name).join(', ')}`;
+            if (k === 'skipped' && Array.isArray(v))
+              return `  └─ skipped: ${(v as any[]).map((f) => f.name).join(', ')}`;
             return `  └─ ${k}: ${JSON.stringify(v)}`;
           })
           .join('\n');
@@ -242,9 +259,15 @@ export class TraceBuilder implements TraceWriter {
       const obj = data as Record<string, unknown>;
       const sanitized: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(obj)) {
-        if (key.toLowerCase() === 'authorization' || key.toLowerCase() === 'password') {
+        if (
+          key.toLowerCase() === 'authorization' ||
+          key.toLowerCase() === 'password'
+        ) {
           sanitized[key] = '***';
-        } else if (key.toLowerCase() === 'headers' && typeof value === 'object') {
+        } else if (
+          key.toLowerCase() === 'headers' &&
+          typeof value === 'object'
+        ) {
           sanitized[key] = '***';
         } else {
           sanitized[key] = this.sanitize(value);

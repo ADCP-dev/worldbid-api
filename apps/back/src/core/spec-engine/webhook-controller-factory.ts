@@ -147,7 +147,9 @@ export class WebhookControllerFactory {
         // Invoke the handler
         try {
           await this.handler(body, ctx);
-          this.logger.log(`Webhook '${this.webhookName}' processed successfully`);
+          this.logger.log(
+            `Webhook '${this.webhookName}' processed successfully`,
+          );
           return { status: 'ok' };
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
@@ -177,9 +179,7 @@ export class WebhookControllerFactory {
           this.logger.error(
             `No WEBHOOK_HMAC_SECRET configured for webhook '${this.webhookName}'`,
           );
-          throw new InternalServerErrorException(
-            'HMAC secret not configured',
-          );
+          throw new InternalServerErrorException('HMAC secret not configured');
         }
 
         const rawBody: Buffer | string =
@@ -260,20 +260,24 @@ export class WebhookControllerFactory {
       // Path containment check
       const normalizedDir = path.resolve(extensionDir) + path.sep;
       if (!handlerFilePath.startsWith(normalizedDir)) {
-        this.logger.warn(`⚠️  Webhook handler "${spec.handler}" escapes extension directory`);
-        return { handler: null, handlerError: 'Handler path escapes extension directory' };
+        this.logger.warn(
+          `⚠️  Webhook handler "${spec.handler}" escapes extension directory`,
+        );
+        return {
+          handler: null,
+          handlerError: 'Handler path escapes extension directory',
+        };
       }
       // In production, .ts → .js
-      const requirePath = process.env.NODE_ENV === 'production'
-        ? handlerFilePath.replace(/\.ts$/, '.js')
-        : handlerFilePath;
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const requirePath =
+        process.env.NODE_ENV === 'production'
+          ? handlerFilePath.replace(/\.ts$/, '.js')
+          : handlerFilePath;
+
       const mod = require(requirePath);
 
       const handlerFn: unknown =
-        mod && typeof mod === 'object' && 'default' in mod
-          ? mod.default
-          : mod;
+        mod && typeof mod === 'object' && 'default' in mod ? mod.default : mod;
 
       if (typeof handlerFn !== 'function') {
         const msg = `Handler file "${spec.handler}" does not export a function`;

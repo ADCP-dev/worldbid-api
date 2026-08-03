@@ -12,16 +12,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { Logger } from '@nestjs/common';
-import type {
-  ExtensionSpec,
-  ResourceSpec,
-  FieldSpec,
-  PermissionRole,
-  LoadedSpec,
-} from './spec.types';
-
-const logger = new Logger('SpecValidator');
+import type { ResourceSpec, PermissionRole, LoadedSpec } from './spec.types';
 
 export interface ValidationError {
   level?: 'error' | 'warning';
@@ -38,8 +29,19 @@ export interface ValidationResult {
 }
 
 const VALID_FIELD_TYPES = [
-  'string', 'text', 'integer', 'decimal', 'boolean',
-  'datetime', 'date', 'json', 'enum', 'ref', 'file',
+  'string',
+  'text',
+  'integer',
+  'decimal',
+  'boolean',
+  'datetime',
+  'date',
+  'json',
+  'enum',
+  'ref',
+  'file',
+  'computed',
+  'many-to-many',
 ];
 
 // Built-in roles are always valid. Custom roles are collected from
@@ -49,9 +51,13 @@ const BUILTIN_ROLES: string[] = ['admin', 'user', 'public'];
 const VALID_REF_ON_DELETE = ['CASCADE', 'SET NULL', 'RESTRICT'];
 
 const VALID_HOOK_TYPES = [
-  'beforeCreate', 'afterCreate',
-  'beforeUpdate', 'afterUpdate',
-  'beforeDelete', 'afterDelete',
+  'beforeCreate',
+  'afterCreate',
+  'beforeUpdate',
+  'afterUpdate',
+  'beforeDelete',
+  'afterDelete',
+  'beforeQuery',
 ];
 
 const VALID_CHANNELS = ['email', 'webhook', 'sms'];
@@ -71,16 +77,23 @@ export class SpecValidator {
     const warnings: ValidationError[] = [];
 
     // Build resource registry for cross-ref checks
-    const resourceMap = new Map<string, { spec: ResourceSpec; loaded: LoadedSpec }>();
+    const resourceMap = new Map<
+      string,
+      { spec: ResourceSpec; loaded: LoadedSpec }
+    >();
     const tableMap = new Map<string, string>(); // table → resource name
 
     for (const loaded of loadedSpecs) {
       // Validate extension-level
       if (!loaded.spec.name) {
-        errors.push({ message: `Extension at ${loaded.specPath} missing name` });
+        errors.push({
+          message: `Extension at ${loaded.specPath} missing name`,
+        });
       }
       if (!loaded.spec.version) {
-        warnings.push({ message: `Extension "${loaded.spec.name}" missing version` });
+        warnings.push({
+          message: `Extension "${loaded.spec.name}" missing version`,
+        });
       }
       if (!loaded.spec.resources || loaded.spec.resources.length === 0) {
         errors.push({
@@ -112,7 +125,7 @@ export class SpecValidator {
     }
 
     // Validate each resource
-    for (const [name, { spec, loaded }] of Array.from(resourceMap)) {
+    for (const [, { spec, loaded }] of Array.from(resourceMap)) {
       const result = this.validateResource(spec, resourceMap, loaded.dir);
       errors.push(...result.errors);
       warnings.push(...result.warnings);
@@ -202,28 +215,64 @@ export class SpecValidator {
       }
 
       // Ref validation
-      if (field.type === 'ref') {
+      if (field.type === 'ref' || field.type === 'many-to-many') {
         if (!field.ref) {
           errors.push({
             resource: spec.name,
             field: field.name,
-            message: 'Ref field has no ref target',
+            message: `${field.type} field has no ref target`,
             suggestion: 'Add: ref: <resource-name>',
           });
-        } else if (allResources && !allResources.has(field.ref) && field.ref !== 'user') {
+        } else if (
+          allResources &&
+          !allResources.has(field.ref) &&
+          field.ref !== 'user'
+        ) {
           // 'user' is a built-in Foundation entity
           warnings.push({
             resource: spec.name,
             field: field.name,
-            message: `Ref target "${field.ref}" not found in specs (may be a Foundation entity)`,
+            message: `${field.type} target "${field.ref}" not found in specs (may be a Foundation entity)`,
           });
         }
-        if (field.refOnDelete && !VALID_REF_ON_DELETE.includes(field.refOnDelete)) {
+        if (
+          field.refOnDelete &&
+          !VALID_REF_ON_DELETE.includes(field.refOnDelete)
+        ) {
           errors.push({
             resource: spec.name,
             field: field.name,
             message: `Invalid refOnDelete "${field.refOnDelete}"`,
             suggestion: `Valid values: ${VALID_REF_ON_DELETE.join(', ')}`,
+          });
+        }
+      }
+
+      // Many-to-many validation
+      if (field.type === 'many-to-many') {
+        if (
+          field.joinTable !== undefined &&
+          (typeof field.joinTable !== 'string' || field.joinTable.length === 0)
+        ) {
+          errors.push({
+            resource: spec.name,
+            field: field.name,
+            message: 'joinTable must be a non-empty string',
+          });
+        }
+        if (field.unique) {
+          errors.push({
+            resource: spec.name,
+            field: field.name,
+            message: 'many-to-many field cannot be unique',
+          });
+        }
+        if (field.index) {
+          errors.push({
+            resource: spec.name,
+            field: field.name,
+            message:
+              'many-to-many field cannot have an index on the main table',
           });
         }
       }
@@ -241,7 +290,10 @@ export class SpecValidator {
 
       // Validation rules sanity
       if (field.validation) {
-        if (field.validation.min !== undefined && field.validation.max !== undefined) {
+        if (
+          field.validation.min !== undefined &&
+          field.validation.max !== undefined
+        ) {
           if (field.validation.min > field.validation.max) {
             errors.push({
               resource: spec.name,
@@ -260,14 +312,17 @@ export class SpecValidator {
 
       // Warn about 'public' role — requires unguarding the route
       const allPermRoles = [
-        ...(spec.permissions.list || []), ...(spec.permissions.read || []),
-        ...(spec.permissions.create || []), ...(spec.permissions.update || []),
+        ...(spec.permissions.list || []),
+        ...(spec.permissions.read || []),
+        ...(spec.permissions.create || []),
+        ...(spec.permissions.update || []),
         ...(spec.permissions.delete || []),
       ];
       if (allPermRoles.includes('public')) {
         warnings.push({
           resource: spec.name,
-          message: 'Permission "public" requires the route to be unguarded. ' +
+          message:
+            'Permission "public" requires the route to be unguarded. ' +
             'Spec engine applies AuthGuard(jwt) on all routes. ' +
             'Use "admin" or "customer" instead, or write a manual controller.',
         });
@@ -284,7 +339,8 @@ export class SpecValidator {
             warnings.push({
               resource: spec.name,
               message: `Hook "${hookType}" file not found: ${hookPath}`,
-              suggestion: 'Create the handler file or remove the hook from spec',
+              suggestion:
+                'Create the handler file or remove the hook from spec',
             });
           }
         }
@@ -295,7 +351,10 @@ export class SpecValidator {
     if (spec.notifications) {
       for (const notif of spec.notifications) {
         if (!notif.name) {
-          errors.push({ resource: spec.name, message: 'Notification missing name' });
+          errors.push({
+            resource: spec.name,
+            message: 'Notification missing name',
+          });
         }
         if (!notif.trigger?.on) {
           errors.push({
@@ -341,7 +400,8 @@ export class SpecValidator {
           errors.push({
             resource: spec.name,
             message: `Job "${job.name}" invalid interval "${job.value}"`,
-            suggestion: 'Format: <number><unit> where unit is ms, s, m, or h (e.g. 60s, 5m, 1h)',
+            suggestion:
+              'Format: <number><unit> where unit is ms, s, m, or h (e.g. 60s, 5m, 1h)',
           });
         }
         if (job.handler) {
@@ -360,7 +420,10 @@ export class SpecValidator {
     if (spec.webhooks) {
       for (const webhook of spec.webhooks) {
         if (!webhook.path) {
-          errors.push({ resource: spec.name, message: `Webhook "${webhook.name}" missing path` });
+          errors.push({
+            resource: spec.name,
+            message: `Webhook "${webhook.name}" missing path`,
+          });
         }
         if (!['none', 'hmac', 'jwt'].includes(webhook.auth)) {
           errors.push({
@@ -405,7 +468,10 @@ export class SpecValidator {
   ): ValidationError[] {
     const errors: ValidationError[] = [];
 
-    const checkRoles = (roles: PermissionRole[] | undefined, action: string) => {
+    const checkRoles = (
+      roles: PermissionRole[] | undefined,
+      action: string,
+    ) => {
       if (!roles) return;
       for (const role of roles) {
         if (!BUILTIN_ROLES.includes(role)) {
@@ -431,8 +497,10 @@ export class SpecValidator {
             message: `Field permission references non-existent field "${fieldName}"`,
           });
         }
-        if (fieldPerm.read) checkRoles(fieldPerm.read, `fields.${fieldName}.read`);
-        if (fieldPerm.write) checkRoles(fieldPerm.write, `fields.${fieldName}.write`);
+        if (fieldPerm.read)
+          checkRoles(fieldPerm.read, `fields.${fieldName}.read`);
+        if (fieldPerm.write)
+          checkRoles(fieldPerm.write, `fields.${fieldName}.write`);
       }
     }
 
@@ -510,7 +578,10 @@ export class SpecValidator {
               message: `Panel "${panel.name}" invalid aggregate "${panel.query.aggregate}"`,
             });
           }
-          if (panel.query.groupByInterval && !VALID_INTERVALS.includes(panel.query.groupByInterval)) {
+          if (
+            panel.query.groupByInterval &&
+            !VALID_INTERVALS.includes(panel.query.groupByInterval)
+          ) {
             errors.push({
               message: `Panel "${panel.name}" invalid groupByInterval "${panel.query.groupByInterval}"`,
             });

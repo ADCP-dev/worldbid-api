@@ -22,7 +22,8 @@ export type FieldType =
   | 'enum'
   | 'ref'
   | 'file'
-  | 'computed';
+  | 'computed'
+  | 'many-to-many';
 
 export interface FieldValidationSpec {
   min?: number;
@@ -34,7 +35,13 @@ export interface FieldValidationSpec {
 
 export interface FieldUISpec {
   display?: 'text' | 'badge' | 'date' | 'avatar' | 'truncate' | 'icon' | 'link';
-  formInput?: 'text' | 'textarea' | 'select' | 'datepicker' | 'file-upload' | 'select-async';
+  formInput?:
+    | 'text'
+    | 'textarea'
+    | 'select'
+    | 'datepicker'
+    | 'file-upload'
+    | 'select-async';
   link?: boolean;
   colors?: Record<string, string>;
   truncateLength?: number;
@@ -62,11 +69,14 @@ export interface FieldSpec {
   stateMachine?: StateMachineSpec;
   includeable?: boolean;
   // File-specific
-  storage?: 'local' | 's3' | 's3-presigned';  // B2 uses s3/s3-presigned with custom endpoint
+  storage?: 'local' | 's3' | 's3-presigned'; // B2 uses s3/s3-presigned with custom endpoint
   allowedMimes?: string[];
   maxSize?: number;
   isPublic?: boolean;
   context?: string;
+  // Many-to-many-specific
+  joinTable?: string;
+  throughFields?: { from: string; to: string };
 }
 
 // ─── Permission Spec ────────────────────────────────────────────────────────
@@ -164,10 +174,10 @@ export interface WebhookSpec {
 
 export interface OutboundWebhookSpec {
   name: string;
-  events: string[];              // ej: ['task.created', 'task.updated']
+  events: string[]; // ej: ['task.created', 'task.updated']
   subscriptionModel: 'static' | 'dynamic';
-  url?: string;                  // static: URL fija. dynamic: via POST subscribe
-  handler?: string;              // optional transform before sending
+  url?: string; // static: URL fija. dynamic: via POST subscribe
+  handler?: string; // optional transform before sending
 }
 
 // ─── Custom Action Spec ────────────────────────────────────────────────────
@@ -182,15 +192,15 @@ export interface ActionInputSpec {
 export interface ActionSpec {
   name: string;
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
-  path: string;                   // ej: ':id/assign' or 'bulk/assign'
-  auth?: PermissionRole[];        // default: resource create permissions
+  path: string; // ej: ':id/assign' or 'bulk/assign'
+  auth?: PermissionRole[]; // default: resource create permissions
   input?: ActionInputSpec[];
-  handler: string;                // path to handler, relative to spec
+  handler: string; // path to handler, relative to spec
   ui?: {
     label?: string;
     icon?: string;
     buttonLocation?: 'row' | 'bulk' | 'header';
-    confirm?: string;             // confirm dialog message
+    confirm?: string; // confirm dialog message
   };
 }
 
@@ -213,28 +223,28 @@ export interface StateMachineSpec {
 
 export interface AuditSpec {
   operations?: ('create' | 'update' | 'delete')[];
-  fields?: string[];              // only audit these fields (default: all)
-  exclude?: string[];             // don't audit these fields
+  fields?: string[]; // only audit these fields (default: all)
+  exclude?: string[]; // don't audit these fields
 }
 
 // ─── Scheduled Action Spec (entity-level) ─────────────────────────────────
 
 export interface ScheduledActionSpec {
   name: string;
-  trigger: string;                // field name (ej: 'dueDate')
-  offset: string;                 // ej: '-3d', '+1h', '+7d'
-  handler: string;                // path to handler
-  cancelOnUpdate?: boolean;       // reprogram if entity changes
+  trigger: string; // field name (ej: 'dueDate')
+  offset: string; // ej: '-3d', '+1h', '+7d'
+  handler: string; // path to handler
+  cancelOnUpdate?: boolean; // reprogram if entity changes
 }
 
 // ─── Computed Field Spec ──────────────────────────────────────────────────
 
 export interface ComputeSpec {
   type: 'count' | 'expression' | 'template';
-  relation?: string;              // for count: related resource name
-  foreignKey?: string;            // for count: FK field in related resource
-  expression?: string;            // for expression: 'dueDate != null && dueDate < now()'
-  template?: string;              // for template: '${firstName} ${lastName}'
+  relation?: string; // for count: related resource name
+  foreignKey?: string; // for count: FK field in related resource
+  expression?: string; // for expression: 'dueDate != null && dueDate < now()'
+  template?: string; // for template: '${firstName} ${lastName}'
 }
 
 // ─── Import/Export Spec ────────────────────────────────────────────────────
@@ -242,7 +252,7 @@ export interface ComputeSpec {
 export interface ImportSpec {
   format: 'csv' | 'json';
   mapping?: Record<string, string>;
-  uniqueKey?: string;             // if exists, update instead of duplicate
+  uniqueKey?: string; // if exists, update instead of duplicate
   handler?: string;
 }
 
@@ -263,7 +273,13 @@ export interface SidebarItemSpec {
 
 export interface FieldUISpec {
   display?: 'text' | 'badge' | 'date' | 'avatar' | 'truncate' | 'icon' | 'link';
-  formInput?: 'text' | 'textarea' | 'select' | 'datepicker' | 'file-upload' | 'select-async';
+  formInput?:
+    | 'text'
+    | 'textarea'
+    | 'select'
+    | 'datepicker'
+    | 'file-upload'
+    | 'select-async';
   link?: boolean;
   colors?: Record<string, string>;
   truncateLength?: number;
@@ -293,6 +309,12 @@ export interface ResourceSpec {
   description?: string;
   timestamps?: boolean;
   softDelete?: boolean;
+  /**
+   * When true (default), create/update/delete operations run inside a
+   * `dataSource.transaction()` and after hooks execute within the transaction.
+   * Notifications are always dispatched outside the transaction.
+   */
+  transactional?: boolean;
   fields: FieldSpec[];
   permissions?: PermissionSpec;
   hooks?: HookSpec;
@@ -368,9 +390,9 @@ export interface OverrideSpec {
 }
 
 export interface RoleDefSpec {
-  name: string;                   // unique within extension, kebab-case
+  name: string; // unique within extension, kebab-case
   description?: string;
-  permissions?: string[];          // hint for admin UI (not enforced by engine)
+  permissions?: string[]; // hint for admin UI (not enforced by engine)
 }
 
 export interface ExtensionSpec {
@@ -380,8 +402,8 @@ export interface ExtensionSpec {
   description?: string;
   author?: string;
   config?: ConfigItemSpec[];
-  roles?: RoleDefSpec[];           // custom roles defined by this extension
-  roleSeeds?: Record<string, unknown>[];  // seed role assignments
+  roles?: RoleDefSpec[]; // custom roles defined by this extension
+  roleSeeds?: Record<string, unknown>[]; // seed role assignments
   resources: ResourceSpec[];
   views?: ViewSpec[];
   overrides?: OverrideSpec[];
@@ -421,7 +443,14 @@ export interface TraceStage {
 export interface SpecTrace {
   requestId: string;
   resource: string;
-  operation: 'create' | 'read' | 'update' | 'delete' | 'list' | 'webhook' | 'job';
+  operation:
+    | 'create'
+    | 'read'
+    | 'update'
+    | 'delete'
+    | 'list'
+    | 'webhook'
+    | 'job';
   user: { id: number; role: string } | null;
   stages: TraceStage[];
   totalDurationMs: number;
@@ -467,14 +496,22 @@ export interface HookContext {
   operation: string;
   resource: string;
   user: AuthenticatedUser | null;
-  getRepository(name: string): import('typeorm').Repository<any>;
+  getRepository(
+    name: string,
+    manager?: import('typeorm').EntityManager,
+  ): import('typeorm').Repository<any>;
   getService<T = any>(token: string): T;
   config(key: string): any;
   sendEmail(data: import('./email-job-data').EmailJobDataLike): Promise<void>;
-  logError(message: string, source?: string, metadata?: Record<string, unknown>): Promise<void>;
+  logError(
+    message: string,
+    source?: string,
+    metadata?: Record<string, unknown>,
+  ): Promise<void>;
   logger: import('@nestjs/common').Logger;
   trace: TraceWriter;
   abort(message: string, statusCode?: number): never;
+  transaction<T>(fn: (txContext: HookContext) => Promise<T>): Promise<T>;
 }
 
 export interface TraceWriter {

@@ -48,7 +48,9 @@ export class ComputedFieldResolver {
     spec: ResourceSpec,
     ctx: HookContext,
   ): Promise<Record<string, unknown>> {
-    const computedFields = spec.fields.filter((f) => f.type === 'computed' && f.compute);
+    const computedFields = spec.fields.filter(
+      (f) => f.type === 'computed' && f.compute,
+    );
 
     for (const field of computedFields) {
       try {
@@ -149,7 +151,10 @@ export class ComputedFieldResolver {
     return false;
   }
 
-  private static evalAndChain(expr: string, entity: Record<string, unknown>): boolean {
+  private static evalAndChain(
+    expr: string,
+    entity: Record<string, unknown>,
+  ): boolean {
     const andParts = this.splitTopLevel(expr, '&&');
     for (const part of andParts) {
       if (!this.evalClause(part.trim(), entity)) {
@@ -199,7 +204,10 @@ export class ComputedFieldResolver {
   /**
    * Evaluate a single clause: `field == value` or `field != value`.
    */
-  private static evalClause(clause: string, entity: Record<string, unknown>): boolean {
+  private static evalClause(
+    clause: string,
+    entity: Record<string, unknown>,
+  ): boolean {
     if (!clause) return true;
     const match = clause.match(/^([\w.]+)\s*(==|!=)\s*(.+)$/);
     if (!match) return false;
@@ -214,7 +222,10 @@ export class ComputedFieldResolver {
     if (raw === 'null') return null;
     if (raw === 'true') return true;
     if (raw === 'false') return false;
-    if ((raw.startsWith("'") && raw.endsWith("'")) || (raw.startsWith('"') && raw.endsWith('"'))) {
+    if (
+      (raw.startsWith("'") && raw.endsWith("'")) ||
+      (raw.startsWith('"') && raw.endsWith('"'))
+    ) {
       return raw.slice(1, -1);
     }
     if (/^-?\d+(\.\d+)?$/.test(raw)) return Number(raw);
@@ -224,7 +235,8 @@ export class ComputedFieldResolver {
   private static valuesEqual(actual: unknown, expected: unknown): boolean {
     if (actual == null && expected == null) return true;
     if (actual == null || expected == null) return false;
-    if (typeof actual === 'number' && typeof expected === 'number') return actual === expected;
+    if (typeof actual === 'number' && typeof expected === 'number')
+      return actual === expected;
     return String(actual) === String(expected);
   }
 

@@ -21,20 +21,14 @@ interface PanelData {
   }
 }
 
-interface DashboardData {
-  name: string
-  displayName?: string
-  panels: PanelData[]
-}
-
 const props = defineProps<{
   viewName: string
 }>()
 
-const { fetchView } = useSpecResource()
-const dashboard = ref<DashboardData | null>(null)
-const loading = ref(true)
-const error = ref<string | null>(null)
+const { useViewQuery } = useSpecResource()
+const { data: dashboard, isLoading, error } = useViewQuery(() => props.viewName)
+
+const loading = computed(() => isLoading.value)
 const chartInstances = ref<Record<string, echarts.ECharts>>({})
 const containerRefs = ref<Record<string, HTMLElement | null>>({})
 
@@ -42,25 +36,33 @@ const panelGridClass = computed(() => {
   if (!dashboard.value) return 'grid-cols-1'
   const count = dashboard.value.panels.length
   if (count <= 2) return 'grid-cols-1 lg:grid-cols-2'
-  if (count <= 4) return 'grid-cols-1 lg:grid-cols-2'
+  if (count <= 4) return 'grid-cols-1 md:grid-cols-2'
   return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
 })
 
-async function loadDashboard() {
-  loading.value = true
-  error.value = null
-  try {
-    const data = await fetchView(props.viewName)
-    dashboard.value = data as unknown as DashboardData
-  } catch (e: unknown) {
-    error.value = (e as Error).message
-  } finally {
-    loading.value = false
+const themeColors = computed(() => {
+  if (typeof document === 'undefined') {
+    return {
+      primary: '#9a66e6',
+      secondary: '#a78bfa',
+      neutral: '#24252a',
+      baseContent: '#f7f8fa',
+    }
   }
-}
+  const root = document.documentElement
+  const get = (name: string, fallback: string) => getComputedStyle(root).getPropertyValue(name).trim() || fallback
+  return {
+    primary: get('--p', '#9a66e6'),
+    secondary: get('--s', '#a78bfa'),
+    neutral: get('--n', '#24252a'),
+    baseContent: get('--bc', '#f7f8fa'),
+  }
+})
 
 function buildChartOption(panel: PanelData): echarts.EChartsOption {
   const { chart, data, label } = panel
+  const colors = themeColors.value
+  const palette = [colors.primary, colors.secondary, '#facc15', '#4ade80', '#fb7185', '#60a5fa']
 
   switch (chart) {
     case 'stat': {
@@ -70,8 +72,8 @@ function buildChartOption(panel: PanelData): echarts.EChartsOption {
           subtext: label || panel.name,
           left: 'center',
           top: 'center',
-          textStyle: { fontSize: 48, fontWeight: 'bold' },
-          subtextStyle: { fontSize: 14, color: '#6b7280' },
+          textStyle: { fontSize: 48, fontWeight: 'bold', color: colors.primary },
+          subtextStyle: { fontSize: 14, color: colors.baseContent },
         },
         tooltip: { show: false },
         series: [],
@@ -82,9 +84,10 @@ function buildChartOption(panel: PanelData): echarts.EChartsOption {
       const labels = data.labels || []
       const values = data.values || []
       return {
-        title: { text: label || panel.name, left: 'center', textStyle: { fontSize: 14 } },
+        color: palette,
+        title: { text: label || panel.name, left: 'center', textStyle: { fontSize: 14, color: colors.baseContent } },
         tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-        legend: { orient: 'vertical', left: 'left', top: 'middle' },
+        legend: { orient: 'vertical', left: 'left', top: 'middle', textStyle: { color: colors.baseContent } },
         series: [
           {
             type: 'pie',
@@ -104,19 +107,21 @@ function buildChartOption(panel: PanelData): echarts.EChartsOption {
       const labels = data.labels || []
       const values = data.values || []
       return {
-        title: { text: label || panel.name, left: 'center', textStyle: { fontSize: 14 } },
+        color: palette,
+        title: { text: label || panel.name, left: 'center', textStyle: { fontSize: 14, color: colors.baseContent } },
         tooltip: { trigger: 'axis' },
         xAxis: {
           type: 'category',
           data: labels,
-          axisLabel: { rotate: labels.length > 6 ? 30 : 0 },
+          axisLabel: { rotate: labels.length > 6 ? 30 : 0, color: colors.baseContent },
+          axisLine: { lineStyle: { color: colors.baseContent } },
         },
-        yAxis: { type: 'value' },
+        yAxis: { type: 'value', axisLabel: { color: colors.baseContent }, splitLine: { lineStyle: { color: colors.neutral } } },
         series: [
           {
             type: 'bar',
             data: values,
-            itemStyle: { borderRadius: [4, 4, 0, 0] },
+            itemStyle: { borderRadius: [4, 4, 0, 0], color: colors.primary },
           },
         ],
         grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
@@ -127,17 +132,19 @@ function buildChartOption(panel: PanelData): echarts.EChartsOption {
       const labels = data.labels || []
       const values = data.values || []
       return {
-        title: { text: label || panel.name, left: 'center', textStyle: { fontSize: 14 } },
+        color: palette,
+        title: { text: label || panel.name, left: 'center', textStyle: { fontSize: 14, color: colors.baseContent } },
         tooltip: { trigger: 'axis' },
-        xAxis: { type: 'category', data: labels, boundaryGap: false },
-        yAxis: { type: 'value' },
+        xAxis: { type: 'category', data: labels, boundaryGap: false, axisLabel: { color: colors.baseContent }, axisLine: { lineStyle: { color: colors.baseContent } } },
+        yAxis: { type: 'value', axisLabel: { color: colors.baseContent }, splitLine: { lineStyle: { color: colors.neutral } } },
         series: [
           {
             type: 'line',
             data: values,
             smooth: true,
-            areaStyle: { opacity: 0.15 },
-            itemStyle: { width: 2 },
+            areaStyle: { opacity: 0.15, color: colors.primary },
+            itemStyle: { color: colors.primary },
+            lineStyle: { width: 2 },
           },
         ],
         grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
@@ -145,15 +152,15 @@ function buildChartOption(panel: PanelData): echarts.EChartsOption {
     }
 
     case 'custom': {
-      // For custom charts, pass data directly as series
       return {
-        title: { text: label || panel.name, left: 'center', textStyle: { fontSize: 14 } },
+        color: palette,
+        title: { text: label || panel.name, left: 'center', textStyle: { fontSize: 14, color: colors.baseContent } },
         dataset: { source: data },
       }
     }
 
     default:
-      return { title: { text: `Unknown chart: ${chart}` } }
+      return { title: { text: `Unknown chart: ${chart}`, textStyle: { color: colors.baseContent } } }
   }
 }
 
@@ -163,7 +170,6 @@ function renderCharts() {
     const el = containerRefs.value[panel.name]
     if (!el) continue
 
-    // Dispose existing instance
     if (chartInstances.value[panel.name]) {
       chartInstances.value[panel.name].dispose()
     }
@@ -180,16 +186,14 @@ function handleResize() {
   }
 }
 
-onMounted(async () => {
-  await loadDashboard()
-  // Wait for DOM to render panel containers
-  setTimeout(renderCharts, 0)
-  window.addEventListener('resize', handleResize)
+watch(dashboard, () => {
+  if (dashboard.value) {
+    setTimeout(renderCharts, 0)
+  }
 })
 
-watch(() => props.viewName, async () => {
-  await loadDashboard()
-  setTimeout(renderCharts, 0)
+onMounted(() => {
+  window.addEventListener('resize', handleResize)
 })
 
 onUnmounted(() => {
@@ -203,15 +207,15 @@ onUnmounted(() => {
 <template>
   <div class="spec-dashboard">
     <div v-if="loading" class="flex items-center justify-center py-12">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      <div class="loading loading-spinner loading-lg text-primary" />
     </div>
 
-    <div v-else-if="error" class="text-red-500 p-4">
-      Error loading dashboard: {{ error }}
+    <div v-else-if="error" class="text-error p-4">
+      Error loading dashboard: {{ error.message || 'Unknown error' }}
     </div>
 
     <div v-else-if="dashboard">
-      <h2 v-if="dashboard.displayName" class="text-2xl font-bold mb-6">
+      <h2 v-if="dashboard.displayName" class="text-2xl font-bold mb-6 text-base-content">
         {{ dashboard.displayName }}
       </h2>
 
@@ -219,11 +223,11 @@ onUnmounted(() => {
         <div
           v-for="panel in dashboard.panels"
           :key="panel.name"
-          class="bg-white rounded-lg shadow p-4 border border-gray-200"
+          class="bg-base-100 rounded-box shadow p-4 border border-base-300"
         >
           <div class="flex items-center justify-between mb-2">
-            <h3 class="text-sm font-medium text-gray-700">{{ panel.label || panel.name }}</h3>
-            <span class="text-xs text-gray-400 uppercase">{{ panel.chart }}</span>
+            <h3 class="text-sm font-medium text-base-content/70">{{ panel.label || panel.name }}</h3>
+            <span class="text-xs text-base-content/50 uppercase">{{ panel.chart }}</span>
           </div>
 
           <!-- Stat card: render inline, no chart container needed -->
@@ -231,10 +235,10 @@ onUnmounted(() => {
             v-if="panel.chart === 'stat'"
             class="flex flex-col items-center justify-center py-6"
           >
-            <span class="text-5xl font-bold text-gray-800">
+            <span class="text-5xl font-bold text-base-content">
               {{ panel.data.value ?? '—' }}
             </span>
-            <span class="text-sm text-gray-500 mt-1">{{ panel.label }}</span>
+            <span class="text-sm text-base-content/70 mt-1">{{ panel.label }}</span>
           </div>
 
           <!-- All other charts: ECharts container -->

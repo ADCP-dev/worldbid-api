@@ -62,6 +62,15 @@ export interface ResourceSnapshot {
   softDelete: boolean;
   indices: string[];
   uniques: string[];
+  joinTables: JoinTableSnapshot[];
+}
+
+export interface JoinTableSnapshot {
+  name: string;
+  fromColumn: string;
+  toColumn: string;
+  fromResource: string;
+  toResource: string;
 }
 
 export interface SpecSnapshot {
@@ -100,6 +109,7 @@ const FIELD_TYPE_TO_SQL: Record<FieldType, string> = {
   ref: 'integer',
   file: 'character varying',
   computed: 'integer', // computed fields are not stored, but included for type completeness
+  'many-to-many': 'integer', // many-to-many is stored in join table, not main table
 };
 
 /**
@@ -181,7 +191,7 @@ function formatDefault(value: unknown, type: FieldType): string {
     case 'date': {
       const str = String(value).replace(/'/g, "''");
       return `'${str}'`;
-    };
+    }
     default:
       return `'${String(value).replace(/'/g, "''")}'`;
   }
@@ -263,7 +273,11 @@ function buildCreateTable(spec: ResourceSpec): MigrationStatement {
     }
   }
 
-  const allColumns = [idCol, ...fieldCols.map((c) => c.sql), ...auditCols.map((c) => c.sql)];
+  const allColumns = [
+    idCol,
+    ...fieldCols.map((c) => c.sql),
+    ...auditCols.map((c) => c.sql),
+  ];
   const allConstraints = [pkConstraint, ...uniqueConstraints];
   const columnSql = [...allColumns, ...allConstraints].join(', ');
 
@@ -274,9 +288,7 @@ function buildCreateTable(spec: ResourceSpec): MigrationStatement {
   for (const f of spec.fields) {
     if (f.index && !f.unique) {
       const iname = indexName(spec.table, f.name);
-      indexStatements.push(
-        `CREATE INDEX "${iname}" ON ${table} ("${f.name}")`,
-      );
+      indexStatements.push(`CREATE INDEX "${iname}" ON ${table} ("${f.name}")`);
     }
   }
   // Unique fields also get a unique index (TypeORM convention)
@@ -289,7 +301,9 @@ function buildCreateTable(spec: ResourceSpec): MigrationStatement {
   const upFull = [up, ...indexStatements].join(';\n        ');
 
   // Down: drop indices then table
-  const dropIndexStatements = [...uniqueIndices.map((u) => `DROP INDEX "${u.name}"`)];
+  const dropIndexStatements = [
+    ...uniqueIndices.map((u) => `DROP INDEX "${u.name}"`),
+  ];
   for (const f of spec.fields) {
     if (f.index && !f.unique) {
       const iname = indexName(spec.table, f.name);
@@ -413,6 +427,68 @@ function buildAlterTable(
   return statements;
 }
 
+// ─── Join Table Helpers ──────────────────────────────────────────────────────
+
+/**
+ * Diff join tables between current spec and previous snapshot.
+ * Returns CREATE TABLE statements for new join tables and DROP TABLE
+ * statements for removed join tables.
+ */
+function diffJoinTables(
+  spec: ResourceSpec,
+  previous: ResourceSnapshot | undefined,
+): MigrationStatement[] {
+  const statements: MigrationStatement[] = [];
+  const current = buildJoinTableSnapshots(spec);
+  const prev = previous?.joinTables ?? [];
+
+  const prevByName = new Map(prev.map((j) => [j.name, j]));
+  const currentByName = new Map(current.map((j) => [j.name, j]));
+
+  for (const j of current) {
+    if (!prevByName.has(j.name)) {
+      statements.push(buildCreateJoinTable(j));
+    }
+  }
+
+  for (const j of prev) {
+    if (!currentByName.has(j.name)) {
+      statements.push({
+        up: `DROP TABLE "${j.name}"`,
+        down: buildCreateJoinTable(j).up,
+        description: `Drop join table ${j.name}`,
+      });
+    }
+  }
+
+  return statements;
+}
+
+/**
+ * Build a CREATE TABLE migration for a join table with composite PK + FKs.
+ */
+function buildCreateJoinTable(j: JoinTableSnapshot): MigrationStatement {
+  const table = `"${j.name}"`;
+  const fromCol = `"${j.fromColumn}"`;
+  const toCol = `"${j.toColumn}"`;
+  const pkName = primaryKeyConstraintName(j.name);
+
+  const up =
+    `CREATE TABLE ${table} (` +
+    `${fromCol} integer NOT NULL, ` +
+    `${toCol} integer NOT NULL, ` +
+    `CONSTRAINT "${pkName}" PRIMARY KEY (${fromCol}, ${toCol})` +
+    `)`;
+
+  const down = `DROP TABLE ${table}`;
+
+  return {
+    up,
+    down,
+    description: `Create join table ${j.name}`,
+  };
+}
+
 // ─── Snapshot Helpers ────────────────────────────────────────────────────────
 
 /**
@@ -436,7 +512,28 @@ export function buildSnapshot(spec: ResourceSpec): ResourceSnapshot {
     softDelete: spec.softDelete !== false,
     indices: spec.fields.filter((f) => f.index).map((f) => f.name),
     uniques: spec.fields.filter((f) => f.unique).map((f) => f.name),
+    joinTables: buildJoinTableSnapshots(spec),
   };
+}
+
+/**
+ * Build join table snapshots from many-to-many fields.
+ */
+function buildJoinTableSnapshots(spec: ResourceSpec): JoinTableSnapshot[] {
+  const snapshots: JoinTableSnapshot[] = [];
+  for (const f of spec.fields) {
+    if (f.type !== 'many-to-many' || !f.ref) continue;
+    const fromCol = f.throughFields?.from ?? `${spec.name}Id`;
+    const toCol = f.throughFields?.to ?? `${f.name.replace(/Id$/, '')}Id`;
+    snapshots.push({
+      name: f.joinTable ?? `ext_${spec.table}_${f.name}`,
+      fromColumn: fromCol,
+      toColumn: toCol,
+      fromResource: spec.name,
+      toResource: f.ref,
+    });
+  }
+  return snapshots;
 }
 
 /**
@@ -511,7 +608,10 @@ function generateTimestamp(): string {
 /**
  * Find and read the .spec.yaml file for an extension.
  */
-function readSpecFile(extensionName: string, extensionsDir: string): ExtensionSpec {
+function readSpecFile(
+  extensionName: string,
+  extensionsDir: string,
+): ExtensionSpec {
   const extDir = path.join(extensionsDir, extensionName);
   if (!fs.existsSync(extDir)) {
     throw new Error(`Extension directory not found: ${extDir}`);
@@ -575,7 +675,9 @@ export class MigrationGenerator {
         const stmt = buildCreateTable(resource);
         statements.push(stmt);
         createdTables.push(resource.table);
-        this.log(`✅ CREATE TABLE "${resource.table}" (${resource.fields.length} fields)`);
+        this.log(
+          `✅ CREATE TABLE "${resource.table}" (${resource.fields.length} fields)`,
+        );
       } else {
         // Existing resource → ALTER TABLE for changes
         const alters = buildAlterTable(resource, prevResource);
@@ -588,6 +690,18 @@ export class MigrationGenerator {
         } else {
           this.log(`  ⏭️  No changes for "${resource.table}"`);
         }
+      }
+
+      // Diff join tables for many-to-many fields
+      const joinChanges = diffJoinTables(resource, prevResource);
+      statements.push(...joinChanges);
+      for (const change of joinChanges) {
+        if (change.description.startsWith('Create join table')) {
+          createdTables.push(
+            change.description.replace('Create join table ', ''),
+          );
+        }
+        this.log(`  🔗 ${change.description}`);
       }
     }
 
@@ -664,7 +778,6 @@ export class MigrationGenerator {
 function main(): void {
   const args = process.argv.slice(2);
   if (args.length < 1) {
-    // eslint-disable-next-line no-console
     console.error(
       'Usage: ts-node migration-generator.ts <extensionName> [extensionsDir] [migrationsDir]',
     );
@@ -672,19 +785,22 @@ function main(): void {
   }
 
   const extensionName = args[0];
-  const extensionsDir =
-    args[1] ?? path.resolve(process.cwd(), 'extensions');
+  const extensionsDir = args[1] ?? path.resolve(process.cwd(), 'extensions');
   const migrationsDir =
-    args[2] ?? path.resolve(process.cwd(), 'src/infrastructure/database/migrations');
+    args[2] ??
+    path.resolve(process.cwd(), 'src/infrastructure/database/migrations');
 
   MigrationGenerator.generate(extensionName, extensionsDir, migrationsDir)
     .then((result) => {
       // eslint-disable-next-line no-console
-      console.log(`\n✅ Done. Generated ${result.statements.length} statements.`);
+      console.log(
+        `\n✅ Done. Generated ${result.statements.length} statements.`,
+      );
     })
     .catch((err) => {
-      // eslint-disable-next-line no-console
-      console.error(`\n❌ Migration generation failed: ${(err as Error).message}`);
+      console.error(
+        `\n❌ Migration generation failed: ${(err as Error).message}`,
+      );
       process.exit(1);
     });
 }

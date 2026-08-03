@@ -371,7 +371,7 @@ mindmap
       Campos con tipos
         string, text, integer, decimal
         boolean, datetime, date
-        enum, json, ref (FK), file
+        enum, json, ref (FK), file, many-to-many
       Validación
         required, nullable, unique
         min, max, pattern, email, url
@@ -863,10 +863,10 @@ graph LR
 | **Many-to-many** | ❌ | No hay `type: many-to-many` o `type: hasMany`. El `ref` crea many-to-one (FK). Para una relación N:M necesitas una tabla intermedia. | Crear un recurso intermedio: `task-tag` con `ref: task` + `ref: tag`. Es el patrón de tabla pivote como recurso. Funciona pero requiere 2 queries para cargar. |
 | **One-to-one** | ❌ | No hay `type: one-to-one`. | Usar `ref` con `unique: true`. Funciona como un FK 1:1 a nivel de DB, pero la relation se carga como many-to-one. |
 | **Queries con JOIN entre recursos** | 🟡 Parcial | `QuerySpec` no soporta JOINs. Cada query se ejecuta contra un solo recurso. No puedes hacer `SELECT tasks.*, clients.name FROM tasks JOIN clients`. | Para dashboards: hacer queries separadas por recurso y combinar en un transform hook. Para listas: usar un `beforeQuery` hook que añada `relations: ['client']` para que TypeORM cargue la relación. |
-| **Transacciones multi-recurso** | ❌ | No hay `type: transaction`. Si un hook modifica `task` y `client` en la misma operación, no hay transaction. Si `task.save()` falla, `client` ya fue modificado. | Usar TypeORM's `DataSource.transaction()` dentro del hook. El `HookContext` no expone `DataSource` directamente, pero `ctx.getService('ConfigService')` puede acceder al `DataSource` via DI. O restructurar para que cada modificación sea independiente. |
+| **Transacciones multi-recurso** | ✅ | Por defecto `transactional: true` envuelve create/update/delete en TypeORM transaction. `ctx.transaction()` permite coordinar escrituras multi-recurso en hooks. | Ver SPEC-ENGINE-REFERENCE.md §11 (HookContext) y SPEC-ENGINE-DESIGN.md §19. |
 | **Eventos de cambio de campo** | 🟡 Parcial | `trigger.on: afterUpdate` se dispara en cualquier update. No hay `when: 'status changed from pending to done'`. El `when` evalúa el estado actual, no el anterior. | En el `beforeUpdate` hook, comparar `existing.status` con `data.status`. Si cambió, guardar el valor anterior en `ctx.trace` o en metadata. El `afterUpdate` hook puede leer el trace. |
 | **GraphQL** | ❌ | El spec engine genera REST controllers. No genera GraphQL resolvers. | Escribir NestJS GraphQL resolvers tradicional. O usar el `MetaController` para generar un schema GraphQL desde la metadata (futuro). |
-| **Multi-tenant DB isolation** | ❌ | No hay `type: tenant`. Row-level filter funciona por usuario, no por tenant. No hay aislamiento a nivel de schema. | Usar `rowLevel` con `tenantId == ${user.tenantId}`. Funciona para filtrado pero no para aislamiento de schema. Para aislamiento real: usar TypeORM multi-tenant config. |
+| **Multi-tenant DB isolation** | 🟡 Documentado | No implementado en Foundation base. La spec engine documenta 5 pasos para habilitar row-level tenant filtering en apps copiadas: `companyId` en JWT + spec + `rowLevel` + `beforeQuery` hook + admin sin rowLevel. | Ver SPEC-ENGINE-DESIGN.md §21 / SPEC-ENGINE-REFERENCE.md §31. |
 | **Soft delete con cascada** | 🟡 Parcial | `softDelete` en `task` no hace cascada a `task-comment`. Si `task` se soft-deletea, los comments siguen siendo visibles. | En el `afterDelete` hook de `task`, hacer `ctx.getRepository('task-comment').softDelete({ taskId: id })`. |
 | **Validación condicional** | 🟡 Parcial | La validación Zod es estática (definida en la spec). No puedes decir "si priority=urgent, dueDate es required". | En el `beforeCreate` hook, validar condicionalmente y abortar con `ctx.abort()`. El Zod no lo cubre pero el hook sí. |
 | **Custom middleware** | ❌ | No hay `middleware` en la spec. | Escribir NestJS middleware tradicional. La spec no reemplaza NestJS, lo extiende. |
@@ -912,11 +912,12 @@ graph TD
         WS[WebSocket / real-time]
         POLY[Relaciones polimórficas custom]
         I18N[Traducciones de campos]
-        M2M[Many-to-many directo]
         O2O[One-to-one directo]
-        TX[Transacciones multi-recurso]
         GRAPHQL[GraphQL]
-        TENANT[Multi-tenant DB isolation]
+        M2M_TX[Many-to-many + transacciones: ✅ implementado]
+        TENANT[Multi-tenant: documentado, no implementado en base]
+        MW[Custom middleware]
+        CIRCULAR[Refs circulares]
         MW[Custom middleware]
         CIRCULAR[Refs circulares]
     end
@@ -942,7 +943,7 @@ graph TD
 | Notificaciones por email | GraphQL resolvers |
 | Jobs programados | Multi-tenant DB isolation |
 | Webhooks entrantes | Relaciones polimórficas complejas |
-| Dashboards declarativos | Transacciones multi-recurso |
+| Dashboards declarativos | — |
 | Frontend admin automático | Middleware custom |
 | Lógica custom vía hooks | Integraciones con APIs externas complejas |
 
@@ -1208,11 +1209,12 @@ graph TD
         WS[WebSocket / real-time]
         POLY[Relaciones polimórficas custom]
         I18N[Traducciones de campos]
-        M2M[Many-to-many directo]
         O2O[One-to-one directo]
-        TX[Transacciones multi-recurso]
         GRAPHQL[GraphQL]
-        TENANT[Multi-tenant DB isolation]
+        M2M_TX[Many-to-many + transacciones: ✅ implementado]
+        TENANT[Multi-tenant: documentado, no implementado en base]
+        MW[Custom middleware]
+        CIRCULAR[Refs circulares]
         MW[Custom middleware]
         CIRCULAR[Refs circulares]
     end

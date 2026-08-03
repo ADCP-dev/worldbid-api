@@ -6,6 +6,6 @@ const id = computed(() => String(route.params.id))
 
 <template>
   <div class="container mx-auto px-4 py-6">
-    <SpecDataForm :resource="resource" mode="edit" :id="id" />
+    <SpecDataForm :id="id" :resource="resource" mode="edit" />
   </div>
 </template>

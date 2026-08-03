@@ -6,7 +6,11 @@
  * from→to transitions and (optionally) which roles may perform them.
  */
 
-import type { ResourceSpec, FieldSpec, StateTransitionSpec } from './spec.types';
+import type {
+  ResourceSpec,
+  FieldSpec,
+  StateTransitionSpec,
+} from './spec.types';
 
 export interface TransitionResult {
   valid: boolean;

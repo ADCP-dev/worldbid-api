@@ -11,7 +11,11 @@
  *   AfterHook:  (entity, ctx) → void
  */
 
-import { Logger, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import {
+  Logger,
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { FindManyOptions } from 'typeorm';
 import * as path from 'path';
 
@@ -27,7 +31,14 @@ import type { SpecErrorReporter } from './spec-error-reporter';
 import { computeSpecErrorHash } from './spec-error-reporter';
 import type { TraceBuilder } from './spec-trace';
 
-export type HookType = 'beforeCreate' | 'afterCreate' | 'beforeUpdate' | 'afterUpdate' | 'beforeDelete' | 'afterDelete' | 'beforeQuery';
+export type HookType =
+  | 'beforeCreate'
+  | 'afterCreate'
+  | 'beforeUpdate'
+  | 'afterUpdate'
+  | 'beforeDelete'
+  | 'afterDelete'
+  | 'beforeQuery';
 
 export interface LoadedHook {
   handler: BeforeHook | AfterHook | BeforeQueryHook;
@@ -65,9 +76,10 @@ export class HookExecutor {
       return null;
     }
     // In production, .ts files are compiled to .js — strip extension
-    const requirePath = process.env.NODE_ENV === 'production'
-      ? absolutePath.replace(/\.ts$/, '.js')
-      : absolutePath;
+    const requirePath =
+      process.env.NODE_ENV === 'production'
+        ? absolutePath.replace(/\.ts$/, '.js')
+        : absolutePath;
     const cacheKey = `${resourceName}:${hookType}:${absolutePath}`;
 
     // Check cache
@@ -75,7 +87,6 @@ export class HookExecutor {
     if (cached) return cached;
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const mod = require(requirePath);
       const handler = mod.default;
 
@@ -112,7 +123,11 @@ export class HookExecutor {
     data: Record<string, unknown>,
     ctx: HookContext,
     trace: TraceBuilder,
-  ): Promise<{ data: Record<string, unknown>; proceed: boolean }> {
+  ): Promise<{
+    data: Record<string, unknown>;
+    proceed: boolean;
+    error?: string;
+  }> {
     const startTime = Date.now();
 
     try {
@@ -128,8 +143,9 @@ export class HookExecutor {
           proceed: false,
           error: result.error,
         });
-        throw new BadRequestException(
+        throw new HookAbortError(
           result.error || 'Hook aborted the operation',
+          400,
         );
       }
 
@@ -149,10 +165,17 @@ export class HookExecutor {
       }
 
       if (err instanceof HookAbortError) {
-        trace.endStage('beforeHook', 'fail', {
-          hook: hook.path,
-          error: err.message,
-        }, undefined, undefined, { message: err.message, code: 'HOOK_ABORT' });
+        trace.endStage(
+          'beforeHook',
+          'fail',
+          {
+            hook: hook.path,
+            error: err.message,
+          },
+          undefined,
+          undefined,
+          { message: err.message, code: 'HOOK_ABORT' },
+        );
         throw new BadRequestException(err.message);
       }
 
@@ -162,10 +185,17 @@ export class HookExecutor {
         `Before hook "${hook.path}" failed after ${duration}ms: ${(err as Error).message}`,
       );
 
-      trace.endStage('beforeHook', 'fail', {
-        hook: hook.path,
-        error: (err as Error).message,
-      }, undefined, undefined, { message: (err as Error).message, code: 'HOOK_ERROR' });
+      trace.endStage(
+        'beforeHook',
+        'fail',
+        {
+          hook: hook.path,
+          error: (err as Error).message,
+        },
+        undefined,
+        undefined,
+        { message: (err as Error).message, code: 'HOOK_ERROR' },
+      );
 
       throw new InternalServerErrorException(
         `Hook execution failed: ${(err as Error).message}`,
@@ -204,7 +234,11 @@ export class HookExecutor {
         await ctx.logError(
           `After hook failed: ${(err as Error).message}`,
           `spec-engine:${ctx.resource}:${ctx.operation}`,
-          { hookPath: hook.path, entityId: entity.id, error: (err as Error).stack },
+          {
+            hookPath: hook.path,
+            entityId: entity.id,
+            error: (err as Error).stack,
+          },
         );
       } catch {
         // ErrorTracker not available — already logged above
@@ -213,8 +247,8 @@ export class HookExecutor {
       // Also report via SpecErrorReporter for Telegram + GitHub issue
       if (this.errorReporter) {
         try {
-            // Use the static import of computeSpecErrorHash (top of file)
-        this.errorReporter.report({
+          // Use the static import of computeSpecErrorHash (top of file)
+          this.errorReporter.report({
             message: `After hook failed: ${(err as Error).message}`,
             source: `spec-engine:${ctx.resource}:${ctx.operation}`,
             stack: (err as Error).stack,
@@ -234,10 +268,17 @@ export class HookExecutor {
         }
       }
 
-      trace.endStage('afterHook', 'fail', {
-        hook: hook.path,
-        error: (err as Error).message,
-      }, undefined, undefined, { message: (err as Error).message, code: 'HOOK_ERROR' });
+      trace.endStage(
+        'afterHook',
+        'fail',
+        {
+          hook: hook.path,
+          error: (err as Error).message,
+        },
+        undefined,
+        undefined,
+        { message: (err as Error).message, code: 'HOOK_ERROR' },
+      );
     }
   }
 
@@ -284,10 +325,17 @@ export class HookExecutor {
         // ErrorTracker not available — already logged above
       }
 
-      trace.endStage('beforeHook', 'fail', {
-        hook: hook.path,
-        error: (err as Error).message,
-      }, undefined, undefined, { message: (err as Error).message, code: 'HOOK_ERROR' });
+      trace.endStage(
+        'beforeHook',
+        'fail',
+        {
+          hook: hook.path,
+          error: (err as Error).message,
+        },
+        undefined,
+        undefined,
+        { message: (err as Error).message, code: 'HOOK_ERROR' },
+      );
 
       return options;
     }

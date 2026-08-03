@@ -93,7 +93,9 @@ export class SpecPluginManager {
     const sourceDir = path.resolve(pluginsDir, pluginName);
     const destDir = path.resolve(extensionsDir, pluginName);
 
-    logger.log(`📦 Installing plugin "${pluginName}" from ${sourceDir} → ${destDir}`);
+    logger.log(
+      `📦 Installing plugin "${pluginName}" from ${sourceDir} → ${destDir}`,
+    );
 
     if (!fs.existsSync(sourceDir) || !fs.statSync(sourceDir).isDirectory()) {
       throw new Error(
@@ -142,7 +144,9 @@ export class SpecPluginManager {
       );
     }
 
-    logger.log(`✅ Plugin "${pluginName}" v${manifest.version} installed successfully`);
+    logger.log(
+      `✅ Plugin "${pluginName}" v${manifest.version} installed successfully`,
+    );
   }
 
   // ─── uninstall ──────────────────────────────────────────────────────────
@@ -155,7 +159,10 @@ export class SpecPluginManager {
    * @param extensionsDir Directory where installed extensions live.
    * @throws If the plugin is not installed or deletion fails.
    */
-  static async uninstall(pluginName: string, extensionsDir: string): Promise<void> {
+  static async uninstall(
+    pluginName: string,
+    extensionsDir: string,
+  ): Promise<void> {
     if (!pluginName || !pluginName.trim()) {
       throw new Error('Plugin name is required');
     }
@@ -248,7 +255,9 @@ export class SpecPluginManager {
         continue;
       }
 
-      const resource = result.resources.find((r) => r.name === override.resource);
+      const resource = result.resources.find(
+        (r) => r.name === override.resource,
+      );
       if (!resource) {
         logger.warn(
           `⚠️  Override targets resource "${override.resource}" which does not exist ` +
@@ -259,10 +268,15 @@ export class SpecPluginManager {
 
       // ── Fields: remove then add ───────────────────────────────────────
       if (override.fields) {
-        if (Array.isArray(override.fields.remove) && override.fields.remove.length > 0) {
+        if (
+          Array.isArray(override.fields.remove) &&
+          override.fields.remove.length > 0
+        ) {
           const removeSet = new Set(override.fields.remove);
           const beforeCount = resource.fields.length;
-          resource.fields = resource.fields.filter((f) => !removeSet.has(f.name));
+          resource.fields = resource.fields.filter(
+            (f) => !removeSet.has(f.name),
+          );
           const removed = beforeCount - resource.fields.length;
           if (removed > 0) {
             logger.log(
@@ -271,7 +285,10 @@ export class SpecPluginManager {
           }
         }
 
-        if (Array.isArray(override.fields.add) && override.fields.add.length > 0) {
+        if (
+          Array.isArray(override.fields.add) &&
+          override.fields.add.length > 0
+        ) {
           // Deduplicate: if an added field shares a name with an existing
           // one, replace it (add wins).
           const addByName = new Map<string, FieldSpec>();
@@ -401,7 +418,10 @@ export class SpecPluginManager {
    * fallback). If neither exists, attempt to read the version from the
    * .spec.yaml file. Defaults to "0.0.0" if nothing is found.
    */
-  private static readManifest(pluginDir: string, fallbackName: string): PluginManifest {
+  private static readManifest(
+    pluginDir: string,
+    fallbackName: string,
+  ): PluginManifest {
     // 1. plugin.manifest.json
     const manifestPath = path.join(pluginDir, MANIFEST_FILENAME);
     if (fs.existsSync(manifestPath)) {
@@ -576,7 +596,9 @@ async function main(): Promise<void> {
         } else {
           console.log('Installed plugins:');
           for (const p of plugins) {
-            console.log(`  ${p.name} v${p.version} (${p.source}) — installed ${p.installedAt}`);
+            console.log(
+              `  ${p.name} v${p.version} (${p.source}) — installed ${p.installedAt}`,
+            );
           }
         }
         break;

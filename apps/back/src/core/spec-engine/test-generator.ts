@@ -153,14 +153,18 @@ function tsLiteral(value: unknown): string {
   if (value === null) return 'null';
   if (value === undefined) return 'undefined';
   if (typeof value === 'string') return `'${value.replace(/'/g, "\\'")}'`;
-  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (typeof value === 'number' || typeof value === 'boolean')
+    return String(value);
   return JSON.stringify(value);
 }
 
 /**
  * Build a JS object literal string from a record.
  */
-function objectLiteral(obj: Record<string, unknown>, indentSize: number): string {
+function objectLiteral(
+  obj: Record<string, unknown>,
+  indentSize: number,
+): string {
   const pad = ' '.repeat(indentSize);
   const innerPad = ' '.repeat(indentSize + 2);
   const lines = Object.entries(obj).map(
@@ -175,7 +179,10 @@ function objectLiteral(obj: Record<string, unknown>, indentSize: number): string
 /**
  * Find and read the .spec.yaml file for an extension.
  */
-function readSpecFile(extensionName: string, extensionsDir: string): ExtensionSpec {
+function readSpecFile(
+  extensionName: string,
+  extensionsDir: string,
+): ExtensionSpec {
   const extDir = path.join(extensionsDir, extensionName);
   if (!fs.existsSync(extDir)) {
     throw new Error(`Extension directory not found: ${extDir}`);
@@ -200,7 +207,13 @@ function readSpecFile(extensionName: string, extensionsDir: string): ExtensionSp
 
 // ─── Test Block Builders ─────────────────────────────────────────────────────
 
-const ALL_ACTIONS: PermissionAction[] = ['list', 'read', 'create', 'update', 'delete'];
+const ALL_ACTIONS: PermissionAction[] = [
+  'list',
+  'read',
+  'create',
+  'update',
+  'delete',
+];
 
 /**
  * Build CRUD test blocks (create, read, update, delete).
@@ -312,7 +325,9 @@ function buildValidationTests(spec: ResourceSpec): TestBlock[] {
         body: [
           `it('should reject ${field.name} with value below min (${validation.min})', async () => {`,
           `  const payload = { ...validPayload, ${field.name}: ${tsLiteral(
-            field.type === 'integer' || field.type === 'decimal' || field.type === 'ref'
+            field.type === 'integer' ||
+              field.type === 'decimal' ||
+              field.type === 'ref'
               ? validation.min - 1
               : 'a',
           )} };`,
@@ -333,7 +348,9 @@ function buildValidationTests(spec: ResourceSpec): TestBlock[] {
         body: [
           `it('should reject ${field.name} with value above max (${validation.max})', async () => {`,
           `  const payload = { ...validPayload, ${field.name}: ${tsLiteral(
-            field.type === 'integer' || field.type === 'decimal' || field.type === 'ref'
+            field.type === 'integer' ||
+              field.type === 'decimal' ||
+              field.type === 'ref'
               ? validation.max + 1
               : 'a'.repeat((validation.max ?? 10) + 1),
           )} };`,
@@ -423,7 +440,8 @@ function buildValidationTests(spec: ResourceSpec): TestBlock[] {
 function buildEnumTests(spec: ResourceSpec): TestBlock[] {
   const blocks: TestBlock[] = [];
   for (const field of spec.fields) {
-    if (field.type !== 'enum' || !field.enum || field.enum.length === 0) continue;
+    if (field.type !== 'enum' || !field.enum || field.enum.length === 0)
+      continue;
 
     blocks.push({
       name: `invalid-enum-${field.name}`,
@@ -492,7 +510,9 @@ function buildPermissionTests(spec: ResourceSpec): TestBlock[] {
           `      expect(res.status).not.toBe(403);`,
           `    });`,
           `});`,
-        ].filter((l) => l.length > 0).join('\n'),
+        ]
+          .filter((l) => l.length > 0)
+          .join('\n'),
       });
     }
 
@@ -505,10 +525,14 @@ function buildPermissionTests(spec: ResourceSpec): TestBlock[] {
           `  await request(app.getHttpServer())`,
           `    .${action === 'list' || action === 'read' ? 'get' : action === 'create' ? 'post' : action === 'update' ? 'patch' : 'delete'}('/api/${spec.name}'${action === 'read' || action === 'update' || action === 'delete' ? " + '/' + createdId" : ''})`,
           `    .set('Authorization', \`Bearer \${token}\`)`,
-          action === 'create' || action === 'update' ? `    .send(validPayload)` : ``,
+          action === 'create' || action === 'update'
+            ? `    .send(validPayload)`
+            : ``,
           `    .expect(403);`,
           `});`,
-        ].filter((l) => l.length > 0).join('\n'),
+        ]
+          .filter((l) => l.length > 0)
+          .join('\n'),
       });
     }
   }
@@ -657,7 +681,9 @@ function renderBlocks(blocks: TestBlock[], level: number): string {
     }
   }
 
-  return lines.filter((l, i, arr) => !(l === '' && arr[i - 1] === '')).join('\n');
+  return lines
+    .filter((l, i, arr) => !(l === '' && arr[i - 1] === ''))
+    .join('\n');
 }
 
 /**
@@ -914,7 +940,6 @@ export class TestGenerator {
 function main(): void {
   const args = process.argv.slice(2);
   if (args.length < 1) {
-    // eslint-disable-next-line no-console
     console.error(
       'Usage: ts-node test-generator.ts <extensionName> [extensionsDir]',
     );
@@ -922,16 +947,16 @@ function main(): void {
   }
 
   const extensionName = args[0];
-  const extensionsDir =
-    args[1] ?? path.resolve(process.cwd(), 'extensions');
+  const extensionsDir = args[1] ?? path.resolve(process.cwd(), 'extensions');
 
   TestGenerator.generate(extensionName, extensionsDir)
     .then((result) => {
       // eslint-disable-next-line no-console
-      console.log(`\n✅ Done. Generated ${result.testCount} tests across ${result.resourceCount} resources.`);
+      console.log(
+        `\n✅ Done. Generated ${result.testCount} tests across ${result.resourceCount} resources.`,
+      );
     })
     .catch((err) => {
-      // eslint-disable-next-line no-console
       console.error(`\n❌ Test generation failed: ${(err as Error).message}`);
       process.exit(1);
     });

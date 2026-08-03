@@ -1,32 +1,32 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { z } from 'zod'
+import { toast } from 'vue-sonner'
 import type { FieldSpec } from '../composables/useSpecResource'
+import SpecFieldInput from './SpecFieldInput.vue'
 
 const props = defineProps<{
-  /** Resource name */
   resource: string
-  /** 'create' or 'edit' */
   mode: 'create' | 'edit'
-  /** Record id (edit mode only) */
   id?: string | number
 }>()
 
 const specCrud = useSpecResource()
 const router = useRouter()
 
-const spec = computed(() => specCrud.getResource(props.resource))
-const primaryKey = computed(() => spec.value?.primaryKey ?? 'id')
+const { useFindOneQuery, useCreateMutation, useUpdateMutation } = specCrud
+const spec = specCrud.getResource(props.resource)
 
-const loading = ref(false)
 const saving = ref(false)
 const error = ref<string | null>(null)
-/** Field-level validation errors keyed by field name */
 const fieldErrors = ref<Record<string, string>>({})
+const form = ref<Record<string, unknown>>({})
 
-/** Reactive form state */
-const form = reactive<Record<string, unknown>>({})
+const { data: existingRecord, isLoading: loading } = useFindOneQuery(
+  () => props.resource,
+  () => props.id,
+)
 
-/** Fields to render in the form. */
 const formFields = computed<FieldSpec[]>(() => {
   if (!spec.value) return []
   const names = spec.value.ui?.formFields
@@ -43,44 +43,102 @@ const title = computed(() => {
   return props.mode === 'create' ? `New ${singular}` : `Edit ${singular}`
 })
 
-/** Initialise form with defaults (create) or fetched record (edit). */
-async function initForm() {
-  // Reset
-  Object.keys(form).forEach((k) => delete form[k])
+function resetForm() {
+  form.value = {}
   fieldErrors.value = {}
   error.value = null
+}
 
+function applyDefaults() {
   if (!spec.value) return
-
-  // Set defaults for all fields
   for (const field of spec.value.fields) {
-    form[field.name] = field.default ?? undefined
+    form.value[field.name] = field.default ?? undefined
   }
+}
 
-  if (props.mode === 'edit' && props.id) {
-    loading.value = true
-    try {
-      const record = await specCrud.findOne(props.resource, props.id)
-      for (const field of spec.value.fields) {
-        if (record && record[field.name] !== undefined) {
-          form[field.name] = record[field.name]
-        }
-      }
-    } catch (e) {
-      error.value = (e as Error).message || 'Failed to load record'
-    } finally {
-      loading.value = false
+function applyRecord(record: Record<string, unknown>) {
+  if (!spec.value) return
+  for (const field of spec.value.fields) {
+    if (record[field.name] !== undefined) {
+      form.value[field.name] = record[field.name]
     }
   }
 }
 
-onMounted(async () => {
-  await specCrud.ensureSpec()
-  await initForm()
+watch(existingRecord, (record) => {
+  if (record) applyRecord(record as Record<string, unknown>)
 })
 
-// Re-init when id or mode changes (e.g. navigating between edit records)
-watch(() => [props.mode, props.id], () => initForm())
+onMounted(() => {
+  resetForm()
+  applyDefaults()
+  if (existingRecord.value) {
+    applyRecord(existingRecord.value as Record<string, unknown>)
+  }
+})
+
+watch(() => [props.mode, props.id], () => {
+  resetForm()
+  applyDefaults()
+  if (existingRecord.value) {
+    applyRecord(existingRecord.value as Record<string, unknown>)
+  }
+})
+
+function buildSchema(): z.ZodObject<Record<string, z.ZodTypeAny>> {
+  const shape: Record<string, z.ZodTypeAny> = {}
+  for (const field of formFields.value) {
+    if (field.readOnly) continue
+    let schema: z.ZodTypeAny = z.any()
+    switch (field.type) {
+      case 'integer':
+        schema = z.coerce.number().int()
+        break
+      case 'decimal':
+      case 'float':
+      case 'number':
+        schema = z.coerce.number()
+        break
+      case 'boolean':
+        schema = z.boolean()
+        break
+      case 'date':
+      case 'datetime':
+        schema = z.string()
+        break
+      case 'enum':
+        if (field.enum?.length) {
+          schema = z.enum(field.enum as [string, ...string[]])
+        } else {
+          schema = z.string()
+        }
+        break
+      default:
+        schema = z.string()
+    }
+    if (!field.required) {
+      schema = schema.optional()
+    } else if (field.type !== 'boolean' && field.type !== 'integer' && field.type !== 'decimal' && field.type !== 'float' && field.type !== 'number') {
+      schema = schema.refine((v) => v !== '' && v !== undefined && v !== null, { message: 'Required' })
+    }
+    shape[field.name] = schema
+  }
+  return z.object(shape)
+}
+
+function validate(): boolean {
+  fieldErrors.value = {}
+  const schema = buildSchema()
+  const result = schema.safeParse(form.value)
+  if (!result.success) {
+    for (const issue of result.error.issues) {
+      const key = issue.path[0] as string
+      if (!fieldErrors.value[key]) fieldErrors.value[key] = issue.message
+    }
+    return false
+  }
+  return true
+}
 
 /** Extract API validation errors into fieldErrors map. */
 function handleApiError(e: unknown) {
@@ -98,23 +156,26 @@ function handleApiError(e: unknown) {
   }
 }
 
+const createMutation = useCreateMutation(() => props.resource)
+const updateMutation = useUpdateMutation(() => props.resource)
+
 async function submit() {
-  if (!spec.value) return
+  if (!spec.value || !validate()) return
   saving.value = true
   error.value = null
-  fieldErrors.value = {}
 
   try {
-    // Build payload — only form fields
     const payload: Record<string, unknown> = {}
     for (const field of formFields.value) {
-      payload[field.name] = form[field.name]
+      payload[field.name] = form.value[field.name]
     }
 
     if (props.mode === 'create') {
-      await specCrud.create(props.resource, payload)
+      await createMutation.mutateAsync(payload)
+      toast.success('Created successfully')
     } else if (props.mode === 'edit' && props.id) {
-      await specCrud.update(props.resource, props.id, payload)
+      await updateMutation.mutateAsync({ id: props.id, body: payload })
+      toast.success('Updated successfully')
     }
 
     router.push(`/app/${props.resource}`)
@@ -131,12 +192,12 @@ function cancel() {
 </script>
 
 <template>
-  <div class="w-full max-w-2xl mx-auto">
-    <h2 class="text-xl font-semibold mb-6">{{ title }}</h2>
+  <div class="container mx-auto px-4 py-6">
+    <h2 class="text-xl font-semibold mb-6 text-base-content">{{ title }}</h2>
 
     <!-- Loading -->
     <div v-if="loading" class="flex justify-center py-12">
-      <span class="loading loading-spinner loading-lg" />
+      <span class="loading loading-spinner loading-lg text-primary" />
     </div>
 
     <form v-else @submit.prevent="submit">
@@ -146,16 +207,14 @@ function cancel() {
       </div>
 
       <!-- Fields -->
-      <div class="flex flex-col gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div v-for="field in formFields" :key="field.name">
           <SpecFieldInput
             v-model="form[field.name]"
             :field="field"
             :resource="resource"
+            :error="fieldErrors[field.name]"
           />
-          <p v-if="fieldErrors[field.name]" class="text-error text-sm mt-1">
-            {{ fieldErrors[field.name] }}
-          </p>
         </div>
       </div>
 

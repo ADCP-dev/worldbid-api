@@ -1,5 +1,6 @@
-import { ref, readonly } from 'vue'
-import type { Ref } from 'vue'
+import { computed, toValue } from 'vue'
+import type { ComputedRef, MaybeRefOrGetter } from 'vue'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 
 /* ------------------------------------------------------------------ *
  * Types — mirror the backend GET /api/v1/_spec/resources payload.
@@ -44,6 +45,8 @@ export interface FieldSpec {
   required?: boolean
   /** True when field is read-only */
   readOnly?: boolean
+  /** True when field supports sorting */
+  sortable?: boolean
   /** UI hints for display + form rendering */
   ui?: FieldUiHints
   /** Default value for create forms */
@@ -100,6 +103,22 @@ export interface ListParams {
   filter?: Record<string, unknown>
 }
 
+export interface DashboardData {
+  name: string
+  displayName?: string
+  panels: Array<{
+    name: string
+    chart: string
+    label?: string
+    data: {
+      value?: number
+      labels?: string[]
+      values?: number[]
+      [key: string]: unknown
+    }
+  }>
+}
+
 /* ------------------------------------------------------------------ *
  * Composable
  * ------------------------------------------------------------------ */
@@ -107,52 +126,30 @@ export interface ListParams {
 export function useSpecResource() {
   const config = useRuntimeConfig()
   const baseURL = `${config.public.apiUrl}${config.public.apiPrefix}`
+  const queryClient = useQueryClient()
 
-  /** Reactive map of all resources keyed by name */
-  const resources = ref<Record<string, ResourceSpec>>({}) as Ref<Record<string, ResourceSpec>>
+  /* ---------------- Spec metadata ---------------- */
 
-  /** Loading flag for initial spec fetch */
-  const loading = ref(false)
-
-  /** Error from spec fetch */
-  const error = ref<Error | null>(null)
-
-  /** Whether the spec has been loaded at least once */
-  let loaded = false
-
-  /** Fetch (or re-fetch) the spec metadata. */
-  async function loadSpec(): Promise<void> {
-    loading.value = true
-    error.value = null
-    try {
+  const specQuery = useQuery<Record<string, ResourceSpec>, Error, Record<string, ResourceSpec>>({
+    queryKey: ['_spec', 'resources'],
+    queryFn: async () => {
       const res = await $fetch<SpecResponse>(`/api/v1/_spec/resources`, { baseURL })
-      resources.value = res.resources ?? {}
-      loaded = true
-    } catch (e) {
-      error.value = e as Error
-      console.error('[useSpecResource] Failed to load spec:', e)
-    } finally {
-      loading.value = false
-    }
+      return res.resources ?? {}
+    },
+  })
+
+  const resources = computed<Record<string, ResourceSpec>>(() => specQuery.data.value ?? {})
+
+  function getResource(name: string): ComputedRef<ResourceSpec | undefined> {
+    return computed(() => resources.value[name])
   }
 
-  /** Ensure spec is loaded once (idempotent). */
-  async function ensureSpec(): Promise<void> {
-    if (!loaded) await loadSpec()
-  }
-
-  /** Get a single resource spec by name. */
-  function getResource(name: string): ResourceSpec | undefined {
-    return resources.value[name]
-  }
-
-  /** Resolve the endpoint path for a resource. */
   function endpointFor(resourceName: string): string {
-    const spec = getResource(resourceName)
+    const spec = resources.value[resourceName]
     return spec?.endpoint ?? resourceName
   }
 
-  /* ---------------- CRUD operations ---------------- */
+  /* ---------------- CRUD operations (raw fetch) ---------------- */
 
   async function list<T = Record<string, unknown>>(
     resourceName: string,
@@ -187,7 +184,6 @@ export function useSpecResource() {
     body: Record<string, unknown>,
   ): Promise<T> {
     const endpoint = endpointFor(resourceName)
-    const pk = getResource(resourceName)?.primaryKey ?? 'id'
     return $fetch<T>(`/api/v1/${endpoint}/${encodeURIComponent(String(id))}`, {
       baseURL,
       method: 'PATCH',
@@ -206,7 +202,6 @@ export function useSpecResource() {
     })
   }
 
-  /** Get a single record by id. */
   async function findOne<T = Record<string, unknown>>(
     resourceName: string,
     id: string | number,
@@ -215,11 +210,9 @@ export function useSpecResource() {
     const res = await $fetch<{ data: T } | T>(`/api/v1/${endpoint}/${encodeURIComponent(String(id))}`, {
       baseURL,
     })
-    // NestJS commonly wraps single results in { data: ... }
     return (res as { data?: T })?.data ?? (res as T)
   }
 
-  /** Load async options for a 'select-async' ref field. */
   async function loadRefOptions(
     refResource: string,
     labelField = 'name',
@@ -232,18 +225,104 @@ export function useSpecResource() {
     }))
   }
 
+  async function fetchView(viewName: string): Promise<DashboardData> {
+    return $fetch<DashboardData>(`/api/v1/_spec/views/${encodeURIComponent(viewName)}`, { baseURL })
+  }
+
+  /* ---------------- TanStack Query wrappers ---------------- */
+
+  function useListQuery<T = Record<string, unknown>>(
+    resourceName: MaybeRefOrGetter<string>,
+    params: MaybeRefOrGetter<ListParams> = {},
+  ) {
+    return useQuery({
+      queryKey: () => ['spec', toValue(resourceName), 'list', toValue(params)],
+      queryFn: () => list<T>(toValue(resourceName), toValue(params)),
+    } as const)
+  }
+
+  function useFindOneQuery<T = Record<string, unknown>>(
+    resourceName: MaybeRefOrGetter<string>,
+    id: MaybeRefOrGetter<string | number | undefined>,
+  ) {
+    return useQuery({
+      queryKey: () => ['spec', toValue(resourceName), 'findOne', toValue(id)],
+      queryFn: () => {
+        const idVal = toValue(id)
+        if (!idVal) throw new Error('id is required')
+        return findOne<T>(toValue(resourceName), idVal)
+      },
+      enabled: () => !!toValue(id),
+    } as const)
+  }
+
+  function useCreateMutation<T = Record<string, unknown>>(resourceName: MaybeRefOrGetter<string>) {
+    return useMutation({
+      mutationFn: (body: Record<string, unknown>) => create<T>(toValue(resourceName), body),
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['spec', toValue(resourceName), 'list'] })
+      },
+    })
+  }
+
+  function useUpdateMutation<T = Record<string, unknown>>(resourceName: MaybeRefOrGetter<string>) {
+    return useMutation({
+      mutationFn: (vars: { id: string | number; body: Record<string, unknown> }) =>
+        update<T>(toValue(resourceName), vars.id, vars.body),
+      onSuccess: () => {
+        const name = toValue(resourceName)
+        queryClient.invalidateQueries({ queryKey: ['spec', name, 'list'] })
+        queryClient.invalidateQueries({ queryKey: ['spec', name, 'findOne'] })
+      },
+    })
+  }
+
+  function useRemoveMutation(resourceName: MaybeRefOrGetter<string>) {
+    return useMutation({
+      mutationFn: (id: string | number) => remove(toValue(resourceName), id),
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['spec', toValue(resourceName), 'list'] })
+      },
+    })
+  }
+
+  function useRefOptionsQuery(
+    refResource: MaybeRefOrGetter<string>,
+    labelField = 'name',
+    valueField = 'id',
+  ) {
+    return useQuery({
+      queryKey: () => ['spec', 'refOptions', toValue(refResource), labelField, valueField],
+      queryFn: () => loadRefOptions(toValue(refResource), labelField, valueField),
+      enabled: () => !!toValue(refResource),
+    } as const)
+  }
+
+  function useViewQuery(viewName: MaybeRefOrGetter<string>) {
+    return useQuery({
+      queryKey: () => ['spec', 'view', toValue(viewName)],
+      queryFn: () => fetchView(toValue(viewName)),
+      enabled: () => !!toValue(viewName),
+    } as const)
+  }
+
   return {
-    resources: readonly(resources),
-    loading: readonly(loading),
-    error: readonly(error),
-    loadSpec,
-    ensureSpec,
+    resources,
     getResource,
+    endpointFor,
     list,
     create,
     update,
     remove,
     findOne,
     loadRefOptions,
+    fetchView,
+    useListQuery,
+    useFindOneQuery,
+    useCreateMutation,
+    useUpdateMutation,
+    useRemoveMutation,
+    useRefOptionsQuery,
+    useViewQuery,
   }
 }

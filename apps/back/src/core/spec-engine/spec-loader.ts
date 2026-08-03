@@ -34,9 +34,7 @@ export class SpecLoader {
       if (!dir.isDirectory()) continue;
 
       // Look for any *.spec.yaml in the extension dir (non-recursive)
-      const specFiles = this.findSpecFiles(
-        path.join(extensionsDir, dir.name),
-      );
+      const specFiles = this.findSpecFiles(path.join(extensionsDir, dir.name));
 
       for (const specFile of specFiles) {
         try {
@@ -56,9 +54,13 @@ export class SpecLoader {
             specPath: specFile,
           });
 
-          logger.log(`📖 Loaded spec: ${parsed.name} (${parsed.resources.length} resources)`);
+          logger.log(
+            `📖 Loaded spec: ${parsed.name} (${parsed.resources.length} resources)`,
+          );
         } catch (err) {
-          logger.error(`❌ Failed to parse ${specFile}: ${(err as Error).message}`);
+          logger.error(
+            `❌ Failed to parse ${specFile}: ${(err as Error).message}`,
+          );
         }
       }
     }
@@ -81,7 +83,10 @@ export class SpecLoader {
   /**
    * Validate a resource spec for common errors
    */
-  static validateResource(spec: ResourceSpec, allResources: Map<string, ResourceSpec>): string[] {
+  static validateResource(
+    spec: ResourceSpec,
+    allResources: Map<string, ResourceSpec>,
+  ): string[] {
     const errors: string[] = [];
 
     if (!spec.name) errors.push('Resource missing name');

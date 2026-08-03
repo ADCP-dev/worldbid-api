@@ -26,6 +26,18 @@
 18. [Integración con BullMQ](#18-integración-con-bullmq)
 19. [MetaController — API de metadata](#19-metacontroller)
 20. [CLI tools](#20-cli-tools)
+21. [Filtros y ordenación](#21-filtros-y-ordenación)
+22. [Acciones custom](#22-acciones-custom)
+23. [State machine](#23-state-machine)
+24. [Many-to-many](#24-many-to-many)
+25. [?include= relations](#25-include-relations)
+26. [Audit log](#26-audit-log)
+27. [Acciones programadas por entidad](#27-acciones-programadas-por-entidad)
+28. [Campos computados](#28-campos-computados)
+29. [Webhooks salientes (subscriptions)](#29-webhooks-salientes-subscriptions)
+30. [Soft delete con restore](#30-soft-delete-con-restore)
+31. [Multi-tenant setup](#31-multi-tenant-setup)
+32. [Import/export](#32-importexport)
 
 ---
 
@@ -87,6 +99,7 @@ resources:
 | `json` | jsonb | z.record(z.unknown()) | text | textarea |
 | `enum` | varchar | z.enum([...]) | badge | select |
 | `ref` | integer FK | z.number().int().positive() | avatar | select-async |
+| `many-to-many` | join table (auto) | z.array(z.number().int().positive()) | badge | select-async |
 | `file` | varchar | z.string().uuid().nullable() | icon | file-upload |
 
 ### Estructura completa
@@ -674,10 +687,16 @@ interface HookContext {
   user: AuthenticatedUser | null;             // usuario autenticado (null en jobs/webhooks sin auth)
 
   // ─── Acceso a repositorios ────────────────────────────
-  getRepository(name: string): Repository<any>;
+  getRepository(name: string, manager?: EntityManager): Repository<any>;
   // Repositorios de recursos spec-driven (ej: 'task', 'task-comment')
   // Usa getRepositoryToken(name) → ModuleRef.get()
+  // Si se pasa manager, el repositorio comparte el EntityManager de la transacción activa.
   // Para entidades de Foundation (User, File), usar getService en su lugar
+
+  // ─── Transacción multi-recurso ────────────────────────
+  transaction<T>(fn: (txContext: HookContext) => Promise<T>): Promise<T>;
+  // Ejecuta fn dentro de dataSource.transaction(). Los repositorios del txContext
+  // comparten el mismo QueryRunner.manager. Si fn throw, rollback.
 
   // ─── Acceso a servicios de Foundation ─────────────────
   getService<T = any>(token: string): T;
@@ -1295,7 +1314,52 @@ El engine valida en `beforeUpdate`:
 
 ---
 
-## 24. ?include= relations
+## 24. Many-to-many
+
+### Spec
+
+`yaml
+fields:
+  - name: tags
+    type: many-to-many
+    ref: tag
+    joinTable: ext_demo_project_tags      # opcional
+    throughFields: { from: projectId, to: tagId }  # opcional
+    ui: { display: badge, formInput: select-async }
+`
+
+### Mapeo a TypeORM + Zod
+
+| Aspecto | Implementación |
+|---|---|
+| DB | Tabla intermedia auto: ext_<ext>_<resource>_<field> con PK compuesta (resourceId, relatedId) |
+| Relation | many-to-many en el EntitySchema principal con joinTable |
+| Zod create/update | z.array(z.number().int().positive()) |
+| Main row | El campo no se almacena en la tabla principal |
+
+### Endpoints
+
+Por cada campo many-to-many se materializan rutas bajo el recurso padre:
+
+| Método | Ruta | Body | Acción |
+|---|---|---|---|
+| GET    | /projects/:id/tags | — | Lista IDs de tags vinculadas |
+| POST   | /projects/:id/tags | { tags: [1, 2] } | Vincula tags (evita duplicados) |
+| DELETE | /projects/:id/tags/:relatedId | — | Desvincula una tag |
+| PUT    | /projects/:id/tags | { tags: [1, 2] } | Reemplaza el set completo |
+
+### Reglas de validación
+
+- Obligatorio 
+ef.
+- No admite unique ni index en la tabla principal.
+- joinTable debe ser string no vacío si se provee.
+- 
+ef: user se normaliza a User para compatibilidad con Foundation.
+
+---
+
+## 25. ?include= relations
 
 ### Spec
 
@@ -1339,7 +1403,7 @@ GET /tasks?include=assignee
 
 ---
 
-## 25. Audit log
+## 26. Audit log
 
 ### Spec
 
@@ -1381,7 +1445,7 @@ GET /api/v1/tasks/:id/audit
 
 ---
 
-## 26. Acciones programadas por entidad
+## 27. Acciones programadas por entidad
 
 ### Spec
 
@@ -1431,7 +1495,7 @@ export default async function sendReminder(
 
 ---
 
-## 27. Campos computados
+## 28. Campos computados
 
 ### Spec
 
@@ -1471,7 +1535,7 @@ fields:
 
 ---
 
-## 28. Webhooks salientes (subscriptions)
+## 29. Webhooks salientes (subscriptions)
 
 ### Spec
 
@@ -1514,7 +1578,7 @@ outboundWebhooks:
 
 ---
 
-## 29. Soft delete con restore
+## 30. Soft delete con restore
 
 ### Spec
 
@@ -1532,7 +1596,35 @@ softDelete: true    # default: true
 
 ---
 
-## 30. Import/export
+
+---
+
+## 31. Multi-tenant setup
+
+> **Documentación solamente.** No implementado en Foundation base. Sirve como guía para apps copiadas que necesiten aislamiento por empresa.
+
+### Pasos
+
+1. **JWT payload**: añadir companyId a JwtPayloadType (pps/back/src/modules/iam/auth/domain/jwt-payload.type.ts) y replicar en AuthenticatedUser (hook-context.ts / spec.types.ts).
+2. **Campo en spec**: declarar companyId como 
+ef: company (o integer si company no es un recurso Foundation) en los recursos tenant-scoped.
+3. **Row-level filter**:
+   `yaml
+   permissions:
+     rowLevel:
+       user:
+         filter: 'companyId == '
+   `
+4. **Reglas complejas**: usar eforeQuery hook para casos multi-campo (companyId ==  OR (companyId IS NULL AND isPublic = true)).
+5. **Admin cross-tenant**: no declarar 
+owLevel para el rol dmin; entonces ve todas las filas.
+
+### Limitaciones
+
+- Es filtrado a nivel de fila, no aislamiento de schema o conexión.
+- Requiere que cada operación de escritura establezca companyId (hook o cliente).
+- company no es built-in en Foundation; se añade como recurso spec-driven o tradicional en la app copiada.
+## 32. Import/export
 
 ### Import
 

@@ -21,7 +21,11 @@ import { getQueueToken } from '@nestjs/bullmq';
 import { EntitySchema, EntitySchemaColumnOptions } from 'typeorm';
 import * as path from 'path';
 
-import type { ResourceSpec, ScheduledActionSpec, HookContext } from './spec.types';
+import type {
+  ResourceSpec,
+  ScheduledActionSpec,
+  HookContext,
+} from './spec.types';
 import { SpecEngineBootService } from './spec-engine-boot';
 import { HookContextImpl } from './hook-context';
 import { TraceBuilder } from './spec-trace';
@@ -52,12 +56,17 @@ function parseOffset(value: string): number {
   const num = parseInt(match[2], 10);
   const unit = match[3];
   const mult =
-    unit === 'ms' ? 1
-    : unit === 's' ? 1000
-    : unit === 'm' ? 60 * 1000
-    : unit === 'h' ? 60 * 60 * 1000
-    : unit === 'd' ? 24 * 60 * 60 * 1000
-    : 0;
+    unit === 'ms'
+      ? 1
+      : unit === 's'
+        ? 1000
+        : unit === 'm'
+          ? 60 * 1000
+          : unit === 'h'
+            ? 60 * 60 * 1000
+            : unit === 'd'
+              ? 24 * 60 * 60 * 1000
+              : 0;
   return sign * num * mult;
 }
 
@@ -100,9 +109,7 @@ export function createSpecWebhookSubscriptionSchema(): EntitySchema<any> {
     name: SPEC_WEBHOOK_SUBSCRIPTION_SCHEMA_NAME,
     tableName: 'spec_webhook_subscriptions',
     columns,
-    indices: [
-      { columns: ['event'] },
-    ],
+    indices: [{ columns: ['event'] }],
   });
 }
 
@@ -205,8 +212,7 @@ export class SpecScheduledActionManager {
     // the job payload. The controller passes it via ctx, but we keep a
     // fallback by deriving it from the spec loader's conventions.
     const extensionDir =
-      (entity as any).__extensionDir ||
-      this.guessExtensionDir(spec.name);
+      (entity as any).__extensionDir || this.guessExtensionDir(spec.name);
 
     const jobData: ScheduledActionJobData = {
       resourceName: spec.name,
@@ -245,7 +251,12 @@ export class SpecScheduledActionManager {
     logger: Logger;
   }): Promise<void> {
     const { data, logger } = params;
-    const handler = this.loadHandler(data.extensionDir, data.handler, data.actionName, logger);
+    const handler = this.loadHandler(
+      data.extensionDir,
+      data.handler,
+      data.actionName,
+      logger,
+    );
     if (!handler) {
       throw new Error(
         `Scheduled action handler "${data.handler}" for "${data.actionName}" could not be loaded`,
@@ -261,13 +272,20 @@ export class SpecScheduledActionManager {
     try {
       const moduleRef = SpecEngineBootService.getModuleRef();
       const token = getQueueToken(SPEC_QUEUE_NAME);
-      return moduleRef.get<Queue<ScheduledActionJobData>>(token, { strict: false }) || null;
+      return (
+        moduleRef.get<Queue<ScheduledActionJobData>>(token, {
+          strict: false,
+        }) || null
+      );
     } catch {
       return null;
     }
   }
 
-  private static buildContext(resourceName: string, logger: Logger): HookContext {
+  private static buildContext(
+    resourceName: string,
+    logger: Logger,
+  ): HookContext {
     const moduleRef = SpecEngineBootService.getModuleRef();
     const configService = SpecEngineBootService.getConfigService();
     const trace = new TraceBuilder(
@@ -292,19 +310,23 @@ export class SpecScheduledActionManager {
     handlerPath: string,
     actionName: string,
     logger: Logger,
-  ): ((ctx: HookContext, entity: Record<string, unknown>) => Promise<void>) | null {
+  ):
+    | ((ctx: HookContext, entity: Record<string, unknown>) => Promise<void>)
+    | null {
     try {
       const resolved = path.resolve(extensionDir, handlerPath);
       const normalizedDir = path.resolve(extensionDir) + path.sep;
       if (!resolved.startsWith(normalizedDir)) {
-        logger.warn(`Scheduled action handler "${handlerPath}" escapes extension directory`);
+        logger.warn(
+          `Scheduled action handler "${handlerPath}" escapes extension directory`,
+        );
         return null;
       }
       const requirePath =
         process.env.NODE_ENV === 'production'
           ? resolved.replace(/\.ts$/, '.js')
           : resolved;
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+
       const mod = require(requirePath);
       const handler =
         mod && typeof mod === 'object' && 'default' in mod ? mod.default : mod;
@@ -342,7 +364,9 @@ export class SpecScheduledActionManager {
   private static guessExtensionDir(resourceName: string): string {
     try {
       const moduleRef = SpecEngineBootService.getModuleRef();
-      const loadedSpecs = moduleRef.get<any[]>('SPEC_LOADED_SPECS', { strict: false });
+      const loadedSpecs = moduleRef.get<any[]>('SPEC_LOADED_SPECS', {
+        strict: false,
+      });
       if (Array.isArray(loadedSpecs)) {
         for (const loaded of loadedSpecs) {
           if (

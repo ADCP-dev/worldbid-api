@@ -162,7 +162,9 @@ export class SpecMetaController {
   @Get('trace/:requestId')
   @Roles(RoleEnum.admin)
   getTrace(@Param('requestId') requestId: string): SpecTraceStubResponse {
-    this.logger.debug(`Trace lookup requested for requestId="${requestId}" (stub)`);
+    this.logger.debug(
+      `Trace lookup requested for requestId="${requestId}" (stub)`,
+    );
     return {
       requestId,
       found: false,
@@ -204,7 +206,9 @@ export class SpecMetaController {
    * Find a single resource DTO by name across all loaded extensions.
    */
   private findResourceByName(name: string): ResourceMetaDTO | undefined {
-    const normalizedName = String(name ?? '').trim().toLowerCase();
+    const normalizedName = String(name ?? '')
+      .trim()
+      .toLowerCase();
     for (const loaded of this.loadedSpecs) {
       for (const res of loaded.spec.resources ?? []) {
         if (res.name.toLowerCase() === normalizedName) {

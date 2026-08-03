@@ -13,10 +13,10 @@
 import { Logger } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
-import { Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
-import type { AuthenticatedUser, TraceWriter } from './spec.types';
+import type { AuthenticatedUser, TraceWriter, HookContext } from './spec.types';
 import { HookAbortError } from './spec.types';
 import type { EmailJobDataLike } from './email-job-data';
 import { isKnownService, KNOWN_SERVICES } from './service-registry';
@@ -60,6 +60,7 @@ export class HookContextImpl {
     resource: string,
     operation: string,
     trace: TraceWriter,
+    private readonly dataSource?: DataSource,
   ) {
     this.logger = new Logger(`HookContext:${resource}:${operation}`);
     this.trace = trace;
@@ -69,13 +70,72 @@ export class HookContextImpl {
   }
 
   /**
+   * Set the DataSource reference after construction.
+   * Used by the spec-engine boot service so HookContextImpl instances
+   * created before DataSource is available can still spawn transactions.
+   */
+  setDataSource(dataSource: DataSource): void {
+    (this as unknown as { dataSource: DataSource }).dataSource = dataSource;
+  }
+
+  /**
+   * Create a transaction-aware copy of this context that uses the given
+   * EntityManager for all repository lookups.
+   */
+  withManager(manager: EntityManager): HookContext {
+    const tx = Object.create(this) as HookContext;
+    tx.getRepository = (name: string): Repository<any> =>
+      this.getRepository(name, manager);
+    tx.transaction = async <T>(
+      fn: (txContext: HookContext) => Promise<T>,
+    ): Promise<T> => {
+      return fn(tx);
+    };
+    return tx;
+  }
+
+  /**
+   * Run a block inside a TypeORM transaction.
+   * The block receives a TransactionContext whose repositories share the
+   * same QueryRunner/EntityManager.
+   */
+  async transaction<T>(fn: (txContext: HookContext) => Promise<T>): Promise<T> {
+    if (!this.dataSource) {
+      throw new Error(
+        'DataSource not available in HookContext. Ensure SpecEngineBootService wires it.',
+      );
+    }
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const txContext = this.withManager(queryRunner.manager);
+      const result = await fn(txContext);
+      await queryRunner.commitTransaction();
+      return result;
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  /**
    * Get a TypeORM repository by resource name.
    * For spec-driven resources: registered with `SpecRepo_<name>` token.
    * For Foundation entities: throw with guidance (use getService instead).
    */
-  getRepository(name: string): Repository<any> {
+  getRepository(name: string, manager?: EntityManager): Repository<any> {
     try {
-      return this.moduleRef.get(getRepositoryToken(name as any), { strict: false });
+      if (manager) {
+        return manager.getRepository(name as any);
+      }
+      return this.moduleRef.get(getRepositoryToken(name as any), {
+        strict: false,
+      });
     } catch {
       throw new Error(
         `Repository "${name}" not found. Spec-driven resources are available by name. ` +
@@ -137,7 +197,9 @@ export class HookContextImpl {
    * Send an email via the queued mailer service.
    */
   async sendEmail(data: EmailJobDataLike): Promise<void> {
-    const queuedMailer = this.getService<QueuedMailerService>('QueuedMailerService');
+    const queuedMailer = this.getService<QueuedMailerService>(
+      'QueuedMailerService',
+    );
     return queuedMailer.sendMail(data);
   }
 
@@ -157,7 +219,9 @@ export class HookContextImpl {
     metadata?: Record<string, unknown>,
   ): Promise<void> {
     try {
-      const errorTracker = this.getService<ErrorTrackerService>('ErrorTrackerService');
+      const errorTracker = this.getService<ErrorTrackerService>(
+        'ErrorTrackerService',
+      );
       await errorTracker.logError({
         message,
         source: source || `spec-engine:${this.resource}:${this.operation}`,

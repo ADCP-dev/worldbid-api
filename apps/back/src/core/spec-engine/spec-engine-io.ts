@@ -112,11 +112,15 @@ export class SpecImportExport {
             );
             continue;
           }
-          const existing = await repo.findOne({ where: { [uniqueKey]: keyValue } });
+          const existing = await repo.findOne({
+            where: { [uniqueKey]: keyValue },
+          });
           if (existing) {
             // Merge validated fields onto existing, re-validate as update.
             const merged = { ...existing, ...validated };
-            const updateParse = (updateSchema as z.ZodTypeAny).safeParse(merged);
+            const updateParse = (updateSchema as z.ZodTypeAny).safeParse(
+              merged,
+            );
             if (!updateParse.success) {
               const issues = updateParse.error.issues
                 .map((iss) => `${iss.path.join('.')}: ${iss.message}`)
@@ -164,9 +168,10 @@ export class SpecImportExport {
     const rows = await repo.find();
 
     // Determine field list
-    const exportFields = spec.exportConfig?.fields && spec.exportConfig.fields.length > 0
-      ? spec.exportConfig.fields
-      : this.defaultExportFields(spec);
+    const exportFields =
+      spec.exportConfig?.fields && spec.exportConfig.fields.length > 0
+        ? spec.exportConfig.fields
+        : this.defaultExportFields(spec);
 
     // Project rows to the selected fields
     const projected = rows.map((row: any) => {
@@ -213,8 +218,7 @@ export class SpecImportExport {
     fields: string[],
     rows: Record<string, unknown>[],
   ): string {
-    const needsQuoting = (s: string): boolean =>
-      /[",\n\r]/.test(s);
+    const needsQuoting = (s: string): boolean => /[",\n\r]/.test(s);
 
     const escapeCell = (s: string): string => {
       if (needsQuoting(s)) {

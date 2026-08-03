@@ -36,7 +36,16 @@ export interface BuiltQuery {
 
 // ─── Token types for the filter expression parser ──────────────────────────
 
-type TokenType = 'IDENT' | 'OP' | 'LPAREN' | 'RPAREN' | 'AND' | 'OR' | 'STRING' | 'NUMBER' | 'EOF';
+type TokenType =
+  | 'IDENT'
+  | 'OP'
+  | 'LPAREN'
+  | 'RPAREN'
+  | 'AND'
+  | 'OR'
+  | 'STRING'
+  | 'NUMBER'
+  | 'EOF';
 
 interface Token {
   type: TokenType;
@@ -161,7 +170,8 @@ export class SpecQueryBuilder {
     // ── ORDER BY clause ──────────────────────────────────────────────────
     if (query.sort) {
       const sortField = this.validateIdent(query.sort.field, 'sort.field');
-      const order = (query.sort.order || 'asc').toLowerCase() === 'desc' ? 'DESC' : 'ASC';
+      const order =
+        (query.sort.order || 'asc').toLowerCase() === 'desc' ? 'DESC' : 'ASC';
       // When sorting by the aggregate, use the alias; otherwise quote the column.
       if (sortField === 'value' || sortField === 'label') {
         parts.push(`ORDER BY "${sortField}" ${order}`);
@@ -174,7 +184,9 @@ export class SpecQueryBuilder {
     if (query.limit !== undefined && query.limit !== null) {
       const limitNum = Math.max(0, Math.floor(Number(query.limit)));
       if (!Number.isFinite(limitNum)) {
-        throw new Error('SpecQueryBuilder: query.limit must be a finite number');
+        throw new Error(
+          'SpecQueryBuilder: query.limit must be a finite number',
+        );
       }
       // LIMIT takes a literal integer; validated & bounded, no injection risk.
       parts.push(`LIMIT ${limitNum}`);
@@ -201,9 +213,14 @@ export class SpecQueryBuilder {
       case 'min':
       case 'max': {
         if (!query.aggregateField) {
-          throw new Error(`SpecQueryBuilder: aggregate "${agg}" requires aggregateField`);
+          throw new Error(
+            `SpecQueryBuilder: aggregate "${agg}" requires aggregateField`,
+          );
         }
-        const field = this.validateIdent(query.aggregateField, 'aggregateField');
+        const field = this.validateIdent(
+          query.aggregateField,
+          'aggregateField',
+        );
         const fn = agg.toUpperCase();
         return `${fn}("${field}")`;
       }
@@ -221,7 +238,9 @@ export class SpecQueryBuilder {
    */
   private static buildGroupByExpr(query: QuerySpec): string {
     if (!query.groupBy) {
-      throw new Error('SpecQueryBuilder: groupBy is required to build a group-by expression');
+      throw new Error(
+        'SpecQueryBuilder: groupBy is required to build a group-by expression',
+      );
     }
     const field = this.validateIdent(query.groupBy, 'groupBy field');
 
@@ -255,7 +274,9 @@ export class SpecQueryBuilder {
     const parser = new FilterParser(tokens);
     const ast = parser.parse();
     if (!parser.atEnd()) {
-      throw new Error('SpecQueryBuilder: unexpected trailing tokens in filter expression');
+      throw new Error(
+        'SpecQueryBuilder: unexpected trailing tokens in filter expression',
+      );
     }
     return this.compileFilterNode(ast, params);
   }
@@ -293,9 +314,13 @@ export class SpecQueryBuilder {
     if (!raw) return '';
 
     // Match:  <ident> <comparator> <literal>
-    const match = raw.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*(>=|<=|==|!=|>|<)\s*(.+)$/);
+    const match = raw.match(
+      /^([A-Za-z_][A-Za-z0-9_]*)\s*(>=|<=|==|!=|>|<)\s*(.+)$/,
+    );
     if (!match) {
-      throw new Error(`SpecQueryBuilder: invalid HAVING expression "${expression}"`);
+      throw new Error(
+        `SpecQueryBuilder: invalid HAVING expression "${expression}"`,
+      );
     }
 
     const [, ident, comparatorRaw, literalRaw] = match;
@@ -312,7 +337,9 @@ export class SpecQueryBuilder {
     };
     const comparator = comparatorMap[comparatorRaw];
     if (!comparator) {
-      throw new Error(`SpecQueryBuilder: unsupported HAVING comparator "${comparatorRaw}"`);
+      throw new Error(
+        `SpecQueryBuilder: unsupported HAVING comparator "${comparatorRaw}"`,
+      );
     }
 
     const literal = this.parseLiteral(literalRaw.trim());
@@ -380,7 +407,9 @@ export class SpecQueryBuilder {
 
       // Single = or ! is invalid
       if (ch === '=' || ch === '!') {
-        throw new Error(`SpecQueryBuilder: unexpected "${ch}" in filter at position ${i}`);
+        throw new Error(
+          `SpecQueryBuilder: unexpected "${ch}" in filter at position ${i}`,
+        );
       }
 
       // String literal: '...' or "..."
@@ -399,7 +428,9 @@ export class SpecQueryBuilder {
           i++;
         }
         if (i >= src.length) {
-          throw new Error('SpecQueryBuilder: unterminated string literal in filter');
+          throw new Error(
+            'SpecQueryBuilder: unterminated string literal in filter',
+          );
         }
         i++; // skip closing quote
         tokens.push({ type: 'STRING', value });
@@ -418,7 +449,9 @@ export class SpecQueryBuilder {
           i++;
         }
         if (num === '-' || num === '') {
-          throw new Error(`SpecQueryBuilder: invalid number in filter at position ${i}`);
+          throw new Error(
+            `SpecQueryBuilder: invalid number in filter at position ${i}`,
+          );
         }
         tokens.push({ type: 'NUMBER', value: num });
         continue;
@@ -435,7 +468,9 @@ export class SpecQueryBuilder {
         continue;
       }
 
-      throw new Error(`SpecQueryBuilder: unexpected character "${ch}" in filter at position ${i}`);
+      throw new Error(
+        `SpecQueryBuilder: unexpected character "${ch}" in filter at position ${i}`,
+      );
     }
 
     tokens.push({ type: 'EOF', value: '' });
@@ -588,7 +623,9 @@ class FilterParser {
       case 'NUMBER':
         value = Number(valTok.value);
         if (!Number.isFinite(value)) {
-          throw new Error(`SpecQueryBuilder: invalid number "${valTok.value}" in filter`);
+          throw new Error(
+            `SpecQueryBuilder: invalid number "${valTok.value}" in filter`,
+          );
         }
         this.advance();
         break;

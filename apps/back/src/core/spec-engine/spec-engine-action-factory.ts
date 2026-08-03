@@ -86,9 +86,7 @@ const ROLE_MAP: Record<PermissionRole, number | null> = {
 };
 
 function resolveRolesArray(roles: PermissionRole[]): number[] {
-  return roles
-    .map((r) => ROLE_MAP[r])
-    .filter((r): r is number => r !== null);
+  return roles.map((r) => ROLE_MAP[r]).filter((r): r is number => r !== null);
 }
 
 export class SpecEngineActionFactory {
@@ -120,7 +118,11 @@ export class SpecEngineActionFactory {
 
     // Load + cache all action handlers up front (fail-fast at boot).
     const loadedActions = spec.actions.map((action) => {
-      const handler = this.loadActionHandler(action, extensionDir, resourceName);
+      const handler = this.loadActionHandler(
+        action,
+        extensionDir,
+        resourceName,
+      );
       return { action, handler };
     });
 
@@ -187,10 +189,17 @@ export class SpecEngineActionFactory {
           input,
         );
         if (validationError) {
-          trace.endStage('validation', 'fail', { error: validationError }, undefined, undefined, {
-            message: validationError,
-            code: 'VALIDATION_ERROR',
-          });
+          trace.endStage(
+            'validation',
+            'fail',
+            { error: validationError },
+            undefined,
+            undefined,
+            {
+              message: validationError,
+              code: 'VALIDATION_ERROR',
+            },
+          );
           trace.finish();
           this.attachTrace(res, trace);
           throw new BadRequestException({ error: validationError });
@@ -200,10 +209,17 @@ export class SpecEngineActionFactory {
         // Verify handler is loaded.
         if (!handler) {
           trace.startStage('response');
-          trace.endStage('response', 'fail', { error: 'handler not loaded' }, undefined, undefined, {
-            message: `Action handler for "${action.name}" is not loaded`,
-            code: 'HANDLER_MISSING',
-          });
+          trace.endStage(
+            'response',
+            'fail',
+            { error: 'handler not loaded' },
+            undefined,
+            undefined,
+            {
+              message: `Action handler for "${action.name}" is not loaded`,
+              code: 'HANDLER_MISSING',
+            },
+          );
           trace.finish();
           this.attachTrace(res, trace);
           throw new InternalServerErrorException(
@@ -216,7 +232,9 @@ export class SpecEngineActionFactory {
         // instead of an opaque handler error and keeps row-level semantics.
         if (entityId !== null) {
           trace.startStage('db');
-          const exists = await this.repository.findOne({ where: { id: entityId } });
+          const exists = await this.repository.findOne({
+            where: { id: entityId },
+          });
           if (!exists) {
             trace.endStage('db', 'fail', { error: 'entity not found' });
             trace.finish();
@@ -238,10 +256,17 @@ export class SpecEngineActionFactory {
           result = await handler(entityId, input, ctx);
         } catch (err) {
           if (err instanceof HookAbortError) {
-            trace.endStage('afterHook', 'fail', { error: err.message }, undefined, undefined, {
-              message: err.message,
-              code: 'ACTION_ABORT',
-            });
+            trace.endStage(
+              'afterHook',
+              'fail',
+              { error: err.message },
+              undefined,
+              undefined,
+              {
+                message: err.message,
+                code: 'ACTION_ABORT',
+              },
+            );
             trace.finish();
             this.attachTrace(res, trace);
             throw new BadRequestException(err.message);
@@ -251,10 +276,17 @@ export class SpecEngineActionFactory {
             `Action "${action.name}" failed: ${message}`,
             err instanceof Error ? err.stack : undefined,
           );
-          trace.endStage('afterHook', 'fail', { error: message }, undefined, undefined, {
-            message,
-            code: 'ACTION_ERROR',
-          });
+          trace.endStage(
+            'afterHook',
+            'fail',
+            { error: message },
+            undefined,
+            undefined,
+            {
+              message,
+              code: 'ACTION_ERROR',
+            },
+          );
           trace.finish();
           this.attachTrace(res, trace);
           throw new InternalServerErrorException(`Action failed: ${message}`);
@@ -277,7 +309,10 @@ export class SpecEngineActionFactory {
       // The method bodies are uniform: parse `:id` if present, delegate to
       // runAction with the action's loaded handler.
 
-      private attachTrace(res: Response | undefined, trace: TraceBuilder): void {
+      private attachTrace(
+        res: Response | undefined,
+        trace: TraceBuilder,
+      ): void {
         if (!res || !trace.isActive()) return;
         try {
           res.setHeader('X-Spec-Trace', trace.toBase64());
@@ -317,7 +352,9 @@ export class SpecEngineActionFactory {
         const entityId =
           hasId && paramId !== undefined ? this.parseEntityId(paramId) : null;
         const input =
-          body && typeof body === 'object' ? (body as Record<string, unknown>) : {};
+          body && typeof body === 'object'
+            ? (body as Record<string, unknown>)
+            : {};
         return this.runAction(loaded, entityId, input, user, res);
       };
 
@@ -351,7 +388,9 @@ export class SpecEngineActionFactory {
               : Post(actionPath);
 
       const statusDecorator =
-        httpMethod === 'POST' ? HttpCode(HttpStatus.CREATED) : HttpCode(HttpStatus.OK);
+        httpMethod === 'POST'
+          ? HttpCode(HttpStatus.CREATED)
+          : HttpCode(HttpStatus.OK);
 
       // Define the method on the prototype with a unique name so NestJS can
       // reflect metadata without collisions.
@@ -366,7 +405,11 @@ export class SpecEngineActionFactory {
 
       // Bind to controller prototype so `this` works when NestJS invokes it.
       (SpecActionController.prototype as any)[methodName] = routeHandler;
-      Reflect.defineMetadata('design:paramtypes', paramTypes, routeHandler as any);
+      Reflect.defineMetadata(
+        'design:paramtypes',
+        paramTypes,
+        routeHandler as any,
+      );
     }
 
     Object.defineProperty(SpecActionController, 'name', {
@@ -401,18 +444,19 @@ export class SpecEngineActionFactory {
         process.env.NODE_ENV === 'production'
           ? absolutePath.replace(/\.ts$/, '.js')
           : absolutePath;
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+
       const mod = require(requirePath);
-      const handler: unknown = mod && typeof mod === 'object' && 'default' in mod
-        ? mod.default
-        : mod;
+      const handler: unknown =
+        mod && typeof mod === 'object' && 'default' in mod ? mod.default : mod;
       if (typeof handler !== 'function') {
         this.logger.warn(
           `⚠️  Action "${action.name}" for ${resourceName} has no default export function — skipping`,
         );
         return null;
       }
-      this.logger.log(`🪩 Loaded action: ${resourceName}.${action.name} → ${action.handler}`);
+      this.logger.log(
+        `🪩 Loaded action: ${resourceName}.${action.name} → ${action.handler}`,
+      );
       return handler as ActionHandler;
     } catch (err) {
       this.logger.warn(
@@ -448,12 +492,17 @@ export class SpecEngineActionFactory {
     return null;
   }
 
-  private static checkType(type: FieldType, value: unknown, name: string): string | null {
+  private static checkType(
+    type: FieldType,
+    value: unknown,
+    name: string,
+  ): string | null {
     const t = type;
     switch (t) {
       case 'string':
       case 'text':
-        if (typeof value !== 'string') return `Field "${name}" must be a string`;
+        if (typeof value !== 'string')
+          return `Field "${name}" must be a string`;
         return null;
       case 'integer':
         if (typeof value !== 'number' || !Number.isInteger(value))
@@ -464,7 +513,8 @@ export class SpecEngineActionFactory {
           return `Field "${name}" must be a number`;
         return null;
       case 'boolean':
-        if (typeof value !== 'boolean') return `Field "${name}" must be a boolean`;
+        if (typeof value !== 'boolean')
+          return `Field "${name}" must be a boolean`;
         return null;
       case 'datetime':
       case 'date':
@@ -472,16 +522,20 @@ export class SpecEngineActionFactory {
           return `Field "${name}" must be a date string`;
         return null;
       case 'json':
-        if (typeof value !== 'object') return `Field "${name}" must be an object`;
+        if (typeof value !== 'object')
+          return `Field "${name}" must be an object`;
         return null;
       case 'enum':
-        if (typeof value !== 'string') return `Field "${name}" must be a string (enum value)`;
+        if (typeof value !== 'string')
+          return `Field "${name}" must be a string (enum value)`;
         return null;
       case 'ref':
-        if (typeof value !== 'number') return `Field "${name}" must be a numeric reference id`;
+        if (typeof value !== 'number')
+          return `Field "${name}" must be a numeric reference id`;
         return null;
       case 'file':
-        if (typeof value !== 'string') return `Field "${name}" must be a file id string`;
+        if (typeof value !== 'string')
+          return `Field "${name}" must be a file id string`;
         return null;
       case 'computed':
         // computed inputs aren't expected from clients — accept any.
@@ -500,7 +554,9 @@ export class SpecEngineActionFactory {
    */
   private static normalizeActionPath(rawPath: string): string {
     if (!rawPath || typeof rawPath !== 'string') {
-      throw new Error(`SpecEngineActionFactory: invalid action path "${rawPath}"`);
+      throw new Error(
+        `SpecEngineActionFactory: invalid action path "${rawPath}"`,
+      );
     }
     return rawPath.startsWith('/') ? rawPath.slice(1) : rawPath;
   }

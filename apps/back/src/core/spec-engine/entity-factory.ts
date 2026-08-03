@@ -3,11 +3,12 @@
  *
  * Uses EntitySchema API (not decorators) so entities are created dynamically
  * at runtime. Supports field types including ref (many-to-one relations),
- * file, enum, and all standard types.
+ * file, enum, many-to-many, and all standard types.
  *
  * Relations: ref fields are created as real FK columns with EntitySchema
- * relations (many-to-one). The engine resolves refs after loading all specs
- * so cross-resource references work correctly.
+ * relations (many-to-one). Many-to-many fields are virtual on the resource:
+ * the engine synthesizes a join-table EntitySchema and wires a TypeORM
+ * many-to-many relation on the primary entity.
  */
 
 import {
@@ -17,18 +18,26 @@ import {
 } from 'typeorm';
 import type { ResourceSpec, FieldSpec } from './spec.types';
 
+export interface EntityFactoryResult {
+  mainSchema: EntitySchema<any>;
+  joinTableSchemas: EntitySchema<any>[];
+}
+
 export class EntityFactory {
   /**
    * Build a TypeORM EntitySchema from a ResourceSpec.
    * @param spec The resource specification
    * @param allResources Map of all resource specs (for resolving ref targets)
+   * @param extensionName Optional extension name for auto-naming join tables
    */
   static create(
     spec: ResourceSpec,
     allResources?: Map<string, ResourceSpec>,
-  ): EntitySchema<any> {
+    extensionName?: string,
+  ): EntityFactoryResult {
     const columns: Record<string, EntitySchemaColumnOptions> = {};
     const relations: Record<string, EntitySchemaRelationOptions> = {};
+    const joinTableSchemas: EntitySchema<any>[] = [];
 
     // Primary key — always auto-increment integer
     columns.id = {
@@ -67,6 +76,29 @@ export class EntityFactory {
         columns[field.name] = {
           type: 'varchar',
           nullable: field.nullable ?? !field.required,
+        };
+      } else if (field.type === 'many-to-many') {
+        const joinSchema = this.createJoinTableSchema(
+          spec,
+          field,
+          extensionName,
+        );
+        joinTableSchemas.push(joinSchema);
+
+        const relationName = this.fieldToRelationName(field.name);
+        const refTarget = field.ref === 'user' ? 'User' : field.ref!;
+        const joinColumnName = field.throughFields?.from ?? `${spec.name}Id`;
+        const inverseJoinColumnName =
+          field.throughFields?.to ??
+          `${this.fieldToRelationName(field.ref ?? field.name)}Id`;
+        relations[relationName] = {
+          type: 'many-to-many',
+          target: () => refTarget as any,
+          joinTable: {
+            name: (joinSchema.options as any).tableName,
+            joinColumn: { name: joinColumnName },
+            inverseJoinColumn: { name: inverseJoinColumnName },
+          },
         };
       } else {
         columns[field.name] = this.createColumnOptions(field);
@@ -122,7 +154,66 @@ export class EntityFactory {
       relations: Object.keys(relations).length > 0 ? relations : undefined,
     });
 
-    return entitySchema;
+    return { mainSchema: entitySchema, joinTableSchemas };
+  }
+
+  /**
+   * Create the join table EntitySchema for a many-to-many field.
+   */
+  private static createJoinTableSchema(
+    spec: ResourceSpec,
+    field: FieldSpec,
+    extensionName?: string,
+  ): EntitySchema<any> {
+    const tableName =
+      field.joinTable ?? this.defaultJoinTableName(spec, field, extensionName);
+    const fromCol = field.throughFields?.from ?? `${spec.name}Id`;
+    const toCol =
+      field.throughFields?.to ??
+      `${this.fieldToRelationName(field.ref ?? field.name)}Id`;
+    const targetRef = field.ref === 'user' ? 'User' : field.ref!;
+
+    const columns: Record<string, EntitySchemaColumnOptions> = {
+      [fromCol]: { type: Number, primary: true },
+      [toCol]: { type: Number, primary: true },
+    };
+
+    const relations: Record<string, EntitySchemaRelationOptions> = {
+      [spec.name]: {
+        type: 'many-to-one',
+        target: () => spec.name as any,
+        joinColumn: { name: fromCol },
+        onDelete: 'CASCADE',
+        nullable: false,
+      },
+      [this.fieldToRelationName(field.ref ?? field.name)]: {
+        type: 'many-to-one',
+        target: () => targetRef as any,
+        joinColumn: { name: toCol },
+        onDelete: 'CASCADE',
+        nullable: false,
+      },
+    };
+
+    return new EntitySchema<any>({
+      name: tableName,
+      tableName,
+      columns,
+      relations,
+    });
+  }
+
+  /**
+   * Auto-generate a join table name when not provided.
+   * Format: ext_<extension>_<resource>_<field>
+   */
+  private static defaultJoinTableName(
+    spec: ResourceSpec,
+    field: FieldSpec,
+    extensionName?: string,
+  ): string {
+    const extPrefix = extensionName ? `ext_${extensionName}` : 'ext';
+    return `${extPrefix}_${spec.name}_${field.name}`;
   }
 
   /**
@@ -183,6 +274,10 @@ export class EntityFactory {
         return Number;
       case 'file':
         return 'varchar';
+      case 'computed':
+      case 'many-to-many':
+        // computed and many-to-many are not stored as columns on the main table
+        return String;
       default:
         return String;
     }

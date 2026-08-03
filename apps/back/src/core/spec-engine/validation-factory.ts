@@ -121,6 +121,10 @@ export class ValidationFactory {
         schema = z.number().int().positive();
         break;
 
+      case 'many-to-many':
+        schema = z.array(z.number().int().positive());
+        break;
+
       case 'file':
         schema = z.string().uuid().nullable();
         break;

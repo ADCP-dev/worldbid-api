@@ -35,7 +35,12 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { Repository, FindManyOptions, FindOneOptions } from 'typeorm';
+import {
+  Repository,
+  FindManyOptions,
+  FindOneOptions,
+  EntitySchema,
+} from 'typeorm';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { z } from 'zod';
 import type { Request, Response } from 'express';
@@ -70,7 +75,6 @@ const BUILTIN_ROLE_MAP: Record<string, number | null> = {
   user: RoleEnum.customer,
   public: null,
 };
-
 
 // Free function for role resolution (used inside dynamic controller class)
 function resolveRolesArray(roles: PermissionRole[]): number[] {
@@ -107,6 +111,7 @@ export interface ControllerFactoryParams {
     afterDelete?: LoadedHook;
     beforeQuery?: LoadedHook;
   };
+  manyToManySchemas: EntitySchema<any>[];
 }
 
 export class ControllerFactory {
@@ -122,6 +127,7 @@ export class ControllerFactory {
       notificationDispatcher,
       isDev,
       allHooks,
+      manyToManySchemas,
     } = params;
 
     const resourceName = spec.name;
@@ -130,6 +136,18 @@ export class ControllerFactory {
     const createSchema = ValidationFactory.createCreateSchema(spec);
     const updateSchema = ValidationFactory.createUpdateSchema(spec);
     const diToken = getRepositoryToken(entitySchemaName as any);
+
+    const isTransactional = spec.transactional !== false;
+    const manyToManyFields = spec.fields.filter(
+      (f) => f.type === 'many-to-many',
+    );
+    const joinTableRepositories = new Map(
+      manyToManySchemas.map((schema) => {
+        const tableName = (schema.options as any).tableName as string;
+        const entityName = (schema.options as any).name as string;
+        return [tableName, getRepositoryToken(entityName as any)];
+      }),
+    );
 
     // Resolve roles
     const perms = spec.permissions || {};
@@ -151,7 +169,8 @@ export class ControllerFactory {
       return {
         url: cs.get('app.backendDomain', { infer: true }) || '',
         name: cs.get('app.name', { infer: true }) || '',
-        notificationEmail: cs.get('app.notificationEmail', { infer: true }) || '',
+        notificationEmail:
+          cs.get('app.notificationEmail', { infer: true }) || '',
       };
     };
 
@@ -169,20 +188,152 @@ export class ControllerFactory {
         @Inject(diToken) private readonly repository: Repository<any>,
       ) {}
 
+      private dataSource: any = null;
+      private transactionManager: any = null;
+
+      private getDataSource(): any {
+        if (!this.dataSource) {
+          this.dataSource = SpecEngineBootService.getDataSource();
+        }
+        return this.dataSource;
+      }
+
+      private getRepositoryForOperation(): Repository<any> {
+        return this.transactionManager
+          ? this.transactionManager.getRepository(entitySchemaName as any)
+          : this.repository;
+      }
+
+      private setTransactionManager(manager: any): void {
+        this.transactionManager = manager;
+      }
+
+      private clearTransactionManager(): void {
+        this.transactionManager = null;
+      }
+
+      // ─── Helper: many-to-many field handling ─────────────
+      private extractManyToManyValues(
+        data: Record<string, unknown>,
+      ): Record<string, number[]> {
+        const values: Record<string, number[]> = {};
+        for (const f of manyToManyFields) {
+          const v = data[f.name];
+          if (Array.isArray(v) && v.every((x) => typeof x === 'number')) {
+            values[f.name] = v as number[];
+          }
+        }
+        return values;
+      }
+
+      private omitManyToManyFields(
+        data: Record<string, unknown>,
+      ): Record<string, unknown> {
+        const result: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(data)) {
+          if (!manyToManyFields.some((f) => f.name === key)) {
+            result[key] = value;
+          }
+        }
+        return result;
+      }
+
+      private async syncManyToManyRelations(
+        entity: Record<string, unknown>,
+        values: Record<string, number[]>,
+        operation: 'create' | 'update',
+      ): Promise<void> {
+        const entityId = Number(entity.id);
+        if (!Number.isFinite(entityId)) return;
+
+        for (const f of manyToManyFields) {
+          const ids = values[f.name];
+          if (!ids) continue;
+
+          const joinSchema = manyToManySchemas.find(
+            (s) => (s.options as any).tableName === this.getJoinTableName(f),
+          );
+          if (!joinSchema) {
+            this.logger.warn(`Join table schema not found for ${f.name}`);
+            continue;
+          }
+
+          const entityName = (joinSchema.options as any).name as string;
+          const repo = this.transactionManager
+            ? this.transactionManager.getRepository(entityName as any)
+            : this.getJoinTableRepository(f);
+
+          const fromCol = f.throughFields?.from ?? `${spec.name}Id`;
+          const toCol =
+            f.throughFields?.to ??
+            `${this.fieldToRelationName(f.ref ?? f.name)}Id`;
+
+          if (operation === 'update') {
+            const existing = await repo.find({
+              where: { [fromCol]: entityId },
+            });
+            const existingIds = new Set(
+              existing.map((row: any) => Number(row[toCol])),
+            );
+            const desiredIds = new Set(ids);
+            const toInsert = ids.filter((id) => !existingIds.has(id));
+            const toDelete = existing
+              .filter((row: any) => !desiredIds.has(Number(row[toCol])))
+              .map((row: any) => row[toCol]);
+
+            for (const id of toInsert) {
+              await repo.save({ [fromCol]: entityId, [toCol]: id });
+            }
+            for (const id of toDelete) {
+              await repo.delete({ [fromCol]: entityId, [toCol]: id });
+            }
+          } else {
+            for (const id of ids) {
+              await repo.save({ [fromCol]: entityId, [toCol]: id });
+            }
+          }
+        }
+      }
+
+      private getJoinTableName(field: FieldSpec): string {
+        return field.joinTable ?? `ext_${spec.table}_${field.name}`;
+      }
+
+      private getJoinTableRepository(field: FieldSpec): Repository<any> {
+        const token = joinTableRepositories.get(this.getJoinTableName(field));
+        if (!token) {
+          throw new Error(
+            `Join table repository not registered for ${field.name}`,
+          );
+        }
+        return SpecEngineBootService.getModuleRef().get(token, {
+          strict: false,
+        });
+      }
+
+      private fieldToRelationName(fieldName: string): string {
+        if (fieldName.endsWith('Id')) {
+          return fieldName.slice(0, -2);
+        }
+        return fieldName;
+      }
+
       // ─── Helper: build HookContext ──────────────────────
       private buildContext(
         user: AuthenticatedUser | null,
         operation: string,
         trace: TraceBuilder,
       ): HookContext {
-        return new HookContextImpl(
+        const ctx = new HookContextImpl(
           SpecEngineBootService.getModuleRef(),
           SpecEngineBootService.getConfigService(),
           user,
           resourceName,
           operation,
           trace,
+          this.dataSource,
         ) as unknown as HookContext;
+        return ctx;
       }
 
       // ─── Helper: filter data by write permissions ──────
@@ -207,7 +358,7 @@ export class ControllerFactory {
       private sanitizeHookOutput(
         data: Record<string, unknown>,
       ): Record<string, unknown> {
-        const allowedFields = new Set(spec.fields.map(f => f.name));
+        const allowedFields = new Set(spec.fields.map((f) => f.name));
         const result: Record<string, unknown> = {};
         for (const [key, value] of Object.entries(data)) {
           if (allowedFields.has(key)) {
@@ -243,7 +394,9 @@ export class ControllerFactory {
           return { ...where, [field]: value };
         }
         // Fail closed: unrecognized filter pattern → deny all rows
-        this.logger.warn(`Row-level filter "${rule.filter}" could not be parsed — denying all rows`);
+        this.logger.warn(
+          `Row-level filter "${rule.filter}" could not be parsed — denying all rows`,
+        );
         return { ...where, id: -1 };
       }
 
@@ -268,10 +421,13 @@ export class ControllerFactory {
 
       private roleIdToName(roleId: number | undefined): string {
         switch (roleId) {
-          case RoleEnum.admin: return 'admin';
-          case RoleEnum.customer: return 'customer';
+          case RoleEnum.admin:
+            return 'admin';
+          case RoleEnum.customer:
+            return 'customer';
           // Custom roles resolved by name from spec registry
-          default: return '__denied__'; // Fail closed for unknown roles
+          default:
+            return '__denied__'; // Fail closed for unknown roles
         }
       }
 
@@ -288,28 +444,52 @@ export class ControllerFactory {
         @Res({ passthrough: true }) res?: Response,
       ) {
         const user = (req?.user as AuthenticatedUser) || null;
-        const trace = new TraceBuilder(resourceName, 'list', user ? { id: user.id, role: user.role?.name || '' } : null, this.logger, isDev);
+        const trace = new TraceBuilder(
+          resourceName,
+          'list',
+          user ? { id: user.id, role: user.role?.name || '' } : null,
+          this.logger,
+          isDev,
+        );
 
         trace.startStage('auth');
-        trace.endStage('auth', 'pass', { guard: 'jwt', rolesChecked: listRoles });
+        trace.endStage('auth', 'pass', {
+          guard: 'jwt',
+          rolesChecked: listRoles,
+        });
 
         trace.startStage('db');
-        const pageNum = page && Number.isFinite(Number(page)) ? Math.max(1, Math.floor(Number(page))) : 1;
-        const limitNum = limit && Number.isFinite(Number(limit)) ? Math.max(1, Math.min(100, Math.floor(Number(limit)))) : 20;
+        const pageNum =
+          page && Number.isFinite(Number(page))
+            ? Math.max(1, Math.floor(Number(page)))
+            : 1;
+        const limitNum =
+          limit && Number.isFinite(Number(limit))
+            ? Math.max(1, Math.min(100, Math.floor(Number(limit))))
+            : 20;
         const skip = (pageNum - 1) * limitNum;
 
         // Row-level filter first
         const rowWhere = this.applyRowLevelFilter(user, {});
         // Apply user-supplied filters AFTER row-level filter (defense-in-depth)
-        const parsedFilters = query ? ControllerFactory.parseFilters(query, spec) : {};
+        const parsedFilters = query
+          ? ControllerFactory.parseFilters(query, spec)
+          : {};
         const where = { ...rowWhere, ...parsedFilters };
 
         // Sorting — defaults to id DESC if nothing valid specified
-        const parsedSort = sortParam ? ControllerFactory.parseSort(sortParam, spec) : {};
-        const order = Object.keys(parsedSort).length > 0 ? parsedSort : { id: 'DESC' as const };
+        const parsedSort = sortParam
+          ? ControllerFactory.parseSort(sortParam, spec)
+          : {};
+        const order =
+          Object.keys(parsedSort).length > 0
+            ? parsedSort
+            : { id: 'DESC' as const };
 
         // Includes — validated against includeable fields
-        const relations = includeParam ? ControllerFactory.parseIncludes(includeParam, spec) : [];
+        const relations = includeParam
+          ? ControllerFactory.parseIncludes(includeParam, spec)
+          : [];
 
         // beforeQuery hook — allows complex query modification (joins, extra WHERE, relations)
         let queryOptions: FindManyOptions = {
@@ -341,10 +521,16 @@ export class ControllerFactory {
 
         const [items, total] = await this.repository.findAndCount(queryOptions);
 
-        trace.endStage('db', 'pass', { operation: 'SELECT', table: spec.table, count: items.length });
+        trace.endStage('db', 'pass', {
+          operation: 'SELECT',
+          table: spec.table,
+          count: items.length,
+        });
 
         // Apply field-level RBAC to each item
-        const sanitized = items.map((item: any) => this.applyFieldReadPerms(item, user));
+        const sanitized = items.map((item: any) =>
+          this.applyFieldReadPerms(item, user),
+        );
 
         trace.skipStage('validation', 'not applicable to list');
         trace.skipStage('afterHook', 'not applicable to list');
@@ -353,9 +539,17 @@ export class ControllerFactory {
         trace.startStage('response');
         const response = {
           data: sanitized,
-          meta: { total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) },
+          meta: {
+            total,
+            page: pageNum,
+            limit: limitNum,
+            totalPages: Math.ceil(total / limitNum),
+          },
         };
-        trace.endStage('response', 'pass', { fieldsStripped: [], rowLevelFilterApplied: Object.keys(where).length > 0 });
+        trace.endStage('response', 'pass', {
+          fieldsStripped: [],
+          rowLevelFilterApplied: Object.keys(where).length > 0,
+        });
 
         trace.finish();
         this.attachTrace(res, trace);
@@ -376,15 +570,26 @@ export class ControllerFactory {
           throw new BadRequestException(`Invalid ID: "${id}" must be a number`);
         }
         const user = (req?.user as AuthenticatedUser) || null;
-        const trace = new TraceBuilder(resourceName, 'read', user ? { id: user.id, role: user.role?.name || '' } : null, this.logger, isDev);
+        const trace = new TraceBuilder(
+          resourceName,
+          'read',
+          user ? { id: user.id, role: user.role?.name || '' } : null,
+          this.logger,
+          isDev,
+        );
 
         trace.startStage('auth');
-        trace.endStage('auth', 'pass', { guard: 'jwt', rolesChecked: readRoles });
+        trace.endStage('auth', 'pass', {
+          guard: 'jwt',
+          rolesChecked: readRoles,
+        });
 
         trace.startStage('db');
         const where = this.applyRowLevelFilter(user, { id: Number(id) });
         // Includes — validated against includeable fields
-        const relations = includeParam ? ControllerFactory.parseIncludes(includeParam, spec) : [];
+        const relations = includeParam
+          ? ControllerFactory.parseIncludes(includeParam, spec)
+          : [];
         const findOneOpts: FindOneOptions = { where };
         if (relations.length > 0) {
           (findOneOpts as any).relations = relations.reduce(
@@ -393,7 +598,11 @@ export class ControllerFactory {
           );
         }
         const entity = await this.repository.findOne(findOneOpts);
-        trace.endStage('db', 'pass', { operation: 'SELECT', table: spec.table, found: !!entity });
+        trace.endStage('db', 'pass', {
+          operation: 'SELECT',
+          table: spec.table,
+          found: !!entity,
+        });
 
         if (!entity) {
           trace.finish();
@@ -442,11 +651,20 @@ export class ControllerFactory {
         @Res({ passthrough: true }) res?: Response,
       ) {
         const user = (req?.user as AuthenticatedUser) || null;
-        const trace = new TraceBuilder(resourceName, 'create', user ? { id: user.id, role: user.role?.name || '' } : null, this.logger, isDev);
+        const trace = new TraceBuilder(
+          resourceName,
+          'create',
+          user ? { id: user.id, role: user.role?.name || '' } : null,
+          this.logger,
+          isDev,
+        );
 
         // Stage 1: Auth (already passed via guard)
         trace.startStage('auth');
-        trace.endStage('auth', 'pass', { guard: 'jwt', rolesChecked: createRoles });
+        trace.endStage('auth', 'pass', {
+          guard: 'jwt',
+          rolesChecked: createRoles,
+        });
 
         // Stage 2: Validation
         trace.startStage('validation');
@@ -456,60 +674,150 @@ export class ControllerFactory {
             field: i.path.join('.'),
             message: i.message,
           }));
-          trace.endStage('validation', 'fail', { errors }, undefined, undefined, { message: 'Validation failed', code: 'VALIDATION_ERROR' });
+          trace.endStage(
+            'validation',
+            'fail',
+            { errors },
+            undefined,
+            undefined,
+            { message: 'Validation failed', code: 'VALIDATION_ERROR' },
+          );
           trace.finish();
           this.attachTrace(res, trace);
           throw new BadRequestException({ validation: errors });
         }
-        trace.endStage('validation', 'pass', { schema: `${resourceName}.create`, rulesChecked: spec.fields.length });
+        trace.endStage('validation', 'pass', {
+          schema: `${resourceName}.create`,
+          rulesChecked: spec.fields.length,
+        });
 
         let data = result.data as Record<string, unknown>;
 
-    // Apply field-level write permissions
-    data = this.applyFieldWritePerms(data, user);
+        // Apply field-level write permissions
+        data = this.applyFieldWritePerms(data, user);
 
-        // Stage 3: Before hook
-        if (allHooks.beforeCreate) {
-          trace.startStage('beforeHook');
-          const ctx = this.buildContext(user, 'create', trace);
-          const hookResult = await hookExecutor.executeBeforeHook(allHooks.beforeCreate, data, ctx, trace);
-          data = this.sanitizeHookOutput(hookResult.data);
-        } else {
-          trace.skipStage('beforeHook', 'no beforeCreate hook defined');
-        }
+        // Extract M:N values before creating the entity (not stored on main row)
+        const manyToManyValues = this.extractManyToManyValues(data);
+        data = this.omitManyToManyFields(data);
 
-        // Stage 4: DB operation
-        trace.startStage('db');
+        const executeCore = async () => {
+          // Stage 3: Before hook
+          if (allHooks.beforeCreate) {
+            trace.startStage('beforeHook');
+            const ctx = this.buildContext(user, 'create', trace);
+            const hookResult = await hookExecutor.executeBeforeHook(
+              allHooks.beforeCreate,
+              data,
+              ctx,
+              trace,
+            );
+            if (!hookResult.proceed) {
+              trace.endStage('beforeHook', 'fail', {
+                proceed: false,
+                error: 'Hook aborted',
+              });
+              return {
+                aborted: true,
+                error: hookResult.error || 'Hook aborted the operation',
+              };
+            }
+            data = this.sanitizeHookOutput(hookResult.data);
+          } else {
+            trace.skipStage('beforeHook', 'no beforeCreate hook defined');
+          }
+
+          // Stage 4: DB operation
+          trace.startStage('db');
+          let saved: any;
+          try {
+            const repo = this.getRepositoryForOperation();
+            const entity = repo.create(data);
+            saved = await repo.save(entity);
+            trace.endStage('db', 'pass', {
+              operation: 'INSERT',
+              table: spec.table,
+              id: saved.id,
+            });
+          } catch (err) {
+            trace.endStage('db', 'fail', { error: (err as Error).message });
+            throw err;
+          }
+
+          // Stage 5: After hook (inside transaction)
+          if (allHooks.afterCreate) {
+            trace.startStage('afterHook');
+            const ctx = this.buildContext(user, 'create', trace);
+            await hookExecutor.executeAfterHook(
+              allHooks.afterCreate,
+              saved,
+              ctx,
+              trace,
+            );
+          } else {
+            trace.skipStage('afterHook', 'no afterCreate hook defined');
+          }
+
+          return { saved };
+        };
+
         let saved: any;
-        try {
-          const entity = this.repository.create(data);
-          saved = await this.repository.save(entity);
-          trace.endStage('db', 'pass', { operation: 'INSERT', table: spec.table, id: saved.id });
-        } catch (err) {
-          trace.endStage('db', 'fail', { error: (err as Error).message });
-          trace.finish();
-          this.attachTrace(res, trace);
-          throw err;
-        }
-
-        // Stage 5: After hook (fire-and-forget)
-        if (allHooks.afterCreate) {
-          trace.startStage('afterHook');
-          const ctx = this.buildContext(user, 'create', trace);
-          hookExecutor.executeAfterHook(allHooks.afterCreate, saved, ctx, trace).catch(() => {});
+        if (isTransactional) {
+          try {
+            const outcome = await this.getDataSource().transaction(
+              async (manager: any) => {
+                this.setTransactionManager(manager);
+                const result = await executeCore();
+                if ('aborted' in result) {
+                  throw new HookAbortError(
+                    result.error || 'Hook aborted the operation',
+                    400,
+                  );
+                }
+                await this.syncManyToManyRelations(
+                  result.saved,
+                  manyToManyValues,
+                  'create',
+                );
+                return result.saved;
+              },
+            );
+            saved = outcome;
+          } catch (err) {
+            if (err instanceof HookAbortError) {
+              trace.finish();
+              this.attachTrace(res, trace);
+              return { error: err.message };
+            }
+            trace.endStage('db', 'fail', { error: (err as Error).message });
+            trace.finish();
+            this.attachTrace(res, trace);
+            throw err;
+          } finally {
+            this.clearTransactionManager();
+          }
         } else {
-          trace.skipStage('afterHook', 'no afterCreate hook defined');
+          const outcome = await executeCore();
+          if ('aborted' in outcome) {
+            trace.finish();
+            this.attachTrace(res, trace);
+            return { error: outcome.error };
+          }
+          saved = outcome.saved;
+          await this.syncManyToManyRelations(saved, manyToManyValues, 'create');
         }
 
         // Outbound webhooks + scheduled actions (fire-and-forget)
         this.afterEntityCreate(saved, spec, user, trace);
 
-        // Stage 6: Notifications
+        // Stage 6: Notifications (outside transaction)
         if (notifications.length > 0) {
           trace.startStage('notifications');
           const ctx = this.buildContext(user, 'create', trace);
           // Load entity with relations so notification templates can access ${entity.assignee.email}
-          const entityForNotifications = await this.loadForNotifications(saved, spec);
+          const entityForNotifications = await this.loadForNotifications(
+            saved,
+            spec,
+          );
           const summary = await notificationDispatcher.dispatch({
             notifications,
             operation: 'afterCreate',
@@ -518,7 +826,11 @@ export class ControllerFactory {
             extensionDir,
             appConfig: getAppConfig(),
           });
-          trace.endStage('notifications', 'pass', summary as unknown as Record<string, unknown>);
+          trace.endStage(
+            'notifications',
+            'pass',
+            summary as unknown as Record<string, unknown>,
+          );
         } else {
           trace.skipStage('notifications', 'no notifications defined');
         }
@@ -547,10 +859,19 @@ export class ControllerFactory {
           throw new BadRequestException(`Invalid ID: "${id}" must be a number`);
         }
         const user = (req?.user as AuthenticatedUser) || null;
-        const trace = new TraceBuilder(resourceName, 'update', user ? { id: user.id, role: user.role?.name || '' } : null, this.logger, isDev);
+        const trace = new TraceBuilder(
+          resourceName,
+          'update',
+          user ? { id: user.id, role: user.role?.name || '' } : null,
+          this.logger,
+          isDev,
+        );
 
         trace.startStage('auth');
-        trace.endStage('auth', 'pass', { guard: 'jwt', rolesChecked: updateRoles });
+        trace.endStage('auth', 'pass', {
+          guard: 'jwt',
+          rolesChecked: updateRoles,
+        });
 
         // Stage 2: Validation
         trace.startStage('validation');
@@ -565,100 +886,196 @@ export class ControllerFactory {
           this.attachTrace(res, trace);
           throw new BadRequestException({ validation: errors });
         }
-        trace.endStage('validation', 'pass', { schema: `${resourceName}.update` });
+        trace.endStage('validation', 'pass', {
+          schema: `${resourceName}.update`,
+        });
 
         let data = result.data as Record<string, unknown>;
 
-    // Apply field-level write permissions
-    data = this.applyFieldWritePerms(data, user);
+        // Apply field-level write permissions
+        data = this.applyFieldWritePerms(data, user);
 
-        // Stage 3: Before hook
-        if (allHooks.beforeUpdate) {
-          trace.startStage('beforeHook');
-          const ctx = this.buildContext(user, 'update', trace);
-          const hookResult = await hookExecutor.executeBeforeHook(allHooks.beforeUpdate, data, ctx, trace);
-          data = this.sanitizeHookOutput(hookResult.data);
-        } else {
-          trace.skipStage('beforeHook', 'no beforeUpdate hook defined');
-        }
+        // Extract M:N values before updating the entity (not stored on main row)
+        const manyToManyValues = this.extractManyToManyValues(data);
+        data = this.omitManyToManyFields(data);
 
-        // Stage 4: DB
-        trace.startStage('db');
-        const where = this.applyRowLevelFilter(user, { id: numericId });
-        const existing = await this.repository.findOne({ where });
-        if (!existing) {
-          trace.endStage('db', 'fail', { error: 'Not found' });
-          trace.finish();
-          this.attachTrace(res, trace);
-          throw new NotFoundException(`${displayName} with ID ${id} not found`);
-        }
-
-        // State machine validation — if any field being updated has a
-        // stateMachine, validate the transition from the current value to
-        // the new value before mutating the database.
-        const roleName = user ? this.roleIdToName(user.role?.id) : '__denied__';
-        for (const f of spec.fields) {
-          if (!f.stateMachine) continue;
-          const newValue = data[f.name];
-          if (newValue === undefined) continue;
-          const from = String(existing[f.name]);
-          const to = String(newValue);
-          if (from === to) continue; // no transition requested
-          const outcome = StateMachineValidator.validateTransition(spec, f, from, to, roleName);
-          if (!outcome.valid) {
-            trace.endStage('db', 'fail', { error: outcome.error });
-            trace.finish();
-            this.attachTrace(res, trace);
-            throw new BadRequestException(outcome.error);
+        const executeCore = async () => {
+          // Stage 3: Before hook
+          if (allHooks.beforeUpdate) {
+            trace.startStage('beforeHook');
+            const ctx = this.buildContext(user, 'update', trace);
+            const hookResult = await hookExecutor.executeBeforeHook(
+              allHooks.beforeUpdate,
+              data,
+              ctx,
+              trace,
+            );
+            if (!hookResult.proceed) {
+              trace.endStage('beforeHook', 'fail', {
+                proceed: false,
+                error: 'Hook aborted',
+              });
+              return {
+                aborted: true,
+                error: hookResult.error || 'Hook aborted the operation',
+              };
+            }
+            data = this.sanitizeHookOutput(hookResult.data);
+          } else {
+            trace.skipStage('beforeHook', 'no beforeUpdate hook defined');
           }
-        }
 
-        // Use partial update instead of full save to avoid race condition
-        // Only update the fields present in validated data (not full row)
+          // Stage 4: DB
+          trace.startStage('db');
+          const where = this.applyRowLevelFilter(user, { id: numericId });
+          const repo = this.getRepositoryForOperation();
+          const existing = await repo.findOne({ where });
+          if (!existing) {
+            trace.endStage('db', 'fail', { error: 'Not found' });
+            throw new NotFoundException(
+              `${displayName} with ID ${id} not found`,
+            );
+          }
+
+          // State machine validation — if any field being updated has a
+          // stateMachine, validate the transition from the current value to
+          // the new value before mutating the database.
+          const roleName = user
+            ? this.roleIdToName(user.role?.id)
+            : '__denied__';
+          for (const f of spec.fields) {
+            if (!f.stateMachine) continue;
+            const newValue = data[f.name];
+            if (newValue === undefined) continue;
+            const from = String(existing[f.name]);
+            const to = String(newValue);
+            if (from === to) continue; // no transition requested
+            const outcome = StateMachineValidator.validateTransition(
+              spec,
+              f,
+              from,
+              to,
+              roleName,
+            );
+            if (!outcome.valid) {
+              trace.endStage('db', 'fail', { error: outcome.error });
+              throw new BadRequestException(outcome.error);
+            }
+          }
+
+          let saved: any;
+          try {
+            await repo.update(numericId, data);
+            // Reload to get the updated entity for response
+            saved = await repo.findOne({ where });
+            if (!saved) {
+              trace.endStage('db', 'fail', { error: 'Not found after update' });
+              throw new NotFoundException(
+                `${displayName} with ID ${id} not found after update`,
+              );
+            }
+            trace.endStage('db', 'pass', {
+              operation: 'UPDATE',
+              table: spec.table,
+              id: numericId,
+            });
+          } catch (err) {
+            trace.endStage('db', 'fail', { error: (err as Error).message });
+            throw err;
+          }
+
+          // Audit log — fire-and-forget at the call site
+          this.maybeAudit(existing, data, spec, user).catch((err: unknown) => {
+            this.logger.debug(
+              `Audit log error swallowed: ${(err as Error).message}`,
+            );
+          });
+
+          // Stage 5: After hook (inside transaction)
+          if (allHooks.afterUpdate) {
+            trace.startStage('afterHook');
+            const ctx = this.buildContext(user, 'update', trace);
+            await hookExecutor.executeAfterHook(
+              allHooks.afterUpdate,
+              saved,
+              ctx,
+              trace,
+            );
+          } else {
+            trace.skipStage('afterHook', 'no afterUpdate hook defined');
+          }
+
+          return { saved };
+        };
+
         let saved: any;
-        try {
-          await this.repository.update(numericId, data);
-          // Reload to get the updated entity for response
-          saved = await this.repository.findOne({ where });
-          if (!saved) {
-            trace.endStage('db', 'fail', { error: 'Not found after update' });
+        if (isTransactional) {
+          try {
+            const outcome = await this.getDataSource().transaction(
+              async (manager: any) => {
+                this.setTransactionManager(manager);
+                const result = await executeCore();
+                if ('aborted' in result) {
+                  throw new HookAbortError(
+                    result.error || 'Hook aborted the operation',
+                    400,
+                  );
+                }
+                if (
+                  manyToManyValues &&
+                  Object.keys(manyToManyValues).length > 0
+                ) {
+                  await this.syncManyToManyRelations(
+                    result.saved,
+                    manyToManyValues,
+                    'update',
+                  );
+                }
+                return result.saved;
+              },
+            );
+            saved = outcome;
+          } catch (err) {
+            if (err instanceof HookAbortError) {
+              trace.finish();
+              this.attachTrace(res, trace);
+              return { error: err.message };
+            }
+            trace.endStage('db', 'fail', { error: (err as Error).message });
             trace.finish();
             this.attachTrace(res, trace);
-            throw new NotFoundException(`${displayName} with ID ${id} not found after update`);
+            throw err;
+          } finally {
+            this.clearTransactionManager();
           }
-          trace.endStage('db', 'pass', { operation: 'UPDATE', table: spec.table, id: numericId });
-        } catch (err) {
-          trace.endStage('db', 'fail', { error: (err as Error).message });
-          trace.finish();
-          this.attachTrace(res, trace);
-          throw err;
-        }
-
-        // Audit log — if spec.audit is enabled, compare old vs new values for
-        // changed fields and write one audit row per changed field. Fire-and-
-        // forget: never awaited, never throws. Only fields allowed by
-        // AuditSpec.fields / AuditSpec.exclude are audited.
-        this.maybeAudit(existing, data, spec, user).catch((err: unknown) => {
-          this.logger.debug(`Audit log error swallowed: ${(err as Error).message}`);
-        });
-
-        // Stage 5: After hook
-        if (allHooks.afterUpdate) {
-          trace.startStage('afterHook');
-          const ctx = this.buildContext(user, 'update', trace);
-          hookExecutor.executeAfterHook(allHooks.afterUpdate, saved, ctx, trace).catch(() => {});
         } else {
-          trace.skipStage('afterHook', 'no afterUpdate hook defined');
+          const outcome = await executeCore();
+          if ('aborted' in outcome) {
+            trace.finish();
+            this.attachTrace(res, trace);
+            return { error: outcome.error };
+          }
+          saved = outcome.saved;
+          if (manyToManyValues && Object.keys(manyToManyValues).length > 0) {
+            await this.syncManyToManyRelations(
+              saved,
+              manyToManyValues,
+              'update',
+            );
+          }
         }
 
         // Outbound webhooks + reschedule scheduled actions (fire-and-forget)
         this.afterEntityUpdate(saved, spec, user, trace);
 
-        // Stage 6: Notifications
+        // Stage 6: Notifications (outside transaction)
         if (notifications.length > 0) {
           trace.startStage('notifications');
           const ctx = this.buildContext(user, 'update', trace);
-          const entityForNotifications = await this.loadForNotifications(saved, spec);
+          const entityForNotifications = await this.loadForNotifications(
+            saved,
+            spec,
+          );
           const summary = await notificationDispatcher.dispatch({
             notifications,
             operation: 'afterUpdate',
@@ -667,7 +1084,11 @@ export class ControllerFactory {
             extensionDir,
             appConfig: getAppConfig(),
           });
-          trace.endStage('notifications', 'pass', summary as unknown as Record<string, unknown>);
+          trace.endStage(
+            'notifications',
+            'pass',
+            summary as unknown as Record<string, unknown>,
+          );
         } else {
           trace.skipStage('notifications', 'no notifications defined');
         }
@@ -676,9 +1097,7 @@ export class ControllerFactory {
         trace.startStage('response');
         // Resolve computed fields before field-level read permissions are
         // applied so that computed values are included in the response and
-        // can be filtered by read perms just like stored fields. Awaited but
-        // errors are caught so a computed-field failure never breaks the
-        // response (the resolver itself also guards per-field).
+        // can be filtered by read perms just like stored fields.
         let entityForResponse: Record<string, unknown> = saved;
         if (spec.fields.some((f) => f.type === 'computed')) {
           const ctx = this.buildContext(user, 'update', trace);
@@ -715,55 +1134,106 @@ export class ControllerFactory {
           throw new BadRequestException(`Invalid ID: "${id}" must be a number`);
         }
         const user = (req?.user as AuthenticatedUser) || null;
-        const trace = new TraceBuilder(resourceName, 'delete', user ? { id: user.id, role: user.role?.name || '' } : null, this.logger, isDev);
+        const trace = new TraceBuilder(
+          resourceName,
+          'delete',
+          user ? { id: user.id, role: user.role?.name || '' } : null,
+          this.logger,
+          isDev,
+        );
 
         trace.startStage('auth');
-        trace.endStage('auth', 'pass', { guard: 'jwt', rolesChecked: deleteRoles });
+        trace.endStage('auth', 'pass', {
+          guard: 'jwt',
+          rolesChecked: deleteRoles,
+        });
 
-        trace.startStage('db');
-        const where = this.applyRowLevelFilter(user, { id: numericId });
-        const entity = await this.repository.findOne({ where });
-        if (!entity) {
-          trace.endStage('db', 'fail', { error: 'Not found' });
-          trace.finish();
-          this.attachTrace(res, trace);
-          throw new NotFoundException(`${displayName} with ID ${id} not found`);
-        }
-        trace.endStage('db', 'pass', { operation: 'SOFT_DELETE', table: spec.table, id });
+        const executeCore = async () => {
+          trace.startStage('db');
+          const where = this.applyRowLevelFilter(user, { id: numericId });
+          const repo = this.getRepositoryForOperation();
+          const entity = await repo.findOne({ where });
+          if (!entity) {
+            trace.endStage('db', 'fail', { error: 'Not found' });
+            throw new NotFoundException(
+              `${displayName} with ID ${id} not found`,
+            );
+          }
+          trace.endStage('db', 'pass', {
+            operation: 'SELECT',
+            table: spec.table,
+            id,
+          });
 
-        // After hook (before actual delete so entity is available)
-        if (allHooks.beforeDelete) {
-          trace.startStage('beforeHook');
-          const ctx = this.buildContext(user, 'delete', trace);
-          await hookExecutor.executeBeforeHook(
-            allHooks.beforeDelete,
-            entity as Record<string, unknown>,
-            ctx,
-            trace,
-          );
-          // proceed check is inside executeBeforeHook — throws if proceed=false
+          // Before delete hook
+          if (allHooks.beforeDelete) {
+            trace.startStage('beforeHook');
+            const ctx = this.buildContext(user, 'delete', trace);
+            await hookExecutor.executeBeforeHook(
+              allHooks.beforeDelete,
+              entity as Record<string, unknown>,
+              ctx,
+              trace,
+            );
+          } else {
+            trace.skipStage('beforeHook', 'no beforeDelete hook defined');
+          }
+
+          await repo.softDelete(where);
+
+          if (allHooks.afterDelete) {
+            trace.startStage('afterHook');
+            const ctx = this.buildContext(user, 'delete', trace);
+            await hookExecutor.executeAfterHook(
+              allHooks.afterDelete,
+              entity,
+              ctx,
+              trace,
+            );
+          } else {
+            trace.skipStage('afterHook', 'no afterDelete hook defined');
+          }
+
+          return entity;
+        };
+
+        let entity: any;
+        if (isTransactional) {
+          try {
+            entity = await this.getDataSource().transaction(
+              async (manager: any) => {
+                this.setTransactionManager(manager);
+                return executeCore();
+              },
+            );
+          } catch (err) {
+            trace.endStage('db', 'fail', { error: (err as Error).message });
+            trace.finish();
+            this.attachTrace(res, trace);
+            throw err;
+          } finally {
+            this.clearTransactionManager();
+          }
         } else {
-          trace.skipStage('beforeHook', 'no beforeDelete hook defined');
-        }
-
-        await this.repository.softDelete(where);
-
-        if (allHooks.afterDelete) {
-          trace.startStage('afterHook');
-          const ctx = this.buildContext(user, 'delete', trace);
-          hookExecutor.executeAfterHook(allHooks.afterDelete, entity, ctx, trace).catch(() => {});
-        } else {
-          trace.skipStage('afterHook', 'no afterDelete hook defined');
+          entity = await executeCore();
         }
 
         // Outbound webhooks (fire-and-forget)
-        this.afterEntityDelete(entity as Record<string, unknown>, spec, user, trace);
+        this.afterEntityDelete(
+          entity as Record<string, unknown>,
+          spec,
+          user,
+          trace,
+        );
 
-        // Notifications
+        // Notifications (outside transaction)
         if (notifications.length > 0) {
           trace.startStage('notifications');
           const ctx = this.buildContext(user, 'delete', trace);
-          const entityForNotifications = await this.loadForNotifications(entity, spec);
+          const entityForNotifications = await this.loadForNotifications(
+            entity,
+            spec,
+          );
           const summary = await notificationDispatcher.dispatch({
             notifications,
             operation: 'afterDelete',
@@ -772,7 +1242,11 @@ export class ControllerFactory {
             extensionDir,
             appConfig: getAppConfig(),
           });
-          trace.endStage('notifications', 'pass', summary as unknown as Record<string, unknown>);
+          trace.endStage(
+            'notifications',
+            'pass',
+            summary as unknown as Record<string, unknown>,
+          );
         } else {
           trace.skipStage('notifications', 'no notifications defined');
         }
@@ -791,16 +1265,19 @@ export class ControllerFactory {
       ): Promise<Record<string, unknown>> {
         // Collect ref field names for relation loading
         const refFields = spec.fields
-          .filter(f => f.type === 'ref')
-          .map(f => f.name.replace(/Id$/, ''));
-        
+          .filter((f) => f.type === 'ref')
+          .map((f) => f.name.replace(/Id$/, ''));
+
         if (refFields.length === 0) return entity;
 
         try {
           // Reload with relations populated
           const loaded = await this.repository.findOne({
             where: { id: entity.id },
-            relations: refFields.reduce((acc, name) => ({ ...acc, [name]: true }), {}),
+            relations: refFields.reduce(
+              (acc, name) => ({ ...acc, [name]: true }),
+              {},
+            ),
           });
           return loaded || entity;
         } catch {
@@ -839,8 +1316,12 @@ export class ControllerFactory {
 
         // Determine which fields to audit.
         const auditSpec = spec.audit === true ? {} : spec.audit;
-        const allowedFields = auditSpec.fields ? new Set(auditSpec.fields) : null;
-        const excludeFields = auditSpec.exclude ? new Set(auditSpec.exclude) : new Set<string>();
+        const allowedFields = auditSpec.fields
+          ? new Set(auditSpec.fields)
+          : null;
+        const excludeFields = auditSpec.exclude
+          ? new Set(auditSpec.exclude)
+          : new Set<string>();
 
         const entityId = Number((existing as any).id);
         const userId = user ? user.id : null;
@@ -914,7 +1395,11 @@ export class ControllerFactory {
           });
         }
         // Scheduled actions (entity-level delayed jobs)
-        if (scheduleActions && spec.scheduledActions && spec.scheduledActions.length > 0) {
+        if (
+          scheduleActions &&
+          spec.scheduledActions &&
+          spec.scheduledActions.length > 0
+        ) {
           for (const action of spec.scheduledActions) {
             SpecScheduledActionManager.schedule({
               entity,
@@ -979,7 +1464,10 @@ export class ControllerFactory {
       }
 
       // ─── Helper: attach trace to response ───────────────
-      private attachTrace(res: Response | undefined, trace: TraceBuilder): void {
+      private attachTrace(
+        res: Response | undefined,
+        trace: TraceBuilder,
+      ): void {
         if (!res || !trace.isActive()) return;
         try {
           res.setHeader('X-Spec-Trace', trace.toBase64());
@@ -1026,7 +1514,10 @@ export class ControllerFactory {
     for (const [field, value] of Object.entries(filters)) {
       if (!filterable.has(field)) continue;
       if (typeof value !== 'string' || value.length === 0) continue;
-      const parts = value.split(',').map((v) => v.trim()).filter(Boolean);
+      const parts = value
+        .split(',')
+        .map((v) => v.trim())
+        .filter(Boolean);
       if (parts.length === 0) continue;
       if (parts.length === 1) {
         result[field] = parts[0];

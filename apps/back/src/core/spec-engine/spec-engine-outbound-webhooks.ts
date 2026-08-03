@@ -45,7 +45,13 @@ export interface OutboundDispatchSummary {
   evaluated: number;
   dispatched: number;
   failed: number;
-  results: Array<{ name: string; url: string; ok: boolean; status?: number; error?: string }>;
+  results: Array<{
+    name: string;
+    url: string;
+    ok: boolean;
+    status?: number;
+    error?: string;
+  }>;
 }
 
 // ─── manager ───────────────────────────────────────────────────────────────
@@ -56,7 +62,9 @@ export class OutboundWebhookDispatcher {
   /**
    * Evaluate and fire outbound webhooks for a given entity event. Never throws.
    */
-  static async dispatch(params: OutboundDispatchParams): Promise<OutboundDispatchSummary> {
+  static async dispatch(
+    params: OutboundDispatchParams,
+  ): Promise<OutboundDispatchSummary> {
     const { webhooks, event, entity, ctx } = params;
     const summary: OutboundDispatchSummary = {
       evaluated: 0,
@@ -100,12 +108,21 @@ export class OutboundWebhookDispatcher {
           `Outbound webhook "${webhook.name}" resolveTargets failed: ${message}`,
         );
         summary.failed++;
-        summary.results.push({ name: webhook.name, url: '', ok: false, error: message });
-        await this.reportError(ctx, `Outbound webhook "${webhook.name}" resolve failed: ${message}`, {
-          webhookName: webhook.name,
-          event,
-          error: (err as Error).stack,
+        summary.results.push({
+          name: webhook.name,
+          url: '',
+          ok: false,
+          error: message,
         });
+        await this.reportError(
+          ctx,
+          `Outbound webhook "${webhook.name}" resolve failed: ${message}`,
+          {
+            webhookName: webhook.name,
+            event,
+            error: (err as Error).stack,
+          },
+        );
         continue;
       }
 
@@ -163,7 +180,10 @@ export class OutboundWebhookDispatcher {
    * Supports exact match and wildcard suffix match (e.g. 'task.*' matches
    * 'task.created', 'task.updated').
    */
-  private static eventMatches(events: string[] | undefined, event: string): boolean {
+  private static eventMatches(
+    events: string[] | undefined,
+    event: string,
+  ): boolean {
     if (!events || events.length === 0) return false;
     for (const e of events) {
       if (e === event) return true;
@@ -208,14 +228,16 @@ export class OutboundWebhookDispatcher {
     try {
       const moduleRef = SpecEngineBootService.getModuleRef();
       // Repository token for the EntitySchema registered under this name.
-      const repo = moduleRef.get<Repository<SpecWebhookSubscriptionRow>>(
-        // getRepositoryToken equivalent — use the schema name string.
-        `SpecWebhookSubscriptionRepository` as any,
-        { strict: false },
-      ) || moduleRef.get<Repository<SpecWebhookSubscriptionRow>>(
-        `repository.${SPEC_WEBHOOK_SUBSCRIPTION_SCHEMA_NAME}` as any,
-        { strict: false },
-      );
+      const repo =
+        moduleRef.get<Repository<SpecWebhookSubscriptionRow>>(
+          // getRepositoryToken equivalent — use the schema name string.
+          `SpecWebhookSubscriptionRepository` as any,
+          { strict: false },
+        ) ||
+        moduleRef.get<Repository<SpecWebhookSubscriptionRow>>(
+          `repository.${SPEC_WEBHOOK_SUBSCRIPTION_SCHEMA_NAME}` as any,
+          { strict: false },
+        );
       if (!repo) {
         this.logger.debug(
           `spec_webhook_subscriptions repository not registered — dynamic outbound webhooks disabled for event "${event}"`,
@@ -242,7 +264,14 @@ export class OutboundWebhookDispatcher {
    * Returning null means "skip this webhook".
    * Handler load uses the same path-containment + .ts→.js pattern.
    */
-  private static transformCache = new Map<string, ((payload: Record<string, unknown>, ctx: HookContext) => Record<string, unknown> | null) | null>();
+  private static transformCache = new Map<
+    string,
+    | ((
+        payload: Record<string, unknown>,
+        ctx: HookContext,
+      ) => Record<string, unknown> | null)
+    | null
+  >();
 
   private static async transformPayload(
     webhook: OutboundWebhookSpec,
@@ -269,7 +298,12 @@ export class OutboundWebhookDispatcher {
   private static loadTransform(
     handlerPath: string,
     ctx: HookContext,
-  ): ((payload: Record<string, unknown>, ctx: HookContext) => Record<string, unknown> | null) | null {
+  ):
+    | ((
+        payload: Record<string, unknown>,
+        ctx: HookContext,
+      ) => Record<string, unknown> | null)
+    | null {
     // The handler path is resolved relative to the extension dir. We don't
     // have the extension dir here directly, but the spec guarantees the
     // handler path is relative to the spec dir, which the boot service can
@@ -292,9 +326,10 @@ export class OutboundWebhookDispatcher {
         process.env.NODE_ENV === 'production'
           ? resolved.replace(/\.ts$/, '.js')
           : resolved;
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+
       const mod = require(requirePath);
-      const fn = mod && typeof mod === 'object' && 'default' in mod ? mod.default : mod;
+      const fn =
+        mod && typeof mod === 'object' && 'default' in mod ? mod.default : mod;
       if (typeof fn !== 'function') return null;
       return fn;
     } catch (err) {
@@ -310,7 +345,9 @@ export class OutboundWebhookDispatcher {
     const fs = require('fs') as typeof import('fs');
     try {
       const moduleRef = SpecEngineBootService.getModuleRef();
-      const loadedSpecs = moduleRef.get<any[]>('SPEC_LOADED_SPECS', { strict: false });
+      const loadedSpecs = moduleRef.get<any[]>('SPEC_LOADED_SPECS', {
+        strict: false,
+      });
       if (Array.isArray(loadedSpecs)) {
         for (const loaded of loadedSpecs) {
           const candidate = path.resolve(loaded.dir || '', handlerPath);
@@ -331,7 +368,13 @@ export class OutboundWebhookDispatcher {
     payload: Record<string, unknown>,
     secret: string,
     ctx: HookContext,
-  ): Promise<{ name: string; url: string; ok: boolean; status?: number; error?: string }> {
+  ): Promise<{
+    name: string;
+    url: string;
+    ok: boolean;
+    status?: number;
+    error?: string;
+  }> {
     // SSRF guard.
     const ssrfError = this.checkSsrf(url);
     if (ssrfError) {
@@ -366,12 +409,20 @@ export class OutboundWebhookDispatcher {
           `Outbound webhook "${webhookName}" returned non-2xx ${error}`,
           { webhookName, url, httpStatus: response.status },
         );
-        return { name: webhookName, url, ok: false, status: response.status, error };
+        return {
+          name: webhookName,
+          url,
+          ok: false,
+          status: response.status,
+          error,
+        };
       }
       return { name: webhookName, url, ok: true, status: response.status };
     } catch (err) {
       const message = (err as Error).message ?? String(err);
-      this.logger.error(`Outbound webhook "${webhookName}" to ${url} failed: ${message}`);
+      this.logger.error(
+        `Outbound webhook "${webhookName}" to ${url} failed: ${message}`,
+      );
       await this.reportError(
         ctx,
         `Outbound webhook "${webhookName}" request failed: ${message}`,
@@ -440,7 +491,12 @@ export class OutboundWebhookDispatcher {
     if (host.includes(':')) {
       const lower = host.toLowerCase();
       if (lower === '::1' || lower === '::') return true;
-      if (lower.startsWith('fe80:') || lower.startsWith('fe9') || lower.startsWith('fea') || lower.startsWith('feb')) {
+      if (
+        lower.startsWith('fe80:') ||
+        lower.startsWith('fe9') ||
+        lower.startsWith('fea') ||
+        lower.startsWith('feb')
+      ) {
         // fe80::/10 — link-local
         if (/^fe[89ab][0-9a-f]:/.test(lower)) return true;
       }

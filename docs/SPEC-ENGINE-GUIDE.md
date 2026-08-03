@@ -708,6 +708,74 @@ exportConfig:
 
 `POST /tasks/import` acepta CSV. `GET /tasks/export?format=csv` genera CSV.
 
+### Campo many-to-many
+
+```yaml
+resources:
+  - name: project
+    table: ext_demo_projects
+    fields:
+      - name: title
+        type: string
+        required: true
+      - name: tags
+        type: many-to-many
+        ref: tag
+        joinTable: ext_demo_project_tags
+        throughFields: { from: projectId, to: tagId }
+```
+
+Envío y actualización:
+
+```json
+POST /api/v1/projects
+{ "title": "Nueva web", "tags": [1, 3, 5] }
+
+PATCH /api/v1/projects/1
+{ "tags": [2, 5] }      // reemplaza el set completo
+```
+
+El engine sincroniza la tabla intermedia dentro de la transacción del recurso.
+
+---
+
+## Hooks transaccionales
+
+Cuando un hook debe escribir en más de un recurso y ambas escrituras deben atomizarse, usá `ctx.transaction()`.
+
+```typescript
+// extensions/tasks/hooks/task-before-create.ts
+import type { HookContext } from '@core/spec-engine/spec.types';
+
+export default async function beforeCreate(
+  data: Record<string, unknown>,
+  ctx: HookContext,
+): Promise<{ data: Record<string, unknown>; proceed: boolean; error?: string }> {
+  const result = await ctx.transaction(async (txCtx) => {
+    const taskRepo = txCtx.getRepository('task');
+    const logRepo  = txCtx.getRepository('task-log');
+
+    const task = await taskRepo.save(data);
+    await logRepo.save({
+      taskId: task.id,
+      action: 'created',
+      createdBy: ctx.user?.id,
+    });
+
+    return task;
+  });
+
+  data.id = result.id;
+  return { data, proceed: true };
+}
+```
+
+Reglas:
+
+1. Usá `txCtx.getRepository()` dentro del callback para que todos los repositorios compartan el mismo `EntityManager`.
+2. Si `transactional: true` en la spec, el controller ya envuelve el hook en una transacción; `ctx.transaction()` reutiliza el contexto sin anidar query runners.
+3. Notificaciones, webhooks salientes y scheduled actions se disparan fuera de la transacción, después del commit.
+
 ---
 
 ## Patrones

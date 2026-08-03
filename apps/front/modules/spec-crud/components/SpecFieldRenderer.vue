@@ -107,7 +107,7 @@ const linkHref = computed(() => {
             :src="avatarImage"
             :alt="displayText"
             class="rounded-full"
-          />
+          >
           <span v-else class="text-sm font-semibold">{{ avatarLetter }}</span>
         </span>
       </span>

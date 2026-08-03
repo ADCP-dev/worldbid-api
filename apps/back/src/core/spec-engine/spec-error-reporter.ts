@@ -214,7 +214,9 @@ export class SpecErrorReporter {
    */
   async report(error: SpecError): Promise<void> {
     if (!error || !error.hash) {
-      this.logger.warn('report() called with an error missing a hash — skipping');
+      this.logger.warn(
+        'report() called with an error missing a hash — skipping',
+      );
       return;
     }
 
@@ -234,12 +236,16 @@ export class SpecErrorReporter {
     if (error.occurrences === 1 && this.isProduction()) {
       this.createGitHubIssue(error).catch((err) => {
         // Already handled inside createGitHubIssue, but guard the promise too.
-        this.logger.debug(`GitHub issue creation rejected: ${(err as Error).message}`);
+        this.logger.debug(
+          `GitHub issue creation rejected: ${(err as Error).message}`,
+        );
       });
 
       // 3. Send Telegram notification on first occurrence in production.
       this.sendTelegramNotification(error).catch((err) => {
-        this.logger.debug(`Telegram notification rejected: ${(err as Error).message}`);
+        this.logger.debug(
+          `Telegram notification rejected: ${(err as Error).message}`,
+        );
       });
     }
   }
@@ -298,7 +304,9 @@ export class SpecErrorReporter {
   private async createGitHubIssue(error: SpecError): Promise<void> {
     const gh = findGhBinary();
     if (!gh) {
-      this.logger.debug('gh CLI not available — skipping GitHub issue creation');
+      this.logger.debug(
+        'gh CLI not available — skipping GitHub issue creation',
+      );
       return;
     }
 
@@ -327,7 +335,9 @@ export class SpecErrorReporter {
         env: { ...process.env },
       }).trim();
 
-      this.logger.log(`Created GitHub issue for spec error ${error.hash}: ${output}`);
+      this.logger.log(
+        `Created GitHub issue for spec error ${error.hash}: ${output}`,
+      );
     } catch (err) {
       const msg = (err as Error).message;
       // gh may emit helpful stderr; capture it if present.
@@ -350,9 +360,7 @@ export class SpecErrorReporter {
    * Falls back gracefully when resource/stage are absent.
    */
   private buildIssueTitle(error: SpecError): string {
-    const qualifier = [error.resource, error.stage]
-      .filter(Boolean)
-      .join('.');
+    const qualifier = [error.resource, error.stage].filter(Boolean).join('.');
 
     const prefix = qualifier ? `${qualifier} failed: ` : 'Error: ';
     const core = truncate(error.message, 80);
@@ -414,7 +422,9 @@ export class SpecErrorReporter {
     lines.push('### Environment');
     lines.push('');
     lines.push(`- **Node env:** \`${process.env.NODE_ENV || 'development'}\``);
-    lines.push(`- **Platform:** \`${process.platform}\` / Node \`${process.version}\``);
+    lines.push(
+      `- **Platform:** \`${process.platform}\` / Node \`${process.version}\``,
+    );
     lines.push(`- **Spec hash:** \`${error.specHash || 'n/a'}\``);
     lines.push(`- **Error hash:** \`${error.hash}\``);
     lines.push(`- **Occurrences:** ${error.occurrences}`);
@@ -509,19 +519,35 @@ export class SpecErrorReporter {
     lines.push(`<b>${this.escapeHtml(truncate(error.message, 200))}</b>`);
     lines.push('');
 
-    if (error.resource) lines.push(`📦 Resource: <code>${this.escapeHtml(error.resource)}</code>`);
-    if (error.operation) lines.push(`⚡ Operation: <code>${this.escapeHtml(error.operation)}</code>`);
-    if (error.stage) lines.push(`🔧 Stage: <code>${this.escapeHtml(error.stage)}</code>`);
-    if (error.hookPath) lines.push(`🪩 Hook: <code>${this.escapeHtml(require('path').basename(error.hookPath))}</code>`);
-    lines.push(`🔑 Hash: <code>${this.escapeHtml(error.hash.slice(0, 16))}</code>`);
+    if (error.resource)
+      lines.push(
+        `📦 Resource: <code>${this.escapeHtml(error.resource)}</code>`,
+      );
+    if (error.operation)
+      lines.push(
+        `⚡ Operation: <code>${this.escapeHtml(error.operation)}</code>`,
+      );
+    if (error.stage)
+      lines.push(`🔧 Stage: <code>${this.escapeHtml(error.stage)}</code>`);
+    if (error.hookPath)
+      lines.push(
+        `🪩 Hook: <code>${this.escapeHtml(require('path').basename(error.hookPath))}</code>`,
+      );
+    lines.push(
+      `🔑 Hash: <code>${this.escapeHtml(error.hash.slice(0, 16))}</code>`,
+    );
     lines.push(`📊 Occurrences: ${error.occurrences}`);
 
     if (error.trace && error.trace.stages.length > 0) {
       lines.push('');
       lines.push('<b>Trace:</b>');
-      const failedStages = error.trace.stages.filter((s) => s.status === 'fail');
+      const failedStages = error.trace.stages.filter(
+        (s) => s.status === 'fail',
+      );
       for (const s of failedStages) {
-        lines.push(`  ❌ <code>${this.escapeHtml(s.stage)}</code> — ${this.escapeHtml(s.error?.message || 'failed')}`);
+        lines.push(
+          `  ❌ <code>${this.escapeHtml(s.stage)}</code> — ${this.escapeHtml(s.error?.message || 'failed')}`,
+        );
       }
       lines.push(`  Total: ${error.trace.totalDurationMs}ms`);
     }

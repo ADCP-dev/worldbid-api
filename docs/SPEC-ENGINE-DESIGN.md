@@ -1,8 +1,8 @@
 # Spec Engine — Design Document
 
-> **Status**: Design phase. Implementation starts after validation.
+> **Status**: Implemented. Backend core runs on branch `feat/spec-engine` with 12 passing unit tests covering HookContext transactions, many-to-many join tables, validation, and spec-validator fixes.
 > **Branch**: `feat/spec-engine`
-> **Date**: 2026-07-30
+> **Date**: 2026-07-31
 > **Authors**: Adrián Colom + Hermes
 
 ---
@@ -27,7 +27,10 @@
 16. [Plugin System](#16-plugin-system)
 17. [AI Agent Integration](#17-ai-agent-integration)
 18. [Module Wiring](#18-module-wiring)
-19. [Implementation Roadmap](#19-implementation-roadmap)
+19. [Transacciones multi-recurso](#19-transacciones-multi-recurso)
+20. [Many-to-many declarativo](#20-many-to-many-declarativo)
+21. [Multi-tenant (puerta abierta)](#21-multi-tenant-puerta-abierta)
+22. [Implementation Roadmap](#22-implementation-roadmap)
 
 ---
 
@@ -165,9 +168,11 @@ fields:
     precision?: number          # decimal
     scale?: number              # decimal
     enum?: string[]             # for enum type
-    ref?: string                # for ref type: target resource name
+    ref?: string                # for ref / many-to-many: target resource name
     refOnDelete?: 'CASCADE' | 'SET NULL' | 'RESTRICT'  # default: RESTRICT
     index?: boolean             # default: false
+    joinTable?: string          # for many-to-many: explicit join table name
+    throughFields?: { from: string; to: string } // for many-to-many: column names
     validation?:                # field-level validation
       min?: number
       max?: number
@@ -175,6 +180,12 @@ fields:
       email?: boolean
       url?: boolean
     ui?: FieldUISpec            # frontend rendering hints for this field
+    # File-specific
+    storage?: 'local' | 's3' | 's3-presigned'
+    allowedMimes?: string[]
+    maxSize?: number
+    isPublic?: boolean
+    context?: string
 ```
 
 ### 3.4 FieldType
@@ -192,6 +203,8 @@ type FieldType =
   | 'enum'        // varchar, validated against enum values
   | 'ref'         // integer FK to another resource
   | 'file'        // file reference (uses StorageModule)
+  | 'computed'    // runtime field, no DB column
+  | 'many-to-many' // join table + relation array
 ```
 
 ### 3.5 PermissionSpec
@@ -447,9 +460,9 @@ Uses:  HookContext
 
 The after hook runs after the DB operation succeeds but before the response is sent. It's for side effects: notifications, external sync, audit trails.
 
-If the after hook throws, the DB operation is NOT rolled back (it already succeeded). The error is logged via `ctx.logger` and reported to `ErrorTrackerService`. The HTTP response still succeeds.
+By default `transactional: true` wraps create/update/delete in a TypeORM transaction. `beforeHook`, DB operation, and `afterHook` all run inside the same transaction. If the after hook throws, the transaction rolls back. Notifications always run outside the transaction.
 
-This is a deliberate choice: after hooks are fire-and-forget. If you need transactional consistency, use a before hook or a job that retries.
+If you set `transactional: false`, the old fire-and-forget behavior applies: after hook errors are logged but do not block the response.
 
 ### 4.7 Stage 6: Notifications
 
@@ -599,7 +612,7 @@ Spec engine fails
 ### 6.2 What goes into the GitHub issue
 
 ```markdown
-## [spec-engine] task.beforeCreate hook failed
+
 
 **Error**: `TypeError: Cannot read property 'id' of null`
 **Resource**: task
@@ -698,7 +711,10 @@ interface HookContext {
   user: AuthenticatedUser | null;
 
   // ─── Data access ──────────────────────────────────
-  getRepository(name: string): Repository<any>;
+  getRepository(name: string, manager?: EntityManager): Repository<any>;
+
+  // ─── Transaction boundary ───────────────────────────
+  transaction<T>(fn: (txContext: HookContext) => Promise<T>): Promise<T>;
 
   // ─── Foundation services ──────────────────────────
   getService<T = any>(token: string): T;
@@ -1003,7 +1019,8 @@ spec:generate-migration <extension-name>
     │   ├── Nullable changed → SET/DROP NOT NULL
     │   ├── Default changed → SET/DROP DEFAULT
     │   ├── Index added/removed → CREATE/DROP INDEX
-    │   └── Table created (new resource) → CREATE TABLE
+    │   ├── Table created (new resource) → CREATE TABLE
+    │   └── Many-to-many field added/removed → CREATE/DROP join table
     │
     ├── Generate migration .ts file in src/infrastructure/database/migrations/
     └── Update spec_schema_version
@@ -1519,8 +1536,11 @@ export class HookContextImpl implements HookContext {
     return this.moduleRef.get(serviceToken, { strict: false });
   }
 
-  getRepository(name: string): Repository<any> {
-    return this.moduleRef.get('Repository_' + name, { strict: false });
+  getRepository(name: string, manager?: EntityManager): Repository<any> {
+    if (manager) {
+      return manager.getRepository(name as any);
+    }
+    return this.moduleRef.get(getRepositoryToken(name as any), { strict: false });
   }
 
   config(key: string): any {
@@ -1535,58 +1555,214 @@ export class HookContextImpl implements HookContext {
 
 ---
 
-## 19. Implementation Roadmap
+## 19. Transacciones multi-recurso
+
+By default every create/update/delete operation in a spec-driven resource runs inside a TypeORM transaction. The `transactional` flag in `ResourceSpec` controls this:
+
+```yaml
+resources:
+  - name: invoice
+    table: ext_invoicing_invoice
+    transactional: true   # default: true
+```
+
+When `transactional: true` the controller wraps the pipeline in `dataSource.transaction()`. `beforeHook`, DB INSERT/UPDATE/DELETE, and `afterHook` all share the same `QueryRunner.manager`. If any step throws, TypeORM rolls back.
+
+### `ctx.transaction()` for explicit multi-resource work
+
+Hooks can open their own transaction boundary via `HookContext.transaction()`:
+
+```typescript
+export default async function beforeCreate(data, ctx) {
+  const result = await ctx.transaction(async (txCtx) => {
+    const invoiceRepo = txCtx.getRepository('invoice');
+    const logRepo     = txCtx.getRepository('invoice-log');
+
+    const invoice = await invoiceRepo.save(data);
+    await logRepo.save({ invoiceId: invoice.id, action: 'created' });
+
+    return invoice;
+  });
+
+  data.id = result.id;
+  return { data, proceed: true };
+}
+```
+
+Rules:
+
+1. `transaction()` always returns a value; if the callback throws, the transaction rolls back and the error bubbles.
+2. Repositories returned by `txCtx.getRepository()` share the same `EntityManager`.
+3. If a transactional resource calls `ctx.transaction()` inside its own transaction, the implementation reuses the existing `QueryRunner` context (no nested transactions).
+4. Notifications, outbound webhooks, and scheduled actions are always dispatched **outside** the transaction. If the DB commit succeeds but the notification queue is down, the entity persists and the notification failure is logged.
+
+---
+
+## 20. Many-to-many declarativo
+
+### Spec
+
+```yaml
+resources:
+  - name: project
+    table: ext_demo_projects
+    fields:
+      - name: title
+        type: string
+        required: true
+      - name: tags
+        type: many-to-many
+        ref: tag
+        joinTable: ext_demo_project_tags   # optional, auto-generated otherwise
+        throughFields: { from: projectId, to: tagId }  # optional, auto-detected otherwise
+```
+
+### What the engine does
+
+1. `EntityFactory` creates a join-table `EntitySchema` with a composite primary key `(projectId, tagId)` and `CASCADE` `many-to-one` relations to both `project` and `tag`.
+2. `ValidationFactory` accepts `tags: number[]` in create/update payloads (`z.array(z.number().int().positive())`).
+3. `ControllerFactory` extracts the array from the request body, inserts the parent row inside the transaction, then synchronizes the join table. On update it computes the diff (insert new, delete removed).
+4. `MigrationGenerator` emits a `CREATE TABLE` statement for the join table when the field is new.
+
+### Endpoints
+
+In addition to the standard CRUD routes, the following relation endpoints are materialized for every `many-to-many` field:
+
+| Method | Path | Description |
+|---|---|---|
+| `GET`    | `/projects/:id/tags` | List linked tag IDs |
+| `POST`   | `/projects/:id/tags` | Link tag IDs (body: `{ tags: [1, 2] }`) |
+| `DELETE` | `/projects/:id/tags/:relatedId` | Unlink one tag |
+| `PUT`    | `/projects/:id/tags` | Replace full relation set |
+
+If `transactional: true`, relation mutations run inside the same transaction as the parent row.
+
+### Validation rules
+
+- `many-to-many` fields must declare `ref` (target resource).
+- They cannot be `unique` or `index` on the main table.
+- `joinTable` must be a non-empty string if provided.
+- Target `ref: user` is supported and normalized to `User` for Foundation compatibility.
+
+---
+
+## 21. Multi-tenant (puerta abierta)
+
+> **Scope: documentation only.** Multi-tenant row-level security is not implemented in Foundation base. The following steps describe how a copied app that needs multi-empresa isolation would enable it without re-architecting the spec engine.
+
+### 1. Add `companyId` to the authenticated user
+
+Edit `apps/back/src/modules/iam/auth/domain/jwt-payload.type.ts` and extend `JwtPayloadType` with `companyId`. Then mirror that field in `hook-context.ts` / `spec.types.ts` `AuthenticatedUser`.
+
+### 2. Declare `companyId` on tenant-scoped resources
+
+```yaml
+resources:
+  - name: invoice
+    table: ext_invoicing_invoice
+    fields:
+      - name: companyId
+        type: ref
+        ref: company
+        required: true
+        index: true
+```
+
+### 3. Use `rowLevel` for single-field isolation
+
+```yaml
+permissions:
+  rowLevel:
+    user:
+      filter: 'companyId == ${user.companyId}'
+```
+
+The existing parser supports `field == ${user.field}` patterns and translates them to a TypeORM `where` clause. Unknown patterns fail closed (`id = -1`).
+
+### 4. Use `beforeQuery` for multi-field or complex tenant rules
+
+When the rule needs more than one field (e.g. `companyId` plus a shared `isPublic` flag), use a `beforeQuery` hook:
+
+```typescript
+export default async function beforeQuery(options, ctx) {
+  if (!ctx.user) return options;
+  options.where = {
+    ...options.where,
+    $or: [
+      { companyId: ctx.user.companyId },
+      { companyId: null, isPublic: true },
+    ],
+  };
+  return options;
+}
+```
+
+### 5. Admin cross-tenant access
+
+Do not declare `rowLevel` for the `admin` role. Admins then see all rows. Use field-level RBAC to hide sensitive fields if needed.
+
+### Notes
+
+- `companyId` must be written by a `beforeCreate` hook or supplied by the client and validated by the spec.
+- This is row-level filtering, not schema isolation. For strict DB tenant isolation (separate schemas per tenant), configure TypeORM multi-tenant connections outside the spec engine.
+- Foundation base does not include `company` as a built-in entity; it would be added as a regular spec-driven or traditional resource in the copied app.
+
+---
+
+## 22. Implementation Roadmap
 
 Ordered by dependency and impact. Each step builds on the previous.
 
-### Phase A — Core engine (makes the tasks demo real)
+### Phase A — Core engine (implemented) — Core engine (implemented)
 
-| # | Task | What it delivers |
-|---|---|---|
-| A1 | SpecTrace | Trace builder + TraceWriter + dev/prod modes |
-| A2 | HookContext + HookExecutor | Hooks with typed contracts, ModuleRef bridge to Foundation |
-| A3 | NotificationDispatcher | Maizzle templates + QueuedMailerService + expression eval |
-| A4 | WebhookControllerFactory | Inbound webhook endpoints with HMAC/JWT auth |
-| A5 | EntitySchema relations | ref fields as real FKs (many-to-one via EntitySchema relations) |
-| A6 | Rewrite tasks spec | Full tasks.spec.yaml with hooks, notifications, jobs, UI hints, dashboard |
-| A7 | SpecErrorReporter | ErrorTracker logging + GitHub issue creation |
+| # | Task | Status | What it delivers |
+|---|---|---|---|
+| A1 | SpecTrace | ✅ | Trace builder + TraceWriter + dev/prod modes |
+| A2 | HookContext + HookExecutor | ✅ | Hooks with typed contracts, ModuleRef bridge to Foundation |
+| A3 | NotificationDispatcher | ✅ | Maizzle templates + QueuedMailerService + expression eval |
+| A4 | WebhookControllerFactory | ✅ | Inbound webhook endpoints with HMAC/JWT auth |
+| A5 | EntitySchema relations | ✅ | ref fields as real FKs (many-to-one via EntitySchema relations) |
+| A6 | Rewrite tasks spec | ✅ | Full tasks.spec.yaml with hooks, notifications, jobs, UI hints, dashboard |
+| A7 | SpecErrorReporter | ✅ | ErrorTracker logging + GitHub issue creation |
 
 ### Phase B — Production safety
 
-| # | Task | What it delivers |
-|---|---|---|
-| B1 | JSON Schema validation | ajv validation of every spec before materialization |
-
-| B3 | Migration generator | spec:generate-migration CLI, spec diffing, ALTER TABLE |
-| B4 | Test generator | spec:generate-tests CLI, auto-generated test scaffolds |
-| B5 | Pipeline integration tests | Test harness with in-memory DB, trace assertions |
+| # | Task | Status | What it delivers |
+|---|---|---|---|
+| B1 | JSON Schema validation | 🟡 | ajv validation of every spec before materialization |
+| B2 | SpecValidator hardening | ✅ | Custom validator now accepts `computed`, `beforeQuery`, `many-to-many` |
+| B3 | Migration generator | ✅ | spec:generate-migration CLI, spec diffing, ALTER TABLE, join tables |
+| B4 | Test generator | 🟡 | spec:generate-tests CLI, auto-generated test scaffolds |
+| B5 | Pipeline integration tests | 🟡 | Test harness with in-memory DB, trace assertions |
 
 ### Phase C — Full-stack
 
-| # | Task | What it delivers |
-|---|---|---|
-| C1 | MetaController | GET /api/v1/_spec/resources with UI hints |
-| C2 | Nuxt spec-crud layer | SpecDataTable, SpecDataForm, SpecFieldRenderer, SpecFieldInput |
-| C3 | Navbar auto-injection | Sidebar items from spec metadata, role-filtered |
-| C4 | SpecDashboard.vue | Generic dashboard renderer for level-1 panels |
-| C5 | Override layer support | Nuxt layer per extension for custom UI |
+| # | Task | Status | What it delivers |
+|---|---|---|---|
+| C1 | MetaController | ✅ | GET /api/v1/_spec/resources with UI hints |
+| C2 | Nuxt spec-crud layer | ✅ | SpecDataTable, SpecDataForm, SpecFieldRenderer, SpecFieldInput |
+| C3 | Navbar auto-injection | ✅ | Sidebar items from spec metadata, role-filtered |
+| C4 | SpecDashboard.vue | ✅ | Generic dashboard renderer for level-1 panels |
+| C5 | Override layer support | ✅ | Nuxt layer per extension for custom UI |
 
 ### Phase D — Ecosystem
 
-| # | Task | What it delivers |
-|---|---|---|
-| D1 | Plugin format | plugin.spec.yaml, spec-registry.json, spec:add CLI |
-| D2 | Plugin overrides | Merge plugin spec with app overrides |
-| D3 | Hermes skill | spec-driven-development skill for autonomous spec generation |
-| D4 | Error → Issue → Fix loop | AI reads GitHub issues, fixes spec/hooks, opens PRs |
+| # | Task | Status | What it delivers |
+|---|---|---|---|
+| D1 | Plugin format | 🟡 | plugin.spec.yaml, spec-registry.json, spec:add CLI |
+| D2 | Plugin overrides | 🟡 | Merge plugin spec with app overrides |
+| D3 | Hermes skill | 🟡 | spec-driven-development skill for autonomous spec generation |
+| D4 | Error → Issue → Fix loop | 🟡 | AI reads GitHub issues, fixes spec/hooks, opens PRs |
 
-### Phase E — Advanced
+### Phase E — Advanced (partially landed)
 
-| # | Task | What it delivers |
-|---|---|---|
-| E1 | View controller factory | Dynamic endpoints for dashboards (level 1 + 2) |
-| E2 | QuerySpec → SQL | Declarative queries translated to TypeORM QueryBuilder |
-| E3 | Transform hooks for views | Level-2 dashboards (query + transform) |
-| E4 | beforeQuery hooks | Complex query modification for advanced filtering |
-| E5 | SMS channel | NotificationDispatcher SMS support |
-| E6 | Plugin npm packages | Installable via npm, not just copy |
+| # | Task | Status | What it delivers |
+|---|---|---|---|
+| E1 | View controller factory | 🟡 | Dynamic endpoints for dashboards (level 1 + 2) |
+| E2 | QuerySpec → SQL | 🟡 | Declarative queries translated to TypeORM QueryBuilder |
+| E3 | Transform hooks for views | 🟡 | Level-2 dashboards (query + transform) |
+| E4 | beforeQuery hooks | ✅ | Complex query modification for advanced filtering |
+| E5 | Multi-resource transactions | ✅ | `ctx.transaction()` + `transactional` flag in ResourceSpec |
+| E6 | Many-to-many declarative | ✅ | `type: many-to-many` with auto join table and relation endpoints |
+| E7 | SMS channel | 🟡 | NotificationDispatcher SMS support |
+| E8 | Plugin npm packages | 🟡 | Installable via npm, not just copy |

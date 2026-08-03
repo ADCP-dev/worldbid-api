@@ -15,13 +15,7 @@
  *   6. Wire NotificationDispatcher, HookExecutor, SpecErrorReporter
  */
 
-import {
-  DynamicModule,
-  Module,
-  Type,
-  Logger,
-  Provider,
-} from '@nestjs/common';
+import { DynamicModule, Module, Type, Logger, Provider } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EntitySchema } from 'typeorm';
 import { ModuleRef } from '@nestjs/core';
@@ -55,7 +49,12 @@ export class SpecEngineModule {
 
     if (!extensionsDir) {
       logger.log('No extensions directory found — skipping spec engine');
-      return { module: SpecEngineModule, imports: [], providers: [], controllers: [] };
+      return {
+        module: SpecEngineModule,
+        imports: [],
+        providers: [],
+        controllers: [],
+      };
     }
 
     // Phase 1: Load all specs
@@ -63,7 +62,12 @@ export class SpecEngineModule {
 
     if (loadedSpecs.length === 0) {
       logger.log('No spec files found — skipping spec engine');
-      return { module: SpecEngineModule, imports: [], providers: [], controllers: [] };
+      return {
+        module: SpecEngineModule,
+        imports: [],
+        providers: [],
+        controllers: [],
+      };
     }
 
     // Phase 2: Build resource registry
@@ -77,10 +81,14 @@ export class SpecEngineModule {
     // Validate all resources using SpecValidator
     const validationResult = SpecValidator.validateAll(loadedSpecs);
     if (validationResult.errors.length > 0) {
-      logger.error(`❌ ${validationResult.errors.length} validation error(s) found:`);
+      logger.error(
+        `❌ ${validationResult.errors.length} validation error(s) found:`,
+      );
       validationResult.errors.forEach((e) => {
         const ctx = [e.resource, e.field].filter(Boolean).join('.');
-        logger.error(`   ${ctx ? `[${ctx}] ` : ''}${e.message}${e.suggestion ? ` → ${e.suggestion}` : ''}`);
+        logger.error(
+          `   ${ctx ? `[${ctx}] ` : ''}${e.message}${e.suggestion ? ` → ${e.suggestion}` : ''}`,
+        );
       });
     }
     if (validationResult.warnings.length > 0) {
@@ -116,8 +124,13 @@ export class SpecEngineModule {
       for (const resource of loaded.spec.resources) {
         try {
           // Create entity schema with relations
-          const entitySchema = EntityFactory.create(resource, resourceSpecs);
-          entitySchemas.push(entitySchema);
+          const { mainSchema, joinTableSchemas } = EntityFactory.create(
+            resource,
+            resourceSpecs,
+            loaded.spec.name,
+          );
+          entitySchemas.push(mainSchema);
+          entitySchemas.push(...joinTableSchemas);
 
           // Load hooks for this resource
           const allHooks = this.loadHooksForResource(
@@ -127,16 +140,7 @@ export class SpecEngineModule {
             hookExecutor,
           );
 
-          // We need to defer controller creation until we have ModuleRef.
-          // For now, we create a placeholder and wire it in onModuleInit.
-          // Actually, NestJS DynamicModule requires controllers to be
-          // registered at registration time, not at onModuleInit.
-          //
-          // Solution: we pass a lazy resolver that gets ModuleRef later.
-          // The controller factory needs ModuleRef for HookContextImpl.
-          // We use a module-level variable that gets set in onModuleInit.
-
-          // Create controller with deferred ModuleRef
+          // Create controller with deferred ModuleRef/DataSource
           const { controllerClass } = ControllerFactory.create({
             spec: resource,
             entitySchemaName: resource.name,
@@ -145,6 +149,7 @@ export class SpecEngineModule {
             notificationDispatcher,
             isDev: process.env.NODE_ENV !== 'production',
             allHooks,
+            manyToManySchemas: joinTableSchemas,
           });
 
           controllers.push(controllerClass);
@@ -153,9 +158,13 @@ export class SpecEngineModule {
             `✅ Materialized: ${resource.name} → table ${resource.table}, ${resource.fields.length} fields` +
               (allHooks.beforeCreate ? ', beforeCreate hook' : '') +
               (allHooks.afterCreate ? ', afterCreate hook' : '') +
-              (resource.notifications?.length ? `, ${resource.notifications.length} notifications` : '') +
+              (resource.notifications?.length
+                ? `, ${resource.notifications.length} notifications`
+                : '') +
               (resource.jobs?.length ? `, ${resource.jobs.length} jobs` : '') +
-              (resource.webhooks?.length ? `, ${resource.webhooks.length} webhooks` : ''),
+              (resource.webhooks?.length
+                ? `, ${resource.webhooks.length} webhooks`
+                : ''),
           );
 
           // Create webhook controllers
@@ -211,8 +220,8 @@ export class SpecEngineModule {
     // If any resource uses dynamic outbound webhooks, register the shared
     // spec_webhook_subscriptions table schema as well.
     const hasDynamicWebhooks = loadedSpecs.some((loaded) =>
-      loaded.spec.resources.some(
-        (r) => r.outboundWebhooks?.some((w) => w.subscriptionModel === 'dynamic'),
+      loaded.spec.resources.some((r) =>
+        r.outboundWebhooks?.some((w) => w.subscriptionModel === 'dynamic'),
       ),
     );
     if (hasDynamicWebhooks) {
@@ -298,13 +307,55 @@ export class SpecEngineModule {
     if (!hooks) return {};
 
     return {
-      beforeCreate: hookExecutor.loadHook(hooks.beforeCreate, extensionDir, resourceName, 'beforeCreate') || undefined,
-      afterCreate: hookExecutor.loadHook(hooks.afterCreate, extensionDir, resourceName, 'afterCreate') || undefined,
-      beforeUpdate: hookExecutor.loadHook(hooks.beforeUpdate, extensionDir, resourceName, 'beforeUpdate') || undefined,
-      afterUpdate: hookExecutor.loadHook(hooks.afterUpdate, extensionDir, resourceName, 'afterUpdate') || undefined,
-      beforeDelete: hookExecutor.loadHook(hooks.beforeDelete, extensionDir, resourceName, 'beforeDelete') || undefined,
-      afterDelete: hookExecutor.loadHook(hooks.afterDelete, extensionDir, resourceName, 'afterDelete') || undefined,
-      beforeQuery: hookExecutor.loadHook(hooks.beforeQuery, extensionDir, resourceName, 'beforeQuery') || undefined,
+      beforeCreate:
+        hookExecutor.loadHook(
+          hooks.beforeCreate,
+          extensionDir,
+          resourceName,
+          'beforeCreate',
+        ) || undefined,
+      afterCreate:
+        hookExecutor.loadHook(
+          hooks.afterCreate,
+          extensionDir,
+          resourceName,
+          'afterCreate',
+        ) || undefined,
+      beforeUpdate:
+        hookExecutor.loadHook(
+          hooks.beforeUpdate,
+          extensionDir,
+          resourceName,
+          'beforeUpdate',
+        ) || undefined,
+      afterUpdate:
+        hookExecutor.loadHook(
+          hooks.afterUpdate,
+          extensionDir,
+          resourceName,
+          'afterUpdate',
+        ) || undefined,
+      beforeDelete:
+        hookExecutor.loadHook(
+          hooks.beforeDelete,
+          extensionDir,
+          resourceName,
+          'beforeDelete',
+        ) || undefined,
+      afterDelete:
+        hookExecutor.loadHook(
+          hooks.afterDelete,
+          extensionDir,
+          resourceName,
+          'afterDelete',
+        ) || undefined,
+      beforeQuery:
+        hookExecutor.loadHook(
+          hooks.beforeQuery,
+          extensionDir,
+          resourceName,
+          'beforeQuery',
+        ) || undefined,
     };
   }
 

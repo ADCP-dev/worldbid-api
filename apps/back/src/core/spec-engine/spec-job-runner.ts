@@ -26,7 +26,12 @@ import {
   OnModuleDestroy,
   Logger,
 } from '@nestjs/common';
-import { BullModule, Processor, WorkerHost, getQueueToken } from '@nestjs/bullmq';
+import {
+  BullModule,
+  Processor,
+  WorkerHost,
+  getQueueToken,
+} from '@nestjs/bullmq';
 import { ModuleRef } from '@nestjs/core';
 import { Queue, Job } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
@@ -65,11 +70,16 @@ function parseInterval(value: string): number {
   const num = parseInt(match[1], 10);
   const unit = match[2];
   switch (unit) {
-    case 'ms': return num;
-    case 's': return num * 1000;
-    case 'm': return num * 60 * 1000;
-    case 'h': return num * 60 * 60 * 1000;
-    default: return 0;
+    case 'ms':
+      return num;
+    case 's':
+      return num * 1000;
+    case 'm':
+      return num * 60 * 1000;
+    case 'h':
+      return num * 60 * 60 * 1000;
+    default:
+      return 0;
   }
 }
 
@@ -94,7 +104,13 @@ function isRedisAvailable(): boolean {
 function buildJobContext(resourceName: string, logger: Logger): HookContext {
   const moduleRef = SpecEngineBootService.getModuleRef();
   const configService = SpecEngineBootService.getConfigService();
-  const trace = new TraceBuilder(resourceName, 'job', null, logger, process.env.NODE_ENV !== 'production');
+  const trace = new TraceBuilder(
+    resourceName,
+    'job',
+    null,
+    logger,
+    process.env.NODE_ENV !== 'production',
+  );
   return new HookContextImpl(
     moduleRef,
     configService,
@@ -120,14 +136,17 @@ function loadJobHandler(
     // Path containment: prevent directory traversal
     const normalizedDir = path.resolve(extensionDir) + path.sep;
     if (!resolved.startsWith(normalizedDir)) {
-      logger.warn(`Job handler "${handlerPath}" for "${jobName}" escapes extension directory`);
+      logger.warn(
+        `Job handler "${handlerPath}" for "${jobName}" escapes extension directory`,
+      );
       return null;
     }
     // In production, .ts → .js
-    const requirePath = process.env.NODE_ENV === 'production'
-      ? resolved.replace(/\.ts$/, '.js')
-      : resolved;
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const requirePath =
+      process.env.NODE_ENV === 'production'
+        ? resolved.replace(/\.ts$/, '.js')
+        : resolved;
+
     const mod = require(requirePath) as LoadedJobHandler;
     if (!mod.default) {
       logger.warn(
@@ -168,19 +187,27 @@ export class SpecJobProcessor extends WorkerHost {
     // Resolve the queue and loaded specs from the DI container
     const queueToken = getQueueToken('spec-jobs');
     try {
-      this.queue = this.moduleRef.get<Queue<SpecJobData>>(queueToken, { strict: false });
+      this.queue = this.moduleRef.get<Queue<SpecJobData>>(queueToken, {
+        strict: false,
+      });
     } catch {
-      this.logger.warn('spec-jobs queue not found in DI container — jobs will not be scheduled');
+      this.logger.warn(
+        'spec-jobs queue not found in DI container — jobs will not be scheduled',
+      );
     }
     try {
       this.loadedSpecs =
-        this.moduleRef.get<LoadedSpec[]>('SPEC_JOB_LOADED_SPECS', { strict: false }) ?? [];
+        this.moduleRef.get<LoadedSpec[]>('SPEC_JOB_LOADED_SPECS', {
+          strict: false,
+        }) ?? [];
     } catch {
       this.logger.warn('SPEC_JOB_LOADED_SPECS not found in DI container');
     }
 
     if (!this.queue) {
-      this.logger.error('Cannot schedule repeatable jobs — queue is unavailable');
+      this.logger.error(
+        'Cannot schedule repeatable jobs — queue is unavailable',
+      );
       return;
     }
 
@@ -224,7 +251,9 @@ export class SpecJobProcessor extends WorkerHost {
     } else {
       const intervalMs = parseInterval(job.value);
       if (intervalMs <= 0) {
-        this.logger.warn(`⚠️  Invalid interval for job "${job.name}": ${job.value}`);
+        this.logger.warn(
+          `⚠️  Invalid interval for job "${job.name}": ${job.value}`,
+        );
         return;
       }
       repeat = { every: intervalMs };
@@ -260,20 +289,35 @@ export class SpecJobProcessor extends WorkerHost {
   async process(job: Job<SpecJobData>): Promise<void> {
     const data = job.data as any;
     // Scheduled-action job?
-    if (data && typeof data.actionName === 'string' && typeof data.entityId === 'number') {
-      const { SpecScheduledActionManager } = require('./spec-engine-scheduled-actions');
+    if (
+      data &&
+      typeof data.actionName === 'string' &&
+      typeof data.entityId === 'number'
+    ) {
+      const {
+        SpecScheduledActionManager,
+      } = require('./spec-engine-scheduled-actions');
       this.logger.log(
         `Processing scheduled action "${data.actionName}" (id: ${job.id}, entity: ${data.resourceName}#${data.entityId}, attempt: ${job.attemptsMade + 1}/${job.opts.attempts})`,
       );
       await SpecScheduledActionManager.execute({ data, logger: this.logger });
-      this.logger.log(`Scheduled action "${data.actionName}" completed successfully`);
+      this.logger.log(
+        `Scheduled action "${data.actionName}" completed successfully`,
+      );
       return;
     }
 
     const { resourceName, handler: handlerPath, extensionDir, jobName } = data;
-    this.logger.log(`Processing job "${jobName}" (id: ${job.id}, attempt: ${job.attemptsMade + 1}/${job.opts.attempts})`);
+    this.logger.log(
+      `Processing job "${jobName}" (id: ${job.id}, attempt: ${job.attemptsMade + 1}/${job.opts.attempts})`,
+    );
 
-    const handler = loadJobHandler(extensionDir, handlerPath, this.logger, jobName);
+    const handler = loadJobHandler(
+      extensionDir,
+      handlerPath,
+      this.logger,
+      jobName,
+    );
     if (!handler) {
       throw new Error(
         `Job handler "${handlerPath}" for "${jobName}" could not be loaded`,
@@ -304,17 +348,17 @@ async function dispatchJobNotifications(
   loadedSpecs: LoadedSpec[],
 ): Promise<void> {
   const resource = loadedSpecs
-    .flatMap(l => l.spec.resources)
-    .find(r => r.jobs?.some(j => j.name === jobName));
+    .flatMap((l) => l.spec.resources)
+    .find((r) => r.jobs?.some((j) => j.name === jobName));
   if (!resource?.notifications?.length) return;
 
   const jobNotifications = resource.notifications.filter(
-    n => n.trigger.on === 'job' && n.trigger.jobName === jobName
+    (n) => n.trigger.on === 'job' && n.trigger.jobName === jobName,
   );
   if (jobNotifications.length === 0) return;
 
   const dispatcher = new NotificationDispatcher();
-  const loaded = loadedSpecs.find(l => l.spec.resources.includes(resource));
+  const loaded = loadedSpecs.find((l) => l.spec.resources.includes(resource));
   const cs = SpecEngineBootService.getConfigService() as any;
   await dispatcher.dispatch({
     notifications: jobNotifications,
@@ -374,11 +418,18 @@ export class SpecJobRunner implements OnModuleInit, OnModuleDestroy {
 
     const intervalMs = parseInterval(job.value);
     if (intervalMs <= 0) {
-      this.logger.warn(`⚠️  Invalid interval for job "${job.name}": ${job.value}`);
+      this.logger.warn(
+        `⚠️  Invalid interval for job "${job.name}": ${job.value}`,
+      );
       return;
     }
 
-    const handler = loadJobHandler(loaded.dir, job.handler, this.logger, job.name);
+    const handler = loadJobHandler(
+      loaded.dir,
+      job.handler,
+      this.logger,
+      job.name,
+    );
     if (!handler) return;
 
     // Run immediately once, then on interval
@@ -404,7 +455,12 @@ export class SpecJobRunner implements OnModuleInit, OnModuleDestroy {
       await handler(ctx);
 
       // Dispatch job-triggered notifications
-      await dispatchJobNotifications(job.name, resourceName, ctx, this.loadedSpecs);
+      await dispatchJobNotifications(
+        job.name,
+        resourceName,
+        ctx,
+        this.loadedSpecs,
+      );
     } catch (err) {
       this.logger.error(`Job "${job.name}" failed: ${(err as Error).message}`);
     }
@@ -422,9 +478,10 @@ export class SpecJobRunner implements OnModuleInit, OnModuleDestroy {
    * Follows the EmailQueueModule pattern:
    *   const { imports, providers } = SpecJobRunner.register(loadedSpecs);
    */
-  static register(
-    loadedSpecs: LoadedSpec[],
-  ): { imports: any[]; providers: any[] } {
+  static register(loadedSpecs: LoadedSpec[]): {
+    imports: any[];
+    providers: any[];
+  } {
     const redisEnabled = isRedisAvailable();
 
     // eslint-disable-next-line no-console -- startup log

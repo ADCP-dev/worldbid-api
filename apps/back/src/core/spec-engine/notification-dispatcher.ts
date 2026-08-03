@@ -116,7 +116,8 @@ export class NotificationDispatcher {
    * for trace observability.
    */
   async dispatch(params: DispatchParams): Promise<DispatchSummary> {
-    const { notifications, operation, entity, ctx, extensionDir, appConfig } = params;
+    const { notifications, operation, entity, ctx, extensionDir, appConfig } =
+      params;
 
     const summary: DispatchSummary = {
       evaluated: 0,
@@ -168,7 +169,13 @@ export class NotificationDispatcher {
 
       // ── 3. Dispatch to the channel ─────────────────────────────────────
       try {
-        const fired = await this.fireChannel(spec, templateContext, ctx, extensionDir, appConfig);
+        const fired = await this.fireChannel(
+          spec,
+          templateContext,
+          ctx,
+          extensionDir,
+          appConfig,
+        );
         summary.fired.push(fired);
       } catch (err) {
         const message = (err as Error).message ?? String(err);
@@ -225,7 +232,13 @@ export class NotificationDispatcher {
   ): Promise<{ name: string; channel: string; to?: string }> {
     switch (spec.channel) {
       case 'email':
-        return this.fireEmail(spec, templateContext, ctx, extensionDir, appConfig);
+        return this.fireEmail(
+          spec,
+          templateContext,
+          ctx,
+          extensionDir,
+          appConfig,
+        );
 
       case 'webhook':
         return this.fireWebhook(spec, templateContext, ctx);
@@ -251,7 +264,9 @@ export class NotificationDispatcher {
         // Exhaustiveness guard — if a new channel is added to the type but not
         // here, this branch catches it.
         const exhaustive: never = spec.channel;
-        throw new Error(`Unsupported notification channel: ${String(exhaustive)}`);
+        throw new Error(
+          `Unsupported notification channel: ${String(exhaustive)}`,
+        );
       }
     }
   }
@@ -288,7 +303,12 @@ export class NotificationDispatcher {
     // Render the template
     let html: string;
     if (spec.template) {
-      html = await this.renderTemplate(spec.template, extensionDir, templateContext, spec.name);
+      html = await this.renderTemplate(
+        spec.template,
+        extensionDir,
+        templateContext,
+        spec.name,
+      );
     } else {
       // No template — build a minimal textual body from entity + payload so the
       // email is still useful.
@@ -352,7 +372,12 @@ export class NotificationDispatcher {
         await ctx.logError(
           `Webhook "${spec.name}" request failed: ${message}`,
           `spec-engine:notifications`,
-          { notificationName: spec.name, channel: 'webhook', url, error: (err as Error).stack },
+          {
+            notificationName: spec.name,
+            channel: 'webhook',
+            url,
+            error: (err as Error).stack,
+          },
         );
       } catch {
         // best-effort
@@ -369,7 +394,12 @@ export class NotificationDispatcher {
         await ctx.logError(
           `Webhook "${spec.name}" returned non-2xx status ${status}`,
           `spec-engine:notifications`,
-          { notificationName: spec.name, channel: 'webhook', url, httpStatus: status },
+          {
+            notificationName: spec.name,
+            channel: 'webhook',
+            url,
+            httpStatus: status,
+          },
         );
       } catch {
         // best-effort
@@ -490,7 +520,10 @@ export class NotificationDispatcher {
    *
    * No `eval`, no `Function` — purely structural parsing.
    */
-  private evaluateWhen(expression: string, entity: Record<string, unknown>): boolean {
+  private evaluateWhen(
+    expression: string,
+    entity: Record<string, unknown>,
+  ): boolean {
     const trimmed = expression.trim();
     if (!trimmed) return true; // empty condition = always pass
 
@@ -645,7 +678,10 @@ export class NotificationDispatcher {
    *
    * Unresolvable paths are replaced with an empty string (and logged at debug).
    */
-  private interpolate(expr: string, context: NotificationTemplateContext): string {
+  private interpolate(
+    expr: string,
+    context: NotificationTemplateContext,
+  ): string {
     return expr.replace(/\$\{([^}]+)\}/g, (fullMatch, pathExpr: string) => {
       const resolved = this.resolveDotPath(context, pathExpr.trim());
       if (resolved === undefined || resolved === null) {
