@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, MinLength, IsOptional, IsString, Length } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  MinLength,
+  IsOptional,
+  IsString,
+  Length,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
 import { lowerCaseTransformer } from '@infra/utils/transformers/lower-case.transformer';
 

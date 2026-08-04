@@ -66,22 +66,6 @@ const VALID_HOOK_TYPES = [
 
 const VALID_CHANNELS = ['email', 'webhook', 'sms'];
 
-// spec-engine-v2: `table` (mini SpecDataTable) and `list` (compact SpecList)
-// are valid panel chart types in addition to the pre-change chart values.
-const VALID_CHART_TYPES = [
-  'stat',
-  'donut',
-  'bar',
-  'line',
-  'custom',
-  'table',
-  'list',
-];
-
-const VALID_AGGREGATES = ['count', 'sum', 'avg', 'min', 'max'];
-
-const VALID_INTERVALS = ['hour', 'day', 'week', 'month'];
-
 export class SpecValidator {
   /**
    * Validate all loaded specs together (cross-reference checks)
@@ -161,17 +145,6 @@ export class SpecValidator {
       );
       errors.push(...result.errors);
       warnings.push(...result.warnings);
-    }
-
-    // Validate views
-    for (const loaded of loadedSpecs) {
-      if (loaded.spec.views) {
-        for (const view of loaded.spec.views) {
-          const viewResult = this.validateView(view, resourceMap);
-          errors.push(...viewResult.errors);
-          warnings.push(...viewResult.warnings);
-        }
-      }
     }
 
     return {
@@ -471,29 +444,6 @@ export class SpecValidator {
       }
     }
 
-    // Validate UI
-    if (spec.ui?.sidebar) {
-      const allowedRoles = validRoles ?? new Set<string>(BUILTIN_ROLES);
-      for (const item of spec.ui.sidebar.items || []) {
-        if (!item.title || !item.link) {
-          errors.push({
-            resource: spec.name,
-            message: `Sidebar item missing title or link`,
-          });
-        }
-        if (item.roles) {
-          for (const role of item.roles) {
-            if (!allowedRoles.has(role)) {
-              errors.push({
-                resource: spec.name,
-                message: `Sidebar item "${item.title}" invalid role "${role}"`,
-              });
-            }
-          }
-        }
-      }
-    }
-
     return { valid: errors.length === 0, errors, warnings };
   }
 
@@ -574,68 +524,6 @@ export class SpecValidator {
     }
 
     return errors;
-  }
-
-  /**
-   * Validate a view spec
-   */
-  private static validateView(
-    view: any,
-    resourceMap: Map<string, { spec: ResourceSpec; loaded: LoadedSpec }>,
-  ): ValidationResult {
-    const errors: ValidationError[] = [];
-    const warnings: ValidationError[] = [];
-
-    if (!view.name) {
-      errors.push({ message: 'View missing name' });
-    }
-    if (!['dashboard', 'custom'].includes(view.type)) {
-      errors.push({
-        message: `View "${view.name}" invalid type "${view.type}"`,
-        suggestion: 'Valid types: dashboard, custom',
-      });
-    }
-    if (!view.roles || view.roles.length === 0) {
-      warnings.push({
-        message: `View "${view.name}" has no roles defined — will be admin-only by default`,
-      });
-    }
-
-    if (view.panels) {
-      for (const panel of view.panels) {
-        if (!panel.name) {
-          errors.push({ message: `Panel in view "${view.name}" missing name` });
-        }
-        if (!VALID_CHART_TYPES.includes(panel.chart)) {
-          errors.push({
-            message: `Panel "${panel.name}" invalid chart "${panel.chart}"`,
-            suggestion: `Valid charts: ${VALID_CHART_TYPES.join(', ')}`,
-          });
-        }
-        if (panel.query) {
-          if (!resourceMap.has(panel.query.resource)) {
-            errors.push({
-              message: `Panel "${panel.name}" references unknown resource "${panel.query.resource}"`,
-            });
-          }
-          if (!VALID_AGGREGATES.includes(panel.query.aggregate)) {
-            errors.push({
-              message: `Panel "${panel.name}" invalid aggregate "${panel.query.aggregate}"`,
-            });
-          }
-          if (
-            panel.query.groupByInterval &&
-            !VALID_INTERVALS.includes(panel.query.groupByInterval)
-          ) {
-            errors.push({
-              message: `Panel "${panel.name}" invalid groupByInterval "${panel.query.groupByInterval}"`,
-            });
-          }
-        }
-      }
-    }
-
-    return { valid: errors.length === 0, errors, warnings };
   }
 
   /**

@@ -54,7 +54,10 @@ export class CrmProjectService {
     return saved;
   }
 
-  async update(id: number, dto: UpdateCrmProjectDto): Promise<CrmProjectEntity> {
+  async update(
+    id: number,
+    dto: UpdateCrmProjectDto,
+  ): Promise<CrmProjectEntity> {
     const project = await this.findOne(id);
     Object.assign(project, dto);
     const saved = await this.repository.save(project);

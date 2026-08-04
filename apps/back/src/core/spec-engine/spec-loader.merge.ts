@@ -98,11 +98,6 @@ export function mergeSpecs(files: ExtensionSpec[]): ExtensionSpec {
     }
   }
 
-  // views: concatenated, keyed by name, duplicate across files → hard error.
-  if (files.some((f) => f.views && f.views.length > 0)) {
-    merged.views = mergeNamedEntries(files, 'views', (v) => v.name);
-  }
-
   // overrides / roles / roleSeeds / config: plain concatenation (additive).
   if (files.some((f) => f.overrides && f.overrides.length > 0)) {
     merged.overrides = concatNonEmpty(files, 'overrides') as OverrideSpec[];
@@ -138,36 +133,6 @@ function concatNonEmpty<K extends keyof ExtensionSpec>(
     const value = file[key];
     if (Array.isArray(value)) {
       out.push(...value);
-    }
-  }
-  return out;
-}
-
-/**
- * Merge a named-entry array (e.g. views) across files, throwing
- * `SpecMergeError` on duplicate names.
- */
-function mergeNamedEntries<T>(
-  files: ExtensionSpec[],
-  key: 'views',
-  getName: (entry: T) => string,
-): T[] {
-  const out: T[] = [];
-  const seen = new Map<string, string>(); // name → file that first declared it
-  for (const file of files) {
-    const entries = (file[key] as unknown as T[] | undefined) || [];
-    for (const entry of entries) {
-      const name = getName(entry);
-      if (seen.has(name)) {
-        throw new SpecMergeError(
-          seen.get(name) as string,
-          file.name,
-          name,
-          key.replace(/s$/, ''), // 'views' → 'view'
-        );
-      }
-      seen.set(name, file.name);
-      out.push(entry);
     }
   }
   return out;

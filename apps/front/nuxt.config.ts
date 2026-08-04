@@ -9,7 +9,7 @@ function getI18nFiles(_langCode: string) {
 export default defineNuxtConfig(
   {
     compatibilityDate: '2024-11-01',
-    extends: ['./modules/landing', './modules/base', './modules/spec-crud', './extensions/cms', './extensions/analytics', './extensions/upload-post', './extensions/crm', './extensions/affiliate', './extensions/content-pipeline', './extensions/autonomous-agent', './extensions/stripe', './extensions/tokens', './extensions/tasks'],
+    extends: ['./modules/landing', './modules/base', './extensions/cms', './extensions/analytics', './extensions/upload-post', './extensions/crm', './extensions/affiliate', './extensions/content-pipeline', './extensions/autonomous-agent', './extensions/stripe', './extensions/tokens', './extensions/tasks'],
     devtools: { enabled: true },
     ssr: false,
 

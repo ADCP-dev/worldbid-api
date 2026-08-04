@@ -1,8 +1,7 @@
 # ─── Task Attachment resource (showcase: file upload single + multiple) ──────
 # Demonstrates:
-#   - `file` field type with a single file (`file` field, ui.multiple omitted)
-#   - `file` field type with multiple files (`files` field, ui.multiple=true)
-#   - accept mime filter coexisting with allowedMimes (intersection)
+#   - `file` field type with a single file (`file` field)
+#   - `file` field type with multiple files (`files` field)
 #   - ref→task CASCADE so attachments are deleted with the task
 
 name: tasks
@@ -21,14 +20,6 @@ resources:
         type: string
         required: true
         length: 255
-        ui:
-          display: text
-          formInput: text
-          link: true
-          section: basics
-          order: 1
-          placeholder: 'report-q3.pdf'
-          helpText: 'Human-readable file name shown in the UI.'
 
       - name: taskId
         type: ref
@@ -36,11 +27,6 @@ resources:
         required: true
         refOnDelete: CASCADE
         index: true
-        ui:
-          formInput: select-async
-          labelField: title
-          section: basics
-          order: 2
 
       - name: file
         type: file
@@ -51,14 +37,6 @@ resources:
           - text/plain
           - application/zip
         maxSize: 10485760  # 10 MB
-        ui:
-          display: text
-          formInput: file-upload
-          section: files
-          order: 3
-          cols: 2
-          accept: '.pdf,.txt,.zip'
-          helpText: 'A single supporting document (PDF/TXT/ZIP, ≤10MB).'
 
       - name: files
         type: file
@@ -70,15 +48,6 @@ resources:
           - image/webp
           - image/gif
         maxSize: 5242880  # 5 MB per file
-        ui:
-          display: text
-          formInput: file-upload
-          section: files
-          order: 4
-          cols: 2
-          multiple: true
-          accept: 'image/*'
-          helpText: 'One or more images (PNG/JPEG/WebP/GIF, ≤5MB each).'
 
     permissions:
       list: [admin, user, manager]
@@ -93,16 +62,3 @@ resources:
         taskId: 1
       - filename: screenshots-batch.zip
         taskId: 2
-
-    ui:
-      icon: Paperclip
-      view: table
-      sections:
-        - id: basics
-          title: Basics
-          icon: Info
-          cols: 2
-        - id: files
-          title: Files
-          icon: Upload
-          cols: 2

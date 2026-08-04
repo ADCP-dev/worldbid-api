@@ -7,7 +7,10 @@ export class CreateSubscriptionDto {
   @IsString()
   planId: string;
 
-  @ApiPropertyOptional({ example: 'incomplete', enum: ['active', 'past_due', 'canceled', 'incomplete', 'trialing'] })
+  @ApiPropertyOptional({
+    example: 'incomplete',
+    enum: ['active', 'past_due', 'canceled', 'incomplete', 'trialing'],
+  })
   @IsOptional()
   @IsEnum(['active', 'past_due', 'canceled', 'incomplete', 'trialing'])
   status?: string;

@@ -1,12 +1,10 @@
 # ─── Task resource (canonical demanding example) ─────────────────────────────
 # This file defines ONLY the `task` resource — the kanban board centerpiece.
-# It showcases every spec-engine v2 feature: sections, steps, showIf, cols,
-# order, placeholder, helpText, multiple/accept file hints, password/secret,
-# switch, stepper, kanban view, row-level + field-level permissions, hooks,
-# notifications (incl. job-triggered), jobs (interval + cron), webhooks (HMAC),
-# and a rich seed set.
+# It showcases every spec-engine v2 backend feature: row-level + field-level
+# permissions, hooks, notifications (incl. job-triggered), jobs (interval +
+# cron), webhooks (HMAC), and a rich seed set.
 #
-# Extension-level concerns (name, version, roles, roleSeeds, views) live in
+# Extension-level concerns (name, version, roles, roleSeeds) live in
 # `tasks.extension.spec.yaml`.
 
 name: tasks
@@ -21,7 +19,7 @@ resources:
     softDelete: true
 
     fields:
-      # ── Basics section ──
+      # ── Basics ──
       - name: title
         type: string
         required: true
@@ -29,28 +27,10 @@ resources:
         validation:
           min: 2
           max: 200
-        ui:
-          display: text
-          formInput: text
-          link: true
-          section: basics
-          order: 1
-          cols: 2
-          placeholder: 'e.g. Refactor auth module'
-          helpText: 'Short, actionable summary of the work.'
 
       - name: description
         type: text
         nullable: true
-        ui:
-          display: truncate
-          truncateLength: 50
-          formInput: textarea
-          section: basics
-          order: 2
-          cols: 2
-          placeholder: 'Add context, acceptance criteria, links…'
-          helpText: 'Markdown is supported in the detail view.'
 
       - name: status
         type: enum
@@ -58,20 +38,6 @@ resources:
         default: pending
         enum: [pending, in_progress, review, done, blocked]
         index: true
-        ui:
-          display: badge
-          formInput: select
-          colors:
-            pending: '#f59e0b'
-            in_progress: '#3b82f6'
-            review: '#8b5cf6'
-            done: '#22c55e'
-            blocked: '#ef4444'
-          section: basics
-          order: 3
-          filterable: true
-          sortable: true
-          filterType: select
 
       - name: priority
         type: enum
@@ -79,35 +45,14 @@ resources:
         default: medium
         enum: [low, medium, high, urgent]
         index: true
-        ui:
-          display: badge
-          formInput: select
-          colors:
-            low: '#6b7280'
-            medium: '#3b82f6'
-            high: '#f59e0b'
-            urgent: '#ef4444'
-          section: basics
-          order: 4
-          filterable: true
-          sortable: true
-          filterType: select
 
-      # ── Assignment & Dates section ──
+      # ── Assignment & Dates ──
       - name: assigneeId
         type: ref
         ref: user
         nullable: true
         refOnDelete: SET NULL
         index: true
-        ui:
-          display: avatar
-          formInput: select-async
-          labelField: firstName
-          section: assignment
-          order: 5
-          placeholder: 'Search a user…'
-          helpText: 'The person responsible for moving this task forward.'
 
       - name: reporterId
         type: ref
@@ -115,122 +60,52 @@ resources:
         nullable: true
         refOnDelete: SET NULL
         index: true
-        ui:
-          display: avatar
-          formInput: select-async
-          labelField: firstName
-          section: assignment
-          order: 6
-          placeholder: 'Search a user…'
-          helpText: 'Who created/requested this task.'
 
       - name: dueDate
         type: datetime
         nullable: true
         index: true
-        ui:
-          display: date
-          formInput: datepicker
-          section: assignment
-          order: 7
-          placeholder: 'Pick a due date'
-          helpText: 'When the task should be done.'
 
       - name: position
         type: integer
         default: 0
-        ui:
-          display: text
-          formInput: stepper
-          section: assignment
-          order: 8
-          helpText: 'Card order inside its kanban column.'
-          sortable: true
 
       - name: estimateHours
         type: decimal
         nullable: true
         precision: 10
         scale: 2
-        ui:
-          display: text
-          formInput: text
-          section: assignment
-          order: 9
-          placeholder: '8.5'
-          helpText: 'Estimated effort in hours (e.g. 0.5, 8, 40).'
 
-      # ── Extra section (metadata, recurrence, secrets, files) ──
+      # ── Extra (metadata, recurrence, secrets, files) ──
       - name: metadata
         type: json
         default: {}
-        ui:
-          section: extra
-          order: 10
-          helpText: 'Free-form key/value metadata.'
 
       - name: isRecurring
         type: boolean
         default: false
-        ui:
-          display: text
-          formInput: switch
-          section: extra
-          order: 11
-          helpText: 'Does this task repeat on a schedule?'
 
       - name: recurrenceRule
         type: string
         nullable: true
         length: 200
-        ui:
-          display: text
-          formInput: text
-          section: extra
-          order: 12
-          cols: 2
-          placeholder: 'FREQ=WEEKLY;BYDAY=MO,FR'
-          helpText: 'iCalendar-style recurrence rule (RFC 5545).'
-          showIf:
-            isRecurring: true
 
       - name: apiKey
         type: password
         nullable: true
         length: 255
-        ui:
-          formInput: text
-          section: extra
-          order: 13
-          placeholder: 'Secret token used by integrations'
-          helpText: 'Stored masked; never returned in full by the API.'
 
       - name: attachment
         type: file
         nullable: true
         storage: local
         allowedMimes: ['application/pdf', 'text/plain']
-        ui:
-          display: text
-          formInput: file-upload
-          section: extra
-          order: 14
-          accept: '.pdf,.txt'
-          helpText: 'A single supporting document.'
 
       - name: coverImage
         type: file
         nullable: true
         storage: local
         allowedMimes: ['image/png', 'image/jpeg', 'image/webp']
-        ui:
-          display: text
-          formInput: file-upload
-          section: extra
-          order: 15
-          multiple: true
-          accept: 'image/*'
-          helpText: 'One or more cover images.'
 
     permissions:
       list: [admin, user, manager]
@@ -388,53 +263,3 @@ resources:
         recurrenceRule: 'FREQ=MONTHLY;BYMONTHDAY=1'
         assigneeId: 2
         reporterId: 1
-
-    ui:
-      icon: CheckSquare
-      view: kanban
-      kanbanColumn: status
-      kanbanOrder: position
-      sidebar:
-        heading: Tasks
-        items:
-          - title: All Tasks
-            icon: CheckSquare
-            link: /app/tasks
-            roles: [admin]
-          - title: My Tasks
-            icon: User
-            link: /app/tasks/mine
-            roles: [user, manager]
-          - title: Team Overview
-            icon: Users
-            link: /app/tasks/team
-            roles: [manager]
-      sections:
-        - id: basics
-          title: Basics
-          icon: Info
-          cols: 2
-        - id: assignment
-          title: Assignment & Dates
-          icon: Calendar
-          cols: 2
-        - id: extra
-          title: Extra
-          icon: Settings
-          cols: 2
-      steps:
-        - id: what
-          title: What
-          icon: FileText
-          fields: [title, description, status, priority]
-          section: basics
-        - id: who-when
-          title: Who & When
-          icon: Users
-          fields: [assigneeId, reporterId, dueDate, position, estimateHours]
-          section: assignment
-        - id: meta
-          title: Meta
-          icon: Settings
-          fields: [metadata, isRecurring, recurrenceRule, apiKey, attachment, coverImage]
-          section: extra

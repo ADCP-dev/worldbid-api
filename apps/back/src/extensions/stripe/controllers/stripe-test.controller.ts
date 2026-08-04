@@ -173,7 +173,10 @@ export class StripeTestController {
       id: `sub_test_${Date.now()}`,
       status: 'active',
       planId: body.planId ?? 'plan_free',
-      customerEmail: body.customerEmail ?? process.env.TEST_CUSTOMER_EMAIL ?? 'test@example.com',
+      customerEmail:
+        body.customerEmail ??
+        process.env.TEST_CUSTOMER_EMAIL ??
+        'test@example.com',
       currentPeriodStart: new Date(),
       currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       message: 'Suscripción de prueba creada correctamente',

@@ -37,7 +37,11 @@ export function discoverExtensionConfigs(): Array<(...args: any[]) => any> {
 
     // 1. Root convention: extensions/<ext>/extension.config.ts
     const rootConfigPath = path.join(extDir, 'extension.config');
-    loadConfigFactory(rootConfigPath, `${dir.name}/extension.config.ts`, configs);
+    loadConfigFactory(
+      rootConfigPath,
+      `${dir.name}/extension.config.ts`,
+      configs,
+    );
 
     // 2. Secondary convention: extensions/<ext>/config/*.config.ts
     const configDir = path.join(extDir, 'config');
@@ -48,7 +52,10 @@ export function discoverExtensionConfigs(): Array<(...args: any[]) => any> {
           .filter((f) => f.match(/\.config\.(ts|js)$/));
 
         for (const file of configFiles) {
-          const configPath = path.join(configDir, file.replace(/\.(ts|js)$/, ''));
+          const configPath = path.join(
+            configDir,
+            file.replace(/\.(ts|js)$/, ''),
+          );
           loadConfigFactory(configPath, `${dir.name}/config/${file}`, configs);
         }
       } catch (err) {

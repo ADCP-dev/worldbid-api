@@ -67,9 +67,12 @@ export class BlogPostsController {
   ) {
     let tagIds: string[] | undefined;
     if (tagSlugs) {
-      const slugs = tagSlugs.split(',').map(s => s.trim()).filter(Boolean);
+      const slugs = tagSlugs
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
       const tags = await this.tagsService.findManyBySlugs(slugs, lang);
-      tagIds = tags.map(t => t.id);
+      tagIds = tags.map((t) => t.id);
     }
     return this.blogPostsService.findAllPublished(
       lang,

@@ -84,8 +84,9 @@ export class AffiliatePartnerEntity extends EntityRelationalHelper {
 
   @OneToMany(
     () => {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { AffiliateReferralEntity } = require('./affiliate-referral.entity');
+      const {
+        AffiliateReferralEntity,
+      } = require('./affiliate-referral.entity');
       return AffiliateReferralEntity;
     },
     (referral: AffiliateReferralEntity) => referral.partner,

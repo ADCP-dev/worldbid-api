@@ -26,10 +26,7 @@ export class AppSettingRepository {
     return entity ? plainToInstance(AppSetting, entity) : null;
   }
 
-  async upsert(
-    key: string,
-    data: UpsertAppSettingDto,
-  ): Promise<AppSetting> {
+  async upsert(key: string, data: UpsertAppSettingDto): Promise<AppSetting> {
     const existing = await this.appSettingRepository.findOne({
       where: { key },
     });

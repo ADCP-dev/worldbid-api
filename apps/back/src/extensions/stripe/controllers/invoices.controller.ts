@@ -62,21 +62,23 @@ export class InvoicesController {
       const invoiceCustomer =
         typeof invoice.customer === 'string'
           ? invoice.customer
-          : (invoice.customer as any)?.id ?? null;
+          : ((invoice.customer as any)?.id ?? null);
       if (
         !userStripeCustomerId ||
         !invoiceCustomer ||
         invoiceCustomer !== userStripeCustomerId
       ) {
-        throw new ForbiddenException(
-          'You do not have access to this invoice',
-        );
+        throw new ForbiddenException('You do not have access to this invoice');
       }
 
       const currency = invoice.currency ?? 'eur';
       const total = invoice.total;
       const subtotal = invoice.subtotal;
-      const tax = ((invoice as any).total_tax_amounts?.reduce((sum: number, t: any) => sum + t.amount, 0)) ?? 0;
+      const tax =
+        (invoice as any).total_tax_amounts?.reduce(
+          (sum: number, t: any) => sum + t.amount,
+          0,
+        ) ?? 0;
 
       const items = (invoice.lines?.data ?? []).map((line: any) => ({
         description: line.description ?? line.price?.nickname ?? 'Servicio',
@@ -96,11 +98,14 @@ export class InvoicesController {
 
       const pdf = await this.pdfInvoiceService.generateInvoice({
         invoiceNumber: invoice.number ?? id,
-        invoiceDate: new Date(invoice.created * 1000).toLocaleDateString('es-ES'),
+        invoiceDate: new Date(invoice.created * 1000).toLocaleDateString(
+          'es-ES',
+        ),
         dueDate: invoice.due_date
           ? new Date(invoice.due_date * 1000).toLocaleDateString('es-ES')
           : '—',
-        customerName: invoice.customer_name ?? invoice.customer_email ?? 'Cliente',
+        customerName:
+          invoice.customer_name ?? invoice.customer_email ?? 'Cliente',
         customerEmail: invoice.customer_email ?? '',
         items,
         subtotal,

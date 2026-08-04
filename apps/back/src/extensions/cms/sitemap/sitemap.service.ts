@@ -50,26 +50,30 @@ export class SitemapService {
     for (const post of posts) {
       const alternates: Record<string, string> = {};
       for (const lang of langs) {
-        alternates[lang] = lang === defaultLocale
-          ? `${frontendUrl}/blog/${post.slug}`
-          : `${frontendUrl}/${lang}/blog/${post.slug}`;
+        alternates[lang] =
+          lang === defaultLocale
+            ? `${frontendUrl}/blog/${post.slug}`
+            : `${frontendUrl}/${lang}/blog/${post.slug}`;
       }
 
       urls.push({
-        loc: defaultLocale === 'es'
-          ? `${frontendUrl}/blog/${post.slug}`
-          : `${frontendUrl}/${defaultLocale}/blog/${post.slug}`,
+        loc:
+          defaultLocale === 'es'
+            ? `${frontendUrl}/blog/${post.slug}`
+            : `${frontendUrl}/${defaultLocale}/blog/${post.slug}`,
         lastmod: post.updatedAt.toISOString(),
         changefreq: 'weekly',
         priority: 0.8,
         alternates: { languages: alternates },
         ...(post.featuredImage?.path && {
-          images: [{
-            loc: post.featuredImage.path.startsWith('http')
-              ? post.featuredImage.path
-              : `${frontendUrl}${post.featuredImage.path}`,
-            caption: post.slug,
-          }],
+          images: [
+            {
+              loc: post.featuredImage.path.startsWith('http')
+                ? post.featuredImage.path
+                : `${frontendUrl}${post.featuredImage.path}`,
+              caption: post.slug,
+            },
+          ],
         }),
       });
     }

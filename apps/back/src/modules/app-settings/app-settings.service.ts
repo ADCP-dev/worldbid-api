@@ -6,9 +6,7 @@ import { NullableType } from '@infra/utils/types/nullable.type';
 
 @Injectable()
 export class AppSettingsService {
-  constructor(
-    private readonly appSettingRepository: AppSettingRepository,
-  ) {}
+  constructor(private readonly appSettingRepository: AppSettingRepository) {}
 
   findAll(): Promise<AppSetting[]> {
     return this.appSettingRepository.findAll();

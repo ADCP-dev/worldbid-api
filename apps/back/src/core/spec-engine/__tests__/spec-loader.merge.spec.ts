@@ -7,8 +7,7 @@
  * Coverage:
  *   - mergeSpecs: split resources merge into one ExtensionSpec
  *   - Duplicate resource name across files rejects with fileA/fileB/resource
- *   - views/overrides/roles/roleSeeds/config concatenate across files
- *   - Duplicate view name across files rejects
+ *   - overrides/roles/roleSeeds/config concatenate across files
  *   - SpecLoader glob skips dist/node_modules/hidden directories
  *   - Backward compatible: single root *.spec.yaml loads as before
  *   - Monolith + split coexist (split merged on top of monolith)
@@ -132,50 +131,6 @@ describe('mergeSpecs', () => {
     expect(caught?.fileA).toBe('tasks');
     expect(caught?.fileB).toBe('tasks');
     expect(caught?.message).toContain('task');
-  });
-
-  it('concatenates views from all files', () => {
-    const fileA = makeSpec('demo', [makeResource('alpha', 'ext_demo_alpha')], {
-      views: [
-        {
-          name: 'overview',
-          type: 'dashboard',
-          roles: ['admin'],
-          panels: [],
-        },
-      ],
-    });
-    const fileB = makeSpec('demo', [makeResource('beta', 'ext_demo_beta')], {
-      views: [
-        {
-          name: 'reports',
-          type: 'dashboard',
-          roles: ['admin'],
-          panels: [],
-        },
-      ],
-    });
-
-    const merged = mergeSpecs([fileA, fileB]);
-
-    expect(merged.views).toHaveLength(2);
-    expect(merged.views?.map((v) => v.name)).toEqual(['overview', 'reports']);
-  });
-
-  it('rejects duplicate view name across files', () => {
-    const fileA = makeSpec('demo', [makeResource('alpha', 'ext_demo_alpha')], {
-      views: [
-        { name: 'overview', type: 'dashboard', roles: ['admin'], panels: [] },
-      ],
-    });
-    const fileB = makeSpec('demo', [makeResource('beta', 'ext_demo_beta')], {
-      views: [
-        { name: 'overview', type: 'dashboard', roles: ['admin'], panels: [] },
-      ],
-    });
-
-    expect(() => mergeSpecs([fileA, fileB])).toThrow(SpecMergeError);
-    expect(() => mergeSpecs([fileA, fileB])).toThrow(/overview/);
   });
 
   it('concatenates overrides from all files', () => {
@@ -496,11 +451,11 @@ describe('SpecLoader glob + merge integration', () => {
 // feature. The fixture is laid out as split-by-resource files:
 //
 //   extensions/tasks/
-//     task.spec.yaml              ← task resource (kanban, sections, steps…)
+//     task.spec.yaml              ← task resource
 //     task-comment.spec.yaml       ← task-comment resource
 //     task-attachment.spec.yaml    ← task-attachment resource (file upload)
-//     task-activity.spec.yaml      ← task-activity resource (list view)
-//     tasks.extension.spec.yaml    ← extension-level: name, roles, views
+//     task-activity.spec.yaml      ← task-activity resource
+//     tasks.extension.spec.yaml    ← extension-level: name, roles
 //
 // These tests load the real fixture from disk (not a temp copy) and assert the
 // merged shape. They are RED until the fixture files + SpecValidator custom-role
@@ -529,20 +484,6 @@ describe('Slice 7 — canonical tasks split-spec fixture', () => {
     ]);
   });
 
-  it('declares 3 extension-level views (dashboards) merged across files', () => {
-    const loaded = SpecLoader.load(path.dirname(TASKS_DIR));
-    const tasks = loaded.find((l) => l.spec.name === 'tasks');
-
-    expect(tasks).toBeDefined();
-    expect(tasks!.spec.views).toBeDefined();
-    expect(tasks!.spec.views!.length).toBeGreaterThanOrEqual(3);
-
-    const viewNames = tasks!.spec.views!.map((v) => v.name).sort();
-    expect(viewNames).toContain('task-dashboard');
-    expect(viewNames).toContain('my-tasks');
-    expect(viewNames).toContain('team-overview');
-  });
-
   it('declares 3 extension-level roles (admin, user, manager)', () => {
     const loaded = SpecLoader.load(path.dirname(TASKS_DIR));
     const tasks = loaded.find((l) => l.spec.name === 'tasks');
@@ -563,7 +504,7 @@ describe('Slice 7 — canonical tasks split-spec fixture', () => {
     expect(() => SpecLoader.load(path.dirname(TASKS_DIR))).not.toThrow();
   });
 
-  it('task resource showcases the demanding field set (kanban + sections + steps)', () => {
+  it('task resource showcases the demanding field set', () => {
     const loaded = SpecLoader.load(path.dirname(TASKS_DIR));
     const tasks = loaded.find((l) => l.spec.name === 'tasks');
     const task = tasks!.spec.resources.find((r) => r.name === 'task');
@@ -584,18 +525,6 @@ describe('Slice 7 — canonical tasks split-spec fixture', () => {
     expect(fieldNames).toContain('apiKey');
     expect(fieldNames).toContain('attachment');
     expect(fieldNames).toContain('coverImage');
-    // Kanban view config
-    expect(task!.ui?.view).toBe('kanban');
-    expect(task!.ui?.kanbanColumn).toBe('status');
-    expect(task!.ui?.kanbanOrder).toBe('position');
-    // Sections + steps + showIf showcase
-    expect(task!.ui?.sections).toBeDefined();
-    expect(task!.ui?.sections!.length).toBeGreaterThanOrEqual(3);
-    expect(task!.ui?.steps).toBeDefined();
-    expect(task!.ui?.steps!.length).toBeGreaterThanOrEqual(3);
-    // recurrenceRule is showIf-gated on isRecurring
-    const recurrence = task!.fields.find((f) => f.name === 'recurrenceRule');
-    expect(recurrence?.ui?.showIf).toBeDefined();
   });
 
   it('task-attachment resource showcases file fields (single + multiple)', () => {
@@ -617,10 +546,9 @@ describe('Slice 7 — canonical tasks split-spec fixture', () => {
 
     const multiFile = attachment!.fields.find((f) => f.name === 'files');
     expect(multiFile?.type).toBe('file');
-    expect(multiFile?.ui?.multiple).toBe(true);
   });
 
-  it('task-activity resource showcases the list view', () => {
+  it('task-activity resource showcases the activity fields', () => {
     const loaded = SpecLoader.load(path.dirname(TASKS_DIR));
     const tasks = loaded.find((l) => l.spec.name === 'tasks');
     const activity = tasks!.spec.resources.find(
@@ -628,45 +556,11 @@ describe('Slice 7 — canonical tasks split-spec fixture', () => {
     );
 
     expect(activity).toBeDefined();
-    expect(activity!.ui?.view).toBe('list');
     const fieldNames = activity!.fields.map((f) => f.name);
     expect(fieldNames).toContain('action');
     expect(fieldNames).toContain('description');
     expect(fieldNames).toContain('userId');
     expect(fieldNames).toContain('taskId');
-  });
-
-  it('task-dashboard view showcases table + list + custom panel types', () => {
-    const loaded = SpecLoader.load(path.dirname(TASKS_DIR));
-    const tasks = loaded.find((l) => l.spec.name === 'tasks');
-    const dashboard = tasks!.spec.views!.find(
-      (v) => v.name === 'task-dashboard',
-    );
-
-    expect(dashboard).toBeDefined();
-    expect(dashboard!.panels).toBeDefined();
-    expect(dashboard!.panels!.length).toBeGreaterThanOrEqual(5);
-
-    const charts = dashboard!.panels!.map((p) => p.chart);
-    // Must include the new chart types introduced by spec-engine-v2
-    expect(charts).toContain('table');
-    expect(charts).toContain('list');
-    // And the pre-existing ones
-    expect(charts).toContain('stat');
-    expect(charts).toContain('donut');
-    expect(charts).toContain('bar');
-    expect(charts).toContain('line');
-  });
-
-  it('team-overview view is type=custom delegating to a named component', () => {
-    const loaded = SpecLoader.load(path.dirname(TASKS_DIR));
-    const tasks = loaded.find((l) => l.spec.name === 'tasks');
-    const team = tasks!.spec.views!.find((v) => v.name === 'team-overview');
-
-    expect(team).toBeDefined();
-    expect(team!.type).toBe('custom');
-    expect(team!.component).toBeDefined();
-    expect(typeof team!.component).toBe('string');
   });
 });
 
@@ -824,52 +718,5 @@ describe('Slice 7 — SpecValidator accepts the canonical tasks fixture', () => 
     }
     expect(result.errors).toEqual([]);
     expect(result.valid).toBe(true);
-  });
-
-  it('canonical tasks spec uses every new spec-engine-v2 hint at least once', () => {
-    const loaded = SpecLoader.load(path.dirname(TASKS_DIR));
-    const tasks = loaded.find((l) => l.spec.name === 'tasks');
-    expect(tasks).toBeDefined();
-
-    const allFields = tasks!.spec.resources.flatMap((r) => r.fields);
-    const allUi = allFields.map((f) => f.ui ?? {});
-
-    // New UI hints
-    expect(allUi.some((u) => u.section !== undefined)).toBe(true);
-    expect(allUi.some((u) => u.showIf !== undefined)).toBe(true);
-    expect(allUi.some((u) => u.cols !== undefined)).toBe(true);
-    expect(allUi.some((u) => u.order !== undefined)).toBe(true);
-    expect(allUi.some((u) => u.placeholder !== undefined)).toBe(true);
-    expect(allUi.some((u) => u.helpText !== undefined)).toBe(true);
-    expect(allUi.some((u) => u.multiple === true)).toBe(true);
-    expect(allUi.some((u) => u.accept !== undefined)).toBe(true);
-
-    // New field types
-    expect(
-      allFields.some((f) => f.type === 'password' || f.type === 'secret'),
-    ).toBe(true);
-
-    // New formInput values
-    expect(allUi.some((u) => u.formInput === 'switch')).toBe(true);
-    expect(allUi.some((u) => u.formInput === 'stepper')).toBe(true);
-
-    // New ResourceUISpec groupings
-    const task = tasks!.spec.resources.find((r) => r.name === 'task');
-    expect(task!.ui?.sections).toBeDefined();
-    expect(task!.ui?.steps).toBeDefined();
-
-    // New view + kanban + list
-    expect(tasks!.spec.resources.some((r) => r.ui?.view === 'kanban')).toBe(
-      true,
-    );
-    expect(tasks!.spec.resources.some((r) => r.ui?.view === 'list')).toBe(true);
-
-    // New ChartType table + list + custom view
-    const charts = tasks!.spec
-      .views!.flatMap((v) => v.panels ?? [])
-      .map((p) => p.chart);
-    expect(charts).toContain('table');
-    expect(charts).toContain('list');
-    expect(tasks!.spec.views!.some((v) => v.type === 'custom')).toBe(true);
   });
 });

@@ -9,34 +9,26 @@ class EnvironmentVariablesValidator {
   FILE_DRIVER: FileDriver;
 
   @ValidateIf((envValues) =>
-    [FileDriver.S3, FileDriver.S3_PRESIGNED].includes(
-      envValues.FILE_DRIVER,
-    ),
+    [FileDriver.S3, FileDriver.S3_PRESIGNED].includes(envValues.FILE_DRIVER),
   )
   @IsString()
   ACCESS_KEY_ID: string;
 
   @ValidateIf((envValues) =>
-    [FileDriver.S3, FileDriver.S3_PRESIGNED].includes(
-      envValues.FILE_DRIVER,
-    ),
+    [FileDriver.S3, FileDriver.S3_PRESIGNED].includes(envValues.FILE_DRIVER),
   )
   @IsString()
   SECRET_ACCESS_KEY: string;
 
   @ValidateIf((envValues) =>
-    [FileDriver.S3, FileDriver.S3_PRESIGNED].includes(
-      envValues.FILE_DRIVER,
-    ),
+    [FileDriver.S3, FileDriver.S3_PRESIGNED].includes(envValues.FILE_DRIVER),
   )
   @IsString()
   @IsNotEmpty()
   AWS_DEFAULT_S3_BUCKET: string;
 
   @ValidateIf((envValues) =>
-    [FileDriver.S3, FileDriver.S3_PRESIGNED].includes(
-      envValues.FILE_DRIVER,
-    ),
+    [FileDriver.S3, FileDriver.S3_PRESIGNED].includes(envValues.FILE_DRIVER),
   )
   @IsString()
   AWS_S3_REGION: string;

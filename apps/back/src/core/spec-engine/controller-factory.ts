@@ -1503,9 +1503,11 @@ export class ControllerFactory {
   /**
    * Parse `?filter[field]=value` query params into a TypeORM `where` fragment.
    *
-   * Only fields whose `ui.filterable` is true are accepted; unknown filter
-   * field names are silently ignored (defense-in-depth against SQL injection,
-   * since field names are never interpolated into raw SQL).
+   * Only scalar fields (string/text/integer/decimal/boolean/datetime/date/enum)
+   * are accepted as filter targets; ref / many-to-many / computed / file fields
+   * are excluded. Unknown filter field names are silently ignored (defense-in-
+   * depth against SQL injection, since field names are never interpolated into
+   * raw SQL).
    *
    * A comma-separated value (e.g. `?status=open,closed`) becomes an `In (...)`
    * clause via TypeORM's FindOperator.
@@ -1518,8 +1520,20 @@ export class ControllerFactory {
     if (!filterParam || typeof filterParam !== 'object') return {};
 
     const filters = filterParam as Record<string, string>;
+    const SCALAR_TYPES = new Set([
+      'string',
+      'text',
+      'integer',
+      'decimal',
+      'boolean',
+      'datetime',
+      'date',
+      'enum',
+    ]);
     const filterable = new Set(
-      spec.fields.filter((f) => f.ui?.filterable).map((f) => f.name),
+      spec.fields
+        .filter((f) => SCALAR_TYPES.has(f.type))
+        .map((f) => f.name),
     );
 
     const result: Record<string, unknown> = {};
@@ -1545,16 +1559,29 @@ export class ControllerFactory {
   /**
    * Parse `?sort=-field1,field2` into a TypeORM `order` fragment.
    *
-   * Only fields whose `ui.sortable` is true can be sorted. A `-` prefix
-   * means DESC, otherwise ASC. Unknown field names are ignored.
+   * Only scalar fields (string/text/integer/decimal/boolean/datetime/date/enum)
+   * can be sorted. A `-` prefix means DESC, otherwise ASC. Unknown field names
+   * are ignored.
    */
   private static parseSort(
     sortParam: string,
     spec: ResourceSpec,
   ): Record<string, 'ASC' | 'DESC'> {
     if (!sortParam || typeof sortParam !== 'string') return {};
+    const SCALAR_TYPES = new Set([
+      'string',
+      'text',
+      'integer',
+      'decimal',
+      'boolean',
+      'datetime',
+      'date',
+      'enum',
+    ]);
     const sortable = new Set(
-      spec.fields.filter((f) => f.ui?.sortable).map((f) => f.name),
+      spec.fields
+        .filter((f) => SCALAR_TYPES.has(f.type))
+        .map((f) => f.name),
     );
     const result: Record<string, 'ASC' | 'DESC'> = {};
     for (const raw of sortParam.split(',')) {

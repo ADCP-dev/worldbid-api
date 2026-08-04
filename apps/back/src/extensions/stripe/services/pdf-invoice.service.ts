@@ -31,7 +31,8 @@ export class PdfInvoiceService {
     });
 
     const currencySymbol = this.currencySymbol(data.currency);
-    const fmt = (cents: number) => `${(cents / 100).toFixed(2)} ${currencySymbol}`;
+    const fmt = (cents: number) =>
+      `${(cents / 100).toFixed(2)} ${currencySymbol}`;
 
     // Header
     doc.fontSize(22).font('Helvetica-Bold').text('FACTURA', 50, 50);
@@ -60,8 +61,16 @@ export class PdfInvoiceService {
 
     // Customer
     doc.moveDown(2);
-    doc.fontSize(9).font('Helvetica-Bold').fillColor('#9ca3af').text('FACTURAR A:', 50);
-    doc.fontSize(11).font('Helvetica').fillColor('#1f2937').text(data.customerName, 50);
+    doc
+      .fontSize(9)
+      .font('Helvetica-Bold')
+      .fillColor('#9ca3af')
+      .text('FACTURAR A:', 50);
+    doc
+      .fontSize(11)
+      .font('Helvetica')
+      .fillColor('#1f2937')
+      .text(data.customerName, 50);
     doc.fontSize(9).fillColor('#6b7280').text(data.customerEmail, 50);
 
     // Table header
@@ -72,21 +81,38 @@ export class PdfInvoiceService {
     doc.text('Cant.', colX.qty, tableTop, { width: 40, align: 'center' });
     doc.text('Precio', colX.price, tableTop, { width: 70, align: 'right' });
     doc.text('Importe', colX.amount, tableTop, { width: 80, align: 'right' });
-    doc.moveTo(50, tableTop + 15).lineTo(545, tableTop + 15).strokeColor('#e5e7eb').stroke();
+    doc
+      .moveTo(50, tableTop + 15)
+      .lineTo(545, tableTop + 15)
+      .strokeColor('#e5e7eb')
+      .stroke();
 
     // Table rows
     let rowY = tableTop + 22;
     doc.fontSize(9).font('Helvetica').fillColor('#4b5563');
     for (const item of data.items) {
       doc.text(item.description, colX.desc, rowY, { width: 260 });
-      doc.text(item.quantity.toString(), colX.qty, rowY, { width: 40, align: 'center' });
-      doc.text(fmt(item.unitPrice), colX.price, rowY, { width: 70, align: 'right' });
-      doc.text(fmt(item.amount), colX.amount, rowY, { width: 80, align: 'right' });
+      doc.text(item.quantity.toString(), colX.qty, rowY, {
+        width: 40,
+        align: 'center',
+      });
+      doc.text(fmt(item.unitPrice), colX.price, rowY, {
+        width: 70,
+        align: 'right',
+      });
+      doc.text(fmt(item.amount), colX.amount, rowY, {
+        width: 80,
+        align: 'right',
+      });
       rowY += 18;
     }
 
     // Bottom line
-    doc.moveTo(50, rowY + 5).lineTo(545, rowY + 5).strokeColor('#e5e7eb').stroke();
+    doc
+      .moveTo(50, rowY + 5)
+      .lineTo(545, rowY + 5)
+      .strokeColor('#e5e7eb')
+      .stroke();
 
     // Totals
     rowY += 20;

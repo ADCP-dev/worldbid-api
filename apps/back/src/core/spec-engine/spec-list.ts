@@ -31,10 +31,6 @@ function main(): void {
           table: r.table,
           fields: r.fields.length,
         })),
-        views: (s.spec.views ?? []).map((v) => ({
-          name: v.name,
-          type: v.type,
-        })),
       }));
       console.log(JSON.stringify(payload, null, 2));
       return;
@@ -52,12 +48,6 @@ function main(): void {
       console.log(`   resources (${spec.resources.length}):`);
       for (const r of spec.resources) {
         console.log(`     • ${r.name} → table ${r.table} (${r.fields.length} fields)`);
-      }
-      if (spec.views && spec.views.length > 0) {
-        console.log(`   views (${spec.views.length}):`);
-        for (const v of spec.views) {
-          console.log(`     • ${v.name} (${v.type ?? 'grid'})`);
-        }
       }
     }
     console.log('');

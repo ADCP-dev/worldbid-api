@@ -1,6 +1,6 @@
 # ─── Tasks extension-level spec ─────────────────────────────────────────────
 # This file defines extension-level concerns ONLY: name, version, displayName,
-# description, custom roles, role seeds, and dashboards/views.
+# description, custom roles, role seeds.
 #
 # The `resources:` array is intentionally EMPTY here — each resource lives in
 # its own `*.spec.yaml` file (task.spec.yaml, task-comment.spec.yaml, etc.).
@@ -10,12 +10,12 @@
 #
 # Roles: `admin` and `user` are built-in. `manager` is a custom role declared
 # here — the SpecValidator picks it up from ExtensionSpec.roles and accepts it
-# in permissions lists / rowLevel keys / field-level permissions / sidebar items.
+# in permissions lists / rowLevel keys / field-level permissions.
 
 name: tasks
 version: 2.0.0
 displayName: Tasks
-description: Kanban-style task management with stale/overdue alerts, attachments, activity log, and dashboards
+description: Kanban-style task management with stale/overdue alerts, attachments, activity log
 author: Foundation
 
 roles:
@@ -35,148 +35,3 @@ roleSeeds:
     description: 'Default manager role assignment for user #2'
 
 resources: []
-
-# ─── Views / Dashboards ─────────────────────────────────────────────────────
-# Showcases:
-#   - Every ChartType: stat, donut, bar, line, table, list
-#   - Custom-panel via `component` (TasksByAssignee)
-#   - Custom view via `type: custom` + `component` (TeamOverview)
-#   - Drill-down via groupBy on status/priority
-#   - Time-aware panels with timeRange
-
-views:
-  # ── Admin dashboard: every chart type + custom component ──
-  - name: task-dashboard
-    displayName: Task Dashboard
-    type: dashboard
-    roles: [admin]
-    panels:
-      - name: total-tasks
-        chart: stat
-        label: Total Tasks
-        query:
-          resource: task
-          aggregate: count
-
-      - name: tasks-by-status
-        chart: donut
-        label: Tasks by Status
-        query:
-          resource: task
-          groupBy: status
-          aggregate: count
-
-      - name: tasks-by-priority
-        chart: bar
-        label: Tasks by Priority
-        query:
-          resource: task
-          groupBy: priority
-          aggregate: count
-
-      - name: urgent-open
-        chart: stat
-        label: Urgent Open
-        query:
-          resource: task
-          filter: 'priority == urgent && status != done'
-          aggregate: count
-
-      - name: tasks-over-time
-        chart: line
-        label: Tasks over time
-        query:
-          resource: task
-          groupBy: createdAt
-          groupByInterval: day
-          aggregate: count
-          timeRange: 30d
-
-      # NEW: table panel (mini read-only SpecDataTable)
-      - name: recent-tasks-table
-        chart: table
-        label: Recent Tasks
-        query:
-          resource: task
-          aggregate: count
-          sort:
-            field: createdAt
-            order: desc
-          limit: 10
-
-      # NEW: list panel (compact SpecList)
-      - name: recent-activity-list
-        chart: list
-        label: Recent Activity
-        query:
-          resource: task-activity
-          aggregate: count
-          sort:
-            field: createdAt
-            order: desc
-          limit: 5
-
-      # NEW: custom panel delegated to a registered component
-      - name: tasks-by-assignee
-        chart: custom
-        label: Tasks by Assignee
-        component: TasksByAssignee
-
-  # ── User dashboard: filtered by assignee ──
-  - name: my-tasks
-    displayName: My Tasks
-    type: dashboard
-    roles: [user, manager]
-    panels:
-      - name: my-total
-        chart: stat
-        label: My Total Tasks
-        query:
-          resource: task
-          filter: 'assigneeId == ${user.id}'
-          aggregate: count
-
-      - name: my-by-status
-        chart: donut
-        label: My Tasks by Status
-        query:
-          resource: task
-          filter: 'assigneeId == ${user.id}'
-          groupBy: status
-          aggregate: count
-
-      - name: my-by-priority
-        chart: bar
-        label: My Tasks by Priority
-        query:
-          resource: task
-          filter: 'assigneeId == ${user.id}'
-          groupBy: priority
-          aggregate: count
-
-      - name: my-overdue
-        chart: stat
-        label: My Overdue Tasks
-        query:
-          resource: task
-          filter: 'assigneeId == ${user.id} && dueDate < now() && status != done'
-          aggregate: count
-
-      - name: my-recent-activity
-        chart: list
-        label: My Recent Activity
-        query:
-          resource: task-activity
-          filter: 'userId == ${user.id}'
-          aggregate: count
-          sort:
-            field: createdAt
-            order: desc
-          limit: 10
-
-  # ── Manager custom view: full view delegated to a component ──
-  - name: team-overview
-    displayName: Team Overview
-    type: custom
-    roles: [manager]
-    component: TeamOverview

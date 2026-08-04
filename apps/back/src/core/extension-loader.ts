@@ -72,7 +72,9 @@ export class ExtensionLoaderModule {
       const extName = c.extension ?? c.detail.match(/Extension "([^"]+)"/)?.[1];
       if (extName) {
         skipDueToMissingDeps.add(extName);
-        logger.warn(`⏭️  Skipping extension "${extName}" due to missing dependency`);
+        logger.warn(
+          `⏭️  Skipping extension "${extName}" due to missing dependency`,
+        );
       }
     }
 

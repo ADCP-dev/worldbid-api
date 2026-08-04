@@ -1,6 +1,5 @@
-# ─── Task Activity resource (showcase: list view, audit log) ─────────────────
+# ─── Task Activity resource (audit log) ─────────────────────────────────────
 # Demonstrates:
-#   - `ui.view: list` (compact vertical record list via SpecList)
 #   - enum field for the action type
 #   - ref→task CASCADE, ref→user SET NULL
 #   - row-level filter for the user role (a user sees only their own activity)
@@ -22,19 +21,6 @@ resources:
         required: true
         enum: [created, updated, deleted, commented]
         index: true
-        ui:
-          display: badge
-          formInput: select
-          colors:
-            created: '#22c55e'
-            updated: '#3b82f6'
-            deleted: '#ef4444'
-            commented: '#8b5cf6'
-          section: basics
-          order: 1
-          filterable: true
-          sortable: true
-          filterType: select
 
       - name: description
         type: text
@@ -42,15 +28,6 @@ resources:
         validation:
           min: 1
           max: 1000
-        ui:
-          display: truncate
-          truncateLength: 100
-          formInput: textarea
-          section: basics
-          order: 2
-          cols: 2
-          placeholder: 'What happened…'
-          helpText: 'Short human-readable description of the event.'
 
       - name: userId
         type: ref
@@ -58,13 +35,6 @@ resources:
         nullable: true
         refOnDelete: SET NULL
         index: true
-        ui:
-          display: avatar
-          formInput: select-async
-          labelField: firstName
-          section: basics
-          order: 3
-          placeholder: 'Who triggered the event'
 
       - name: taskId
         type: ref
@@ -72,11 +42,6 @@ resources:
         required: true
         refOnDelete: CASCADE
         index: true
-        ui:
-          formInput: select-async
-          labelField: title
-          section: basics
-          order: 4
 
     permissions:
       list: [admin, user, manager]
@@ -101,7 +66,3 @@ resources:
       - action: updated
         description: 'Task "Deploy staging environment" blocked'
         taskId: 4
-
-    ui:
-      icon: History
-      view: list

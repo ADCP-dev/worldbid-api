@@ -5,9 +5,7 @@ import { AppSettingEntity } from '@settings/infrastructure/entities/app-setting.
 
 @Module({
   imports: [TypeOrmModule.forFeature([AppSettingEntity])],
-  providers: [
-    AppSettingRepository,
-  ],
+  providers: [AppSettingRepository],
   exports: [AppSettingRepository],
 })
 export class AppSettingPersistenceModule {}

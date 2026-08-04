@@ -1,322 +1,853 @@
-import { MigrationInterface, QueryRunner } from "typeorm";
+import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class Init1783357406961 implements MigrationInterface {
-    name = 'Init1783357406961'
+  name = 'Init1783357406961';
 
-    public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`CREATE TABLE "error_logs" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "hash" character varying NOT NULL, "message" character varying NOT NULL, "source" character varying, "stack" text, "metadata" jsonb, "occurrences" integer NOT NULL DEFAULT '1', "resolved" boolean NOT NULL DEFAULT false, "resolvedAt" TIMESTAMP, "firstOccurredAt" TIMESTAMP NOT NULL DEFAULT now(), "lastOccurredAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "UQ_aac54649e0fb4b2952af88aedff" UNIQUE ("hash"), CONSTRAINT "PK_6840885d7eb78406fa7d358be72" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_aac54649e0fb4b2952af88aedf" ON "error_logs" ("hash") `);
-        await queryRunner.query(`CREATE INDEX "IDX_9c8d4c24666877a0fa01f97b3c" ON "error_logs" ("resolved") `);
-        await queryRunner.query(`CREATE TABLE "role" ("id" integer NOT NULL, "name" character varying NOT NULL, "homeRoute" character varying, CONSTRAINT "PK_b36bcfe02fc8de3c57a8b2391c2" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TABLE "status" ("id" integer NOT NULL, "name" character varying NOT NULL, CONSTRAINT "PK_e12743a7086ec826733f54e1d95" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TABLE "user" ("id" SERIAL NOT NULL, "email" character varying, "password" character varying, "provider" character varying NOT NULL DEFAULT 'email', "socialId" character varying, "firstName" character varying, "lastName" character varying, "stripeCustomerId" character varying, "language" character varying(5), "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, "roleId" integer, "statusId" integer, CONSTRAINT "UQ_e12875dfb3b1d92d7d7c5377e22" UNIQUE ("email"), CONSTRAINT "UQ_0bfe583759eb0305b60117be840" UNIQUE ("stripeCustomerId"), CONSTRAINT "PK_cace4a159ff9f2512dd42373760" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_9bd2fe7a8e694dedc4ec2f666f" ON "user" ("socialId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_58e4dbff0e1a32a9bdc861bb29" ON "user" ("firstName") `);
-        await queryRunner.query(`CREATE INDEX "IDX_f0e1b4ecdca13b177e2e3a0613" ON "user" ("lastName") `);
-        await queryRunner.query(`CREATE TABLE "lang" ("id" SERIAL NOT NULL, "code" character varying NOT NULL, "name" character varying NOT NULL, "flagCode" character varying, "isActive" boolean NOT NULL DEFAULT true, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, CONSTRAINT "UQ_93c97de5fdcebb43a6b68a21f46" UNIQUE ("code"), CONSTRAINT "PK_1c6b76e1e18ad677569858be1c9" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TABLE "translation" ("id" SERIAL NOT NULL, "app" character varying, "section" character varying NOT NULL, "key" character varying NOT NULL, "content" text NOT NULL, "entityName" character varying, "entityId" character varying, "category" character varying, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, "langId" integer, CONSTRAINT "PK_7aef875e43ab80d34a0cdd39c70" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_951df7b8bf1b7302ec2db66bbd" ON "translation" ("app") `);
-        await queryRunner.query(`CREATE INDEX "IDX_8c4b123e090d286ebebf8ed4dd" ON "translation" ("section") `);
-        await queryRunner.query(`CREATE INDEX "IDX_adaebf2c3c178a45177662d977" ON "translation" ("key") `);
-        await queryRunner.query(`CREATE INDEX "IDX_9c2b5217c2f24485b2c3e94f44" ON "translation" ("entityName") `);
-        await queryRunner.query(`CREATE INDEX "IDX_303b992bd6dbfefe76547de4b6" ON "translation" ("entityId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_ea73dc8ba4e3cd20823a585eb0" ON "translation" ("category") `);
-        await queryRunner.query(`CREATE TABLE "file_cleanup_errors" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "file_uri" character varying NOT NULL, "driver" character varying NOT NULL, "attempts" integer NOT NULL DEFAULT '0', "error_message" text, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_9069db096cec11eca51bb0d2ee7" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TABLE "session" ("id" SERIAL NOT NULL, "hash" character varying NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, "userId" integer, CONSTRAINT "PK_f55da76ac1c3ac420f444d2ff11" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_3d2f174ef04fb312fdebd0ddc5" ON "session" ("userId") `);
-        await queryRunner.query(`CREATE TABLE "file" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "path" character varying NOT NULL, "name" character varying NOT NULL, "isPublic" boolean NOT NULL DEFAULT true, "entityName" character varying, "entityId" character varying, "context" character varying, "userId" integer, "type" character varying NOT NULL, "size" bigint NOT NULL, CONSTRAINT "PK_36b46d232307066b3a2c9ea3a1d" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TABLE "api_key" ("id" SERIAL NOT NULL, "key" character varying NOT NULL, "userId" integer NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "UQ_fb080786c16de6ace7ed0b69f7d" UNIQUE ("key"), CONSTRAINT "PK_b1bd840641b8acbaad89c3d8d11" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_fb080786c16de6ace7ed0b69f7" ON "api_key" ("key") `);
-        await queryRunner.query(`CREATE TABLE "ext_uploadpost_content_idea" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "title" character varying NOT NULL, "description" text, "status" character varying(30) NOT NULL DEFAULT 'idea', "order" integer NOT NULL DEFAULT '0', "priority" character varying(20), "platforms" jsonb NOT NULL DEFAULT '[]', "tags" jsonb NOT NULL DEFAULT '[]', "checklist" jsonb, "mediaUrl" character varying(255), "caption" character varying(255), "scheduledAt" TIMESTAMP WITH TIME ZONE, "publishedAt" TIMESTAMP WITH TIME ZONE, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_e4d0cff52677726332ad243f82e" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_f0782950f02eb884c2aeda2a6a" ON "ext_uploadpost_content_idea" ("status", "order") `);
-        await queryRunner.query(`CREATE TABLE "ext_uploadpost_post" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "jobId" character varying(255), "requestId" character varying(255), "mediaType" character varying(50) NOT NULL, "title" character varying(255), "caption" text, "platforms" jsonb NOT NULL DEFAULT '[]', "profileUsername" character varying(255), "mediaUrl" character varying(255), "status" character varying(30) NOT NULL DEFAULT 'pending', "results" jsonb, "scheduledAt" TIMESTAMP WITH TIME ZONE, "publishedAt" TIMESTAMP WITH TIME ZONE, "errorMessage" text, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_72819be8a55bf6a5c0bdf2d93d0" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_6a77cad1d0f8347c2bbb93d253" ON "ext_uploadpost_post" ("profileUsername") `);
-        await queryRunner.query(`CREATE INDEX "IDX_43fdefa5b9069dd2b8fcdf133b" ON "ext_uploadpost_post" ("status") `);
-        await queryRunner.query(`CREATE TABLE "ext_uploadpost_autodm_monitor" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "monitorId" character varying(255) NOT NULL, "postUrl" text NOT NULL, "replyMessage" text NOT NULL, "triggerKeywords" jsonb NOT NULL DEFAULT '[]', "monitoringInterval" integer NOT NULL DEFAULT '15', "status" character varying(30) NOT NULL DEFAULT 'running', "dmsSent" integer NOT NULL DEFAULT '0', "expiresAt" TIMESTAMP WITH TIME ZONE, "stoppedAt" TIMESTAMP WITH TIME ZONE, "stopReason" text, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_2d5e9edbb897b2107164f624467" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_b98050ac5513c0c448db98a5bc" ON "ext_uploadpost_autodm_monitor" ("monitorId") `);
-        await queryRunner.query(`CREATE TABLE "ext_stripe_product" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "stripeId" character varying, "name" character varying NOT NULL, "description" text, "active" boolean NOT NULL DEFAULT true, "metadata" jsonb, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_cbb6e669c1dcbf299dac942ae6d" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_f788ba21cccc0506ad5621ce80" ON "ext_stripe_product" ("stripeId") `);
-        await queryRunner.query(`CREATE TYPE "public"."ext_stripe_price_type_enum" AS ENUM('one_time', 'recurring')`);
-        await queryRunner.query(`CREATE TYPE "public"."ext_stripe_price_interval_enum" AS ENUM('month', 'year')`);
-        await queryRunner.query(`CREATE TABLE "ext_stripe_price" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "stripeId" character varying, "productId" uuid NOT NULL, "currency" character varying NOT NULL DEFAULT 'eur', "unitAmount" integer NOT NULL, "type" "public"."ext_stripe_price_type_enum" NOT NULL DEFAULT 'recurring', "interval" "public"."ext_stripe_price_interval_enum", "active" boolean NOT NULL DEFAULT true, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_eb2789e3fee5cfbbadf26af4ca9" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_1be4c0ecfcc643839e369058e3" ON "ext_stripe_price" ("productId") `);
-        await queryRunner.query(`CREATE TABLE "ext_stripe_plan" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" character varying NOT NULL, "description" text, "priceId" uuid NOT NULL, "maxUsers" integer, "maxStorage" bigint, "features" jsonb, "isDefault" boolean NOT NULL DEFAULT false, "active" boolean NOT NULL DEFAULT true, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "REL_fb5f82d127a606e982e16def8e" UNIQUE ("priceId"), CONSTRAINT "PK_833fa94d40abd5718160246259c" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_fb5f82d127a606e982e16def8e" ON "ext_stripe_plan" ("priceId") `);
-        await queryRunner.query(`CREATE TYPE "public"."ext_stripe_subscription_status_enum" AS ENUM('active', 'past_due', 'canceled', 'incomplete', 'trialing')`);
-        await queryRunner.query(`CREATE TABLE "ext_stripe_subscription" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "stripeId" character varying, "userId" integer NOT NULL, "planId" uuid, "status" "public"."ext_stripe_subscription_status_enum" NOT NULL DEFAULT 'incomplete', "currentPeriodStart" TIMESTAMP, "currentPeriodEnd" TIMESTAMP, "trialEnd" TIMESTAMP, "cancelAtPeriodEnd" boolean NOT NULL DEFAULT false, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_e085d53fa34711368bf9876d5d4" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_e753ac1cc68910d420c776fc83" ON "ext_stripe_subscription" ("stripeId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_01ba0ca37d149d19046b81ca2f" ON "ext_stripe_subscription" ("userId") `);
-        await queryRunner.query(`CREATE TABLE "ext_uploadpost_analytics_snapshot" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "platform" character varying(50) NOT NULL, "profileUsername" character varying(255), "snapshotDate" date NOT NULL, "followers" bigint NOT NULL DEFAULT '0', "reach" bigint NOT NULL DEFAULT '0', "views" bigint NOT NULL DEFAULT '0', "impressions" bigint NOT NULL DEFAULT '0', "likes" bigint NOT NULL DEFAULT '0', "comments" bigint NOT NULL DEFAULT '0', "shares" bigint NOT NULL DEFAULT '0', "saves" bigint NOT NULL DEFAULT '0', "profileViews" bigint NOT NULL DEFAULT '0', "timeSeries" jsonb, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_8cadefe449442469990b6458ea6" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_37ee729db3e29b5005a54231d2" ON "ext_uploadpost_analytics_snapshot" ("platform", "snapshotDate") `);
-        await queryRunner.query(`CREATE TYPE "public"."ext_stripe_usage_record_action_enum" AS ENUM('set', 'increment')`);
-        await queryRunner.query(`CREATE TABLE "ext_stripe_usage_record" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "subscriptionId" uuid NOT NULL, "stripeId" character varying, "quantity" integer NOT NULL, "timestamp" TIMESTAMP NOT NULL DEFAULT now(), "action" "public"."ext_stripe_usage_record_action_enum" NOT NULL DEFAULT 'set', "createdAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_9ba3df24dae5be6c9dec241988b" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_8174938adc93a343df498c8c78" ON "ext_stripe_usage_record" ("subscriptionId") `);
-        await queryRunner.query(`CREATE TABLE "ext_crm_origin" ("id" SERIAL NOT NULL, "name" character varying(100) NOT NULL, "label" character varying(100) NOT NULL, "type" character varying(50) NOT NULL DEFAULT 'standard', "isActive" boolean NOT NULL DEFAULT true, "sortOrder" integer NOT NULL DEFAULT '0', "metadata" jsonb NOT NULL DEFAULT '{}', "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "UQ_e3aff22e5b4d735c716fca35dda" UNIQUE ("name"), CONSTRAINT "PK_d8076248016ba7411c4f68df857" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TABLE "ext_crm_status" ("id" SERIAL NOT NULL, "name" character varying(100) NOT NULL, "label" character varying(100) NOT NULL, "color" character varying(20) NOT NULL DEFAULT '#6c8cff', "sortOrder" integer NOT NULL DEFAULT '0', "isActive" boolean NOT NULL DEFAULT true, "isDefault" boolean NOT NULL DEFAULT false, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "UQ_13951fbb82dc0924240c56fee65" UNIQUE ("name"), CONSTRAINT "PK_a92b5a0a09197f833e947ca73e0" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TABLE "ext_crm_client" ("id" SERIAL NOT NULL, "name" character varying(200) NOT NULL, "companyName" character varying(200), "nif" character varying(50), "email" character varying(255), "phone" character varying(50), "address" character varying(255), "city" character varying(100), "region" character varying(100), "country" character varying(100) NOT NULL DEFAULT 'España', "statusId" integer NOT NULL DEFAULT '1', "originId" integer, "originDetail" character varying(255), "metadata" jsonb NOT NULL DEFAULT '{}', "isActive" boolean NOT NULL DEFAULT true, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, CONSTRAINT "PK_f6eb8a662f96003d453d9f5920e" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_1c58f2ff51e735c6dd783b0319" ON "ext_crm_client" ("name") `);
-        await queryRunner.query(`CREATE INDEX "IDX_60da5edd79faf6adcaebb749b9" ON "ext_crm_client" ("email") `);
-        await queryRunner.query(`CREATE INDEX "IDX_646887059e361e8562ebcdfe28" ON "ext_crm_client" ("originId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_45d8f9e5c9c7e805d26de115c4" ON "ext_crm_client" ("statusId") `);
-        await queryRunner.query(`CREATE TABLE "ext_crm_project" ("id" SERIAL NOT NULL, "clientId" integer NOT NULL, "name" character varying(200) NOT NULL, "type" character varying(50), "price" numeric(10,2), "status" character varying(50) NOT NULL DEFAULT 'quoted', "paymentStatus" character varying(50) NOT NULL DEFAULT 'pending', "startDate" date, "endDate" date, "metadata" jsonb NOT NULL DEFAULT '{}', "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, CONSTRAINT "PK_bc109788538cf86425ff1193b8b" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_809744ae45cdc2a351904c8c64" ON "ext_crm_project" ("paymentStatus") `);
-        await queryRunner.query(`CREATE INDEX "IDX_609d632dd02ad2c86cc4da8c09" ON "ext_crm_project" ("status") `);
-        await queryRunner.query(`CREATE INDEX "IDX_a895ac3bc1f2e4c0196fb7e858" ON "ext_crm_project" ("clientId") `);
-        await queryRunner.query(`CREATE TABLE "ext_crm_contact" ("id" SERIAL NOT NULL, "clientId" integer NOT NULL, "name" character varying(200) NOT NULL, "role" character varying(100), "email" character varying(255), "phone" character varying(50), "isPrimary" boolean NOT NULL DEFAULT false, "metadata" jsonb NOT NULL DEFAULT '{}', "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, CONSTRAINT "PK_beb17fb38fea5695614a7624b37" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_d445bec7793434f8f658667c6a" ON "ext_crm_contact" ("clientId") `);
-        await queryRunner.query(`CREATE TABLE "ext_cp_project" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" character varying(255) NOT NULL, "slug" character varying(255) NOT NULL, "niche" character varying(100) NOT NULL, "description" text, "keywords" jsonb NOT NULL DEFAULT '[]', "brandVoice" text, "targetAudience" text, "language" character varying(10) NOT NULL DEFAULT 'es', "authorPersona" jsonb NOT NULL DEFAULT '{}', "affiliateConfig" jsonb NOT NULL DEFAULT '{}', "socialConfig" jsonb NOT NULL DEFAULT '{}', "cmsConfig" jsonb NOT NULL DEFAULT '{}', "autoPublish" jsonb NOT NULL DEFAULT '{"blog":false,"social":false}', "status" character varying(20) NOT NULL DEFAULT 'active', "designDoc" text, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, CONSTRAINT "PK_ab83e3c75c63b3b23e477aebeda" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_0ca75ba54899faf67ee2081559" ON "ext_cp_project" ("name") `);
-        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_261450b9685485590ae72ae64e" ON "ext_cp_project" ("slug") `);
-        await queryRunner.query(`CREATE TABLE "ext_cp_metrics" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "projectId" uuid NOT NULL, "draftId" uuid, "platform" character varying(50) NOT NULL, "snapshotDate" date NOT NULL, "metrics" jsonb NOT NULL DEFAULT '{}', "createdAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_cc376ef43f8d041ab9e5a81eb13" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_9a8f32d8076f647bff24dd7fcb" ON "ext_cp_metrics" ("draftId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_b8fc3d0f3652a02897e71f7984" ON "ext_cp_metrics" ("snapshotDate") `);
-        await queryRunner.query(`CREATE INDEX "IDX_3383ebb2c7a7c6144e29b51c78" ON "ext_cp_metrics" ("projectId") `);
-        await queryRunner.query(`CREATE TABLE "ext_cp_idea" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "projectId" uuid NOT NULL, "title" character varying(500) NOT NULL, "angle" text, "keywords" jsonb NOT NULL DEFAULT '[]', "targetPlatforms" jsonb NOT NULL DEFAULT '[]', "contentType" character varying(50) NOT NULL DEFAULT 'recipe', "source" character varying(50) NOT NULL DEFAULT 'manual', "researchData" jsonb NOT NULL DEFAULT '{}', "status" character varying(20) NOT NULL DEFAULT 'idea', "priority" integer NOT NULL DEFAULT '3', "order" double precision NOT NULL DEFAULT '0', "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, CONSTRAINT "PK_f4e6bcbf7cf05b6959901bcaa8e" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_b9edabe99d9e4bd749866076ee" ON "ext_cp_idea" ("status") `);
-        await queryRunner.query(`CREATE INDEX "IDX_13fec387e80242fc8b70efa01e" ON "ext_cp_idea" ("projectId") `);
-        await queryRunner.query(`CREATE TABLE "ext_crm_interaction" ("id" SERIAL NOT NULL, "clientId" integer NOT NULL, "contactId" integer, "type" character varying(50) NOT NULL, "subject" character varying(255), "body" text, "interactionDate" TIMESTAMP NOT NULL DEFAULT NOW(), "metadata" jsonb NOT NULL DEFAULT '{}', "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_d256175b7968e42d723f9fdaa51" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_b78a5e5008f3a759bef8d58eed" ON "ext_crm_interaction" ("clientId") `);
-        await queryRunner.query(`CREATE TABLE "ext_cp_cta_video" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" character varying(255) NOT NULL, "url" text NOT NULL, "format" character varying(20) NOT NULL DEFAULT 'mp4', "durationSec" integer, "isActive" boolean NOT NULL DEFAULT false, "description" character varying(255), "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, CONSTRAINT "PK_fb51688c0813b59df24354e8fd6" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_486ecbb7651d762e5bf012a2cb" ON "ext_cp_cta_video" ("isActive") `);
-        await queryRunner.query(`CREATE TABLE "ext_cp_draft" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "projectId" uuid NOT NULL, "ideaId" uuid, "blogContent" text, "seoMetadata" jsonb NOT NULL DEFAULT '{}', "socialVariants" jsonb NOT NULL DEFAULT '[]', "images" jsonb NOT NULL DEFAULT '[]', "videos" jsonb NOT NULL DEFAULT '[]', "carousels" jsonb NOT NULL DEFAULT '[]', "affiliateLinks" jsonb NOT NULL DEFAULT '[]', "generationLog" jsonb NOT NULL DEFAULT '{}', "status" character varying(20) NOT NULL DEFAULT 'draft', "reviewNotes" text, "publishedTo" jsonb NOT NULL DEFAULT '{}', "publishedAt" TIMESTAMP, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, CONSTRAINT "PK_0137ba9561001f49ad9235860a2" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_11e7b1c69a17624205c778e0f7" ON "ext_cp_draft" ("status") `);
-        await queryRunner.query(`CREATE INDEX "IDX_54ae076b5b6cf45805d468aab7" ON "ext_cp_draft" ("ideaId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_9d4ad75224fc5d42d7db695818" ON "ext_cp_draft" ("projectId") `);
-        await queryRunner.query(`CREATE TABLE "ext_cms_seo_metadata" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "pageId" uuid, "entityName" character varying(100), "entityId" character varying(255), "lang" character varying(10) NOT NULL, "metaTitle" character varying(70), "metaDescription" character varying(160), "metaKeywords" text, "ogImageId" uuid, "canonicalUrl" character varying, "ogTitle" character varying(70), "ogDescription" character varying(200), "customJsonLd" jsonb, "type" character varying(20), "robotsPolicy" jsonb, "hreflangEnabled" boolean DEFAULT true, "hreflangAlternateLocales" text, "hreflangCustomUrls" jsonb, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, CONSTRAINT "PK_70ecf6685148e0106f97d6608aa" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_1a9cd0486d562c3b0e301a7007" ON "ext_cms_seo_metadata" ("pageId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_5247b8eee2ccc7937e287813af" ON "ext_cms_seo_metadata" ("entityName") `);
-        await queryRunner.query(`CREATE INDEX "IDX_f9f16f70777463e7eee1246f5d" ON "ext_cms_seo_metadata" ("entityId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_d00c4237c267bec99e38f2736d" ON "ext_cms_seo_metadata" ("lang") `);
-        await queryRunner.query(`CREATE TYPE "public"."ext_cms_page_section_enum" AS ENUM('landing', 'blog', 'documentation', 'store')`);
-        await queryRunner.query(`CREATE TABLE "ext_cms_page" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" character varying NOT NULL, "slug" character varying NOT NULL, "route" character varying, "section" "public"."ext_cms_page_section_enum", "order" integer NOT NULL DEFAULT '0', "parentId" uuid, "isPublished" boolean NOT NULL DEFAULT false, "publishedAt" TIMESTAMP, "featuredImageId" uuid, "authorId" integer, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, CONSTRAINT "PK_bd63c69757f529be8475850b7d0" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_49c769b2b3b3d10c3567a4f534" ON "ext_cms_page" ("name") `);
-        await queryRunner.query(`CREATE INDEX "IDX_437ab43e4dbf5aeefd5ff1b6e8" ON "ext_cms_page" ("slug") `);
-        await queryRunner.query(`CREATE TABLE "ext_aa_run" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "configId" uuid NOT NULL, "projectId" uuid NOT NULL, "runType" character varying(20) NOT NULL, "status" character varying(20) NOT NULL DEFAULT 'pending', "startedAt" TIMESTAMP, "completedAt" TIMESTAMP, "duration" integer, "output" jsonb NOT NULL DEFAULT '{}', "errorMessage" text, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_62be5a03e77049184edf9647465" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_b45478490870fb6a9e3050e695" ON "ext_aa_run" ("configId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_f9a293388602699f04d40ab044" ON "ext_aa_run" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_5e0719bb8a8c918ba93d1b290c" ON "ext_aa_run" ("runType") `);
-        await queryRunner.query(`CREATE INDEX "IDX_6fd680e9a44ce8d6f83c41d853" ON "ext_aa_run" ("status") `);
-        await queryRunner.query(`CREATE TABLE "ext_aa_config" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "projectId" uuid NOT NULL, "researchCron" character varying(100) NOT NULL DEFAULT '0 9 * * *', "generateCron" character varying(100) NOT NULL DEFAULT '0 10 * * *', "publishCron" character varying(100) NOT NULL DEFAULT '0 18 * * *', "metricsCron" character varying(100) NOT NULL DEFAULT '0 9 * * 1', "autoApproveIdeas" boolean NOT NULL DEFAULT false, "autoApproveDrafts" boolean NOT NULL DEFAULT false, "notifyEmail" boolean NOT NULL DEFAULT true, "notifyTelegram" boolean NOT NULL DEFAULT false, "telegramChatId" character varying(255), "feedbackData" jsonb NOT NULL DEFAULT '{}', "status" character varying(20) NOT NULL DEFAULT 'active', "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_2d113ed73c4f4c3aad393752e48" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_cf4cca92a173870a531b1e67fc" ON "ext_aa_config" ("projectId") `);
-        await queryRunner.query(`CREATE TABLE "ext_affiliate_partner" ("id" SERIAL NOT NULL, "clientId" integer, "userId" integer, "name" character varying(200) NOT NULL, "companyName" character varying(200), "email" character varying(255) NOT NULL, "phone" character varying(50), "iban" character varying(50), "commissionRate" numeric(5,4) NOT NULL DEFAULT '0.05', "isActive" boolean NOT NULL DEFAULT true, "metadata" jsonb NOT NULL DEFAULT '{}', "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, CONSTRAINT "PK_387aee0b499b89b70a1e3a75646" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_5b8ef99fa564c91c92b8c62259" ON "ext_affiliate_partner" ("userId") `);
-        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_07bf81ff149aedb1014afcd8a3" ON "ext_affiliate_partner" ("email") `);
-        await queryRunner.query(`CREATE TABLE "ext_affiliate_referral" ("id" SERIAL NOT NULL, "partnerId" integer NOT NULL, "clientId" integer NOT NULL, "originId" integer, "status" character varying(50) NOT NULL DEFAULT 'pending', "referredAt" TIMESTAMP NOT NULL DEFAULT NOW(), "metadata" jsonb NOT NULL DEFAULT '{}', "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "UQ_6986b02aea296bf8b1119dea561" UNIQUE ("clientId"), CONSTRAINT "PK_c49439b58f40823c2417aff80d7" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_6986b02aea296bf8b1119dea56" ON "ext_affiliate_referral" ("clientId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_aae3fae1c6908323d03102a3a2" ON "ext_affiliate_referral" ("partnerId") `);
-        await queryRunner.query(`CREATE TABLE "ext_affiliate_commission" ("id" SERIAL NOT NULL, "referralId" integer NOT NULL, "projectId" integer NOT NULL, "baseAmount" numeric(10,2) NOT NULL, "commissionRate" numeric(5,4) NOT NULL, "commissionAmount" numeric(10,2) NOT NULL, "status" character varying(50) NOT NULL DEFAULT 'pending', "paidAt" TIMESTAMP, "metadata" jsonb NOT NULL DEFAULT '{}', "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_c6c57c73b8d93514f6dc4d02b3e" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_7357b94c5d25007aefe9815bf9" ON "ext_affiliate_commission" ("referralId", "projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_e5423dce5252ea15286a5ff8a6" ON "ext_affiliate_commission" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_16eb9dd32519bdd9941911c50d" ON "ext_affiliate_commission" ("referralId") `);
-        await queryRunner.query(`CREATE TABLE "ext_cms_blog_category" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "slug" character varying NOT NULL, "name" character varying(100) NOT NULL, "order" integer NOT NULL DEFAULT '0', "parentId" uuid, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, CONSTRAINT "PK_ca81a10e4c2d18a43865c4abefc" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_b8a65919ad519386625363c0c3" ON "ext_cms_blog_category" ("slug") `);
-        await queryRunner.query(`CREATE TABLE "ext_cms_blog_post" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "slug" character varying NOT NULL, "isPublished" boolean NOT NULL DEFAULT false, "publishedAt" TIMESTAMP, "featuredImageId" uuid, "authorId" integer, "categoryId" uuid, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, CONSTRAINT "PK_4eaafa0da74aef51693de5aae1c" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_dae375b6ac50f3ffe26e60fab3" ON "ext_cms_blog_post" ("slug") `);
-        await queryRunner.query(`CREATE TABLE "ext_cms_post_tag" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" character varying NOT NULL, "slug" character varying(100) NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, CONSTRAINT "PK_4a77b848b466d988bc6127b2110" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_3a72e0f2d027bdb97dbbbdf852" ON "ext_cms_post_tag" ("name") `);
-        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_0d3b0ef2f17c2c23bd795abf70" ON "ext_cms_post_tag" ("slug") `);
-        await queryRunner.query(`CREATE TABLE "ext_cms_blog_category_tag" ("categoryId" uuid NOT NULL, "tagId" uuid NOT NULL, CONSTRAINT "PK_3f20308fd2437a0f001bad7d0ce" PRIMARY KEY ("categoryId", "tagId"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_8d99b2e2448cd35b8d20bb9452" ON "ext_cms_blog_category_tag" ("categoryId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_05332dc8df7d209aa3c67fa2f3" ON "ext_cms_blog_category_tag" ("tagId") `);
-        await queryRunner.query(`CREATE TABLE "ext_cms_blog_post_tag" ("postId" uuid NOT NULL, "tagId" uuid NOT NULL, CONSTRAINT "PK_3c07f748886f06313442e9d5281" PRIMARY KEY ("postId", "tagId"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_28fa2ec123eb5ab2b9ead8bf11" ON "ext_cms_blog_post_tag" ("postId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_ad7342855f4613c267880aad19" ON "ext_cms_blog_post_tag" ("tagId") `);
-        await queryRunner.query(`ALTER TABLE "user" ADD CONSTRAINT "FK_c28e52f758e7bbc53828db92194" FOREIGN KEY ("roleId") REFERENCES "role"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "user" ADD CONSTRAINT "FK_dc18daa696860586ba4667a9d31" FOREIGN KEY ("statusId") REFERENCES "status"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "translation" ADD CONSTRAINT "FK_14b169181b406881cd72b55fa42" FOREIGN KEY ("langId") REFERENCES "lang"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "session" ADD CONSTRAINT "FK_3d2f174ef04fb312fdebd0ddc53" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "file" ADD CONSTRAINT "FK_b2d8e683f020f61115edea206b3" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "api_key" ADD CONSTRAINT "FK_277972f4944205eb29127f9bb6c" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ext_stripe_price" ADD CONSTRAINT "FK_1be4c0ecfcc643839e369058e31" FOREIGN KEY ("productId") REFERENCES "ext_stripe_product"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ext_stripe_plan" ADD CONSTRAINT "FK_fb5f82d127a606e982e16def8e3" FOREIGN KEY ("priceId") REFERENCES "ext_stripe_price"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ext_stripe_subscription" ADD CONSTRAINT "FK_e6c6d88159fb26badf296777987" FOREIGN KEY ("planId") REFERENCES "ext_stripe_plan"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ext_stripe_usage_record" ADD CONSTRAINT "FK_8174938adc93a343df498c8c78d" FOREIGN KEY ("subscriptionId") REFERENCES "ext_stripe_subscription"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ext_crm_client" ADD CONSTRAINT "FK_45d8f9e5c9c7e805d26de115c49" FOREIGN KEY ("statusId") REFERENCES "ext_crm_status"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ext_crm_client" ADD CONSTRAINT "FK_646887059e361e8562ebcdfe281" FOREIGN KEY ("originId") REFERENCES "ext_crm_origin"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ext_crm_project" ADD CONSTRAINT "FK_a895ac3bc1f2e4c0196fb7e8580" FOREIGN KEY ("clientId") REFERENCES "ext_crm_client"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ext_crm_contact" ADD CONSTRAINT "FK_d445bec7793434f8f658667c6ad" FOREIGN KEY ("clientId") REFERENCES "ext_crm_client"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ext_cp_metrics" ADD CONSTRAINT "FK_3383ebb2c7a7c6144e29b51c78d" FOREIGN KEY ("projectId") REFERENCES "ext_cp_project"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ext_cp_idea" ADD CONSTRAINT "FK_13fec387e80242fc8b70efa01ee" FOREIGN KEY ("projectId") REFERENCES "ext_cp_project"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ext_crm_interaction" ADD CONSTRAINT "FK_b78a5e5008f3a759bef8d58eedf" FOREIGN KEY ("clientId") REFERENCES "ext_crm_client"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ext_crm_interaction" ADD CONSTRAINT "FK_a18f2b766202cca8e784b389056" FOREIGN KEY ("contactId") REFERENCES "ext_crm_contact"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ext_cp_draft" ADD CONSTRAINT "FK_9d4ad75224fc5d42d7db6958184" FOREIGN KEY ("projectId") REFERENCES "ext_cp_project"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ext_cp_draft" ADD CONSTRAINT "FK_54ae076b5b6cf45805d468aab72" FOREIGN KEY ("ideaId") REFERENCES "ext_cp_idea"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ext_cms_seo_metadata" ADD CONSTRAINT "FK_af49c0d215b7c268343f1b1f1ce" FOREIGN KEY ("ogImageId") REFERENCES "file"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ext_cms_page" ADD CONSTRAINT "FK_8417554c0980ae76b6f7b0da359" FOREIGN KEY ("featuredImageId") REFERENCES "file"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ext_cms_page" ADD CONSTRAINT "FK_55b296234ecac9b0cac4cb7e025" FOREIGN KEY ("authorId") REFERENCES "user"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ext_affiliate_partner" ADD CONSTRAINT "FK_0aaa374b6532c18d877a93a6f76" FOREIGN KEY ("clientId") REFERENCES "ext_crm_client"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ext_affiliate_partner" ADD CONSTRAINT "FK_5b8ef99fa564c91c92b8c622592" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ext_affiliate_referral" ADD CONSTRAINT "FK_aae3fae1c6908323d03102a3a23" FOREIGN KEY ("partnerId") REFERENCES "ext_affiliate_partner"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ext_affiliate_referral" ADD CONSTRAINT "FK_6986b02aea296bf8b1119dea561" FOREIGN KEY ("clientId") REFERENCES "ext_crm_client"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ext_affiliate_referral" ADD CONSTRAINT "FK_d493c64b9f69482ee9673793096" FOREIGN KEY ("originId") REFERENCES "ext_crm_origin"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ext_affiliate_commission" ADD CONSTRAINT "FK_16eb9dd32519bdd9941911c50d4" FOREIGN KEY ("referralId") REFERENCES "ext_affiliate_referral"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ext_affiliate_commission" ADD CONSTRAINT "FK_e5423dce5252ea15286a5ff8a6f" FOREIGN KEY ("projectId") REFERENCES "ext_crm_project"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ext_cms_blog_category" ADD CONSTRAINT "FK_e602a1c5b2d0365f09b3fb6e5fb" FOREIGN KEY ("parentId") REFERENCES "ext_cms_blog_category"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ext_cms_blog_post" ADD CONSTRAINT "FK_93a71caba600866de97e04c7be7" FOREIGN KEY ("featuredImageId") REFERENCES "file"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ext_cms_blog_post" ADD CONSTRAINT "FK_087cc718f2c84852adf3208a9f4" FOREIGN KEY ("authorId") REFERENCES "user"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ext_cms_blog_post" ADD CONSTRAINT "FK_6fabb68e4908d6331b7c734df6f" FOREIGN KEY ("categoryId") REFERENCES "ext_cms_blog_category"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "ext_cms_blog_category_tag" ADD CONSTRAINT "FK_8d99b2e2448cd35b8d20bb94524" FOREIGN KEY ("categoryId") REFERENCES "ext_cms_blog_category"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "ext_cms_blog_category_tag" ADD CONSTRAINT "FK_05332dc8df7d209aa3c67fa2f3c" FOREIGN KEY ("tagId") REFERENCES "ext_cms_post_tag"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "ext_cms_blog_post_tag" ADD CONSTRAINT "FK_28fa2ec123eb5ab2b9ead8bf111" FOREIGN KEY ("postId") REFERENCES "ext_cms_blog_post"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "ext_cms_blog_post_tag" ADD CONSTRAINT "FK_ad7342855f4613c267880aad19e" FOREIGN KEY ("tagId") REFERENCES "ext_cms_post_tag"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
-    }
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(
+      `CREATE TABLE "error_logs" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "hash" character varying NOT NULL, "message" character varying NOT NULL, "source" character varying, "stack" text, "metadata" jsonb, "occurrences" integer NOT NULL DEFAULT '1', "resolved" boolean NOT NULL DEFAULT false, "resolvedAt" TIMESTAMP, "firstOccurredAt" TIMESTAMP NOT NULL DEFAULT now(), "lastOccurredAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "UQ_aac54649e0fb4b2952af88aedff" UNIQUE ("hash"), CONSTRAINT "PK_6840885d7eb78406fa7d358be72" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_aac54649e0fb4b2952af88aedf" ON "error_logs" ("hash") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_9c8d4c24666877a0fa01f97b3c" ON "error_logs" ("resolved") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "role" ("id" integer NOT NULL, "name" character varying NOT NULL, "homeRoute" character varying, CONSTRAINT "PK_b36bcfe02fc8de3c57a8b2391c2" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "status" ("id" integer NOT NULL, "name" character varying NOT NULL, CONSTRAINT "PK_e12743a7086ec826733f54e1d95" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "user" ("id" SERIAL NOT NULL, "email" character varying, "password" character varying, "provider" character varying NOT NULL DEFAULT 'email', "socialId" character varying, "firstName" character varying, "lastName" character varying, "stripeCustomerId" character varying, "language" character varying(5), "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, "roleId" integer, "statusId" integer, CONSTRAINT "UQ_e12875dfb3b1d92d7d7c5377e22" UNIQUE ("email"), CONSTRAINT "UQ_0bfe583759eb0305b60117be840" UNIQUE ("stripeCustomerId"), CONSTRAINT "PK_cace4a159ff9f2512dd42373760" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_9bd2fe7a8e694dedc4ec2f666f" ON "user" ("socialId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_58e4dbff0e1a32a9bdc861bb29" ON "user" ("firstName") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_f0e1b4ecdca13b177e2e3a0613" ON "user" ("lastName") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "lang" ("id" SERIAL NOT NULL, "code" character varying NOT NULL, "name" character varying NOT NULL, "flagCode" character varying, "isActive" boolean NOT NULL DEFAULT true, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, CONSTRAINT "UQ_93c97de5fdcebb43a6b68a21f46" UNIQUE ("code"), CONSTRAINT "PK_1c6b76e1e18ad677569858be1c9" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "translation" ("id" SERIAL NOT NULL, "app" character varying, "section" character varying NOT NULL, "key" character varying NOT NULL, "content" text NOT NULL, "entityName" character varying, "entityId" character varying, "category" character varying, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, "langId" integer, CONSTRAINT "PK_7aef875e43ab80d34a0cdd39c70" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_951df7b8bf1b7302ec2db66bbd" ON "translation" ("app") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_8c4b123e090d286ebebf8ed4dd" ON "translation" ("section") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_adaebf2c3c178a45177662d977" ON "translation" ("key") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_9c2b5217c2f24485b2c3e94f44" ON "translation" ("entityName") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_303b992bd6dbfefe76547de4b6" ON "translation" ("entityId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_ea73dc8ba4e3cd20823a585eb0" ON "translation" ("category") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "file_cleanup_errors" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "file_uri" character varying NOT NULL, "driver" character varying NOT NULL, "attempts" integer NOT NULL DEFAULT '0', "error_message" text, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_9069db096cec11eca51bb0d2ee7" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "session" ("id" SERIAL NOT NULL, "hash" character varying NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, "userId" integer, CONSTRAINT "PK_f55da76ac1c3ac420f444d2ff11" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_3d2f174ef04fb312fdebd0ddc5" ON "session" ("userId") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "file" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "path" character varying NOT NULL, "name" character varying NOT NULL, "isPublic" boolean NOT NULL DEFAULT true, "entityName" character varying, "entityId" character varying, "context" character varying, "userId" integer, "type" character varying NOT NULL, "size" bigint NOT NULL, CONSTRAINT "PK_36b46d232307066b3a2c9ea3a1d" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "api_key" ("id" SERIAL NOT NULL, "key" character varying NOT NULL, "userId" integer NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "UQ_fb080786c16de6ace7ed0b69f7d" UNIQUE ("key"), CONSTRAINT "PK_b1bd840641b8acbaad89c3d8d11" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_fb080786c16de6ace7ed0b69f7" ON "api_key" ("key") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "ext_uploadpost_content_idea" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "title" character varying NOT NULL, "description" text, "status" character varying(30) NOT NULL DEFAULT 'idea', "order" integer NOT NULL DEFAULT '0', "priority" character varying(20), "platforms" jsonb NOT NULL DEFAULT '[]', "tags" jsonb NOT NULL DEFAULT '[]', "checklist" jsonb, "mediaUrl" character varying(255), "caption" character varying(255), "scheduledAt" TIMESTAMP WITH TIME ZONE, "publishedAt" TIMESTAMP WITH TIME ZONE, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_e4d0cff52677726332ad243f82e" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_f0782950f02eb884c2aeda2a6a" ON "ext_uploadpost_content_idea" ("status", "order") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "ext_uploadpost_post" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "jobId" character varying(255), "requestId" character varying(255), "mediaType" character varying(50) NOT NULL, "title" character varying(255), "caption" text, "platforms" jsonb NOT NULL DEFAULT '[]', "profileUsername" character varying(255), "mediaUrl" character varying(255), "status" character varying(30) NOT NULL DEFAULT 'pending', "results" jsonb, "scheduledAt" TIMESTAMP WITH TIME ZONE, "publishedAt" TIMESTAMP WITH TIME ZONE, "errorMessage" text, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_72819be8a55bf6a5c0bdf2d93d0" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_6a77cad1d0f8347c2bbb93d253" ON "ext_uploadpost_post" ("profileUsername") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_43fdefa5b9069dd2b8fcdf133b" ON "ext_uploadpost_post" ("status") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "ext_uploadpost_autodm_monitor" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "monitorId" character varying(255) NOT NULL, "postUrl" text NOT NULL, "replyMessage" text NOT NULL, "triggerKeywords" jsonb NOT NULL DEFAULT '[]', "monitoringInterval" integer NOT NULL DEFAULT '15', "status" character varying(30) NOT NULL DEFAULT 'running', "dmsSent" integer NOT NULL DEFAULT '0', "expiresAt" TIMESTAMP WITH TIME ZONE, "stoppedAt" TIMESTAMP WITH TIME ZONE, "stopReason" text, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_2d5e9edbb897b2107164f624467" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "IDX_b98050ac5513c0c448db98a5bc" ON "ext_uploadpost_autodm_monitor" ("monitorId") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "ext_stripe_product" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "stripeId" character varying, "name" character varying NOT NULL, "description" text, "active" boolean NOT NULL DEFAULT true, "metadata" jsonb, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_cbb6e669c1dcbf299dac942ae6d" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_f788ba21cccc0506ad5621ce80" ON "ext_stripe_product" ("stripeId") `,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "public"."ext_stripe_price_type_enum" AS ENUM('one_time', 'recurring')`,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "public"."ext_stripe_price_interval_enum" AS ENUM('month', 'year')`,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "ext_stripe_price" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "stripeId" character varying, "productId" uuid NOT NULL, "currency" character varying NOT NULL DEFAULT 'eur', "unitAmount" integer NOT NULL, "type" "public"."ext_stripe_price_type_enum" NOT NULL DEFAULT 'recurring', "interval" "public"."ext_stripe_price_interval_enum", "active" boolean NOT NULL DEFAULT true, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_eb2789e3fee5cfbbadf26af4ca9" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_1be4c0ecfcc643839e369058e3" ON "ext_stripe_price" ("productId") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "ext_stripe_plan" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" character varying NOT NULL, "description" text, "priceId" uuid NOT NULL, "maxUsers" integer, "maxStorage" bigint, "features" jsonb, "isDefault" boolean NOT NULL DEFAULT false, "active" boolean NOT NULL DEFAULT true, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "REL_fb5f82d127a606e982e16def8e" UNIQUE ("priceId"), CONSTRAINT "PK_833fa94d40abd5718160246259c" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_fb5f82d127a606e982e16def8e" ON "ext_stripe_plan" ("priceId") `,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "public"."ext_stripe_subscription_status_enum" AS ENUM('active', 'past_due', 'canceled', 'incomplete', 'trialing')`,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "ext_stripe_subscription" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "stripeId" character varying, "userId" integer NOT NULL, "planId" uuid, "status" "public"."ext_stripe_subscription_status_enum" NOT NULL DEFAULT 'incomplete', "currentPeriodStart" TIMESTAMP, "currentPeriodEnd" TIMESTAMP, "trialEnd" TIMESTAMP, "cancelAtPeriodEnd" boolean NOT NULL DEFAULT false, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_e085d53fa34711368bf9876d5d4" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_e753ac1cc68910d420c776fc83" ON "ext_stripe_subscription" ("stripeId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_01ba0ca37d149d19046b81ca2f" ON "ext_stripe_subscription" ("userId") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "ext_uploadpost_analytics_snapshot" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "platform" character varying(50) NOT NULL, "profileUsername" character varying(255), "snapshotDate" date NOT NULL, "followers" bigint NOT NULL DEFAULT '0', "reach" bigint NOT NULL DEFAULT '0', "views" bigint NOT NULL DEFAULT '0', "impressions" bigint NOT NULL DEFAULT '0', "likes" bigint NOT NULL DEFAULT '0', "comments" bigint NOT NULL DEFAULT '0', "shares" bigint NOT NULL DEFAULT '0', "saves" bigint NOT NULL DEFAULT '0', "profileViews" bigint NOT NULL DEFAULT '0', "timeSeries" jsonb, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_8cadefe449442469990b6458ea6" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "IDX_37ee729db3e29b5005a54231d2" ON "ext_uploadpost_analytics_snapshot" ("platform", "snapshotDate") `,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "public"."ext_stripe_usage_record_action_enum" AS ENUM('set', 'increment')`,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "ext_stripe_usage_record" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "subscriptionId" uuid NOT NULL, "stripeId" character varying, "quantity" integer NOT NULL, "timestamp" TIMESTAMP NOT NULL DEFAULT now(), "action" "public"."ext_stripe_usage_record_action_enum" NOT NULL DEFAULT 'set', "createdAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_9ba3df24dae5be6c9dec241988b" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_8174938adc93a343df498c8c78" ON "ext_stripe_usage_record" ("subscriptionId") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "ext_crm_origin" ("id" SERIAL NOT NULL, "name" character varying(100) NOT NULL, "label" character varying(100) NOT NULL, "type" character varying(50) NOT NULL DEFAULT 'standard', "isActive" boolean NOT NULL DEFAULT true, "sortOrder" integer NOT NULL DEFAULT '0', "metadata" jsonb NOT NULL DEFAULT '{}', "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "UQ_e3aff22e5b4d735c716fca35dda" UNIQUE ("name"), CONSTRAINT "PK_d8076248016ba7411c4f68df857" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "ext_crm_status" ("id" SERIAL NOT NULL, "name" character varying(100) NOT NULL, "label" character varying(100) NOT NULL, "color" character varying(20) NOT NULL DEFAULT '#6c8cff', "sortOrder" integer NOT NULL DEFAULT '0', "isActive" boolean NOT NULL DEFAULT true, "isDefault" boolean NOT NULL DEFAULT false, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "UQ_13951fbb82dc0924240c56fee65" UNIQUE ("name"), CONSTRAINT "PK_a92b5a0a09197f833e947ca73e0" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "ext_crm_client" ("id" SERIAL NOT NULL, "name" character varying(200) NOT NULL, "companyName" character varying(200), "nif" character varying(50), "email" character varying(255), "phone" character varying(50), "address" character varying(255), "city" character varying(100), "region" character varying(100), "country" character varying(100) NOT NULL DEFAULT 'España', "statusId" integer NOT NULL DEFAULT '1', "originId" integer, "originDetail" character varying(255), "metadata" jsonb NOT NULL DEFAULT '{}', "isActive" boolean NOT NULL DEFAULT true, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, CONSTRAINT "PK_f6eb8a662f96003d453d9f5920e" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_1c58f2ff51e735c6dd783b0319" ON "ext_crm_client" ("name") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_60da5edd79faf6adcaebb749b9" ON "ext_crm_client" ("email") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_646887059e361e8562ebcdfe28" ON "ext_crm_client" ("originId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_45d8f9e5c9c7e805d26de115c4" ON "ext_crm_client" ("statusId") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "ext_crm_project" ("id" SERIAL NOT NULL, "clientId" integer NOT NULL, "name" character varying(200) NOT NULL, "type" character varying(50), "price" numeric(10,2), "status" character varying(50) NOT NULL DEFAULT 'quoted', "paymentStatus" character varying(50) NOT NULL DEFAULT 'pending', "startDate" date, "endDate" date, "metadata" jsonb NOT NULL DEFAULT '{}', "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, CONSTRAINT "PK_bc109788538cf86425ff1193b8b" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_809744ae45cdc2a351904c8c64" ON "ext_crm_project" ("paymentStatus") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_609d632dd02ad2c86cc4da8c09" ON "ext_crm_project" ("status") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_a895ac3bc1f2e4c0196fb7e858" ON "ext_crm_project" ("clientId") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "ext_crm_contact" ("id" SERIAL NOT NULL, "clientId" integer NOT NULL, "name" character varying(200) NOT NULL, "role" character varying(100), "email" character varying(255), "phone" character varying(50), "isPrimary" boolean NOT NULL DEFAULT false, "metadata" jsonb NOT NULL DEFAULT '{}', "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, CONSTRAINT "PK_beb17fb38fea5695614a7624b37" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_d445bec7793434f8f658667c6a" ON "ext_crm_contact" ("clientId") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "ext_cp_project" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" character varying(255) NOT NULL, "slug" character varying(255) NOT NULL, "niche" character varying(100) NOT NULL, "description" text, "keywords" jsonb NOT NULL DEFAULT '[]', "brandVoice" text, "targetAudience" text, "language" character varying(10) NOT NULL DEFAULT 'es', "authorPersona" jsonb NOT NULL DEFAULT '{}', "affiliateConfig" jsonb NOT NULL DEFAULT '{}', "socialConfig" jsonb NOT NULL DEFAULT '{}', "cmsConfig" jsonb NOT NULL DEFAULT '{}', "autoPublish" jsonb NOT NULL DEFAULT '{"blog":false,"social":false}', "status" character varying(20) NOT NULL DEFAULT 'active', "designDoc" text, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, CONSTRAINT "PK_ab83e3c75c63b3b23e477aebeda" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_0ca75ba54899faf67ee2081559" ON "ext_cp_project" ("name") `,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "IDX_261450b9685485590ae72ae64e" ON "ext_cp_project" ("slug") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "ext_cp_metrics" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "projectId" uuid NOT NULL, "draftId" uuid, "platform" character varying(50) NOT NULL, "snapshotDate" date NOT NULL, "metrics" jsonb NOT NULL DEFAULT '{}', "createdAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_cc376ef43f8d041ab9e5a81eb13" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_9a8f32d8076f647bff24dd7fcb" ON "ext_cp_metrics" ("draftId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_b8fc3d0f3652a02897e71f7984" ON "ext_cp_metrics" ("snapshotDate") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_3383ebb2c7a7c6144e29b51c78" ON "ext_cp_metrics" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "ext_cp_idea" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "projectId" uuid NOT NULL, "title" character varying(500) NOT NULL, "angle" text, "keywords" jsonb NOT NULL DEFAULT '[]', "targetPlatforms" jsonb NOT NULL DEFAULT '[]', "contentType" character varying(50) NOT NULL DEFAULT 'recipe', "source" character varying(50) NOT NULL DEFAULT 'manual', "researchData" jsonb NOT NULL DEFAULT '{}', "status" character varying(20) NOT NULL DEFAULT 'idea', "priority" integer NOT NULL DEFAULT '3', "order" double precision NOT NULL DEFAULT '0', "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, CONSTRAINT "PK_f4e6bcbf7cf05b6959901bcaa8e" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_b9edabe99d9e4bd749866076ee" ON "ext_cp_idea" ("status") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_13fec387e80242fc8b70efa01e" ON "ext_cp_idea" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "ext_crm_interaction" ("id" SERIAL NOT NULL, "clientId" integer NOT NULL, "contactId" integer, "type" character varying(50) NOT NULL, "subject" character varying(255), "body" text, "interactionDate" TIMESTAMP NOT NULL DEFAULT NOW(), "metadata" jsonb NOT NULL DEFAULT '{}', "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_d256175b7968e42d723f9fdaa51" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_b78a5e5008f3a759bef8d58eed" ON "ext_crm_interaction" ("clientId") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "ext_cp_cta_video" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" character varying(255) NOT NULL, "url" text NOT NULL, "format" character varying(20) NOT NULL DEFAULT 'mp4', "durationSec" integer, "isActive" boolean NOT NULL DEFAULT false, "description" character varying(255), "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, CONSTRAINT "PK_fb51688c0813b59df24354e8fd6" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_486ecbb7651d762e5bf012a2cb" ON "ext_cp_cta_video" ("isActive") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "ext_cp_draft" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "projectId" uuid NOT NULL, "ideaId" uuid, "blogContent" text, "seoMetadata" jsonb NOT NULL DEFAULT '{}', "socialVariants" jsonb NOT NULL DEFAULT '[]', "images" jsonb NOT NULL DEFAULT '[]', "videos" jsonb NOT NULL DEFAULT '[]', "carousels" jsonb NOT NULL DEFAULT '[]', "affiliateLinks" jsonb NOT NULL DEFAULT '[]', "generationLog" jsonb NOT NULL DEFAULT '{}', "status" character varying(20) NOT NULL DEFAULT 'draft', "reviewNotes" text, "publishedTo" jsonb NOT NULL DEFAULT '{}', "publishedAt" TIMESTAMP, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, CONSTRAINT "PK_0137ba9561001f49ad9235860a2" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_11e7b1c69a17624205c778e0f7" ON "ext_cp_draft" ("status") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_54ae076b5b6cf45805d468aab7" ON "ext_cp_draft" ("ideaId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_9d4ad75224fc5d42d7db695818" ON "ext_cp_draft" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "ext_cms_seo_metadata" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "pageId" uuid, "entityName" character varying(100), "entityId" character varying(255), "lang" character varying(10) NOT NULL, "metaTitle" character varying(70), "metaDescription" character varying(160), "metaKeywords" text, "ogImageId" uuid, "canonicalUrl" character varying, "ogTitle" character varying(70), "ogDescription" character varying(200), "customJsonLd" jsonb, "type" character varying(20), "robotsPolicy" jsonb, "hreflangEnabled" boolean DEFAULT true, "hreflangAlternateLocales" text, "hreflangCustomUrls" jsonb, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, CONSTRAINT "PK_70ecf6685148e0106f97d6608aa" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_1a9cd0486d562c3b0e301a7007" ON "ext_cms_seo_metadata" ("pageId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_5247b8eee2ccc7937e287813af" ON "ext_cms_seo_metadata" ("entityName") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_f9f16f70777463e7eee1246f5d" ON "ext_cms_seo_metadata" ("entityId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_d00c4237c267bec99e38f2736d" ON "ext_cms_seo_metadata" ("lang") `,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "public"."ext_cms_page_section_enum" AS ENUM('landing', 'blog', 'documentation', 'store')`,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "ext_cms_page" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" character varying NOT NULL, "slug" character varying NOT NULL, "route" character varying, "section" "public"."ext_cms_page_section_enum", "order" integer NOT NULL DEFAULT '0', "parentId" uuid, "isPublished" boolean NOT NULL DEFAULT false, "publishedAt" TIMESTAMP, "featuredImageId" uuid, "authorId" integer, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, CONSTRAINT "PK_bd63c69757f529be8475850b7d0" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "IDX_49c769b2b3b3d10c3567a4f534" ON "ext_cms_page" ("name") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_437ab43e4dbf5aeefd5ff1b6e8" ON "ext_cms_page" ("slug") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "ext_aa_run" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "configId" uuid NOT NULL, "projectId" uuid NOT NULL, "runType" character varying(20) NOT NULL, "status" character varying(20) NOT NULL DEFAULT 'pending', "startedAt" TIMESTAMP, "completedAt" TIMESTAMP, "duration" integer, "output" jsonb NOT NULL DEFAULT '{}', "errorMessage" text, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_62be5a03e77049184edf9647465" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_b45478490870fb6a9e3050e695" ON "ext_aa_run" ("configId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_f9a293388602699f04d40ab044" ON "ext_aa_run" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_5e0719bb8a8c918ba93d1b290c" ON "ext_aa_run" ("runType") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_6fd680e9a44ce8d6f83c41d853" ON "ext_aa_run" ("status") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "ext_aa_config" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "projectId" uuid NOT NULL, "researchCron" character varying(100) NOT NULL DEFAULT '0 9 * * *', "generateCron" character varying(100) NOT NULL DEFAULT '0 10 * * *', "publishCron" character varying(100) NOT NULL DEFAULT '0 18 * * *', "metricsCron" character varying(100) NOT NULL DEFAULT '0 9 * * 1', "autoApproveIdeas" boolean NOT NULL DEFAULT false, "autoApproveDrafts" boolean NOT NULL DEFAULT false, "notifyEmail" boolean NOT NULL DEFAULT true, "notifyTelegram" boolean NOT NULL DEFAULT false, "telegramChatId" character varying(255), "feedbackData" jsonb NOT NULL DEFAULT '{}', "status" character varying(20) NOT NULL DEFAULT 'active', "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_2d113ed73c4f4c3aad393752e48" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "IDX_cf4cca92a173870a531b1e67fc" ON "ext_aa_config" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "ext_affiliate_partner" ("id" SERIAL NOT NULL, "clientId" integer, "userId" integer, "name" character varying(200) NOT NULL, "companyName" character varying(200), "email" character varying(255) NOT NULL, "phone" character varying(50), "iban" character varying(50), "commissionRate" numeric(5,4) NOT NULL DEFAULT '0.05', "isActive" boolean NOT NULL DEFAULT true, "metadata" jsonb NOT NULL DEFAULT '{}', "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, CONSTRAINT "PK_387aee0b499b89b70a1e3a75646" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_5b8ef99fa564c91c92b8c62259" ON "ext_affiliate_partner" ("userId") `,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "IDX_07bf81ff149aedb1014afcd8a3" ON "ext_affiliate_partner" ("email") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "ext_affiliate_referral" ("id" SERIAL NOT NULL, "partnerId" integer NOT NULL, "clientId" integer NOT NULL, "originId" integer, "status" character varying(50) NOT NULL DEFAULT 'pending', "referredAt" TIMESTAMP NOT NULL DEFAULT NOW(), "metadata" jsonb NOT NULL DEFAULT '{}', "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "UQ_6986b02aea296bf8b1119dea561" UNIQUE ("clientId"), CONSTRAINT "PK_c49439b58f40823c2417aff80d7" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "IDX_6986b02aea296bf8b1119dea56" ON "ext_affiliate_referral" ("clientId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_aae3fae1c6908323d03102a3a2" ON "ext_affiliate_referral" ("partnerId") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "ext_affiliate_commission" ("id" SERIAL NOT NULL, "referralId" integer NOT NULL, "projectId" integer NOT NULL, "baseAmount" numeric(10,2) NOT NULL, "commissionRate" numeric(5,4) NOT NULL, "commissionAmount" numeric(10,2) NOT NULL, "status" character varying(50) NOT NULL DEFAULT 'pending', "paidAt" TIMESTAMP, "metadata" jsonb NOT NULL DEFAULT '{}', "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_c6c57c73b8d93514f6dc4d02b3e" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "IDX_7357b94c5d25007aefe9815bf9" ON "ext_affiliate_commission" ("referralId", "projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_e5423dce5252ea15286a5ff8a6" ON "ext_affiliate_commission" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_16eb9dd32519bdd9941911c50d" ON "ext_affiliate_commission" ("referralId") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "ext_cms_blog_category" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "slug" character varying NOT NULL, "name" character varying(100) NOT NULL, "order" integer NOT NULL DEFAULT '0', "parentId" uuid, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, CONSTRAINT "PK_ca81a10e4c2d18a43865c4abefc" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "IDX_b8a65919ad519386625363c0c3" ON "ext_cms_blog_category" ("slug") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "ext_cms_blog_post" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "slug" character varying NOT NULL, "isPublished" boolean NOT NULL DEFAULT false, "publishedAt" TIMESTAMP, "featuredImageId" uuid, "authorId" integer, "categoryId" uuid, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, CONSTRAINT "PK_4eaafa0da74aef51693de5aae1c" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_dae375b6ac50f3ffe26e60fab3" ON "ext_cms_blog_post" ("slug") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "ext_cms_post_tag" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" character varying NOT NULL, "slug" character varying(100) NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, CONSTRAINT "PK_4a77b848b466d988bc6127b2110" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "IDX_3a72e0f2d027bdb97dbbbdf852" ON "ext_cms_post_tag" ("name") `,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "IDX_0d3b0ef2f17c2c23bd795abf70" ON "ext_cms_post_tag" ("slug") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "ext_cms_blog_category_tag" ("categoryId" uuid NOT NULL, "tagId" uuid NOT NULL, CONSTRAINT "PK_3f20308fd2437a0f001bad7d0ce" PRIMARY KEY ("categoryId", "tagId"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_8d99b2e2448cd35b8d20bb9452" ON "ext_cms_blog_category_tag" ("categoryId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_05332dc8df7d209aa3c67fa2f3" ON "ext_cms_blog_category_tag" ("tagId") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "ext_cms_blog_post_tag" ("postId" uuid NOT NULL, "tagId" uuid NOT NULL, CONSTRAINT "PK_3c07f748886f06313442e9d5281" PRIMARY KEY ("postId", "tagId"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_28fa2ec123eb5ab2b9ead8bf11" ON "ext_cms_blog_post_tag" ("postId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_ad7342855f4613c267880aad19" ON "ext_cms_blog_post_tag" ("tagId") `,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "user" ADD CONSTRAINT "FK_c28e52f758e7bbc53828db92194" FOREIGN KEY ("roleId") REFERENCES "role"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "user" ADD CONSTRAINT "FK_dc18daa696860586ba4667a9d31" FOREIGN KEY ("statusId") REFERENCES "status"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "translation" ADD CONSTRAINT "FK_14b169181b406881cd72b55fa42" FOREIGN KEY ("langId") REFERENCES "lang"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "session" ADD CONSTRAINT "FK_3d2f174ef04fb312fdebd0ddc53" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "file" ADD CONSTRAINT "FK_b2d8e683f020f61115edea206b3" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "api_key" ADD CONSTRAINT "FK_277972f4944205eb29127f9bb6c" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_stripe_price" ADD CONSTRAINT "FK_1be4c0ecfcc643839e369058e31" FOREIGN KEY ("productId") REFERENCES "ext_stripe_product"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_stripe_plan" ADD CONSTRAINT "FK_fb5f82d127a606e982e16def8e3" FOREIGN KEY ("priceId") REFERENCES "ext_stripe_price"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_stripe_subscription" ADD CONSTRAINT "FK_e6c6d88159fb26badf296777987" FOREIGN KEY ("planId") REFERENCES "ext_stripe_plan"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_stripe_usage_record" ADD CONSTRAINT "FK_8174938adc93a343df498c8c78d" FOREIGN KEY ("subscriptionId") REFERENCES "ext_stripe_subscription"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_crm_client" ADD CONSTRAINT "FK_45d8f9e5c9c7e805d26de115c49" FOREIGN KEY ("statusId") REFERENCES "ext_crm_status"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_crm_client" ADD CONSTRAINT "FK_646887059e361e8562ebcdfe281" FOREIGN KEY ("originId") REFERENCES "ext_crm_origin"("id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_crm_project" ADD CONSTRAINT "FK_a895ac3bc1f2e4c0196fb7e8580" FOREIGN KEY ("clientId") REFERENCES "ext_crm_client"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_crm_contact" ADD CONSTRAINT "FK_d445bec7793434f8f658667c6ad" FOREIGN KEY ("clientId") REFERENCES "ext_crm_client"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_cp_metrics" ADD CONSTRAINT "FK_3383ebb2c7a7c6144e29b51c78d" FOREIGN KEY ("projectId") REFERENCES "ext_cp_project"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_cp_idea" ADD CONSTRAINT "FK_13fec387e80242fc8b70efa01ee" FOREIGN KEY ("projectId") REFERENCES "ext_cp_project"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_crm_interaction" ADD CONSTRAINT "FK_b78a5e5008f3a759bef8d58eedf" FOREIGN KEY ("clientId") REFERENCES "ext_crm_client"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_crm_interaction" ADD CONSTRAINT "FK_a18f2b766202cca8e784b389056" FOREIGN KEY ("contactId") REFERENCES "ext_crm_contact"("id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_cp_draft" ADD CONSTRAINT "FK_9d4ad75224fc5d42d7db6958184" FOREIGN KEY ("projectId") REFERENCES "ext_cp_project"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_cp_draft" ADD CONSTRAINT "FK_54ae076b5b6cf45805d468aab72" FOREIGN KEY ("ideaId") REFERENCES "ext_cp_idea"("id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_cms_seo_metadata" ADD CONSTRAINT "FK_af49c0d215b7c268343f1b1f1ce" FOREIGN KEY ("ogImageId") REFERENCES "file"("id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_cms_page" ADD CONSTRAINT "FK_8417554c0980ae76b6f7b0da359" FOREIGN KEY ("featuredImageId") REFERENCES "file"("id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_cms_page" ADD CONSTRAINT "FK_55b296234ecac9b0cac4cb7e025" FOREIGN KEY ("authorId") REFERENCES "user"("id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_affiliate_partner" ADD CONSTRAINT "FK_0aaa374b6532c18d877a93a6f76" FOREIGN KEY ("clientId") REFERENCES "ext_crm_client"("id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_affiliate_partner" ADD CONSTRAINT "FK_5b8ef99fa564c91c92b8c622592" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_affiliate_referral" ADD CONSTRAINT "FK_aae3fae1c6908323d03102a3a23" FOREIGN KEY ("partnerId") REFERENCES "ext_affiliate_partner"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_affiliate_referral" ADD CONSTRAINT "FK_6986b02aea296bf8b1119dea561" FOREIGN KEY ("clientId") REFERENCES "ext_crm_client"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_affiliate_referral" ADD CONSTRAINT "FK_d493c64b9f69482ee9673793096" FOREIGN KEY ("originId") REFERENCES "ext_crm_origin"("id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_affiliate_commission" ADD CONSTRAINT "FK_16eb9dd32519bdd9941911c50d4" FOREIGN KEY ("referralId") REFERENCES "ext_affiliate_referral"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_affiliate_commission" ADD CONSTRAINT "FK_e5423dce5252ea15286a5ff8a6f" FOREIGN KEY ("projectId") REFERENCES "ext_crm_project"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_cms_blog_category" ADD CONSTRAINT "FK_e602a1c5b2d0365f09b3fb6e5fb" FOREIGN KEY ("parentId") REFERENCES "ext_cms_blog_category"("id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_cms_blog_post" ADD CONSTRAINT "FK_93a71caba600866de97e04c7be7" FOREIGN KEY ("featuredImageId") REFERENCES "file"("id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_cms_blog_post" ADD CONSTRAINT "FK_087cc718f2c84852adf3208a9f4" FOREIGN KEY ("authorId") REFERENCES "user"("id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_cms_blog_post" ADD CONSTRAINT "FK_6fabb68e4908d6331b7c734df6f" FOREIGN KEY ("categoryId") REFERENCES "ext_cms_blog_category"("id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_cms_blog_category_tag" ADD CONSTRAINT "FK_8d99b2e2448cd35b8d20bb94524" FOREIGN KEY ("categoryId") REFERENCES "ext_cms_blog_category"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_cms_blog_category_tag" ADD CONSTRAINT "FK_05332dc8df7d209aa3c67fa2f3c" FOREIGN KEY ("tagId") REFERENCES "ext_cms_post_tag"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_cms_blog_post_tag" ADD CONSTRAINT "FK_28fa2ec123eb5ab2b9ead8bf111" FOREIGN KEY ("postId") REFERENCES "ext_cms_blog_post"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_cms_blog_post_tag" ADD CONSTRAINT "FK_ad7342855f4613c267880aad19e" FOREIGN KEY ("tagId") REFERENCES "ext_cms_post_tag"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+  }
 
-    public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`ALTER TABLE "ext_cms_blog_post_tag" DROP CONSTRAINT "FK_ad7342855f4613c267880aad19e"`);
-        await queryRunner.query(`ALTER TABLE "ext_cms_blog_post_tag" DROP CONSTRAINT "FK_28fa2ec123eb5ab2b9ead8bf111"`);
-        await queryRunner.query(`ALTER TABLE "ext_cms_blog_category_tag" DROP CONSTRAINT "FK_05332dc8df7d209aa3c67fa2f3c"`);
-        await queryRunner.query(`ALTER TABLE "ext_cms_blog_category_tag" DROP CONSTRAINT "FK_8d99b2e2448cd35b8d20bb94524"`);
-        await queryRunner.query(`ALTER TABLE "ext_cms_blog_post" DROP CONSTRAINT "FK_6fabb68e4908d6331b7c734df6f"`);
-        await queryRunner.query(`ALTER TABLE "ext_cms_blog_post" DROP CONSTRAINT "FK_087cc718f2c84852adf3208a9f4"`);
-        await queryRunner.query(`ALTER TABLE "ext_cms_blog_post" DROP CONSTRAINT "FK_93a71caba600866de97e04c7be7"`);
-        await queryRunner.query(`ALTER TABLE "ext_cms_blog_category" DROP CONSTRAINT "FK_e602a1c5b2d0365f09b3fb6e5fb"`);
-        await queryRunner.query(`ALTER TABLE "ext_affiliate_commission" DROP CONSTRAINT "FK_e5423dce5252ea15286a5ff8a6f"`);
-        await queryRunner.query(`ALTER TABLE "ext_affiliate_commission" DROP CONSTRAINT "FK_16eb9dd32519bdd9941911c50d4"`);
-        await queryRunner.query(`ALTER TABLE "ext_affiliate_referral" DROP CONSTRAINT "FK_d493c64b9f69482ee9673793096"`);
-        await queryRunner.query(`ALTER TABLE "ext_affiliate_referral" DROP CONSTRAINT "FK_6986b02aea296bf8b1119dea561"`);
-        await queryRunner.query(`ALTER TABLE "ext_affiliate_referral" DROP CONSTRAINT "FK_aae3fae1c6908323d03102a3a23"`);
-        await queryRunner.query(`ALTER TABLE "ext_affiliate_partner" DROP CONSTRAINT "FK_5b8ef99fa564c91c92b8c622592"`);
-        await queryRunner.query(`ALTER TABLE "ext_affiliate_partner" DROP CONSTRAINT "FK_0aaa374b6532c18d877a93a6f76"`);
-        await queryRunner.query(`ALTER TABLE "ext_cms_page" DROP CONSTRAINT "FK_55b296234ecac9b0cac4cb7e025"`);
-        await queryRunner.query(`ALTER TABLE "ext_cms_page" DROP CONSTRAINT "FK_8417554c0980ae76b6f7b0da359"`);
-        await queryRunner.query(`ALTER TABLE "ext_cms_seo_metadata" DROP CONSTRAINT "FK_af49c0d215b7c268343f1b1f1ce"`);
-        await queryRunner.query(`ALTER TABLE "ext_cp_draft" DROP CONSTRAINT "FK_54ae076b5b6cf45805d468aab72"`);
-        await queryRunner.query(`ALTER TABLE "ext_cp_draft" DROP CONSTRAINT "FK_9d4ad75224fc5d42d7db6958184"`);
-        await queryRunner.query(`ALTER TABLE "ext_crm_interaction" DROP CONSTRAINT "FK_a18f2b766202cca8e784b389056"`);
-        await queryRunner.query(`ALTER TABLE "ext_crm_interaction" DROP CONSTRAINT "FK_b78a5e5008f3a759bef8d58eedf"`);
-        await queryRunner.query(`ALTER TABLE "ext_cp_idea" DROP CONSTRAINT "FK_13fec387e80242fc8b70efa01ee"`);
-        await queryRunner.query(`ALTER TABLE "ext_cp_metrics" DROP CONSTRAINT "FK_3383ebb2c7a7c6144e29b51c78d"`);
-        await queryRunner.query(`ALTER TABLE "ext_crm_contact" DROP CONSTRAINT "FK_d445bec7793434f8f658667c6ad"`);
-        await queryRunner.query(`ALTER TABLE "ext_crm_project" DROP CONSTRAINT "FK_a895ac3bc1f2e4c0196fb7e8580"`);
-        await queryRunner.query(`ALTER TABLE "ext_crm_client" DROP CONSTRAINT "FK_646887059e361e8562ebcdfe281"`);
-        await queryRunner.query(`ALTER TABLE "ext_crm_client" DROP CONSTRAINT "FK_45d8f9e5c9c7e805d26de115c49"`);
-        await queryRunner.query(`ALTER TABLE "ext_stripe_usage_record" DROP CONSTRAINT "FK_8174938adc93a343df498c8c78d"`);
-        await queryRunner.query(`ALTER TABLE "ext_stripe_subscription" DROP CONSTRAINT "FK_e6c6d88159fb26badf296777987"`);
-        await queryRunner.query(`ALTER TABLE "ext_stripe_plan" DROP CONSTRAINT "FK_fb5f82d127a606e982e16def8e3"`);
-        await queryRunner.query(`ALTER TABLE "ext_stripe_price" DROP CONSTRAINT "FK_1be4c0ecfcc643839e369058e31"`);
-        await queryRunner.query(`ALTER TABLE "api_key" DROP CONSTRAINT "FK_277972f4944205eb29127f9bb6c"`);
-        await queryRunner.query(`ALTER TABLE "file" DROP CONSTRAINT "FK_b2d8e683f020f61115edea206b3"`);
-        await queryRunner.query(`ALTER TABLE "session" DROP CONSTRAINT "FK_3d2f174ef04fb312fdebd0ddc53"`);
-        await queryRunner.query(`ALTER TABLE "translation" DROP CONSTRAINT "FK_14b169181b406881cd72b55fa42"`);
-        await queryRunner.query(`ALTER TABLE "user" DROP CONSTRAINT "FK_dc18daa696860586ba4667a9d31"`);
-        await queryRunner.query(`ALTER TABLE "user" DROP CONSTRAINT "FK_c28e52f758e7bbc53828db92194"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_ad7342855f4613c267880aad19"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_28fa2ec123eb5ab2b9ead8bf11"`);
-        await queryRunner.query(`DROP TABLE "ext_cms_blog_post_tag"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_05332dc8df7d209aa3c67fa2f3"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_8d99b2e2448cd35b8d20bb9452"`);
-        await queryRunner.query(`DROP TABLE "ext_cms_blog_category_tag"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_0d3b0ef2f17c2c23bd795abf70"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_3a72e0f2d027bdb97dbbbdf852"`);
-        await queryRunner.query(`DROP TABLE "ext_cms_post_tag"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_dae375b6ac50f3ffe26e60fab3"`);
-        await queryRunner.query(`DROP TABLE "ext_cms_blog_post"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_b8a65919ad519386625363c0c3"`);
-        await queryRunner.query(`DROP TABLE "ext_cms_blog_category"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_16eb9dd32519bdd9941911c50d"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_e5423dce5252ea15286a5ff8a6"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_7357b94c5d25007aefe9815bf9"`);
-        await queryRunner.query(`DROP TABLE "ext_affiliate_commission"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_aae3fae1c6908323d03102a3a2"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_6986b02aea296bf8b1119dea56"`);
-        await queryRunner.query(`DROP TABLE "ext_affiliate_referral"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_07bf81ff149aedb1014afcd8a3"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_5b8ef99fa564c91c92b8c62259"`);
-        await queryRunner.query(`DROP TABLE "ext_affiliate_partner"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_cf4cca92a173870a531b1e67fc"`);
-        await queryRunner.query(`DROP TABLE "ext_aa_config"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_b45478490870fb6a9e3050e695"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_f9a293388602699f04d40ab044"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_6fd680e9a44ce8d6f83c41d853"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_5e0719bb8a8c918ba93d1b290c"`);
-        await queryRunner.query(`DROP TABLE "ext_aa_run"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_437ab43e4dbf5aeefd5ff1b6e8"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_49c769b2b3b3d10c3567a4f534"`);
-        await queryRunner.query(`DROP TABLE "ext_cms_page"`);
-        await queryRunner.query(`DROP TYPE "public"."ext_cms_page_section_enum"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_d00c4237c267bec99e38f2736d"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_f9f16f70777463e7eee1246f5d"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_5247b8eee2ccc7937e287813af"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_1a9cd0486d562c3b0e301a7007"`);
-        await queryRunner.query(`DROP TABLE "ext_cms_seo_metadata"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_9d4ad75224fc5d42d7db695818"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_54ae076b5b6cf45805d468aab7"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_11e7b1c69a17624205c778e0f7"`);
-        await queryRunner.query(`DROP TABLE "ext_cp_draft"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_486ecbb7651d762e5bf012a2cb"`);
-        await queryRunner.query(`DROP TABLE "ext_cp_cta_video"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_b78a5e5008f3a759bef8d58eed"`);
-        await queryRunner.query(`DROP TABLE "ext_crm_interaction"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_13fec387e80242fc8b70efa01e"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_b9edabe99d9e4bd749866076ee"`);
-        await queryRunner.query(`DROP TABLE "ext_cp_idea"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_3383ebb2c7a7c6144e29b51c78"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_b8fc3d0f3652a02897e71f7984"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_9a8f32d8076f647bff24dd7fcb"`);
-        await queryRunner.query(`DROP TABLE "ext_cp_metrics"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_261450b9685485590ae72ae64e"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_0ca75ba54899faf67ee2081559"`);
-        await queryRunner.query(`DROP TABLE "ext_cp_project"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_d445bec7793434f8f658667c6a"`);
-        await queryRunner.query(`DROP TABLE "ext_crm_contact"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_a895ac3bc1f2e4c0196fb7e858"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_609d632dd02ad2c86cc4da8c09"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_809744ae45cdc2a351904c8c64"`);
-        await queryRunner.query(`DROP TABLE "ext_crm_project"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_45d8f9e5c9c7e805d26de115c4"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_646887059e361e8562ebcdfe28"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_60da5edd79faf6adcaebb749b9"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_1c58f2ff51e735c6dd783b0319"`);
-        await queryRunner.query(`DROP TABLE "ext_crm_client"`);
-        await queryRunner.query(`DROP TABLE "ext_crm_status"`);
-        await queryRunner.query(`DROP TABLE "ext_crm_origin"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_8174938adc93a343df498c8c78"`);
-        await queryRunner.query(`DROP TABLE "ext_stripe_usage_record"`);
-        await queryRunner.query(`DROP TYPE "public"."ext_stripe_usage_record_action_enum"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_37ee729db3e29b5005a54231d2"`);
-        await queryRunner.query(`DROP TABLE "ext_uploadpost_analytics_snapshot"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_01ba0ca37d149d19046b81ca2f"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_e753ac1cc68910d420c776fc83"`);
-        await queryRunner.query(`DROP TABLE "ext_stripe_subscription"`);
-        await queryRunner.query(`DROP TYPE "public"."ext_stripe_subscription_status_enum"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_fb5f82d127a606e982e16def8e"`);
-        await queryRunner.query(`DROP TABLE "ext_stripe_plan"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_1be4c0ecfcc643839e369058e3"`);
-        await queryRunner.query(`DROP TABLE "ext_stripe_price"`);
-        await queryRunner.query(`DROP TYPE "public"."ext_stripe_price_interval_enum"`);
-        await queryRunner.query(`DROP TYPE "public"."ext_stripe_price_type_enum"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_f788ba21cccc0506ad5621ce80"`);
-        await queryRunner.query(`DROP TABLE "ext_stripe_product"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_b98050ac5513c0c448db98a5bc"`);
-        await queryRunner.query(`DROP TABLE "ext_uploadpost_autodm_monitor"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_43fdefa5b9069dd2b8fcdf133b"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_6a77cad1d0f8347c2bbb93d253"`);
-        await queryRunner.query(`DROP TABLE "ext_uploadpost_post"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_f0782950f02eb884c2aeda2a6a"`);
-        await queryRunner.query(`DROP TABLE "ext_uploadpost_content_idea"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_fb080786c16de6ace7ed0b69f7"`);
-        await queryRunner.query(`DROP TABLE "api_key"`);
-        await queryRunner.query(`DROP TABLE "file"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_3d2f174ef04fb312fdebd0ddc5"`);
-        await queryRunner.query(`DROP TABLE "session"`);
-        await queryRunner.query(`DROP TABLE "file_cleanup_errors"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_ea73dc8ba4e3cd20823a585eb0"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_303b992bd6dbfefe76547de4b6"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_9c2b5217c2f24485b2c3e94f44"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_adaebf2c3c178a45177662d977"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_8c4b123e090d286ebebf8ed4dd"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_951df7b8bf1b7302ec2db66bbd"`);
-        await queryRunner.query(`DROP TABLE "translation"`);
-        await queryRunner.query(`DROP TABLE "lang"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_f0e1b4ecdca13b177e2e3a0613"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_58e4dbff0e1a32a9bdc861bb29"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_9bd2fe7a8e694dedc4ec2f666f"`);
-        await queryRunner.query(`DROP TABLE "user"`);
-        await queryRunner.query(`DROP TABLE "status"`);
-        await queryRunner.query(`DROP TABLE "role"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_9c8d4c24666877a0fa01f97b3c"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_aac54649e0fb4b2952af88aedf"`);
-        await queryRunner.query(`DROP TABLE "error_logs"`);
-    }
-
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(
+      `ALTER TABLE "ext_cms_blog_post_tag" DROP CONSTRAINT "FK_ad7342855f4613c267880aad19e"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_cms_blog_post_tag" DROP CONSTRAINT "FK_28fa2ec123eb5ab2b9ead8bf111"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_cms_blog_category_tag" DROP CONSTRAINT "FK_05332dc8df7d209aa3c67fa2f3c"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_cms_blog_category_tag" DROP CONSTRAINT "FK_8d99b2e2448cd35b8d20bb94524"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_cms_blog_post" DROP CONSTRAINT "FK_6fabb68e4908d6331b7c734df6f"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_cms_blog_post" DROP CONSTRAINT "FK_087cc718f2c84852adf3208a9f4"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_cms_blog_post" DROP CONSTRAINT "FK_93a71caba600866de97e04c7be7"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_cms_blog_category" DROP CONSTRAINT "FK_e602a1c5b2d0365f09b3fb6e5fb"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_affiliate_commission" DROP CONSTRAINT "FK_e5423dce5252ea15286a5ff8a6f"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_affiliate_commission" DROP CONSTRAINT "FK_16eb9dd32519bdd9941911c50d4"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_affiliate_referral" DROP CONSTRAINT "FK_d493c64b9f69482ee9673793096"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_affiliate_referral" DROP CONSTRAINT "FK_6986b02aea296bf8b1119dea561"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_affiliate_referral" DROP CONSTRAINT "FK_aae3fae1c6908323d03102a3a23"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_affiliate_partner" DROP CONSTRAINT "FK_5b8ef99fa564c91c92b8c622592"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_affiliate_partner" DROP CONSTRAINT "FK_0aaa374b6532c18d877a93a6f76"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_cms_page" DROP CONSTRAINT "FK_55b296234ecac9b0cac4cb7e025"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_cms_page" DROP CONSTRAINT "FK_8417554c0980ae76b6f7b0da359"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_cms_seo_metadata" DROP CONSTRAINT "FK_af49c0d215b7c268343f1b1f1ce"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_cp_draft" DROP CONSTRAINT "FK_54ae076b5b6cf45805d468aab72"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_cp_draft" DROP CONSTRAINT "FK_9d4ad75224fc5d42d7db6958184"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_crm_interaction" DROP CONSTRAINT "FK_a18f2b766202cca8e784b389056"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_crm_interaction" DROP CONSTRAINT "FK_b78a5e5008f3a759bef8d58eedf"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_cp_idea" DROP CONSTRAINT "FK_13fec387e80242fc8b70efa01ee"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_cp_metrics" DROP CONSTRAINT "FK_3383ebb2c7a7c6144e29b51c78d"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_crm_contact" DROP CONSTRAINT "FK_d445bec7793434f8f658667c6ad"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_crm_project" DROP CONSTRAINT "FK_a895ac3bc1f2e4c0196fb7e8580"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_crm_client" DROP CONSTRAINT "FK_646887059e361e8562ebcdfe281"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_crm_client" DROP CONSTRAINT "FK_45d8f9e5c9c7e805d26de115c49"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_stripe_usage_record" DROP CONSTRAINT "FK_8174938adc93a343df498c8c78d"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_stripe_subscription" DROP CONSTRAINT "FK_e6c6d88159fb26badf296777987"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_stripe_plan" DROP CONSTRAINT "FK_fb5f82d127a606e982e16def8e3"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ext_stripe_price" DROP CONSTRAINT "FK_1be4c0ecfcc643839e369058e31"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "api_key" DROP CONSTRAINT "FK_277972f4944205eb29127f9bb6c"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "file" DROP CONSTRAINT "FK_b2d8e683f020f61115edea206b3"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "session" DROP CONSTRAINT "FK_3d2f174ef04fb312fdebd0ddc53"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "translation" DROP CONSTRAINT "FK_14b169181b406881cd72b55fa42"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "user" DROP CONSTRAINT "FK_dc18daa696860586ba4667a9d31"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "user" DROP CONSTRAINT "FK_c28e52f758e7bbc53828db92194"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_ad7342855f4613c267880aad19"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_28fa2ec123eb5ab2b9ead8bf11"`,
+    );
+    await queryRunner.query(`DROP TABLE "ext_cms_blog_post_tag"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_05332dc8df7d209aa3c67fa2f3"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_8d99b2e2448cd35b8d20bb9452"`,
+    );
+    await queryRunner.query(`DROP TABLE "ext_cms_blog_category_tag"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_0d3b0ef2f17c2c23bd795abf70"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_3a72e0f2d027bdb97dbbbdf852"`,
+    );
+    await queryRunner.query(`DROP TABLE "ext_cms_post_tag"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_dae375b6ac50f3ffe26e60fab3"`,
+    );
+    await queryRunner.query(`DROP TABLE "ext_cms_blog_post"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_b8a65919ad519386625363c0c3"`,
+    );
+    await queryRunner.query(`DROP TABLE "ext_cms_blog_category"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_16eb9dd32519bdd9941911c50d"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_e5423dce5252ea15286a5ff8a6"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_7357b94c5d25007aefe9815bf9"`,
+    );
+    await queryRunner.query(`DROP TABLE "ext_affiliate_commission"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_aae3fae1c6908323d03102a3a2"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_6986b02aea296bf8b1119dea56"`,
+    );
+    await queryRunner.query(`DROP TABLE "ext_affiliate_referral"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_07bf81ff149aedb1014afcd8a3"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_5b8ef99fa564c91c92b8c62259"`,
+    );
+    await queryRunner.query(`DROP TABLE "ext_affiliate_partner"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_cf4cca92a173870a531b1e67fc"`,
+    );
+    await queryRunner.query(`DROP TABLE "ext_aa_config"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_b45478490870fb6a9e3050e695"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_f9a293388602699f04d40ab044"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_6fd680e9a44ce8d6f83c41d853"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_5e0719bb8a8c918ba93d1b290c"`,
+    );
+    await queryRunner.query(`DROP TABLE "ext_aa_run"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_437ab43e4dbf5aeefd5ff1b6e8"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_49c769b2b3b3d10c3567a4f534"`,
+    );
+    await queryRunner.query(`DROP TABLE "ext_cms_page"`);
+    await queryRunner.query(`DROP TYPE "public"."ext_cms_page_section_enum"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_d00c4237c267bec99e38f2736d"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_f9f16f70777463e7eee1246f5d"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_5247b8eee2ccc7937e287813af"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_1a9cd0486d562c3b0e301a7007"`,
+    );
+    await queryRunner.query(`DROP TABLE "ext_cms_seo_metadata"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_9d4ad75224fc5d42d7db695818"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_54ae076b5b6cf45805d468aab7"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_11e7b1c69a17624205c778e0f7"`,
+    );
+    await queryRunner.query(`DROP TABLE "ext_cp_draft"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_486ecbb7651d762e5bf012a2cb"`,
+    );
+    await queryRunner.query(`DROP TABLE "ext_cp_cta_video"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_b78a5e5008f3a759bef8d58eed"`,
+    );
+    await queryRunner.query(`DROP TABLE "ext_crm_interaction"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_13fec387e80242fc8b70efa01e"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_b9edabe99d9e4bd749866076ee"`,
+    );
+    await queryRunner.query(`DROP TABLE "ext_cp_idea"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_3383ebb2c7a7c6144e29b51c78"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_b8fc3d0f3652a02897e71f7984"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_9a8f32d8076f647bff24dd7fcb"`,
+    );
+    await queryRunner.query(`DROP TABLE "ext_cp_metrics"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_261450b9685485590ae72ae64e"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_0ca75ba54899faf67ee2081559"`,
+    );
+    await queryRunner.query(`DROP TABLE "ext_cp_project"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_d445bec7793434f8f658667c6a"`,
+    );
+    await queryRunner.query(`DROP TABLE "ext_crm_contact"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_a895ac3bc1f2e4c0196fb7e858"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_609d632dd02ad2c86cc4da8c09"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_809744ae45cdc2a351904c8c64"`,
+    );
+    await queryRunner.query(`DROP TABLE "ext_crm_project"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_45d8f9e5c9c7e805d26de115c4"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_646887059e361e8562ebcdfe28"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_60da5edd79faf6adcaebb749b9"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_1c58f2ff51e735c6dd783b0319"`,
+    );
+    await queryRunner.query(`DROP TABLE "ext_crm_client"`);
+    await queryRunner.query(`DROP TABLE "ext_crm_status"`);
+    await queryRunner.query(`DROP TABLE "ext_crm_origin"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_8174938adc93a343df498c8c78"`,
+    );
+    await queryRunner.query(`DROP TABLE "ext_stripe_usage_record"`);
+    await queryRunner.query(
+      `DROP TYPE "public"."ext_stripe_usage_record_action_enum"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_37ee729db3e29b5005a54231d2"`,
+    );
+    await queryRunner.query(`DROP TABLE "ext_uploadpost_analytics_snapshot"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_01ba0ca37d149d19046b81ca2f"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_e753ac1cc68910d420c776fc83"`,
+    );
+    await queryRunner.query(`DROP TABLE "ext_stripe_subscription"`);
+    await queryRunner.query(
+      `DROP TYPE "public"."ext_stripe_subscription_status_enum"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_fb5f82d127a606e982e16def8e"`,
+    );
+    await queryRunner.query(`DROP TABLE "ext_stripe_plan"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_1be4c0ecfcc643839e369058e3"`,
+    );
+    await queryRunner.query(`DROP TABLE "ext_stripe_price"`);
+    await queryRunner.query(
+      `DROP TYPE "public"."ext_stripe_price_interval_enum"`,
+    );
+    await queryRunner.query(`DROP TYPE "public"."ext_stripe_price_type_enum"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_f788ba21cccc0506ad5621ce80"`,
+    );
+    await queryRunner.query(`DROP TABLE "ext_stripe_product"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_b98050ac5513c0c448db98a5bc"`,
+    );
+    await queryRunner.query(`DROP TABLE "ext_uploadpost_autodm_monitor"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_43fdefa5b9069dd2b8fcdf133b"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_6a77cad1d0f8347c2bbb93d253"`,
+    );
+    await queryRunner.query(`DROP TABLE "ext_uploadpost_post"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_f0782950f02eb884c2aeda2a6a"`,
+    );
+    await queryRunner.query(`DROP TABLE "ext_uploadpost_content_idea"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_fb080786c16de6ace7ed0b69f7"`,
+    );
+    await queryRunner.query(`DROP TABLE "api_key"`);
+    await queryRunner.query(`DROP TABLE "file"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_3d2f174ef04fb312fdebd0ddc5"`,
+    );
+    await queryRunner.query(`DROP TABLE "session"`);
+    await queryRunner.query(`DROP TABLE "file_cleanup_errors"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_ea73dc8ba4e3cd20823a585eb0"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_303b992bd6dbfefe76547de4b6"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_9c2b5217c2f24485b2c3e94f44"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_adaebf2c3c178a45177662d977"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_8c4b123e090d286ebebf8ed4dd"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_951df7b8bf1b7302ec2db66bbd"`,
+    );
+    await queryRunner.query(`DROP TABLE "translation"`);
+    await queryRunner.query(`DROP TABLE "lang"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_f0e1b4ecdca13b177e2e3a0613"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_58e4dbff0e1a32a9bdc861bb29"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_9bd2fe7a8e694dedc4ec2f666f"`,
+    );
+    await queryRunner.query(`DROP TABLE "user"`);
+    await queryRunner.query(`DROP TABLE "status"`);
+    await queryRunner.query(`DROP TABLE "role"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_9c8d4c24666877a0fa01f97b3c"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_aac54649e0fb4b2952af88aedf"`,
+    );
+    await queryRunner.query(`DROP TABLE "error_logs"`);
+  }
 }

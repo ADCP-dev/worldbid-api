@@ -91,7 +91,6 @@ export class CrmClientEntity extends EntityRelationalHelper {
 
   @OneToMany(
     () => {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { CrmContactEntity } = require('./crm-contact.entity');
       return CrmContactEntity;
     },
@@ -101,7 +100,6 @@ export class CrmClientEntity extends EntityRelationalHelper {
 
   @OneToMany(
     () => {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { CrmInteractionEntity } = require('./crm-interaction.entity');
       return CrmInteractionEntity;
     },
@@ -111,7 +109,6 @@ export class CrmClientEntity extends EntityRelationalHelper {
 
   @OneToMany(
     () => {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { CrmProjectEntity } = require('./crm-project.entity');
       return CrmProjectEntity;
     },

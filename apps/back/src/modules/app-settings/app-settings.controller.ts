@@ -54,9 +54,7 @@ export class AppSettingsController {
   })
   @Get(':key')
   @HttpCode(HttpStatus.OK)
-  findByKey(
-    @Param('key') key: string,
-  ): Promise<NullableType<AppSetting>> {
+  findByKey(@Param('key') key: string): Promise<NullableType<AppSetting>> {
     return this.appSettingsService.findByKey(key);
   }
 

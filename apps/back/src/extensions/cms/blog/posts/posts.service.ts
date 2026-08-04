@@ -156,7 +156,7 @@ export class BlogPostsService {
     };
   }
 
-  async   findAllPublished(
+  async findAllPublished(
     lang: string,
     page = 1,
     limit = 10,
@@ -250,7 +250,9 @@ export class BlogPostsService {
       .leftJoinAndSelect('post.tags', 'tags')
       .where('post.isPublished = :isPublished', { isPublished: true })
       .andWhere('post.slug != :slug', { slug: decodedSlug })
-      .andWhere('post.categoryId = :categoryId', { categoryId: post.categoryId })
+      .andWhere('post.categoryId = :categoryId', {
+        categoryId: post.categoryId,
+      })
       .orderBy('post.publishedAt', 'DESC')
       .take(limit);
 

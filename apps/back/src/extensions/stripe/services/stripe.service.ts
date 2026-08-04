@@ -53,7 +53,8 @@ export class StripeService {
 
     const customer = await this.stripe!.customers.create({
       email: user.email as string,
-      name: [user.firstName, user.lastName].filter(Boolean).join(' ') || undefined,
+      name:
+        [user.firstName, user.lastName].filter(Boolean).join(' ') || undefined,
       metadata: {
         userId: userId.toString(),
       },

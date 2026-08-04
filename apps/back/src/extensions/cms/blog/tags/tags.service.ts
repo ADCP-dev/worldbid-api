@@ -140,7 +140,10 @@ export class TagsService {
     return tags;
   }
 
-  async findManyBySlugs(slugs: string[], lang: string = 'es'): Promise<TagEntity[]> {
+  async findManyBySlugs(
+    slugs: string[],
+    lang: string = 'es',
+  ): Promise<TagEntity[]> {
     if (!slugs || slugs.length === 0) return [];
 
     return this.tagRepository.find({

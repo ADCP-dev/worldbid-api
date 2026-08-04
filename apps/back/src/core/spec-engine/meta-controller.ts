@@ -3,14 +3,13 @@
  *
  * This controller lets the front-end (and tooling) discover what the spec
  * engine has materialized at runtime: which resources exist, their fields,
- * permissions, UI hints, hooks, notifications, jobs, webhooks, and which
- * dashboards/views are available. It also exposes a trace lookup endpoint
- * (admin-only) that is currently a stub pending a trace store backend.
+ * permissions, hooks, notifications, jobs, and webhooks. It also exposes a
+ * trace lookup endpoint (admin-only) that is currently a stub pending a trace
+ * store backend.
  *
  * Routes (all under the global api prefix + URI versioning → /api/v1/_spec/*):
- *   GET /_spec/resources        — all resources + views, with UI hints
+ *   GET /_spec/resources        — all resources
  *   GET /_spec/resources/:name  — a single resource spec
- *   GET /_spec/views            — all view/dashboard specs
  *   GET /_spec/trace/:requestId — trace by request ID (admin only, stub)
  *
  * The loaded specs are injected via the 'SPEC_LOADED_SPECS' provider token,
@@ -35,15 +34,12 @@ import { RolesGuard } from '@iam/roles/roles.guard';
 
 import type {
   ResourceSpec,
-  ViewSpec,
-  PanelSpec,
   FieldSpec,
   PermissionSpec,
   HookSpec,
   NotificationSpec,
   JobSpec,
   WebhookSpec,
-  ResourceUISpec,
 } from './spec.types';
 import type { LoadedSpec } from './spec-loader';
 
@@ -60,7 +56,6 @@ export interface ResourceMetaDTO {
   route: string;
   fields: FieldSpec[];
   permissions?: PermissionSpec;
-  ui?: ResourceUISpec;
   hooks?: HookSpec;
   notifications?: NotificationSpec[];
   jobs?: JobSpec[];
@@ -68,30 +63,10 @@ export interface ResourceMetaDTO {
 }
 
 /**
- * Shape returned for a view/dashboard in the metadata payload.
- */
-export interface ViewMetaDTO {
-  name: string;
-  displayName?: string;
-  type: 'dashboard' | 'custom';
-  roles: string[];
-  panels?: PanelSpec[];
-  component?: string;
-}
-
-/**
  * Envelope returned by GET /_spec/resources.
  */
 export interface SpecResourcesResponse {
   resources: ResourceMetaDTO[];
-  views: ViewMetaDTO[];
-}
-
-/**
- * Envelope returned by GET /_spec/views.
- */
-export interface SpecViewsResponse {
-  views: ViewMetaDTO[];
 }
 
 /**
@@ -117,15 +92,14 @@ export class SpecMetaController {
 
   // ─── GET /_spec/resources ──────────────────────────────────────────────
   /**
-   * Returns every materialized resource alongside every view/dashboard,
-   * with UI hints so the front-end can render navigation, tables, forms,
-   * and dashboards without a hardcoded schema.
+   * Returns every materialized resource, with fields/permissions/hooks/
+   * notifications/jobs/webhooks so tooling can discover what the engine
+   * has materialized at runtime.
    */
   @Get('resources')
   getAllResources(): SpecResourcesResponse {
     const resources = this.collectResources();
-    const views = this.collectViews();
-    return { resources, views };
+    return { resources };
   }
 
   // ─── GET /_spec/resources/:name ────────────────────────────────────────
@@ -140,15 +114,6 @@ export class SpecMetaController {
       throw new NotFoundException(`Resource "${name}" is not registered`);
     }
     return resource;
-  }
-
-  // ─── GET /_spec/views ──────────────────────────────────────────────────
-  /**
-   * Returns every view/dashboard spec across all loaded extensions.
-   */
-  @Get('views')
-  getAllViews(): SpecViewsResponse {
-    return { views: this.collectViews() };
   }
 
   // ─── GET /_spec/trace/:requestId ───────────────────────────────────────
@@ -190,19 +155,6 @@ export class SpecMetaController {
   }
 
   /**
-   * Walk every loaded extension and collect all views as DTOs.
-   */
-  private collectViews(): ViewMetaDTO[] {
-    const out: ViewMetaDTO[] = [];
-    for (const loaded of this.loadedSpecs) {
-      for (const view of loaded.spec.views ?? []) {
-        out.push(this.toViewDTO(view));
-      }
-    }
-    return out;
-  }
-
-  /**
    * Find a single resource DTO by name across all loaded extensions.
    */
   private findResourceByName(name: string): ResourceMetaDTO | undefined {
@@ -233,26 +185,10 @@ export class SpecMetaController {
       route: `/api/v1/${this.pluralize(res.name)}`,
       fields: res.fields ?? [],
       permissions: res.permissions,
-      ui: res.ui,
       hooks: res.hooks,
       notifications: res.notifications,
       jobs: res.jobs,
       webhooks: res.webhooks,
-    };
-  }
-
-  /**
-   * Convert a ViewSpec into the API DTO. `roles` are normalized to their
-   * string names for front-end consumption.
-   */
-  private toViewDTO(view: ViewSpec): ViewMetaDTO {
-    return {
-      name: view.name,
-      displayName: view.displayName,
-      type: view.type,
-      roles: view.roles ?? [],
-      panels: view.panels,
-      component: view.component,
     };
   }
 
