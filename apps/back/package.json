@@ -29,6 +29,7 @@
     "spec:generate-tests": "ts-node -r tsconfig-paths/register ./src/core/spec-engine/test-generator.ts",
     "spec:list": "ts-node -r tsconfig-paths/register ./src/core/spec-engine/spec-list.ts",
     "spec:trace": "ts-node -r tsconfig-paths/register ./src/core/spec-engine/spec-trace-cli.ts",
+    "spec:snapshot-save": "ts-node -r tsconfig-paths/register ./src/core/spec-engine/spec-snapshot-save.ts",
     "prebuild": "rimraf dist",
     "build": "nest build",
     "build:swc": "nest build -b swc",

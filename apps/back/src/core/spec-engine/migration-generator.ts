@@ -734,7 +734,7 @@ function generateTimestamp(): string {
  * ExtensionSpec via `mergeSpecs`. This fixes BUG #7: previously `readSpecFile`
  * only read `files[0]`, so only the first spec file's resources became tables.
  */
-function readSpecFile(
+export function readSpecFile(
   extensionName: string,
   extensionsDir: string,
 ): ExtensionSpec {
@@ -904,13 +904,107 @@ export class MigrationGenerator {
 // ─── CLI Entry Point ─────────────────────────────────────────────────────────
 
 /**
+ * Snapshot persistence — stores the spec snapshot in the
+ * `spec_schema_snapshots` table so the next migration generation can diff
+ * against it and produce ALTER TABLE statements instead of CREATE TABLE.
+ *
+ * The table is created by migration `CreateSpecSchemaSnapshotsTable`. If the
+ * table doesn't exist yet (first run before that migration), these functions
+ * fail gracefully (return null / log a warning) so the generator still works
+ * in CREATE-only mode.
+ */
+import { DataSource } from 'typeorm';
+import * as dotenv from 'dotenv';
+
+// Build a database connection from the .env file (same as TypeORM CLI).
+export function getDataSource(): DataSource {
+  const envPath = path.resolve(process.cwd(), '.env');
+  if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath });
+  }
+  return new DataSource({
+    type: 'postgres',
+    host: process.env.DATABASE_HOST ?? 'localhost',
+    port: parseInt(process.env.DATABASE_PORT ?? '5432', 10),
+    username: process.env.DATABASE_USERNAME ?? 'dev',
+    password: process.env.DATABASE_PASSWORD ?? 'dev123',
+    database: process.env.DATABASE_NAME ?? 'foundation',
+    entities: [],
+    migrations: [],
+  });
+}
+
+/**
+ * Read the previous snapshot for an extension from the DB.
+ * Returns null if the table doesn't exist or no snapshot is stored.
+ */
+export async function readSnapshotFromDb(
+  ds: DataSource,
+  extensionName: string,
+): Promise<SpecSnapshot | null> {
+  try {
+    const res = await ds.query(
+      `SELECT snapshot FROM "spec_schema_snapshots" WHERE "extension_name" = $1 LIMIT 1`,
+      [extensionName],
+    );
+    if (res && res.length > 0 && res[0].snapshot) {
+      return typeof res[0].snapshot === 'string'
+        ? JSON.parse(res[0].snapshot)
+        : res[0].snapshot;
+    }
+    return null;
+  } catch {
+    // Table doesn't exist yet — first run, no snapshot. That's fine.
+    return null;
+  }
+}
+
+/**
+ * Persist the current spec snapshot to the DB (upsert by extension name).
+ * Called after a successful migration generation so the next run can diff.
+ */
+export async function writeSnapshotToDb(
+  ds: DataSource,
+  snapshot: SpecSnapshot,
+): Promise<void> {
+  try {
+    await ds.query(
+      `INSERT INTO "spec_schema_snapshots" ("extension_name", "snapshot", "created_at", "updated_at")
+       VALUES ($1, $2, now(), now())
+       ON CONFLICT ("extension_name")
+       DO UPDATE SET "snapshot" = $2, "updated_at" = now()`,
+      [snapshot.extensionName, JSON.stringify(snapshot)],
+    );
+  } catch (err) {
+    // Table doesn't exist or DB not reachable — warn but don't fail.
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[MigrationGenerator] Could not persist snapshot: ${(err as Error).message} — ` +
+        'run the CreateSpecSchemaSnapshotsTable migration first.',
+    );
+  }
+}
+
+/**
+ * Build a full SpecSnapshot from the current spec file (in-memory).
+ * Wraps the existing `buildExtensionSnapshot` for CLI use.
+ */
+export function buildFullSnapshot(extensionName: string, spec: ExtensionSpec): SpecSnapshot {
+  return buildExtensionSnapshot(spec);
+}
+
+/**
  * Run from CLI: ts-node migration-generator.ts <extensionName> [extensionsDir] [migrationsDir]
  *
  * Defaults:
- *   extensionsDir  = <cwd>/extensions
+ *   extensionsDir  = <cwd>/src/extensions
  *   migrationsDir  = <cwd>/src/infrastructure/database/migrations
+ *
+ * Snapshot diffing is automatic: reads the previous snapshot from the
+ * `spec_schema_snapshots` DB table, generates ALTER TABLE for changed
+ * resources + CREATE TABLE for new ones, then persists the new snapshot.
  */
-function main(): void {
+async function main(): Promise<void> {
   const args = process.argv.slice(2);
   if (args.length < 1) {
     console.error(
@@ -925,19 +1019,64 @@ function main(): void {
     args[2] ??
     path.resolve(process.cwd(), 'src/infrastructure/database/migrations');
 
-  MigrationGenerator.generate(extensionName, extensionsDir, migrationsDir)
-    .then((result) => {
+  // Read the previous snapshot from the DB (for diffing).
+  const ds = getDataSource();
+  await ds.initialize();
+  let previousSnapshot: SpecSnapshot | undefined;
+  try {
+    const prev = await readSnapshotFromDb(ds, extensionName);
+    if (prev) {
       // eslint-disable-next-line no-console
       console.log(
-        `\n✅ Done. Generated ${result.statements.length} statements.`,
+        `[MigrationGenerator] Found previous snapshot for "${extensionName}" (version ${prev.version}).`,
       );
-    })
-    .catch((err) => {
-      console.error(
-        `\n❌ Migration generation failed: ${(err as Error).message}`,
+      previousSnapshot = prev;
+    } else {
+      // eslint-disable-next-line no-console
+      console.log(
+        `[MigrationGenerator] No previous snapshot — generating CREATE TABLE for all resources.`,
       );
-      process.exit(1);
-    });
+    }
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[MigrationGenerator] Could not read snapshot: ${(err as Error).message} — treating as first run.`,
+    );
+  }
+
+  // Generate with the previous snapshot (enables ALTER TABLE diffs).
+  const result = await MigrationGenerator.generate(
+    extensionName,
+    extensionsDir,
+    migrationsDir,
+    { previousSnapshot },
+  );
+  // eslint-disable-next-line no-console
+  console.log(`\n✅ Done. Generated ${result.statements.length} statements.`);
+
+  // Persist the new snapshot ONLY if --save-snapshot flag is passed.
+  // This separates generation from snapshot persistence: the user generates
+  // the migration, runs it, then saves the snapshot. Otherwise the snapshot
+  // would be updated before the migration runs, and the next generation
+  // would not detect any diff (the snapshot already matches the spec).
+  const saveSnapshot = args.includes('--save-snapshot');
+  if (saveSnapshot) {
+    const spec = readSpecFile(extensionName, extensionsDir);
+    const newSnapshot = buildFullSnapshot(extensionName, spec);
+    await writeSnapshotToDb(ds, newSnapshot);
+    // eslint-disable-next-line no-console
+    console.log(
+      `[MigrationGenerator] Persisted snapshot for "${extensionName}" (version ${newSnapshot.version}).`,
+    );
+  } else {
+    // eslint-disable-next-line no-console
+    console.log(
+      `[MigrationGenerator] Snapshot NOT saved. Run with --save-snapshot after migrating, ` +
+        `or run \`pnpm spec:snapshot-save ${extensionName}\`.`,
+    );
+  }
+
+  await ds.destroy();
 }
 
 // Run main only when executed directly (not when imported)
