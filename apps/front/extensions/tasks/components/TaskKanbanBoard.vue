@@ -67,7 +67,10 @@ watch(
 // ─── User resolution ──────────────────────────────────────────────────
 const userMap = computed<Record<number, UserLight>>(() => {
   const m: Record<number, UserLight> = {};
-  for (const u of props.users) m[u.id] = u;
+  const users = props.users ?? [];
+  if (Array.isArray(users)) {
+    for (const u of users) m[u.id] = u;
+  }
   return m;
 });
 

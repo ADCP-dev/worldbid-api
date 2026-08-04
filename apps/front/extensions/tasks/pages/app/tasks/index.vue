@@ -115,6 +115,7 @@ onMounted(async () => {
 
     <!-- Kanban board -->
     <TaskKanbanBoard
+      v-if="!loading || tasks.length > 0"
       :tasks="tasks"
       :users="users"
       :loading="loading"
@@ -123,5 +124,8 @@ onMounted(async () => {
       @edit="(id: number) => navigateTo(`/app/tasks/${id}/edit`)"
       @add="onAdd"
     />
+    <div v-else class="flex-1 flex items-center justify-center">
+      <span class="loading loading-spinner loading-lg text-primary"></span>
+    </div>
   </div>
 </template>
