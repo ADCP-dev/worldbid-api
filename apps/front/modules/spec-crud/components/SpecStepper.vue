@@ -37,7 +37,7 @@
  * Tailwind 4 / DaisyUI 5 themes in this project, so we use explicit classes
  * that match the project's design tokens).
  */
-import { computed, useSlots } from 'vue'
+import { computed, ref, useSlots } from 'vue'
 import type { Ref } from 'vue'
 import type { SpecStep } from '../composables/useSpecStepper'
 
@@ -102,6 +102,13 @@ const canNext = computed(() =>
 )
 const stepErrors = computed(() => props.stepper.stepErrors.value)
 
+/**
+ * Only surface the "please fix highlighted fields" alert AFTER the user
+ * has attempted to advance (clicked Next). Before that, showing the alert
+ * is noise — the user hasn't tried to move on yet.
+ */
+const hasAttemptedNext = ref(false)
+
 /** Whether a named #step-{i} slot exists for step i. */
 function hasStepSlot(i: number): boolean {
   const name = `step-${i}`
@@ -135,6 +142,7 @@ function onStepClick(i: number) {
 
 function onNext() {
   if (props.disabled) return
+  hasAttemptedNext.value = true
   const ok = props.stepper.next()
   if (ok) emit('advance', currentStep.value)
 }
@@ -142,6 +150,9 @@ function onNext() {
 function onPrev() {
   if (props.disabled) return
   props.stepper.prev()
+  // Going back clears the "attempted" flag so the alert doesn't linger
+  // on the previous step.
+  hasAttemptedNext.value = false
   emit('back', currentStep.value)
 }
 
@@ -215,9 +226,9 @@ function stepIcon(step: SpecStep, i: number): string {
       </li>
     </ol>
 
-    <!-- Step errors (current step) -->
+    <!-- Step errors (current step) — only after the user attempts Next -->
     <div
-      v-if="Object.keys(stepErrors).length > 0"
+      v-if="hasAttemptedNext && Object.keys(stepErrors).length > 0"
       class="alert alert-warning mb-4"
       role="alert"
     >

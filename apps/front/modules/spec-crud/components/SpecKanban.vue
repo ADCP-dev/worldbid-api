@@ -262,7 +262,10 @@ function rowValue(row: Record<string, unknown>, field: FieldSpec | undefined): u
   return row[field.name]
 }
 
-/** Build a KanbanAssignee from a raw assigneeId via the ref resolver. */
+/** Build a KanbanAssignee from a raw assigneeId via the ref resolver.
+ *  Only `name` and `avatarUrl` are surfaced as visible card content; the
+ *  email is passed for the tooltip but the role is omitted when blank so
+ *  the tooltip doesn't render a trailing " · " separator. */
 function assigneeFor(row: Record<string, unknown>): KanbanAssignee | undefined {
   const f = assigneeField.value
   const res = f ? refResource(f) : undefined
@@ -274,6 +277,9 @@ function assigneeFor(row: Record<string, unknown>): KanbanAssignee | undefined {
     id: String(id),
     name: disp.label,
     email: disp.subLabel ?? '',
+    // Omit the role segment when blank — the base UserAvatar joins
+    // name/email/role with " · " and an empty role produces a dangling
+    // separator ("Super · admin@example.com · ").
     role: '',
     avatarUrl: disp.avatarUrl,
   }
@@ -435,7 +441,7 @@ const misconfigured = computed(() => {
     </div>
 
     <!-- Board: base Kanban component (no wrapper border; columns own their bg) -->
-    <div v-else class="flex-1 min-h-0 rounded-lg border border-base-200 bg-base-100 overflow-hidden">
+    <div v-else class="kanban-board flex-1 min-h-0 rounded-lg border border-base-200 bg-base-100 overflow-hidden">
       <Kanban
         :tasks="tasks"
         :states="columns"
@@ -459,3 +465,26 @@ const misconfigured = computed(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+/* ────────────────────────────────────────────────────────────────────
+ * Card & column visual overrides for the base Kanban component.
+ *
+ * The base `@base/ui-app/kanban/KanbanCard.vue` renders `.card.card-compact`
+ * and `KanbanColumn.vue` wraps cards in a `flex flex-col gap-2` body.
+ * These scoped `:deep()` rules tighten spacing, add a clearer border +
+ * rounded corners, and give cards a hover shadow — without modifying the
+ * shared base component. Scoped under `.kanban-board` so they don't leak.
+ * ──────────────────────────────────────────────────────────────────── */
+:deep(.kanban-board .card.card-compact) {
+  margin-bottom: 0.5rem;
+  padding: 0.75rem;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  border: 1px solid oklch(0.92 0 0.01 / 0.5);
+  border-radius: 0.5rem;
+  transition: box-shadow 0.15s;
+}
+:deep(.kanban-board .card.card-compact:hover) {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+</style>

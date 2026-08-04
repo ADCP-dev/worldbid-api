@@ -319,6 +319,33 @@ watch(search, () => {
 function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1)
 }
+
+/**
+ * Convert a camelCase / snake_case field name into a human-readable label
+ * (mirrors SpecFieldInput.humanizeLabel) for table headers / inline labels.
+ */
+function humanizeLabel(name: string): string {
+  const SPECIAL: Record<string, string> = {
+    apiKey: 'API Key',
+    coverImage: 'Cover Image',
+  }
+  if (SPECIAL[name]) return SPECIAL[name]
+  const spaced = name
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[-_]/g, ' ')
+    .trim()
+  const words = spaced.split(/\s+/)
+  if (words.length > 1 && /Id$/i.test(words[words.length - 1])) {
+    words[words.length - 1] = words[words.length - 1].replace(/Id$/i, '')
+    if (words[words.length - 1] === '') words.pop()
+  }
+  return words.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+}
+
+/** Label for a field: spec-defined label wins, else humanizeLabel(name). */
+function labelFor(field: FieldSpec): string {
+  return field.label ?? humanizeLabel(field.name)
+}
 </script>
 
 <template>
@@ -478,44 +505,40 @@ function capitalize(s: string): string {
       </div>
     </div>
 
-    <!-- ═══ GENERIC list view (non-timeline resources) ═══ -->
+    <!-- ═══ GENERIC view: actual <table> with listable fields as columns ═══ -->
     <div v-else class="card bg-base-100 border border-base-200 rounded-lg shadow-sm overflow-hidden">
-      <ul class="divide-y divide-base-200">
-        <li
-          v-for="row in accumulated"
-          :key="rowId(row)"
-          class="px-4 py-3 cursor-pointer hover:bg-base-200/50 transition-colors"
-          @click="onClick(row)"
-        >
-          <a class="flex flex-wrap items-center gap-x-4 gap-y-1">
-            <!-- Title field -->
-            <span
-              v-if="titleField"
-              class="font-semibold text-base-content min-w-[10rem] flex-1 truncate"
+      <div class="overflow-x-auto">
+        <table class="table table-sm table-zebra">
+          <thead>
+            <tr class="border-b border-base-200">
+              <th
+                v-for="field in listFields"
+                :key="field.name"
+                class="bg-base-200/50 text-xs font-medium text-base-content/60 tracking-wide"
+              >
+                {{ labelFor(field) }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="row in accumulated"
+              :key="rowId(row)"
+              class="hover cursor-pointer"
+              @click="onClick(row)"
             >
-              <SpecFieldRenderer
-                :value="row[titleField.name]"
-                :field="titleField"
-                :row="row"
-              />
-            </span>
-
-            <!-- Inline fields -->
-            <span
-              v-for="field in inlineFields"
-              :key="field.name"
-              class="text-sm text-base-content/70 inline-flex items-center gap-1"
-            >
-              <span class="opacity-50">{{ field.label ?? capitalize(field.name) }}:</span>
-              <SpecFieldRenderer
-                :value="row[field.name]"
-                :field="field"
-                :row="row"
-              />
-            </span>
-          </a>
-        </li>
-      </ul>
+              <td v-for="field in listFields" :key="field.name" class="align-middle px-4 py-2">
+                <SpecFieldRenderer :value="row[field.name]" :field="field" :row="row" />
+              </td>
+            </tr>
+            <tr v-if="!accumulated.length">
+              <td :colspan="listFields.length" class="h-24 text-center text-base-content/50">
+                No results.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
       <!-- Footer: count + load more -->
       <div class="flex flex-wrap items-center justify-between gap-3 p-3 border-t border-base-200">

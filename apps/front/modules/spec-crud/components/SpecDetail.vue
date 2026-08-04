@@ -258,8 +258,82 @@ function onBack() {
 
 /* ---------------- Helpers ---------------- */
 
-function capitalize(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1)
+/**
+ * Convert a camelCase / snake_case field name into a human-readable label
+ * (mirrors SpecFieldInput.humanizeLabel). Used for the detail-view <dt>
+ * labels so "assigneeId" renders as "Assignee" instead of "ASSIGNEEID".
+ */
+function humanizeLabel(name: string): string {
+  const SPECIAL: Record<string, string> = {
+    apiKey: 'API Key',
+    coverImage: 'Cover Image',
+  }
+  if (SPECIAL[name]) return SPECIAL[name]
+  const spaced = name
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[-_]/g, ' ')
+    .trim()
+  const words = spaced.split(/\s+/)
+  if (words.length > 1 && /Id$/i.test(words[words.length - 1])) {
+    words[words.length - 1] = words[words.length - 1].replace(/Id$/i, '')
+    if (words[words.length - 1] === '') words.pop()
+  }
+  return words.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+}
+
+/** Label for a field: spec-defined label wins, else humanizeLabel(name). */
+function labelFor(field: FieldSpec): string {
+  return field.label ?? humanizeLabel(field.name)
+}
+
+/**
+ * True when the field carries a non-empty value. Null, undefined, empty
+ * string, empty object ("{}") and empty array all count as empty.
+ */
+function hasFieldValue(field: FieldSpec, row: Record<string, unknown>): boolean {
+  const v = row[field.name]
+  if (v === null || v === undefined) return false
+  if (typeof v === 'string' && v.trim() === '') return false
+  if (typeof v === 'object' && !Array.isArray(v)) {
+    return Object.keys(v as Record<string, unknown>).length > 0
+  }
+  if (Array.isArray(v) && v.length === 0) return false
+  return true
+}
+
+/**
+ * Whether the field should render in the detail view. Empty fields are
+ * skipped, EXCEPT required fields (which always render so the user can
+ * see what's missing — they show a muted "—" placeholder).
+ */
+function shouldShowField(field: FieldSpec, row: Record<string, unknown>): boolean {
+  if (field.required) return true
+  return hasFieldValue(field, row)
+}
+
+/** True when the field's value is considered "empty" for display. */
+function isEmptyField(field: FieldSpec, row: Record<string, unknown>): boolean {
+  return !hasFieldValue(field, row)
+}
+
+/**
+ * For decimal/number fields whose name suggests a unit (hours, minutes,
+ * seconds), format the raw number with the unit suffix ("4.00" → "4h").
+ * Returns null when no unit hint applies (caller falls back to the
+ * SpecFieldRenderer). This is a display hint only — it doesn't change the
+ * stored value.
+ */
+function maybeUnitValue(field: FieldSpec, row: Record<string, unknown>): string | null {
+  if (field.type !== 'decimal' && field.type !== 'float' && field.type !== 'number' && field.type !== 'integer') return null
+  const v = row[field.name]
+  if (v === null || v === undefined || v === '') return null
+  const num = Number(v)
+  if (Number.isNaN(num)) return null
+  const n = field.name.toLowerCase()
+  if (n.includes('hour')) return `${Number(num.toFixed(2))}h`
+  if (n.includes('minute')) return `${num}m`
+  if (n.includes('second')) return `${num}s`
+  return null
 }
 
 // silence unused refetch (kept for forward-compat manual refresh)
@@ -350,14 +424,21 @@ void refetch
             <div
               v-for="field in group.fields"
               :key="field.name"
+              v-show="shouldShowField(field, row)"
               class="flex flex-col gap-1"
             >
-              <dt class="text-xs font-medium text-base-content/50 uppercase tracking-wider">
-                {{ field.label ?? capitalize(field.name) }}
+              <dt class="text-xs font-medium text-base-content/50 tracking-wide">
+                {{ labelFor(field) }}
               </dt>
               <dd class="text-sm text-base-content">
+              <!-- Empty value (required field with no data) → muted placeholder -->
+              <span
+                v-if="isEmptyField(field, row)"
+                class="text-base-content/30"
+              >—</span>
+
               <!-- Secret field: masked with toggle -->
-              <template v-if="isSecretField(field)">
+              <template v-else-if="isSecretField(field)">
                 <span class="inline-flex items-center gap-2 font-mono">
                   <span>{{ secretDisplayValue(field) }}</span>
                   <button
@@ -368,6 +449,11 @@ void refetch
                     {{ revealed[field.name] ? 'Hide' : 'Show' }}
                   </button>
                 </span>
+              </template>
+
+              <!-- Decimal/integer field with a unit hint (hours/minutes/seconds) -->
+              <template v-else-if="maybeUnitValue(field, row) !== null">
+                <span>{{ maybeUnitValue(field, row) }}</span>
               </template>
 
               <!-- Regular field: SpecFieldRenderer -->

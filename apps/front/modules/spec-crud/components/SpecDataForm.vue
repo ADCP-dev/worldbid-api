@@ -21,6 +21,28 @@ const props = defineProps<{
   id?: string | number
 }>()
 
+/**
+ * Best-effort singularization of a route resource name:
+ *   "tasks"        → "Task"
+ *   "task-comments"→ "Task Comment"
+ *   "users"        → "User"
+ * Handles the common English plural suffixes (s, es, ies). Falls back
+ * to title-casing the input when no rule matches. Used only when the
+ * spec doesn't declare `displayName` or `ui.singular`.
+ */
+function singularize(name: string): string {
+  const words = name.split(/[-_]/).map((w) => {
+    if (/ies$/i.test(w)) return w.slice(0, -3) + 'y'
+    if (/sses$/i.test(w)) return w.slice(0, -2) // "classes" → "class"
+    if (/es$/i.test(w) && !/(s|ss|ch|sh|x|z)es$/i.test(w)) return w.slice(0, -2)
+    if (/s$/i.test(w) && !/ss$/i.test(w)) return w.slice(0, -1)
+    return w
+  })
+  return words
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ')
+}
+
 const specCrud = useSpecResource()
 const router = useRouter()
 
@@ -378,7 +400,12 @@ function switchToFirstInvalidTab(): boolean {
  * ------------------------------------------------------------------ */
 
 const title = computed(() => {
-  const singular = spec.value?.ui?.singular ?? props.resource
+  // Prefer the spec's displayName (singular, human-readable) → then
+  // ui.singular → then a singularized version of the route resource.
+  const singular =
+    spec.value?.displayName ??
+    spec.value?.ui?.singular ??
+    singularize(props.resource)
   return props.mode === 'create' ? `New ${singular}` : `Edit ${singular}`
 })
 

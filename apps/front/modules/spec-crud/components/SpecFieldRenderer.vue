@@ -91,10 +91,51 @@ const fullDate = computed(() => {
 })
 
 /* ---------- badge ---------- */
+/**
+ * Map a spec color value (hex string or bare token) to a DaisyUI badge
+ * color class. The spec stores colors as hex (e.g. "#22c55e") which are
+ * NOT valid CSS classes, so we translate them to the matching DaisyUI
+ * token. Bare token names ("success", "warning", …) pass through.
+ */
+const HEX_TO_BADGE: Record<string, string> = {
+  '#22c55e': 'badge-success',
+  '#f59e0b': 'badge-warning',
+  '#3b82f6': 'badge-info',
+  '#8b5cf6': 'badge-primary',
+  '#ef4444': 'badge-error',
+  '#6b7280': 'badge-ghost',
+  // bare token names
+  success: 'badge-success',
+  warning: 'badge-warning',
+  info: 'badge-info',
+  primary: 'badge-primary',
+  error: 'badge-error',
+  neutral: 'badge-ghost',
+  ghost: 'badge-ghost',
+}
 const badgeClass = computed(() => {
   const colors = ui.value.colors ?? {}
   const key = String(props.value)
-  return colors[key] ?? 'badge-ghost'
+  const raw = colors[key]
+  if (!raw) return 'badge-ghost'
+  return HEX_TO_BADGE[String(raw).toLowerCase()] ?? 'badge-ghost'
+})
+
+/** Title-case an enum value for display: "in_progress" → "In Progress",
+ *  "done" → "Done". Leaves non-enum values untouched. */
+function titleCaseEnum(value: unknown): string {
+  const s = String(value ?? '')
+  return s
+    .split(/[-_ ]/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ')
+}
+const badgeText = computed(() => {
+  // Only humanize when this is an enum field (the badge display mode is
+  // used for enum fields with a colors map).
+  if (props.field.enum?.length) return titleCaseEnum(props.value)
+  return displayText.value
 })
 
 /* ---------- avatar ---------- */
@@ -160,6 +201,21 @@ const jsonDisplay = computed(() => {
     return String(props.value)
   }
 })
+/** True when the json value is empty ("{}" or null/undefined). Used to
+ *  render a muted "—" placeholder instead of a literal "{}" block. */
+const isEmptyJson = computed(() => {
+  if (!isJson.value) return false
+  if (props.value === null || props.value === undefined) return true
+  if (typeof props.value === 'string') {
+    const trimmed = props.value.trim()
+    return trimmed === '' || trimmed === '{}' || trimmed === '[]'
+  }
+  if (typeof props.value === 'object') {
+    if (Array.isArray(props.value)) return props.value.length === 0
+    return Object.keys(props.value as Record<string, unknown>).length === 0
+  }
+  return false
+})
 
 /* ---------- boolean ---------- */
 const isBoolean = computed(() => props.field.type === 'boolean')
@@ -167,9 +223,13 @@ const isBoolean = computed(() => props.field.type === 'boolean')
 
 <template>
   <span class="inline-flex items-center gap-1.5">
-    <!-- json: pretty-printed in a pre/code block (by field type, not display) -->
+    <!-- json: empty → muted placeholder; otherwise pretty-printed -->
+    <span
+      v-if="isJson && isEmptyJson"
+      class="text-base-content/30"
+    >—</span>
     <pre
-      v-if="isJson && jsonDisplay"
+      v-else-if="isJson && jsonDisplay"
       class="text-xs bg-base-200 rounded p-2 overflow-x-auto max-w-md font-mono"
     ><code>{{ jsonDisplay }}</code></pre>
 
@@ -200,7 +260,7 @@ const isBoolean = computed(() => props.field.type === 'boolean')
       class="badge badge-sm"
       :class="badgeClass"
     >
-      {{ displayText }}
+      {{ badgeText }}
     </span>
 
     <!-- date -->

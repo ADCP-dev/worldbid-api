@@ -213,8 +213,41 @@ const resolvedType = computed(() => {
   return 'string'
 })
 
-const fieldLabel = computed(() => props.field.label ?? props.field.name)
-const fieldPlaceholder = computed(() => ui.value.placeholder ?? props.field.label ?? props.field.name)
+/**
+ * Convert a camelCase / snake_case field name into a human-readable label.
+ *  - split camelCase boundaries ("dueDate" → "Due Date")
+ *  - split on - _ and capitalize each word
+ *  - drop a trailing "Id" suffix ("assigneeId" → "Assignee")
+ *  - special-case acronyms ("apiKey" → "API Key")
+ */
+function humanizeLabel(name: string): string {
+  const SPECIAL: Record<string, string> = {
+    apiKey: 'API Key',
+    coverImage: 'Cover Image',
+  }
+  if (SPECIAL[name]) return SPECIAL[name]
+  // split camelCase: insert space before uppercase letters preceded by lowercase/digit
+  const spaced = name
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[-_]/g, ' ')
+    .trim()
+  const words = spaced.split(/\s+/).map((w) => {
+    if (w.length === 0) return w
+    // strip a trailing "Id" suffix on the last word
+    return w
+  })
+  // drop a trailing "Id" word
+  if (words.length > 1 && /Id$/i.test(words[words.length - 1])) {
+    words[words.length - 1] = words[words.length - 1].replace(/Id$/i, '')
+    if (words[words.length - 1] === '') words.pop()
+  }
+  return words
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ')
+}
+
+const fieldLabel = computed(() => props.field.label ?? humanizeLabel(props.field.name))
+const fieldPlaceholder = computed(() => ui.value.placeholder ?? fieldLabel.value)
 
 const selectValue = computed({
   get: () => props.modelValue as string | number | undefined,
@@ -505,9 +538,6 @@ watch(
       :label="fieldLabel"
       :disabled="field.readOnly"
     />
-    <p v-if="helpText && resolvedType === 'json'" class="text-xs text-base-content/60 mt-1">
-      {{ helpText }}
-    </p>
 
     <!-- ── New: password / secret → FormPassword ── -->
     <FormPassword
@@ -559,9 +589,6 @@ watch(
       :disabled="field.readOnly"
       :error="error"
     />
-    <p v-if="helpText && resolvedType === 'toggle-group'" class="text-xs text-base-content/60 mt-1">
-      {{ helpText }}
-    </p>
 
     <!-- ── New: integer + ui.formInput='weekday-picker' → WeekdayPicker ──
          Stores ISO day numbers (0=Sun..6=Sat) as integer[]. -->
@@ -571,9 +598,6 @@ watch(
       :label="fieldLabel"
       :disabled="field.readOnly"
     />
-    <p v-if="helpText && resolvedType === 'weekday-picker'" class="text-xs text-base-content/60 mt-1">
-      {{ helpText }}
-    </p>
 
     <!-- ── New: integer + ui.formInput='time-window' → TimeWindowPicker ──
          Stores {start: 'HH:mm', end: 'HH:mm', timezone: 'UTC'} object. -->
@@ -584,9 +608,6 @@ watch(
       :disabled="field.readOnly"
       :error="error"
     />
-    <p v-if="helpText && resolvedType === 'time-window'" class="text-xs text-base-content/60 mt-1">
-      {{ helpText }}
-    </p>
 
     <!-- computed (read-only) -->
     <div v-else-if="resolvedType === 'computed'" class="form-control w-full">
@@ -613,5 +634,15 @@ watch(
       :disabled="field.readOnly"
       :error="error"
     />
+
+    <!-- Help text for components that don't accept a :description prop
+         (json, toggle-group, weekday-picker, time-window). Rendered AFTER
+         the v-if/v-else-if/v-else chain so it doesn't break the chain. -->
+    <p
+      v-if="helpText && ['json', 'toggle-group', 'weekday-picker', 'time-window'].includes(resolvedType)"
+      class="text-xs text-base-content/60 mt-1"
+    >
+      {{ helpText }}
+    </p>
   </div>
 </template>
