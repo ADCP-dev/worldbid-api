@@ -920,7 +920,7 @@ function main(): void {
   }
 
   const extensionName = args[0];
-  const extensionsDir = args[1] ?? path.resolve(process.cwd(), 'extensions');
+  const extensionsDir = args[1] ?? path.resolve(process.cwd(), 'src/extensions');
   const migrationsDir =
     args[2] ??
     path.resolve(process.cwd(), 'src/infrastructure/database/migrations');
