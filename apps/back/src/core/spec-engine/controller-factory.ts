@@ -68,19 +68,26 @@ import { SpecAuditLogger } from './spec-engine-audit';
 import { ComputedFieldResolver } from './spec-engine-computed';
 import { OutboundWebhookDispatcher } from './spec-engine-outbound-webhooks';
 import { SpecScheduledActionManager } from './spec-engine-scheduled-actions';
+import { RoleRegistry } from './role-registry';
 
-// Role name → RoleEnum value map
+// Role name → RoleEnum value map. Built-in roles resolve via RoleRegistry so
+// custom roles (manager) declared in ExtensionSpec.roles are honored.
 const BUILTIN_ROLE_MAP: Record<string, number | null> = {
   admin: RoleEnum.admin,
   user: RoleEnum.customer,
   public: null,
 };
 
-// Free function for role resolution (used inside dynamic controller class)
+// Free function for role resolution (used inside dynamic controller class).
+// Consults RoleRegistry so custom roles (e.g. 'manager') resolve to their DB
+// role id instead of being dropped (BUG #8).
 function resolveRolesArray(roles: PermissionRole[]): number[] {
-  return roles
-    .map((r) => BUILTIN_ROLE_MAP[r])
-    .filter((r): r is number => r !== null);
+  const out: number[] = [];
+  for (const r of roles) {
+    const id = RoleRegistry.resolveId(r);
+    if (id !== null) out.push(id);
+  }
+  return out;
 }
 
 // Parse and validate a numeric ID from a route param.
@@ -97,7 +104,8 @@ export interface MaterializedController {
 
 export interface ControllerFactoryParams {
   spec: ResourceSpec;
-  entitySchemaName: string;
+  /** The EntitySchema instance (preferred over a name string so getRepositoryToken resolves correctly). */
+  entitySchema: EntitySchema<any>;
   extensionDir: string;
   hookExecutor: HookExecutor;
   notificationDispatcher: NotificationDispatcher;
@@ -121,7 +129,7 @@ export class ControllerFactory {
   static create(params: ControllerFactoryParams): MaterializedController {
     const {
       spec,
-      entitySchemaName,
+      entitySchema,
       extensionDir,
       hookExecutor,
       notificationDispatcher,
@@ -135,7 +143,14 @@ export class ControllerFactory {
     const routePath = this.pluralize(resourceName);
     const createSchema = ValidationFactory.createCreateSchema(spec);
     const updateSchema = ValidationFactory.createUpdateSchema(spec);
-    const diToken = getRepositoryToken(entitySchemaName as any);
+    // Derive the DI token from the EntitySchema (not a name string) so
+    // getRepositoryToken() resolves via the EntitySchema branch. The string
+    // branch returns "undefinedRepository" because strings have no `.name`.
+    const entitySchemaName =
+      (entitySchema.options as any).target?.name ??
+      (entitySchema.options as any).name ??
+      resourceName;
+    const diToken = getRepositoryToken(entitySchema);
 
     const isTransactional = spec.transactional !== false;
     const manyToManyFields = spec.fields.filter(
@@ -420,15 +435,12 @@ export class ControllerFactory {
       }
 
       private roleIdToName(roleId: number | undefined): string {
-        switch (roleId) {
-          case RoleEnum.admin:
-            return 'admin';
-          case RoleEnum.customer:
-            return 'customer';
-          // Custom roles resolved by name from spec registry
-          default:
-            return '__denied__'; // Fail closed for unknown roles
-        }
+        // Delegate to RoleRegistry so:
+        //   - customer (2) maps to 'user' (spec permission vocabulary), NOT
+        //     'customer' (BUG #4) — so rowLevel['user'] matches.
+        //   - custom roles (manager) resolve via the registry's DB-backed map
+        //     (BUG #8) instead of failing closed.
+        return RoleRegistry.resolveName(roleId);
       }
 
       // ─── GET / ──────────────────────────────────────────
@@ -1598,12 +1610,16 @@ export class ControllerFactory {
   }
 
   /**
-   * Convert permission role names to RoleEnum values
+   * Convert permission role names to RoleEnum values.
+   * Uses RoleRegistry so custom roles (manager) resolve to their DB id.
    */
   private static resolveRoles(roles: PermissionRole[]): number[] {
-    return roles
-      .map((r) => BUILTIN_ROLE_MAP[r])
-      .filter((r): r is number => r !== null);
+    const out: number[] = [];
+    for (const r of roles) {
+      const id = RoleRegistry.resolveId(r);
+      if (id !== null) out.push(id);
+    }
+    return out;
   }
 
   /**

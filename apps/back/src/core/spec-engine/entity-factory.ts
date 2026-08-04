@@ -58,12 +58,14 @@ export class EntityFactory {
           columns[field.name].default = field.default;
         }
 
-        // Create the relation (many-to-one)
-        // The relation target is the resource name, which maps to
-        // an EntitySchema with that name. For Foundation entities like 'user',
-        // the registered entity name is 'User' (capitalized).
+        // Create the relation (many-to-one).
+        // The relation target is the resource name verbatim. Foundation
+        // entities use lowercase @Entity names (e.g. UserEntity is
+        // `@Entity({ name: 'user' })`), and spec EntitySchemas are built with
+        // `name: spec.name` (also lowercase). Do NOT capitalize — TypeORM
+        // resolves the target by the exact registered entity name.
         const relationName = this.fieldToRelationName(field.name);
-        const refTarget = field.ref === 'user' ? 'User' : field.ref!;
+        const refTarget = field.ref!;
         relations[relationName] = {
           type: 'many-to-one',
           target: () => refTarget as any,
@@ -86,7 +88,7 @@ export class EntityFactory {
         joinTableSchemas.push(joinSchema);
 
         const relationName = this.fieldToRelationName(field.name);
-        const refTarget = field.ref === 'user' ? 'User' : field.ref!;
+        const refTarget = field.ref!;
         const joinColumnName = field.throughFields?.from ?? `${spec.name}Id`;
         const inverseJoinColumnName =
           field.throughFields?.to ??
@@ -100,6 +102,11 @@ export class EntityFactory {
             inverseJoinColumn: { name: inverseJoinColumnName },
           },
         };
+      } else if (field.type === 'computed') {
+        // Computed fields are virtual — they are resolved at read time by
+        // ComputedFieldResolver and never stored as columns. Skip column
+        // creation entirely.
+        continue;
       } else {
         columns[field.name] = this.createColumnOptions(field);
       }
@@ -171,7 +178,7 @@ export class EntityFactory {
     const toCol =
       field.throughFields?.to ??
       `${this.fieldToRelationName(field.ref ?? field.name)}Id`;
-    const targetRef = field.ref === 'user' ? 'User' : field.ref!;
+    const targetRef = field.ref!;
 
     const columns: Record<string, EntitySchemaColumnOptions> = {
       [fromCol]: { type: Number, primary: true },

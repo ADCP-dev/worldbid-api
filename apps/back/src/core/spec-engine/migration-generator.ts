@@ -38,6 +38,7 @@ import type {
   FieldSpec,
   FieldType,
 } from './spec.types';
+import { SpecLoader } from './spec-loader';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -83,6 +84,8 @@ export interface MigrationStatement {
   up: string;
   down: string;
   description: string;
+  /** Deferred FK specs (populated by buildCreateTable, consumed by generator). */
+  deferredFkSpecs?: Array<{ column: string; targetTable: string; onDelete: string }>;
 }
 
 export interface GenerationResult {
@@ -110,6 +113,13 @@ const FIELD_TYPE_TO_SQL: Record<FieldType, string> = {
   file: 'character varying',
   computed: 'integer', // computed fields are not stored, but included for type completeness
   'many-to-many': 'integer', // many-to-many is stored in join table, not main table
+  // spec-engine-v2: password / secret are plain varchar columns (same as
+  // `string` and `file`). Hashing is the auth module's downstream concern.
+  // These entries are required for the Record<FieldType, string> to be
+  // exhaustive after `password` / `secret` were added to the FieldType union.
+  // No behavior change for pre-change field types.
+  password: 'character varying(255)',
+  secret: 'character varying(255)',
 };
 
 /**
@@ -127,6 +137,37 @@ function constraintName(prefix: string, table: string, column: string): string {
   // Pad to 40 chars to mimic TypeORM's SHA1-style names
   const padded = (hex + '0'.repeat(40)).slice(0, 40);
   return `${prefix}_${padded}`;
+}
+
+/**
+ * Resolve a `ref` target name to its physical table name.
+ *
+ * Foundation built-in entities:
+ *   - `user` → `"user"` (UserEntity, @Entity({ name: 'user' }))
+ *   - `role` → `"role"`
+ *   - `file` → `"file"`
+ *
+ * Spec resources:
+ *   - resolved via the resourceMap (e.g. `task` → `ext_tasks_task`)
+ *
+ * Returns null if the target cannot be resolved (caller skips the FK).
+ */
+function resolveRefTable(
+  ref: string,
+  resourceMap: Map<string, ResourceSpec>,
+): string | null {
+  // Foundation built-ins (lowercase entity names)
+  const BUILTIN_ENTITY_TABLES: ReadonlyMap<string, string> = new Map([
+    ['user', 'user'],
+    ['role', 'role'],
+    ['file', 'file'],
+    ['session', 'session'],
+    ['api_key', 'api_key'],
+  ]);
+  const builtin = BUILTIN_ENTITY_TABLES.get(ref);
+  if (builtin) return builtin;
+  const target = resourceMap.get(ref);
+  return target?.table ?? null;
 }
 
 function primaryKeyConstraintName(table: string): string {
@@ -250,8 +291,16 @@ function buildAuditColumns(spec: ResourceSpec): ColumnDef[] {
 
 /**
  * Build a CREATE TABLE statement (up) + DROP TABLE (down) for a resource.
+ *
+ * @param spec  The resource spec
+ * @param resourceMap  Optional map of all resource specs (for resolving FK
+ *   target tables). When provided, `ref` fields emit FOREIGN KEY
+ *   constraints and `enum` fields emit CHECK constraints.
  */
-function buildCreateTable(spec: ResourceSpec): MigrationStatement {
+function buildCreateTable(
+  spec: ResourceSpec,
+  resourceMap?: Map<string, ResourceSpec>,
+): MigrationStatement {
   const table = `"${spec.table}"`;
 
   // id column: SERIAL integer PK (matches Foundation convention for extension tables)
@@ -273,12 +322,56 @@ function buildCreateTable(spec: ResourceSpec): MigrationStatement {
     }
   }
 
+  // Foreign key constraints for `ref` fields (BUG #7 fix).
+  // NOTE: FKs that reference other spec-resource tables (e.g. task-activity →
+  // task) are emitted as separate ALTER TABLE statements AFTER all CREATE
+  // TABLEs, to avoid ordering issues when the referenced table doesn't exist
+  // yet. FKs to Foundation built-ins (user, role, file) are safe inline
+  // because those tables already exist. We collect both here and split below.
+  const inlineFkConstraints: string[] = [];
+  const deferredFkSpecs: Array<{ column: string; targetTable: string; onDelete: string }> = [];
+  if (resourceMap) {
+    for (const f of spec.fields) {
+      if (f.type !== 'ref' || !f.ref) continue;
+      const targetTable = resolveRefTable(f.ref, resourceMap);
+      if (!targetTable) continue;
+      const onDelete = f.refOnDelete ?? 'RESTRICT';
+      // If the target is a spec-resource table (in resourceMap), defer the FK
+      // to an ALTER TABLE after all CREATE TABLEs. Otherwise (Foundation
+      // built-in like 'user'), inline is safe.
+      if (resourceMap.has(f.ref)) {
+        deferredFkSpecs.push({ column: f.name, targetTable, onDelete });
+      } else {
+        const cname = constraintName('FK', spec.table, f.name);
+        inlineFkConstraints.push(
+          `CONSTRAINT "${cname}" FOREIGN KEY ("${f.name}") REFERENCES "${targetTable}" ("id") ON DELETE ${onDelete}`,
+        );
+      }
+    }
+  }
+
+  // CHECK constraints for `enum` fields (BUG #7 fix)
+  const checkConstraints: string[] = [];
+  for (const f of spec.fields) {
+    if (f.type !== 'enum' || !f.enum || f.enum.length === 0) continue;
+    const cname = constraintName('CHK', spec.table, f.name);
+    const values = f.enum.map((v) => `'${v}'`).join(', ');
+    checkConstraints.push(
+      `CONSTRAINT "${cname}" CHECK ("${f.name}" IN (${values}))`,
+    );
+  }
+
   const allColumns = [
     idCol,
     ...fieldCols.map((c) => c.sql),
     ...auditCols.map((c) => c.sql),
   ];
-  const allConstraints = [pkConstraint, ...uniqueConstraints];
+  const allConstraints = [
+    pkConstraint,
+    ...uniqueConstraints,
+    ...inlineFkConstraints,
+    ...checkConstraints,
+  ];
   const columnSql = [...allColumns, ...allConstraints].join(', ');
 
   const up = `CREATE TABLE ${table} (${columnSql})`;
@@ -317,7 +410,35 @@ function buildCreateTable(spec: ResourceSpec): MigrationStatement {
     up: upFull,
     down,
     description: `Create table ${spec.table}`,
+    deferredFkSpecs,
   };
+}
+
+/**
+ * Build ALTER TABLE statements that add deferred FOREIGN KEY constraints
+ * (FKs between spec-resource tables, emitted after all CREATE TABLEs).
+ */
+function buildDeferredFkStatements(
+  specs: ResourceSpec[],
+  resourceMap: Map<string, ResourceSpec>,
+): MigrationStatement[] {
+  const statements: MigrationStatement[] = [];
+  for (const spec of specs) {
+    for (const f of spec.fields) {
+      if (f.type !== 'ref' || !f.ref) continue;
+      if (!resourceMap.has(f.ref)) continue; // only spec-resource FKs
+      const targetTable = resolveRefTable(f.ref, resourceMap);
+      if (!targetTable) continue;
+      const cname = constraintName('FK', spec.table, f.name);
+      const onDelete = f.refOnDelete ?? 'RESTRICT';
+      statements.push({
+        up: `ALTER TABLE "${spec.table}" ADD CONSTRAINT "${cname}" FOREIGN KEY ("${f.name}") REFERENCES "${targetTable}" ("id") ON DELETE ${onDelete}`,
+        down: `ALTER TABLE "${spec.table}" DROP CONSTRAINT "${cname}"`,
+        description: `Add FK ${spec.table}.${f.name} → ${targetTable}`,
+      });
+    }
+  }
+  return statements;
 }
 
 /**
@@ -606,32 +727,26 @@ function generateTimestamp(): string {
 // ─── Spec Loading ────────────────────────────────────────────────────────────
 
 /**
- * Find and read the .spec.yaml file for an extension.
+ * Find and read the merged spec for an extension.
+ *
+ * Uses `SpecLoader.load` which globs every `*.spec.yaml` in the extension dir
+ * (and immediate subdirectories) and merges split-spec files into a single
+ * ExtensionSpec via `mergeSpecs`. This fixes BUG #7: previously `readSpecFile`
+ * only read `files[0]`, so only the first spec file's resources became tables.
  */
 function readSpecFile(
   extensionName: string,
   extensionsDir: string,
 ): ExtensionSpec {
-  const extDir = path.join(extensionsDir, extensionName);
-  if (!fs.existsSync(extDir)) {
-    throw new Error(`Extension directory not found: ${extDir}`);
+  const loadedSpecs = SpecLoader.load(extensionsDir);
+  const found = loadedSpecs.find((l) => l.spec.name === extensionName);
+  if (!found) {
+    throw new Error(
+      `Extension "${extensionName}" not found in ${extensionsDir}` +
+        ` (loaded: ${loadedSpecs.map((l) => l.spec.name).join(', ') || 'none'})`,
+    );
   }
-
-  const files = fs
-    .readdirSync(extDir, { withFileTypes: true })
-    .filter((d) => d.isFile() && d.name.endsWith('.spec.yaml'))
-    .map((d) => path.join(extDir, d.name));
-
-  if (files.length === 0) {
-    throw new Error(`No .spec.yaml file found in ${extDir}`);
-  }
-
-  const raw = fs.readFileSync(files[0], 'utf-8');
-  const spec = yaml.load(raw) as ExtensionSpec;
-  if (!spec || !spec.name || !Array.isArray(spec.resources)) {
-    throw new Error(`Invalid spec in ${files[0]}: missing name or resources`);
-  }
-  return spec;
+  return found.spec;
 }
 
 // ─── Main Generator ──────────────────────────────────────────────────────────
@@ -663,6 +778,14 @@ export class MigrationGenerator {
     const spec = readSpecFile(extensionName, extensionsDir);
     const previous = options?.previousSnapshot;
 
+    // Build a resource name → ResourceSpec map so buildCreateTable can
+    // resolve `ref` targets to physical table names for FOREIGN KEY
+    // constraints (BUG #7 fix).
+    const resourceMap = new Map<string, ResourceSpec>();
+    for (const res of spec.resources) {
+      resourceMap.set(res.name, res);
+    }
+
     const statements: MigrationStatement[] = [];
     const createdTables: string[] = [];
     const alteredTables: string[] = [];
@@ -672,7 +795,7 @@ export class MigrationGenerator {
 
       if (!prevResource) {
         // New resource → CREATE TABLE
-        const stmt = buildCreateTable(resource);
+        const stmt = buildCreateTable(resource, resourceMap);
         statements.push(stmt);
         createdTables.push(resource.table);
         this.log(
@@ -703,6 +826,18 @@ export class MigrationGenerator {
         }
         this.log(`  🔗 ${change.description}`);
       }
+    }
+
+    // After all CREATE TABLEs, emit deferred FK constraints (ALTER TABLE
+    // ADD CONSTRAINT) for FKs between spec-resource tables. This avoids
+    // ordering issues when a referenced table is created later in the loop.
+    const deferredFkStatements = buildDeferredFkStatements(
+      spec.resources,
+      resourceMap,
+    );
+    for (const fkStmt of deferredFkStatements) {
+      statements.push(fkStmt);
+      this.log(`  🔗 ${fkStmt.description}`);
     }
 
     if (statements.length === 0) {

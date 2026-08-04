@@ -7,8 +7,18 @@ import FormSelect from '@base/ui-app/components/form/FormSelect.vue'
 import FormSearchSelect from '@base/ui-app/components/form/FormSearchSelect.vue'
 import FormSwitch from '@base/ui-app/components/form/FormSwitch.vue'
 import FormFile from '@base/ui-app/components/form/FormFile.vue'
+import FormMultipleFile from '@base/ui-app/components/form/FormMultipleFile.vue'
 import FormMultipleSelect from '@base/ui-app/components/form/FormMultipleSelect.vue'
 import FormDate from '@base/ui-app/components/form/FormDate.vue'
+import FormTime from '@base/ui-app/components/form/FormTime.vue'
+import FormPassword from '@base/ui-app/components/form/FormPassword.vue'
+import KeyValueEditor from '@base/ui-app/components/form/KeyValueEditor.vue'
+import NumericStepper from '@base/ui-app/components/form/NumericStepper.vue'
+import ToggleGroup from '@base/ui-app/components/form/ToggleGroup.vue'
+import WeekdayPicker from '@base/ui-app/components/form/WeekdayPicker.vue'
+import TimeWindowPicker from '@base/ui-app/components/form/TimeWindowPicker.vue'
+import type { ToggleOption } from '@base/ui-app/components/automation/types'
+import type { TimeWindow } from '@base/ui-app/components/scheduling/types'
 import { CalendarDate, type DateValue } from '@internationalized/date'
 
 const props = defineProps<{
@@ -144,15 +154,47 @@ const computedValue = computed(() => {
   return props.modelValue == null ? '' : String(props.modelValue)
 })
 
-/* ---------- field type mapping ---------- */
+/* ---------- help text (ui.helpText hint, rendered under any input) ---------- */
+const helpText = computed(() => ui.value.helpText)
+
+/* ---------- field type mapping ----------
+ * Priority:
+ *   1. ui.formInput wins when it picks a non-default renderer
+ *      (toggle-group, stepper, time, time-window, weekday-picker, switch,
+ *       radio, file-upload, select-async, datepicker, textarea, select)
+ *   2. else field.type picks the renderer (legacy + new types)
+ *
+ * New types added by spec-engine-v2 (Slice 2):
+ *   - json → KeyValueEditor
+ *   - password / secret → FormPassword
+ *   - time (datetime alias with ui.formInput='time') → FormTime
+ *   - file + ui.multiple=true → FormMultipleFile
+ *   - integer + ui.formInput='stepper' → NumericStepper
+ *   - enum + ui.formInput='toggle-group' → ToggleGroup (with icons)
+ *   - integer + ui.formInput='weekday-picker' → WeekdayPicker
+ *   - integer + ui.formInput='time-window' → TimeWindowPicker
+ *
+ * The 12 pre-change types remain intact (backward compat): a field that
+ * does not set a new formInput value nor a new type still resolves exactly
+ * as before.
+ */
 const resolvedType = computed(() => {
   const explicit = formInput.value
+  // ── explicit ui.formInput dispatch (highest priority) ──
   if (explicit === 'select-async') return 'select-async'
   if (explicit === 'file-upload') return 'file'
   if (explicit === 'datepicker') return 'datetime'
   if (explicit === 'textarea') return 'text'
   if (explicit === 'select') return 'enum'
+  if (explicit === 'time') return 'time'
+  if (explicit === 'toggle-group') return 'toggle-group'
+  if (explicit === 'stepper') return 'stepper'
+  if (explicit === 'weekday-picker') return 'weekday-picker'
+  if (explicit === 'time-window') return 'time-window'
+  if (explicit === 'switch') return 'boolean'
+  if (explicit === 'radio') return 'enum'
 
+  // ── field.type dispatch ──
   const backendType = props.field.type ?? 'string'
   if (['many-to-many', 'many_to_many', 'm2m'].includes(backendType)) return 'many-to-many'
   if (['computed'].includes(backendType)) return 'computed'
@@ -165,11 +207,14 @@ const resolvedType = computed(() => {
   if (['text'].includes(backendType)) return 'text'
   if (['enum'].includes(backendType)) return 'enum'
   if (['file', 'image', 'attachment'].includes(backendType)) return 'file'
+  // ── new types (Slice 2) ──
+  if (backendType === 'json') return 'json'
+  if (backendType === 'password' || backendType === 'secret') return 'password'
   return 'string'
 })
 
 const fieldLabel = computed(() => props.field.label ?? props.field.name)
-const fieldPlaceholder = computed(() => props.field.label ?? props.field.name)
+const fieldPlaceholder = computed(() => ui.value.placeholder ?? props.field.label ?? props.field.name)
 
 const selectValue = computed({
   get: () => props.modelValue as string | number | undefined,
@@ -180,6 +225,107 @@ const singleRefValue = computed({
   get: () => props.modelValue as string | number | undefined,
   set: (val) => emitValue(val === undefined ? undefined : val),
 })
+
+/* ---------- json / KeyValueEditor binding ---------- */
+const jsonValue = computed<Record<string, unknown>>({
+  get: () => {
+    const v = props.modelValue
+    if (v == null) return {}
+    if (typeof v === 'object' && !Array.isArray(v)) return v as Record<string, unknown>
+    // tolerate primitive defaults: wrap as empty
+    return {}
+  },
+  set: (val) => emitValue(val),
+})
+
+/* ---------- NumericStepper binding ---------- */
+const stepperValue = computed<number>({
+  get: () => numberModel() ?? 0,
+  set: (val) => emitValue(val),
+})
+
+/* ---------- ToggleGroup binding (single-value enum mode) ---------- */
+const toggleGroupOptions = computed<ToggleOption[]>(() => {
+  return (props.field.enum ?? []).map((opt) => {
+    const label = String(opt)
+    return { value: label, label }
+  })
+})
+
+const toggleGroupValue = computed<string>({
+  get: () => (props.modelValue == null ? '' : String(props.modelValue)),
+  set: (val) => emitValue(val || undefined),
+})
+
+/* ---------- WeekdayPicker binding (integer[] of ISO day numbers) ---------- */
+const weekdayValue = computed<number[]>({
+  get: () => {
+    const v = props.modelValue
+    if (Array.isArray(v)) return v.filter((x): x is number => typeof x === 'number')
+    return []
+  },
+  set: (val) => emitValue(val),
+})
+
+/* ---------- TimeWindowPicker binding ({start,end,timezone}) ---------- */
+const timeWindowValue = computed<TimeWindow>({
+  get: () => {
+    const v = props.modelValue
+    if (v && typeof v === 'object' && 'start' in v && 'end' in v) {
+      const obj = v as { start: string; end: string; timezone?: string }
+      return { start: obj.start, end: obj.end, timezone: obj.timezone ?? 'UTC' }
+    }
+    return { start: '09:00', end: '17:00', timezone: 'UTC' }
+  },
+  set: (val) => emitValue(val),
+})
+
+/* ---------- FormTime binding (HH:mm string) ---------- */
+const timeValue = computed<string>({
+  get: () => (props.modelValue == null ? '' : String(props.modelValue)),
+  set: (val) => emitValue(val || undefined),
+})
+
+/* ---------- FormMultipleFile binding (File[]) ---------- */
+const multipleFileValue = computed<File[] | null>({
+  get: () => {
+    const v = props.modelValue
+    if (Array.isArray(v)) return v as File[]
+    return null
+  },
+  set: (val) => emitValue(val ?? []),
+})
+
+/* Unknown formInput warning — names the offending value so authors can fix
+ * the spec instead of silently rendering a text fallback. Resolved at
+ * evaluation time so it only logs once per value change. */
+watch(
+  () => formInput.value,
+  (val) => {
+    const known: Array<string | undefined> = [
+      'text',
+      'textarea',
+      'select',
+      'datepicker',
+      'file-upload',
+      'select-async',
+      'time',
+      'toggle-group',
+      'stepper',
+      'radio',
+      'switch',
+      'weekday-picker',
+      'time-window',
+      undefined,
+    ]
+    if (!known.includes(val)) {
+      console.warn(
+        `[SpecFieldInput] Unknown ui.formInput "${val}" on field "${props.field.name}" — falling back to text input.`,
+      )
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
@@ -191,6 +337,7 @@ const singleRefValue = computed({
       type="text"
       :label="fieldLabel"
       :placeholder="fieldPlaceholder"
+      :description="helpText"
       :required="field.required"
       :disabled="field.readOnly"
       :error="error"
@@ -202,6 +349,7 @@ const singleRefValue = computed({
       v-model="stringValue"
       :label="fieldLabel"
       :placeholder="fieldPlaceholder"
+      :description="helpText"
       :required="field.required"
       :disabled="field.readOnly"
       :error="error"
@@ -216,6 +364,7 @@ const singleRefValue = computed({
       step="1"
       :label="fieldLabel"
       :placeholder="fieldPlaceholder"
+      :description="helpText"
       :required="field.required"
       :disabled="field.readOnly"
       :error="error"
@@ -230,6 +379,7 @@ const singleRefValue = computed({
       step="0.01"
       :label="fieldLabel"
       :placeholder="fieldPlaceholder"
+      :description="helpText"
       :required="field.required"
       :disabled="field.readOnly"
       :error="error"
@@ -241,6 +391,7 @@ const singleRefValue = computed({
       v-else-if="resolvedType === 'boolean'"
       :model-value="booleanModel()"
       :label="fieldLabel"
+      :description="helpText"
       :required="field.required"
       :disabled="field.readOnly"
       :error="error"
@@ -254,6 +405,7 @@ const singleRefValue = computed({
       type="datetime-local"
       :label="fieldLabel"
       :placeholder="fieldPlaceholder"
+      :description="helpText"
       :required="field.required"
       :disabled="field.readOnly"
       :error="error"
@@ -265,6 +417,7 @@ const singleRefValue = computed({
       v-else-if="resolvedType === 'date'"
       :model-value="dateModel()"
       :label="fieldLabel"
+      :description="helpText"
       :required="field.required"
       :disabled="field.readOnly"
       :error="error"
@@ -276,7 +429,8 @@ const singleRefValue = computed({
       v-else-if="resolvedType === 'enum'"
       v-model="selectValue"
       :label="fieldLabel"
-      :placeholder="`Select ${fieldLabel}…`"
+      :placeholder="fieldPlaceholder"
+      :description="helpText"
       :required="field.required"
       :disabled="field.readOnly"
       :error="error"
@@ -288,7 +442,7 @@ const singleRefValue = computed({
       v-else-if="resolvedType === 'ref'"
       v-model="singleRefValue"
       :label="fieldLabel"
-      :placeholder="asyncLoading ? 'Loading…' : `Select ${fieldLabel}…`"
+      :placeholder="asyncLoading ? 'Loading…' : fieldPlaceholder"
       :required="field.required"
       :disabled="field.readOnly || asyncLoading"
       :error="error"
@@ -300,22 +454,35 @@ const singleRefValue = computed({
       v-else-if="resolvedType === 'select-async'"
       v-model="singleRefValue"
       :label="fieldLabel"
-      :placeholder="asyncLoading ? 'Loading…' : `Select ${fieldLabel}…`"
+      :placeholder="asyncLoading ? 'Loading…' : fieldPlaceholder"
       :required="field.required"
       :disabled="field.readOnly || asyncLoading"
       :error="error"
       :options="asyncOptions"
     />
 
-    <!-- file -->
+    <!-- file (single) -->
     <FormFile
-      v-else-if="resolvedType === 'file'"
+      v-else-if="resolvedType === 'file' && !ui.multiple"
       :model-value="(modelValue as File | null)"
       :label="fieldLabel"
+      :description="helpText"
+      :accept="ui.accept"
       :required="field.required"
       :disabled="field.readOnly"
       :error="error"
       @update:model-value="updateFile"
+    />
+
+    <!-- file (multiple) — ui.multiple=true -->
+    <FormMultipleFile
+      v-else-if="resolvedType === 'file' && ui.multiple"
+      v-model="multipleFileValue"
+      :label="fieldLabel"
+      :description="helpText"
+      :accept="ui.accept"
+      :disabled="field.readOnly"
+      :error="error"
     />
 
     <!-- many-to-many -->
@@ -323,13 +490,103 @@ const singleRefValue = computed({
       v-else-if="resolvedType === 'many-to-many'"
       :model-value="manyModel()"
       :label="fieldLabel"
-      :placeholder="`Select ${fieldLabel}…`"
+      :placeholder="fieldPlaceholder"
       :required="field.required"
       :disabled="field.readOnly"
       :error="error"
       :options="asyncOptions.length ? asyncOptions : selectOptions"
       @update:model-value="updateMany"
     />
+
+    <!-- ── New: json → KeyValueEditor ── -->
+    <KeyValueEditor
+      v-else-if="resolvedType === 'json'"
+      v-model="jsonValue"
+      :label="fieldLabel"
+      :disabled="field.readOnly"
+    />
+    <p v-if="helpText && resolvedType === 'json'" class="text-xs text-base-content/60 mt-1">
+      {{ helpText }}
+    </p>
+
+    <!-- ── New: password / secret → FormPassword ── -->
+    <FormPassword
+      v-else-if="resolvedType === 'password'"
+      v-model="stringValue"
+      :label="fieldLabel"
+      :placeholder="fieldPlaceholder"
+      :description="helpText"
+      :required="field.required"
+      :disabled="field.readOnly"
+      :error="error"
+    />
+
+    <!-- ── New: time (ui.formInput='time') → FormTime ── -->
+    <FormTime
+      v-else-if="resolvedType === 'time'"
+      v-model="timeValue"
+      :label="fieldLabel"
+      :placeholder="fieldPlaceholder"
+      :description="helpText"
+      :required="field.required"
+      :disabled="field.readOnly"
+      :error="error"
+    />
+
+    <!-- ── New: integer + ui.formInput='stepper' → NumericStepper ── -->
+    <NumericStepper
+      v-else-if="resolvedType === 'stepper'"
+      v-model="stepperValue"
+      :label="fieldLabel"
+      :description="helpText"
+      :min="field.validation?.min"
+      :max="field.validation?.max"
+      :required="field.required"
+      :disabled="field.readOnly"
+      :error="error"
+    />
+
+    <!-- ── New: enum + ui.formInput='toggle-group' → ToggleGroup ──
+         Icons not derivable from a plain enum; spec authors who want icons
+         can extend FieldUiHints.options in a follow-up. Single-select mode
+         so it behaves like a radio group. -->
+    <ToggleGroup
+      v-else-if="resolvedType === 'toggle-group'"
+      v-model="toggleGroupValue"
+      :options="toggleGroupOptions"
+      :multiple="false"
+      :label="fieldLabel"
+      :disabled="field.readOnly"
+      :error="error"
+    />
+    <p v-if="helpText && resolvedType === 'toggle-group'" class="text-xs text-base-content/60 mt-1">
+      {{ helpText }}
+    </p>
+
+    <!-- ── New: integer + ui.formInput='weekday-picker' → WeekdayPicker ──
+         Stores ISO day numbers (0=Sun..6=Sat) as integer[]. -->
+    <WeekdayPicker
+      v-else-if="resolvedType === 'weekday-picker'"
+      v-model="weekdayValue"
+      :label="fieldLabel"
+      :disabled="field.readOnly"
+    />
+    <p v-if="helpText && resolvedType === 'weekday-picker'" class="text-xs text-base-content/60 mt-1">
+      {{ helpText }}
+    </p>
+
+    <!-- ── New: integer + ui.formInput='time-window' → TimeWindowPicker ──
+         Stores {start: 'HH:mm', end: 'HH:mm', timezone: 'UTC'} object. -->
+    <TimeWindowPicker
+      v-else-if="resolvedType === 'time-window'"
+      v-model="timeWindowValue"
+      :label="fieldLabel"
+      :disabled="field.readOnly"
+      :error="error"
+    />
+    <p v-if="helpText && resolvedType === 'time-window'" class="text-xs text-base-content/60 mt-1">
+      {{ helpText }}
+    </p>
 
     <!-- computed (read-only) -->
     <div v-else-if="resolvedType === 'computed'" class="form-control w-full">
@@ -351,6 +608,7 @@ const singleRefValue = computed({
       type="text"
       :label="fieldLabel"
       :placeholder="fieldPlaceholder"
+      :description="helpText"
       :required="field.required"
       :disabled="field.readOnly"
       :error="error"

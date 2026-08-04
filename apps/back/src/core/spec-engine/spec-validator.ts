@@ -42,6 +42,10 @@ const VALID_FIELD_TYPES = [
   'file',
   'computed',
   'many-to-many',
+  // spec-engine-v2: password / secret are aliases of the same input kind.
+  // Both are plain string columns; hashing is the auth module's concern.
+  'password',
+  'secret',
 ];
 
 // Built-in roles are always valid. Custom roles are collected from
@@ -62,7 +66,17 @@ const VALID_HOOK_TYPES = [
 
 const VALID_CHANNELS = ['email', 'webhook', 'sms'];
 
-const VALID_CHART_TYPES = ['stat', 'donut', 'bar', 'line', 'custom'];
+// spec-engine-v2: `table` (mini SpecDataTable) and `list` (compact SpecList)
+// are valid panel chart types in addition to the pre-change chart values.
+const VALID_CHART_TYPES = [
+  'stat',
+  'donut',
+  'bar',
+  'line',
+  'custom',
+  'table',
+  'list',
+];
 
 const VALID_AGGREGATES = ['count', 'sum', 'avg', 'min', 'max'];
 
@@ -82,6 +96,19 @@ export class SpecValidator {
       { spec: ResourceSpec; loaded: LoadedSpec }
     >();
     const tableMap = new Map<string, string>(); // table → resource name
+
+    // ─── Build the set of valid roles for this validation run ───
+    // BUILTIN_ROLES are always valid. Custom roles declared via
+    // ExtensionSpec.roles[] are also valid for any resource within the same
+    // extension. This is the minimal, allowed adjustment that lets the
+    // canonical tasks extension declare a `manager` role and use it in
+    // permissions lists / rowLevel keys / field-level permissions.
+    const validRoles = new Set<string>(BUILTIN_ROLES);
+    for (const loaded of loadedSpecs) {
+      for (const role of loaded.spec.roles ?? []) {
+        if (role?.name) validRoles.add(role.name);
+      }
+    }
 
     for (const loaded of loadedSpecs) {
       // Validate extension-level
@@ -126,7 +153,12 @@ export class SpecValidator {
 
     // Validate each resource
     for (const [, { spec, loaded }] of Array.from(resourceMap)) {
-      const result = this.validateResource(spec, resourceMap, loaded.dir);
+      const result = this.validateResource(
+        spec,
+        resourceMap,
+        loaded.dir,
+        validRoles,
+      );
       errors.push(...result.errors);
       warnings.push(...result.warnings);
     }
@@ -156,6 +188,7 @@ export class SpecValidator {
     spec: ResourceSpec,
     allResources: Map<string, { spec: ResourceSpec; loaded: LoadedSpec }>,
     extensionDir: string,
+    validRoles?: Set<string>,
   ): ValidationResult {
     const errors: ValidationError[] = [];
     const warnings: ValidationError[] = [];
@@ -307,7 +340,11 @@ export class SpecValidator {
 
     // Validate permissions
     if (spec.permissions) {
-      const permErrors = this.validatePermissions(spec.permissions, fieldNames);
+      const permErrors = this.validatePermissions(
+        spec.permissions,
+        fieldNames,
+        validRoles,
+      );
       errors.push(...permErrors);
 
       // Warn about 'public' role — requires unguarding the route
@@ -436,6 +473,7 @@ export class SpecValidator {
 
     // Validate UI
     if (spec.ui?.sidebar) {
+      const allowedRoles = validRoles ?? new Set<string>(BUILTIN_ROLES);
       for (const item of spec.ui.sidebar.items || []) {
         if (!item.title || !item.link) {
           errors.push({
@@ -445,7 +483,7 @@ export class SpecValidator {
         }
         if (item.roles) {
           for (const role of item.roles) {
-            if (!BUILTIN_ROLES.includes(role)) {
+            if (!allowedRoles.has(role)) {
               errors.push({
                 resource: spec.name,
                 message: `Sidebar item "${item.title}" invalid role "${role}"`,
@@ -461,23 +499,30 @@ export class SpecValidator {
 
   /**
    * Validate permissions spec
+   *
+   * `validRoles` (optional) is the set of role names valid for this validation
+   * run — BUILTIN_ROLES plus any custom role declared via ExtensionSpec.roles.
+   * When omitted, only BUILTIN_ROLES are valid (preserves the pre-change
+   * behavior for direct `validateResource` callers).
    */
   private static validatePermissions(
     perms: NonNullable<ResourceSpec['permissions']>,
     fieldNames: Set<string>,
+    validRoles?: Set<string>,
   ): ValidationError[] {
     const errors: ValidationError[] = [];
 
+    const allowedRoles = validRoles ?? new Set<string>(BUILTIN_ROLES);
     const checkRoles = (
       roles: PermissionRole[] | undefined,
       action: string,
     ) => {
       if (!roles) return;
       for (const role of roles) {
-        if (!BUILTIN_ROLES.includes(role)) {
+        if (!allowedRoles.has(role)) {
           errors.push({
             message: `Invalid role "${role}" in permissions.${action}`,
-            suggestion: `Valid roles: ${BUILTIN_ROLES.join(', ')}`,
+            suggestion: `Valid roles: ${Array.from(allowedRoles).join(', ')}`,
           });
         }
       }
@@ -507,7 +552,7 @@ export class SpecValidator {
     // Row-level filters
     if (perms.rowLevel) {
       for (const [role, rule] of Object.entries(perms.rowLevel)) {
-        if (!BUILTIN_ROLES.includes(role as PermissionRole)) {
+        if (!allowedRoles.has(role as PermissionRole)) {
           errors.push({
             message: `Row-level filter for invalid role "${role}"`,
           });

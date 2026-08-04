@@ -37,6 +37,8 @@ import { SpecEngineActionFactory } from './spec-engine-action-factory';
 import { createSpecWebhookSubscriptionSchema } from './spec-engine-scheduled-actions';
 import { SpecEngineBootService } from './spec-engine-boot';
 import { SpecMetaController } from './meta-controller';
+import { buildFoundationEntitySchemas } from './foundation-entity-schemas';
+import { getAuditSchema } from './spec-engine-audit';
 import type { ResourceSpec, HookSpec } from './spec.types';
 import type { LoadedHook } from './hook-executor';
 
@@ -108,6 +110,17 @@ export class SpecEngineModule {
 
     // Phase 4: Materialize entities + controllers + webhooks
     const entitySchemas: EntitySchema<any>[] = [];
+
+    // Append minimal EntitySchema mirrors of Foundation core entities that
+    // spec `ref` fields target (user, role). TypeORM builds EntitySchema
+    // relations in a SEPARATE metadata store from decorator-registered
+    // entities, so a spec relation `target: 'user'` cannot resolve
+    // UserEntity unless a mirror EntitySchema with the same name is present
+    // in the same store. With synchronize:false, no DDL is emitted for these
+    // mirrors — they only satisfy relation resolution. See
+    // foundation-entity-schemas.ts for the full rationale.
+    entitySchemas.push(...buildFoundationEntitySchemas());
+
     const controllers: Type<any>[] = [];
     const providers: Provider[] = [];
     const imports: any[] = [];
@@ -132,6 +145,16 @@ export class SpecEngineModule {
           entitySchemas.push(mainSchema);
           entitySchemas.push(...joinTableSchemas);
 
+          // BUG #5: register the per-resource audit table EntitySchema in
+          // forFeature() so SpecAuditLogger can resolve a repository for it
+          // at runtime. When a resource enables `audit`, an `ext_<name>_audit`
+          // table holds per-field change rows. The schema must be in the same
+          // metadata store as the resource schema (EntitySchema path) for the
+          // lazy getRepository(schema) call to succeed.
+          if (resource.audit) {
+            entitySchemas.push(getAuditSchema(resource.name));
+          }
+
           // Load hooks for this resource
           const allHooks = this.loadHooksForResource(
             resource.hooks,
@@ -140,10 +163,14 @@ export class SpecEngineModule {
             hookExecutor,
           );
 
-          // Create controller with deferred ModuleRef/DataSource
+          // Create controller with deferred ModuleRef/DataSource.
+          // Pass the EntitySchema (not the resource name string) so that
+          // getRepositoryToken() resolves to the correct DI token via the
+          // EntitySchema branch (string branch would produce "undefinedRepository"
+          // because strings have no `.name` property).
           const { controllerClass } = ControllerFactory.create({
             spec: resource,
-            entitySchemaName: resource.name,
+            entitySchema: mainSchema,
             extensionDir: loaded.dir,
             hookExecutor,
             notificationDispatcher,
@@ -363,13 +390,15 @@ export class SpecEngineModule {
    * Find the extensions directory relative to this compiled file
    */
   private static findExtensionsDir(): string | null {
-    // Try dist/extensions (compiled)
-    const distPath = path.resolve(__dirname, '../../extensions');
-    if (fs.existsSync(distPath)) return distPath;
-
-    // Try src/extensions (ts-node / dev)
+    // Prefer src/extensions in dev (ts-node / nest start --watch).
+    // YAML specs are not copied to dist by the TypeScript compiler, so the
+    // dist path would be missing them. Fall back to dist/extensions only in
+    // compiled production builds where src/ is not shipped.
     const srcPath = path.resolve(__dirname, '../../../src/extensions');
     if (fs.existsSync(srcPath)) return srcPath;
+
+    const distPath = path.resolve(__dirname, '../../extensions');
+    if (fs.existsSync(distPath)) return distPath;
 
     return null;
   }

@@ -69,7 +69,7 @@ const auditSchemaCache = new Map<string, EntitySchema<any>>();
  *   - userId      int (nullable)
  *   - timestamp   timestamptz default now()
  */
-function getAuditSchema(resource: string): EntitySchema<any> {
+export function getAuditSchema(resource: string): EntitySchema<any> {
   const cached = auditSchemaCache.get(resource);
   if (cached) return cached;
 

@@ -23,7 +23,12 @@ export type FieldType =
   | 'ref'
   | 'file'
   | 'computed'
-  | 'many-to-many';
+  | 'many-to-many'
+  // ─── spec-engine-v2: password / secret are aliases of the same input kind.
+  // Both are plain string columns at the entity level; hashing is the auth
+  // module's downstream concern (entity-factory does NOT hash).
+  | 'password'
+  | 'secret';
 
 export interface FieldValidationSpec {
   min?: number;
@@ -33,19 +38,91 @@ export interface FieldValidationSpec {
   url?: boolean;
 }
 
+/**
+ * Consolidated FieldUISpec — single definition.
+ *
+ * Pre-change this interface was DUPLICATED (one near the field types, one near
+ * ResourceUISpec). The change `spec-engine-v2-frontend-and-loader` consolidated
+ * them into this single definition, which is the union of both prior field sets
+ * plus new layout/visibility/file hints. All existing usages of either prior
+ * definition still compile against this one.
+ *
+ * Prior L36 set: display, formInput, link, colors, truncateLength, labelField.
+ * Prior L274 set: filterable, sortable, filterType.
+ * New hints: section, showIf, cols, order, placeholder, helpText, multiple, accept.
+ */
 export interface FieldUISpec {
+  // ─── Display (prior L36 set) ───
   display?: 'text' | 'badge' | 'date' | 'avatar' | 'truncate' | 'icon' | 'link';
+  /**
+   * Form input renderer hint. The backend treats this as a passthrough string
+   * (it does NOT interpret the value — the frontend SpecFieldInput.vue maps it
+   * to a base UI component). The full set of values recognized by the frontend
+   * is listed here so spec authors get type-completion and so the canonical
+   * example can use every renderer.
+   *
+   * Pre-change values (L36 set): text, textarea, select, datepicker,
+   * file-upload, select-async.
+   * spec-engine-v2 added: time, toggle-group, stepper, weekday-picker,
+   * time-window, switch, radio.
+   */
   formInput?:
     | 'text'
     | 'textarea'
     | 'select'
     | 'datepicker'
     | 'file-upload'
-    | 'select-async';
+    | 'select-async'
+    // ─── spec-engine-v2: frontend-renderer hints ───
+    | 'time'
+    | 'toggle-group'
+    | 'stepper'
+    | 'weekday-picker'
+    | 'time-window'
+    | 'switch'
+    | 'radio';
   link?: boolean;
   colors?: Record<string, string>;
   truncateLength?: number;
   labelField?: string;
+  // ─── Table interactions (prior L274 set) ───
+  filterable?: boolean;
+  sortable?: boolean;
+  filterType?: 'text' | 'select' | 'dateRange' | 'boolean';
+  // ─── Layout & visibility hints (new) ───
+  /**
+   * Logical section this field belongs to. When ResourceUISpec.sections[] is
+   * set, SpecDataForm groups fields by this value; fields without a section
+   * land in a default trailing group.
+   */
+  section?: string;
+  /**
+   * Conditional visibility. Boolean form hides/shows unconditionally; object
+   * form references other field values (e.g. `{ hasCoupon: true }`). A hidden
+   * field is excluded from the submitted payload.
+   */
+  showIf?: boolean | Record<string, unknown>;
+  /**
+   * Grid column span. Default behaviour when omitted is full width (per spec).
+   */
+  cols?: number;
+  /**
+   * Relative render position. Fields with equal or absent order preserve
+   * declaration order.
+   */
+  order?: number;
+  /** Input placeholder text. */
+  placeholder?: string;
+  /** Help text rendered alongside the input. */
+  helpText?: string;
+  // ─── File hints (new) ───
+  /**
+   * For `file` fields: allow multiple file selection. Coexists with
+   * FieldSpec.allowedMimes — the effective mime filter is the intersection.
+   */
+  multiple?: boolean;
+  /** For `file` fields: HTML accept attribute mime filter (e.g. `image/*`). */
+  accept?: string;
 }
 
 export interface FieldSpec {
@@ -271,23 +348,9 @@ export interface SidebarItemSpec {
   roles?: PermissionRole[];
 }
 
-export interface FieldUISpec {
-  display?: 'text' | 'badge' | 'date' | 'avatar' | 'truncate' | 'icon' | 'link';
-  formInput?:
-    | 'text'
-    | 'textarea'
-    | 'select'
-    | 'datepicker'
-    | 'file-upload'
-    | 'select-async';
-  link?: boolean;
-  colors?: Record<string, string>;
-  truncateLength?: number;
-  labelField?: string;
-  filterable?: boolean;
-  sortable?: boolean;
-  filterType?: 'text' | 'select' | 'dateRange' | 'boolean';
-}
+// NOTE: FieldUISpec used to be duplicated here (pre-change L274-L290).
+// It is now defined ONCE near the top of this file (consolidated union).
+// See the consolidated definition above for the full field set.
 
 export interface ResourceUISpec {
   icon?: string;
@@ -298,6 +361,64 @@ export interface ResourceUISpec {
     heading: string;
     items: SidebarItemSpec[];
   };
+  // ─── spec-engine-v2: form grouping hints ───
+  /**
+   * Titled fieldsets. SpecDataForm groups fields by `field.ui.section` and
+   * renders a titled fieldset per section (with optional icon). Fields without
+   * a section land in a default trailing group.
+   */
+  sections?: SectionSpec[];
+  /**
+   * Wizard steps. When set, SpecDataForm renders a stepper with prev/next
+   * navigation and per-step validation. Takes precedence over `tabs` and
+   * `sections` for form rendering.
+   */
+  steps?: StepSpec[];
+  /**
+   * Tabs. SpecDataForm renders one tab per definition, validates only the
+   * visible tab on local navigation, and validates ALL tabs on final submit.
+   * Takes precedence over `sections` (but `steps` wins over `tabs`).
+   */
+  tabs?: TabSpec[];
+}
+
+/**
+ * A titled fieldset within a form. Fields are grouped by `field.ui.section`.
+ */
+export interface SectionSpec {
+  id?: string;
+  title: string;
+  icon?: string;
+  /** Grid column count for this section (default: form-wide setting). */
+  cols?: number;
+  /** Field names that belong to this section. Optional — when omitted, fields
+   * are auto-grouped by their `ui.section` value. */
+  fields?: string[];
+}
+
+/**
+ * A wizard step. `fields` lists the field names rendered in this step.
+ */
+export interface StepSpec {
+  id?: string;
+  title: string;
+  icon?: string;
+  fields: string[];
+  /** Optional logical section this step belongs to. */
+  section?: string;
+}
+
+/**
+ * A tab within a tabbed form. `fields` lists the field names rendered in this
+ * tab.
+ */
+export interface TabSpec {
+  id?: string;
+  title: string;
+  icon?: string;
+  fields: string[];
+  /** Optional logical section this tab belongs to. */
+  section?: string;
 }
 
 // ─── Resource Spec ──────────────────────────────────────────────────────────
@@ -334,7 +455,19 @@ export interface ResourceSpec {
 
 // ─── View / Dashboard Spec ──────────────────────────────────────────────────
 
-export type ChartType = 'stat' | 'donut' | 'bar' | 'line' | 'custom';
+/**
+ * Panel chart type. Pre-change values: stat, donut, bar, line, custom.
+ * spec-engine-v2 adds `table` (mini read-only SpecDataTable) and `list`
+ * (compact SpecList). ECharts continues to handle bar/line/donut/stat.
+ */
+export type ChartType =
+  | 'stat'
+  | 'donut'
+  | 'bar'
+  | 'line'
+  | 'custom'
+  | 'table'
+  | 'list';
 
 export interface QuerySpec {
   resource: string;

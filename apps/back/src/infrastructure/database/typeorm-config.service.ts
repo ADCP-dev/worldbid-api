@@ -19,6 +19,12 @@ export class TypeOrmConfigService implements TypeOrmOptionsFactory {
       synchronize: this.configService.get('database.synchronize', {
         infer: true,
       }),
+      // autoLoadEntities: true tells TypeORM to merge entities registered via
+      // TypeOrmModule.forFeature() (including spec-engine EntitySchemas) into
+      // the DataSource, so relations between decorator-entities (user, role)
+      // and dynamically-built EntitySchemas (ext_tasks_task, etc.) resolve in
+      // a single connection. Required for spec-engine ref relations to work.
+      autoLoadEntities: true,
       dropSchema: false,
       keepConnectionAlive: true,
       logging:

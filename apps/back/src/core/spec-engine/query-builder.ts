@@ -27,7 +27,7 @@
  */
 
 import { Repository } from 'typeorm';
-import type { QuerySpec } from './spec.types';
+import type { QuerySpec, ResourceSpec } from './spec.types';
 
 export interface BuiltQuery {
   sql: string;
@@ -104,14 +104,35 @@ export class SpecQueryBuilder {
    * @param _repository  TypeORM repository (reserved for future use — e.g.
    *                     emitting via repository.query or driver-specific
    *                     escaping). The SQL is driver-agnostic PostgreSQL.
+   * @param resourceMap  Optional map of resource name → ResourceSpec. When
+   *                     provided, `query.resource` (a resource name like
+   *                     'task') is resolved to `spec.table` (e.g.
+   *                     'ext_tasks_task') before validation. When omitted,
+   *                     `query.resource` is treated as the table name verbatim
+   *                     (preserves pre-change behavior for direct callers).
    * @returns { sql, params } ready to pass to `repository.query(sql, params)`.
    */
-  static build(query: QuerySpec, _repository: Repository<any>): BuiltQuery {
+  static build(
+    query: QuerySpec,
+    _repository: Repository<any>,
+    resourceMap?: Map<string, ResourceSpec>,
+  ): BuiltQuery {
     if (!query || !query.resource) {
       throw new Error('SpecQueryBuilder: query.resource is required');
     }
 
-    const table = this.validateIdent(query.resource, 'resource (table)');
+    // Resolve the resource name to its physical table name. Dashboards pass
+    // the resource name (e.g. 'task'); the actual FROM target is the table
+    // (e.g. 'ext_tasks_task'). When no map is provided, fall back to treating
+    // query.resource as the table name (backward compatible).
+    let table = query.resource;
+    if (resourceMap) {
+      const spec = resourceMap.get(query.resource);
+      if (spec?.table) {
+        table = spec.table;
+      }
+    }
+    table = this.validateIdent(table, 'resource (table)');
     const params: any[] = [];
     const parts: string[] = [];
 

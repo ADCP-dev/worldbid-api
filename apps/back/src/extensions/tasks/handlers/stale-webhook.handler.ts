@@ -12,7 +12,9 @@ export default async function staleWebhookHandler(
   ctx: HookContext,
 ): Promise<void> {
   const taskIds = payload.taskIds || [payload.taskId];
-  ctx.logger.log(`Received stale webhook for tasks: ${JSON.stringify(taskIds)}`);
+  ctx.logger.log(
+    `Received stale webhook for tasks: ${JSON.stringify(taskIds)}`,
+  );
   ctx.logger.log(`Stale since: ${payload.staleSince || 'unknown'}`);
 
   // Log to ErrorTracker for visibility

@@ -10,7 +10,11 @@ import type { HookContext } from '@core/spec-engine/spec.types';
 export default async function taskBeforeCreate(
   data: Record<string, unknown>,
   ctx: HookContext,
-): Promise<{ data: Record<string, unknown>; proceed: boolean; error?: string }> {
+): Promise<{
+  data: Record<string, unknown>;
+  proceed: boolean;
+  error?: string;
+}> {
   ctx.logger.log('Running beforeCreate hook for task');
 
   // Auto-assign admin for urgent tasks without assignee

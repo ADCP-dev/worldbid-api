@@ -10,11 +10,14 @@
  * onModuleInit, and the controllers read from it.
  */
 
-import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
+import { Injectable, OnModuleInit, Logger, Inject } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
 import { SpecErrorReporter } from './spec-error-reporter';
+import { RoleRegistry } from './role-registry';
+import { runSpecSeeds } from './spec-seed-loader';
+import type { LoadedSpec } from './spec-loader';
 
 @Injectable()
 export class SpecEngineBootService implements OnModuleInit {
@@ -29,6 +32,7 @@ export class SpecEngineBootService implements OnModuleInit {
     private readonly moduleRef: ModuleRef,
     private readonly configService: ConfigService<any>,
     private readonly dataSource: DataSource,
+    @Inject('SPEC_LOADED_SPECS') private readonly loadedSpecs: LoadedSpec[],
   ) {}
 
   async onModuleInit() {
@@ -52,6 +56,31 @@ export class SpecEngineBootService implements OnModuleInit {
     } catch (err) {
       this.logger.warn(
         `Could not wire ErrorTrackerService: ${(err as Error).message}`,
+      );
+    }
+
+    // Build the RoleRegistry from loaded specs + the RoleEntity table so
+    // custom roles (manager) and the customer→user asymmetry resolve at
+    // runtime (BUG #4 + #8). Safe to fail — the registry falls back to
+    // built-in-only and denies unknown roles.
+    try {
+      const roleRepo = this.dataSource.getRepository('role');
+      await RoleRegistry.build(this.loadedSpecs, roleRepo as any);
+    } catch (err) {
+      this.logger.warn(
+        `Could not build RoleRegistry: ${(err as Error).message} — ` +
+          'custom roles will fail closed until the DB is reachable.',
+      );
+    }
+
+    // Run resource seeds declared in spec YAMLs (BUG #9). Idempotent —
+    // safe to run on every boot. Per-resource try/catch inside, so one
+    // failing seed never blocks the rest.
+    try {
+      await runSpecSeeds(this.loadedSpecs, this.dataSource);
+    } catch (err) {
+      this.logger.warn(
+        `Could not run spec seeds: ${(err as Error).message}`,
       );
     }
 

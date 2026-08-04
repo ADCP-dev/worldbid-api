@@ -1,0 +1,81 @@
+# ─── Task Comment resource (nested) ─────────────────────────────────────────
+# Showcases: text validation, ref→task CASCADE, ref→user SET NULL, simple perms.
+
+name: tasks
+version: 2.0.0
+
+resources:
+  - name: task-comment
+    table: ext_tasks_task_comment
+    displayName: Task Comment
+    description: Comments on tasks
+    timestamps: true
+    softDelete: true
+
+    fields:
+      - name: taskId
+        type: ref
+        ref: task
+        required: true
+        refOnDelete: CASCADE
+        index: true
+        ui:
+          formInput: select-async
+          labelField: title
+          section: basics
+          order: 1
+
+      - name: authorId
+        type: ref
+        ref: user
+        nullable: true
+        refOnDelete: SET NULL
+        index: true
+        ui:
+          display: avatar
+          formInput: select-async
+          labelField: firstName
+          section: basics
+          order: 2
+          placeholder: 'Search a user…'
+
+      - name: content
+        type: text
+        required: true
+        validation:
+          min: 1
+          max: 5000
+        ui:
+          display: truncate
+          truncateLength: 80
+          formInput: textarea
+          section: basics
+          order: 3
+          cols: 2
+          placeholder: 'Write a comment…'
+          helpText: 'Markdown is supported.'
+
+    permissions:
+      list: [admin, user, manager]
+      read: [admin, user, manager]
+      create: [admin, user, manager]
+      update: [admin, manager]
+      delete: [admin, manager]
+      rowLevel:
+        user:
+          filter: 'authorId == ${user.id}'
+
+    seeds:
+      - taskId: 1
+        authorId: 1
+        content: 'Looks good to me, shipping it.'
+      - taskId: 2
+        authorId: 2
+        content: 'Need to clarify the acceptance criteria first.'
+      - taskId: 3
+        authorId: 1
+        content: 'Blocked on the auth refactor — waiting on review.'
+
+    ui:
+      icon: MessageSquare
+      view: list

@@ -8,7 +8,9 @@
 
 import type { HookContext } from '@core/spec-engine/spec.types';
 
-export default async function staleTasksDetector(ctx: HookContext): Promise<void> {
+export default async function staleTasksDetector(
+  ctx: HookContext,
+): Promise<void> {
   ctx.logger.log('Checking for stale tasks...');
 
   const taskRepo = ctx.getRepository('task');
