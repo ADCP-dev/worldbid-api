@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import type { FieldSpec, ActionSpec, ExportSpec, ImportSpec } from '../composables/useSpecResource'
+import { type FieldSpec, type ActionSpec, type ExportSpec, type ImportSpec, refResource } from '../composables/useSpecResource'
 import { useSpecActions } from '../composables/useSpecActions'
+import { useRefResolver } from '../composables/useRefResolver'
+import SpecFieldRenderer from './SpecFieldRenderer.vue'
 import SortableHeader from '@base/ui-app/components/data-table/filters/SortableHeader.vue'
 import DataTableComboboxFilter from '@base/ui-app/components/data-table/filters/DataTableComboboxFilter.vue'
 import EditButton from '@base/ui-app/components/data-table/buttons/EditButton.vue'
@@ -36,6 +38,7 @@ const props = defineProps<{
 
 const specCrud = useSpecResource()
 const { useListQuery, useRemoveMutation, runAction, create, update } = specCrud
+const { preloadRefs } = useRefResolver()
 
 /* ---------------- Spec + actions partition ---------------- */
 
@@ -43,6 +46,16 @@ const spec = specCrud.getResource(props.resource)
 const primaryKey = computed(() => spec.value?.primaryKey ?? 'id')
 
 const { rowActions, bulkActions, headerActions } = useSpecActions(spec)
+
+/* Preload ref resources so ref fields render as avatars/labels. */
+watch(
+  () => spec.value,
+  (s) => {
+    if (!s) return
+    preloadRefs(s.fields.filter((f) => !!refResource(f)))
+  },
+  { immediate: true },
+)
 
 /* ---------------- Reactive query state ---------------- */
 
@@ -83,7 +96,10 @@ const listFields = computed<FieldSpec[]>(() => {
       .map((n) => spec.value!.fields.find((f) => f.name === n))
       .filter((f): f is FieldSpec => !!f)
   }
-  return spec.value.fields.filter((f) => f.ui?.listable !== false)
+  // Default: all fields except the primary key. Ref fields without an
+  // explicit display hint are included — SpecFieldRenderer shows them
+  // as "#ID" badges, which is preferable to hiding them.
+  return spec.value.fields.filter((f) => f.name !== primaryKey.value)
 })
 
 /* ---------------- Permissions ---------------- */
@@ -639,7 +655,13 @@ function capitalize(s: string): string {
       v-else-if="!loading && !rows.length"
       class="text-center py-12 text-base-content/50"
     >
-      No records found.
+      <div class="flex flex-col items-center gap-2">
+        <svg class="w-12 h-12 text-base-content/30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <path d="M3 9h18M9 3v18" />
+        </svg>
+        <p>No records found.</p>
+      </div>
     </div>
 
     <!-- Mobile: card view -->
@@ -647,10 +669,10 @@ function capitalize(s: string): string {
       <div
         v-for="row in rows"
         :key="rowId(row)"
-        class="card bg-base-100 shadow-sm border border-base-300 cursor-pointer hover:bg-base-200/50"
+        class="card bg-base-100 shadow-sm border border-base-200 rounded-lg cursor-pointer hover:shadow-md transition-shadow"
         @click="(e) => onRowClick(row, e)"
       >
-        <div class="card-body p-3 gap-1">
+        <div class="card-body p-3 gap-1.5">
           <div class="flex items-center gap-2">
             <input
               type="checkbox"
@@ -659,8 +681,8 @@ function capitalize(s: string): string {
               :checked="selected.has(rowId(row))"
               @change="toggleRow(row)"
             >
-            <span class="font-semibold flex-1 truncate">
-              {{ row[primaryKey] }}
+            <span class="font-semibold flex-1 truncate text-sm">
+              {{ row[visibleListFields[0]?.name ?? primaryKey] ?? rowId(row) }}
             </span>
             <div class="flex items-center gap-1" data-action="row-buttons">
               <ViewButton
@@ -688,11 +710,11 @@ function capitalize(s: string): string {
             </div>
           </div>
           <div
-            v-for="field in visibleListFields"
+            v-for="field in visibleListFields.slice(1)"
             :key="field.name"
-            class="text-sm"
+            class="text-sm flex items-center gap-1.5"
           >
-            <span class="opacity-60">{{ field.label ?? capitalize(field.name) }}:</span>
+            <span class="text-xs text-base-content/50">{{ field.label ?? capitalize(field.name) }}:</span>
             <SpecFieldRenderer :value="row[field.name]" :field="field" :row="row" />
           </div>
         </div>
@@ -700,50 +722,55 @@ function capitalize(s: string): string {
     </div>
 
     <!-- Desktop: table view -->
-    <div v-else class="border rounded-md overflow-x-auto bg-base-100">
-      <table class="table table-zebra table-sm">
-        <thead>
-          <!-- Header row with sort -->
-          <tr>
-            <th class="w-10">
-              <input
-                type="checkbox"
-                class="checkbox checkbox-sm"
-                data-action="select-all"
-                :checked="allVisibleSelected"
-                :indeterminate.prop="someVisibleSelected"
-                @change="toggleAllVisible"
+    <div v-else class="card bg-base-100 border border-base-200 rounded-lg shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="table table-sm">
+          <thead>
+            <!-- Header row with sort -->
+            <tr class="border-b border-base-200">
+              <th class="w-10 bg-base-200/50">
+                <input
+                  type="checkbox"
+                  class="checkbox checkbox-sm"
+                  data-action="select-all"
+                  :checked="allVisibleSelected"
+                  :indeterminate.prop="someVisibleSelected"
+                  @change="toggleAllVisible"
+                >
+              </th>
+              <th
+                v-for="field in visibleListFields"
+                :key="field.name"
+                class="bg-base-200/50 text-xs font-medium text-base-content/60 uppercase tracking-wider"
               >
-            </th>
-            <th
-              v-for="field in visibleListFields"
-              :key="field.name"
-            >
-              <SortableHeader
-                v-if="field.sortable"
-                :column="{ getIsSorted: () => sortIcon(field.name) } as any"
-                :label="field.label ?? capitalize(field.name)"
-                data-action="sort"
-                @click="onSortChange(field.name)"
-              />
-              <span v-else>{{ field.label ?? capitalize(field.name) }}</span>
-              <button
-                v-if="sortIcon(field.name) === 'asc'"
-                class="btn btn-ghost btn-xs px-1"
-                data-action="sort"
-                @click="onSortChange(field.name)"
-              >▲</button>
-              <button
-                v-else-if="sortIcon(field.name) === 'desc'"
-                class="btn btn-ghost btn-xs px-1"
-                data-action="sort"
-                @click="onSortChange(field.name)"
-              >▼</button>
-            </th>
-            <th v-if="canUpdate || canDelete || rowActions.length" class="text-right">
-              Actions
-            </th>
-          </tr>
+                <SortableHeader
+                  v-if="field.sortable"
+                  :column="{ getIsSorted: () => sortIcon(field.name) } as any"
+                  :label="field.label ?? capitalize(field.name)"
+                  data-action="sort"
+                  @click="onSortChange(field.name)"
+                />
+                <span v-else>{{ field.label ?? capitalize(field.name) }}</span>
+                <button
+                  v-if="sortIcon(field.name) === 'asc'"
+                  class="btn btn-ghost btn-xs px-1"
+                  data-action="sort"
+                  @click="onSortChange(field.name)"
+                >▲</button>
+                <button
+                  v-else-if="sortIcon(field.name) === 'desc'"
+                  class="btn btn-ghost btn-xs px-1"
+                  data-action="sort"
+                  @click="onSortChange(field.name)"
+                >▼</button>
+              </th>
+              <th
+                v-if="canUpdate || canDelete || rowActions.length"
+                class="bg-base-200/50 text-xs font-medium text-base-content/60 uppercase tracking-wider text-right"
+              >
+                Actions
+              </th>
+            </tr>
           <!-- Filter row -->
           <tr>
             <th />
@@ -810,17 +837,23 @@ function capitalize(s: string): string {
         </thead>
         <tbody>
           <tr v-if="!rows.length">
-            <td :colspan="visibleListFields.length + 2" class="h-24 text-center">
-              No results.
+            <td :colspan="visibleListFields.length + 2" class="h-24 text-center text-base-content/50">
+              <div class="flex flex-col items-center gap-2">
+                <svg class="w-10 h-10 text-base-content/30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <path d="M3 9h18M9 3v18" />
+                </svg>
+                <span>No results.</span>
+              </div>
             </td>
           </tr>
           <tr
             v-for="(row, rowIndex) in rows"
             :key="rowId(row)"
-            :class="[rowIndex % 2 === 0 ? 'bg-base-200/50' : '', 'hover cursor-pointer']"
+            :class="['hover cursor-pointer h-14', rowIndex % 2 === 1 ? 'bg-base-200/30' : '']"
             @click="(e) => onRowClick(row, e)"
           >
-            <td data-action="select-row" @click.stop>
+            <td data-action="select-row" @click.stop class="align-middle">
               <input
                 type="checkbox"
                 class="checkbox checkbox-sm"
@@ -828,10 +861,10 @@ function capitalize(s: string): string {
                 @change="toggleRow(row)"
               >
             </td>
-            <td v-for="field in visibleListFields" :key="field.name">
+            <td v-for="field in visibleListFields" :key="field.name" class="align-middle px-4 py-2">
               <SpecFieldRenderer :value="row[field.name]" :field="field" :row="row" />
             </td>
-            <td class="text-right" data-action="row-buttons" @click.stop>
+            <td class="text-right align-middle" data-action="row-buttons" @click.stop>
               <div class="flex items-center justify-end gap-1">
                 <ViewButton
                   v-if="canUpdate"
@@ -860,6 +893,7 @@ function capitalize(s: string): string {
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
 
     <!-- Footer: count + pagination + per-page + column toggle -->

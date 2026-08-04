@@ -21,7 +21,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
  */
 export interface FieldUiHints {
   /** Column display hint */
-  display?: 'text' | 'badge' | 'date' | 'avatar' | 'truncate' | 'icon' | 'link'
+  display?: 'text' | 'badge' | 'date' | 'avatar' | 'truncate' | 'icon' | 'link' | 'ref-avatar' | 'ref-link'
   /**
    * Form input hint. Pre-change values: text, textarea, select, datepicker,
    * file-upload, select-async. spec-engine-v2 adds: time, toggle-group,
@@ -51,6 +51,12 @@ export interface FieldUiHints {
   dateFormat?: string
   /** Avatar image field name on the same record (fallback to letter) */
   avatarImageField?: string
+  /**
+   * For `ref` fields: the field on the referenced resource to use as the
+   * display label (e.g. "firstName" for users, "title" for tasks).
+   * Mirrors the backend `FieldUISpec.labelField`.
+   */
+  labelField?: string
   /** Icon name for 'icon' display */
   iconName?: string
   /** Table interactions (mirrors backend FieldUISpec) */
@@ -81,12 +87,13 @@ export interface FieldSpec {
   type?: string
   /** Enum values for select fields */
   enum?: Array<string | number>
-  /** True when field references another resource */
-  ref?: {
-    resource: string
-    labelField?: string
-    valueField?: string
-  }
+  /**
+   * Reference to another resource. The backend sends this as a STRING
+   * (the resource name, e.g. "user"). Kept as a union so the frontend
+   * tolerates both the canonical string form and a legacy object form
+   * `{ resource, labelField, valueField }`.
+   */
+  ref?: string | { resource: string; labelField?: string; valueField?: string }
   /** True when field is the primary identifier */
   isPrimary?: boolean
   /** True when field is required */
@@ -112,6 +119,32 @@ export interface FieldSpec {
     email?: boolean
     url?: boolean
   }
+}
+
+/**
+ * Extract the referenced resource name from a FieldSpec's `ref` field.
+ * Handles both the canonical string form (`ref: "user"`) and the legacy
+ * object form (`ref: { resource: "user" }`). Returns undefined when not a
+ * ref field.
+ */
+export function refResource(field: FieldSpec): string | undefined {
+  const r = field.ref
+  if (!r) return undefined
+  if (typeof r === 'string') return r
+  return r.resource
+}
+
+/**
+ * Extract the label field for a ref field. The backend stores it under
+ * `ui.labelField`; the legacy object form stored it under `ref.labelField`.
+ * Checks `ui.labelField` first (canonical), then `ref.labelField` (legacy).
+ */
+export function refLabelField(field: FieldSpec): string | undefined {
+  const uiLabel = field.ui?.labelField
+  if (uiLabel) return uiLabel
+  const r = field.ref
+  if (r && typeof r === 'object') return r.labelField
+  return undefined
 }
 
 export interface ResourcePermissions {

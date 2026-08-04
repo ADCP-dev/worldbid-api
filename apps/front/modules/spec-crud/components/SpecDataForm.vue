@@ -506,7 +506,7 @@ function onTabSwitch(newIndex: number) {
 </script>
 
 <template>
-  <div class="container mx-auto px-4 py-6">
+  <div class="container mx-auto px-4 py-6 max-w-4xl">
     <h2 class="text-xl font-semibold mb-6 text-base-content">{{ title }}</h2>
 
     <!-- Loading -->
@@ -588,30 +588,28 @@ function onTabSwitch(newIndex: number) {
         <div
           v-for="section in renderedSections"
           :key="section.id"
-          class="mb-8"
+          class="card bg-base-100 border border-base-200 rounded-lg shadow-sm mb-6"
         >
-          <div v-if="section.title" class="flex items-center gap-2 mb-4">
-            <span v-if="section.icon" class="text-lg" aria-hidden="true">
-              {{ section.icon }}
-            </span>
-            <h3 class="text-lg font-semibold text-base-content">
+          <div class="card-body p-5 gap-4">
+            <h3 v-if="section.title" class="card-title text-sm font-medium text-base-content flex items-center gap-2">
+              <span v-if="section.icon" class="text-lg" aria-hidden="true">{{ section.icon }}</span>
               {{ section.title }}
             </h3>
-          </div>
-          <div
-            class="grid grid-cols-1 gap-4"
-            :class="section.cols ? `md:grid-cols-${section.cols}` : 'md:grid-cols-2'"
-          >
             <div
-              v-for="field in section.fields"
-              :key="field.name"
+              class="grid grid-cols-1 gap-4"
+              :class="section.cols ? `md:grid-cols-${section.cols}` : 'md:grid-cols-2'"
             >
-              <SpecFieldInput
-                v-model="form[field.name]"
-                :field="field"
-                :resource="resource"
-                :error="fieldErrors[field.name]"
-              />
+              <div
+                v-for="field in section.fields"
+                :key="field.name"
+              >
+                <SpecFieldInput
+                  v-model="form[field.name]"
+                  :field="field"
+                  :resource="resource"
+                  :error="fieldErrors[field.name]"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -638,7 +636,7 @@ function onTabSwitch(newIndex: number) {
       >
         <button
           type="submit"
-          class="btn btn-primary"
+          class="btn btn-primary sm:btn-wide"
           :disabled="saving"
         >
           <span v-if="saving" class="loading loading-spinner loading-xs" />

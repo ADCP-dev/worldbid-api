@@ -1,34 +1,31 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { toast } from 'vue-sonner'
 import Kanban from '@base/ui-app/components/kanban/Kanban.vue'
 import type {
   KanbanTask,
   KanbanStateConfig,
+  KanbanColumnStyleConfig,
+  KanbanAssignee,
 } from '@base/ui-app/components/kanban/types'
-import type { FieldSpec } from '../composables/useSpecResource'
+import { type FieldSpec, refResource, refLabelField } from '../composables/useSpecResource'
+import { useRefResolver } from '../composables/useRefResolver'
 
 /* ------------------------------------------------------------------ *
  * SpecKanban — spec-driven kanban view.
  *
- * spec-engine-v2-frontend-and-loader (Slice 6):
- *   - Reuses the base `@base/ui-app/kanban/Kanban.vue` component (NO new
- *     base component created).
- *   - Columns are derived from the field named by `ResourceUISpec.kanbanColumn`.
- *     When the field is an enum, the enum values are used as columns
- *     (preserving declaration order); otherwise columns come from the
- *     distinct values of the loaded records.
- *   - Card order within a column follows `ResourceUISpec.kanbanOrder`
- *     (ascending; ties preserve load order).
- *   - Drag & drop is PESSIMISTIC (design Q3 resolution): on drop, the
- *     component calls the update API; on success it refetches the list
- *     so server-side ordering/column is authoritative; on failure it
- *     refetches to revert the visual move and surfaces a toast. No
- *     optimistic state is held — the base Kanban's local cards are
- *     reconciled from props on every refetch.
- *   - Card click navigates to the detail view `/{resource}/{id}`.
- *   - Card title uses `labelField` (first string-ish field) and the
- *     description uses the first text/truncate field if present.
+ * Reuses the base `@base/ui-app/kanban/Kanban.vue` component (NO new
+ * base component created). Columns are derived from the field named by
+ * `ResourceUISpec.kanbanColumn`. Drag & drop is PESSIMISTIC.
+ *
+ * Visual fixes:
+ *   - Column headers colored via `stateConfig` using the spec's
+ *     `ui.colors` map (pending=warning, in_progress=info, review=primary,
+ *     done=success, blocked=error).
+ *   - Cards carry resolved assignee (avatar + name) and priority badge
+ *     via the useRefResolver cache (raw FK ids → user records).
+ *   - The board no longer wraps the base component in a border; the
+ *     base Kanban already provides a clean column layout.
  * ------------------------------------------------------------------ */
 
 const props = defineProps<{
@@ -37,23 +34,18 @@ const props = defineProps<{
 }>()
 
 const specCrud = useSpecResource()
-const { useListQuery, update, refetch: _refetchAlias } = (() => {
-  // destructure for clarity; refetch alias unused (we use listQuery.refetch)
-  return { useListQuery: specCrud.useListQuery, update: specCrud.update, refetch: specCrud.useListQuery }
-})()
+const { useListQuery, update } = specCrud
 
 const spec = specCrud.getResource(props.resource)
 const primaryKey = computed(() => spec.value?.primaryKey ?? 'id')
 
+/* ---------------- Ref resolver (assignee/reporter avatars) ---------------- */
+
+const { preloadRefs, resolveRefDisplay } = useRefResolver()
+
 /* ---------------- Kanban field resolution ---------------- */
 
-/**
- * The field whose values define the kanban columns. Required when
- * `ui.view === 'kanban'`. Falls back to 'status' when omitted (matches
- * the canonical tasks example) but renders a visible warning.
- */
 const columnField = computed<string | undefined>(() => spec.value?.ui?.kanbanColumn)
-
 const orderField = computed<string | undefined>(() => spec.value?.ui?.kanbanOrder)
 
 const columnFieldSpec = computed<FieldSpec | undefined>(() => {
@@ -63,38 +55,23 @@ const columnFieldSpec = computed<FieldSpec | undefined>(() => {
 
 /* ---------------- Card fields ---------------- */
 
-/**
- * Field used as the card title. Resolution order:
- *   1. `ui.labelField` on the column field (legacy hint)
- *   2. a field named `title`
- *   3. the first string/text field with display 'text' or no display
- *   4. the primary key
- */
 const titleField = computed<FieldSpec | undefined>(() => {
   if (!spec.value) return undefined
   const fields = spec.value.fields
-  // 1. ui.labelField
   const labelName = columnFieldSpec.value?.ui?.labelField
   if (labelName) {
     const f = fields.find((x) => x.name === labelName)
     if (f) return f
   }
-  // 2. explicit 'title'
   const t = fields.find((x) => x.name === 'title')
   if (t) return t
-  // 3. first string/text field
   const strField = fields.find(
     (x) => x.type === 'string' || x.type === 'text',
   )
   if (strField) return strField
-  // 4. primary key
   return fields.find((x) => x.name === primaryKey.value) ?? fields[0]
 })
 
-/**
- * Field used as the card description (tooltip/preview). First text/truncate
- * field that is NOT the title field.
- */
 const descriptionField = computed<FieldSpec | undefined>(() => {
   if (!spec.value) return undefined
   return spec.value.fields.find(
@@ -104,12 +81,28 @@ const descriptionField = computed<FieldSpec | undefined>(() => {
   )
 })
 
+/** Field holding the assignee FK (ref→user). */
+const assigneeField = computed<FieldSpec | undefined>(() => {
+  if (!spec.value) return undefined
+  return spec.value.fields.find(
+    (f) => refResource(f) === 'user' && f.name.toLowerCase().includes('assignee'),
+  )
+})
+
+/** Field holding the priority enum. */
+const priorityField = computed<FieldSpec | undefined>(() => {
+  if (!spec.value) return undefined
+  return spec.value.fields.find((f) => f.name === 'priority' && f.enum?.length)
+})
+
+/** Field holding the due date. */
+const dueDateField = computed<FieldSpec | undefined>(() => {
+  if (!spec.value) return undefined
+  return spec.value.fields.find((f) => f.type === 'datetime' && f.name.toLowerCase().includes('due'))
+})
+
 /* ---------------- List query ---------------- */
 
-// Load all records (large limit) so the kanban can group them. Pagination
-// of a kanban board is unusual; we load up to 200 records and let the
-// columns scroll. The query is filterable on the column field by the
-// backend when needed (not wired here — kanban shows all).
 const limit = ref(200)
 
 const listParams = computed(() => ({
@@ -125,16 +118,22 @@ const { data: listResponse, isLoading: loading, error, refetch } = useListQuery(
 
 const rows = computed(() => listResponse.value?.data ?? [])
 
+/* Preload ref resources (users, etc.) so cards can render avatars. */
+watch(
+  () => spec.value,
+  (s) => {
+    if (!s) return
+    preloadRefs(s.fields.filter((f) => !!refResource(f)))
+  },
+  { immediate: true },
+)
+
 /* ---------------- Column resolution ---------------- */
 
 /**
- * Build the column (state) list. When the column field is an enum, use
- * the enum values in declaration order. Otherwise derive distinct
- * values from the loaded records (sorted by first appearance).
- *
- * The color hint comes from `columnFieldSpec.ui.colors[value]` when
- * present (the spec uses hex strings; we map a small set of known hex
- * values to the base Kanban color tokens, and fall back to 'neutral').
+ * Map a spec color hex (or token) to a base color token the base
+ * Kanban component understands: neutral, success, warning, info,
+ * error, primary.
  */
 const HEX_COLOR_MAP: Record<string, string> = {
   '#f59e0b': 'warning',
@@ -143,16 +142,21 @@ const HEX_COLOR_MAP: Record<string, string> = {
   '#22c55e': 'success',
   '#ef4444': 'error',
   '#6b7280': 'neutral',
+  // also accept bare token names
+  warning: 'warning',
+  info: 'info',
+  primary: 'primary',
+  success: 'success',
+  error: 'error',
+  neutral: 'neutral',
 }
 
-function colorFor(value: string): string | undefined {
+function colorTokenFor(value: string): string | undefined {
   const colors = columnFieldSpec.value?.ui?.colors
   if (!colors) return undefined
   const hex = colors[value]
   if (!hex) return undefined
-  // normalize hex → token when known
-  const key = hex.toLowerCase()
-  return HEX_COLOR_MAP[key] ?? 'neutral'
+  return HEX_COLOR_MAP[hex.toLowerCase()] ?? 'neutral'
 }
 
 function titleCaseValue(s: string): string {
@@ -170,10 +174,9 @@ const columns = computed<KanbanStateConfig[]>(() => {
       id: String(value),
       title: titleCaseValue(String(value)),
       order: idx,
-      color: colorFor(String(value)),
+      color: colorTokenFor(String(value)),
     }))
   }
-  // distinct values from loaded records, in first-appearance order
   const seen = new Set<string>()
   const out: KanbanStateConfig[] = []
   let order = 0
@@ -187,17 +190,105 @@ const columns = computed<KanbanStateConfig[]>(() => {
       id: key,
       title: titleCaseValue(key),
       order: order++,
-      color: colorFor(key),
+      color: colorTokenFor(key),
     })
   }
   return out
 })
+
+/* ---------------- Per-state column styling (colored headers) ---------------- */
+
+/**
+ * Build a `KanbanColumnStyleConfig` so each column header + border carries
+ * the status color. The base KanbanColumn applies `headerClass`,
+ * `borderClass`, and `bgClass` from this map.
+ */
+const stateConfig = computed<KanbanColumnStyleConfig>(() => {
+  const out: KanbanColumnStyleConfig = {}
+  for (const col of columns.value) {
+    const token = col.color
+    if (!token) continue
+    out[col.id] = columnStyleFor(token)
+  }
+  return out
+})
+
+function columnStyleFor(token: string): { headerClass: string; borderClass: string; bgClass: string } {
+  switch (token) {
+    case 'warning':
+      return {
+        headerClass: 'bg-warning/15 text-warning-content',
+        borderClass: 'border-l-4 border-l-warning',
+        bgClass: 'bg-base-200/40',
+      }
+    case 'info':
+      return {
+        headerClass: 'bg-info/15 text-info-content',
+        borderClass: 'border-l-4 border-l-info',
+        bgClass: 'bg-base-200/40',
+      }
+    case 'primary':
+      return {
+        headerClass: 'bg-primary/15 text-primary-content',
+        borderClass: 'border-l-4 border-l-primary',
+        bgClass: 'bg-base-200/40',
+      }
+    case 'success':
+      return {
+        headerClass: 'bg-success/15 text-success-content',
+        borderClass: 'border-l-4 border-l-success',
+        bgClass: 'bg-base-200/40',
+      }
+    case 'error':
+      return {
+        headerClass: 'bg-error/15 text-error-content',
+        borderClass: 'border-l-4 border-l-error',
+        bgClass: 'bg-base-200/40',
+      }
+    case 'neutral':
+    default:
+      return {
+        headerClass: 'bg-base-300/50 text-base-content',
+        borderClass: 'border-l-4 border-l-base-300',
+        bgClass: 'bg-base-200/40',
+      }
+  }
+}
 
 /* ---------------- Record → KanbanTask adapter ---------------- */
 
 function rowValue(row: Record<string, unknown>, field: FieldSpec | undefined): unknown {
   if (!field) return undefined
   return row[field.name]
+}
+
+/** Build a KanbanAssignee from a raw assigneeId via the ref resolver. */
+function assigneeFor(row: Record<string, unknown>): KanbanAssignee | undefined {
+  const f = assigneeField.value
+  const res = f ? refResource(f) : undefined
+  if (!f || !res) return undefined
+  const id = row[f.name]
+  if (id === null || id === undefined || id === '') return undefined
+  const disp = resolveRefDisplay(res, id as string | number, refLabelField(f))
+  return {
+    id: String(id),
+    name: disp.label,
+    email: disp.subLabel ?? '',
+    role: '',
+    avatarUrl: disp.avatarUrl,
+  }
+}
+
+/** Map the spec priority enum value to the base KanbanTask priority union. */
+function priorityFor(row: Record<string, unknown>): KanbanTask['priority'] {
+  if (!priorityField.value) return undefined
+  const v = row[priorityField.value.name]
+  if (v === null || v === undefined) return undefined
+  const s = String(v)
+  if (s === 'low' || s === 'medium' || s === 'high') return s
+  // 'urgent' maps to 'high' (the base union only has low/medium/high)
+  if (s === 'urgent') return 'high'
+  return undefined
 }
 
 const tasks = computed<KanbanTask[]>(() => {
@@ -209,24 +300,22 @@ const tasks = computed<KanbanTask[]>(() => {
     const titleVal = rowValue(row, tField)
     const descVal = rowValue(row, dField)
     const stateVal = row[columnField.value]
+    const dueVal = dueDateField.value ? rowValue(row, dueDateField.value) : undefined
     return {
       id,
       title: titleVal === null || titleVal === undefined ? id : String(titleVal),
       description: descVal === null || descVal === undefined ? undefined : String(descVal),
       stateId: stateVal === null || stateVal === undefined ? '' : String(stateVal),
       metadata: { ...row },
+      assignee: assigneeFor(row),
+      priority: priorityFor(row),
+      dueDate: dueVal === null || dueVal === undefined ? undefined : String(dueVal),
     } satisfies KanbanTask
   })
 })
 
 /* ---------------- Drag & drop (PESSIMISTIC) ---------------- */
 
-/**
- * Snapshot of tasks before a drag, used to restore the visual state
- * immediately while the API call is in flight. We don't actually mutate
- * this — the base Kanban keeps its own local cards; on failure we
- * trigger a refetch which resyncs props → local cards.
- */
 const dragInFlight = ref(false)
 
 async function onUpdateTaskState(payload: {
@@ -241,15 +330,11 @@ async function onUpdateTaskState(payload: {
     await update(props.resource, taskId, {
       [columnField.value]: newStateId,
     })
-    // success: refetch so server ordering is authoritative
     await refetch()
     toast.success('Moved', {
       description: `${titleCaseValue(oldStateId)} → ${titleCaseValue(newStateId)}`,
     })
   } catch (err: unknown) {
-    // failure: refetch to REVERT the visual move (pessimistic — the base
-    // Kanban already moved the card locally; refetching resyncs from the
-    // server, which still has the old column).
     await refetch()
     const msg = err instanceof Error ? err.message : 'Move failed'
     toast.error('Could not move card', { description: msg })
@@ -267,9 +352,6 @@ function onClickTask(taskId: string) {
 /* ---------------- "Create" — defer to the form page ---------------- */
 
 function onCreateTask(stateId: string) {
-  // Navigate to the create form; we pass the column value as a query
-  // param so the form can prefill it (forward-compat — SpecDataForm
-  // ignores unknown query params today).
   if (!columnField.value) {
     navigateTo(`/app/${props.resource}/new`)
     return
@@ -280,7 +362,7 @@ function onCreateTask(stateId: string) {
   })
 }
 
-/* ---------------- Header (title + new) ---------------- */
+/* ---------------- Header ---------------- */
 
 const headerTitle = computed(() => spec.value?.ui?.plural ?? props.resource)
 const canCreate = computed(() => {
@@ -291,24 +373,16 @@ const canCreate = computed(() => {
 
 /* ---------------- Validation guard ---------------- */
 
-/**
- * When `ui.view === 'kanban'` but no `kanbanColumn` is declared, render
- * a visible error block instead of a broken board. Same spirit as the
- * dashboard custom-component error (visible error, not a crash).
- */
 const misconfigured = computed(() => {
   if (!spec.value) return false
   const view = spec.value.ui?.view
   if (view !== 'kanban') return false
   return !columnField.value
 })
-
-// silence unused warning for the destructured refetch alias placeholder
-void _refetchAlias
 </script>
 
 <template>
-  <div class="w-full">
+  <div class="w-full flex flex-col h-full">
     <!-- Header -->
     <div class="flex flex-wrap items-center gap-3 mb-4">
       <h2 class="text-xl font-semibold flex-1 text-base-content">
@@ -317,9 +391,12 @@ void _refetchAlias
       <NuxtLink
         v-if="canCreate"
         :to="`/app/${resource}/new`"
-        class="btn btn-primary btn-sm"
+        class="btn btn-primary btn-sm gap-1"
       >
-        + New
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+        New
       </NuxtLink>
     </div>
 
@@ -348,14 +425,21 @@ void _refetchAlias
       v-else-if="!loading && !rows.length"
       class="text-center py-12 text-base-content/50"
     >
-      No records found.
+      <div class="flex flex-col items-center gap-2">
+        <svg class="w-12 h-12 text-base-content/30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <path d="M9 3v18M15 3v18" />
+        </svg>
+        <p>No records found.</p>
+      </div>
     </div>
 
-    <!-- Board -->
-    <div v-else class="border rounded-md bg-base-100 overflow-hidden">
+    <!-- Board: base Kanban component (no wrapper border; columns own their bg) -->
+    <div v-else class="flex-1 min-h-0 rounded-lg border border-base-200 bg-base-100 overflow-hidden">
       <Kanban
         :tasks="tasks"
         :states="columns"
+        :state-config="stateConfig"
         :group="`spec-kanban-${resource}`"
         :show-toolbar="true"
         @update:task-state="onUpdateTaskState"
@@ -367,9 +451,10 @@ void _refetchAlias
     <!-- Drag in-flight overlay (subtle) -->
     <div
       v-if="dragInFlight"
-      class="text-xs text-base-content/50 mt-2"
+      class="text-xs text-base-content/50 mt-2 flex items-center gap-1"
       aria-live="polite"
     >
+      <span class="loading loading-spinner loading-xs" />
       Saving move…
     </div>
   </div>

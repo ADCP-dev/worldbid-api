@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import type { FieldSpec } from '../composables/useSpecResource'
+import { type FieldSpec, refResource } from '../composables/useSpecResource'
+import { useRefResolver } from '../composables/useRefResolver'
 import SpecFieldRenderer from './SpecFieldRenderer.vue'
 
 /* ------------------------------------------------------------------ *
@@ -38,6 +39,17 @@ const router = useRouter()
 
 const spec = specCrud.getResource(props.resource)
 const primaryKey = computed(() => spec.value?.primaryKey ?? 'id')
+
+/* ---------------- Ref resolver (avatars for ref fields) ---------------- */
+const { preloadRefs } = useRefResolver()
+watch(
+  () => spec.value,
+  (s) => {
+    if (!s) return
+    preloadRefs(s.fields.filter((f) => !!refResource(f)))
+  },
+  { immediate: true },
+)
 
 /* ---------------- Record ---------------- */
 
@@ -302,40 +314,48 @@ void refetch
       v-else-if="!loading && !Object.keys(row).length"
       class="text-center py-12 text-base-content/50"
     >
-      Record not found.
+      <div class="flex flex-col items-center gap-2">
+        <svg class="w-12 h-12 text-base-content/30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="11" cy="11" r="8" />
+          <path d="M21 21l-4.35-4.35M8 11h6" />
+        </svg>
+        <p>Record not found.</p>
+      </div>
     </div>
 
     <!-- Body -->
-    <div v-else class="space-y-8">
+    <div v-else class="space-y-6">
       <!-- Primary key + display name meta line -->
       <div class="text-sm text-base-content/50 flex items-center gap-2">
-        <span>{{ spec?.ui?.singular ?? resource }} #{{ row[primaryKey] ?? id }}</span>
+        <span class="badge badge-ghost badge-sm">{{ spec?.ui?.singular ?? resource }}</span>
+        <span class="font-mono">#{{ row[primaryKey] ?? id }}</span>
       </div>
 
       <!-- Sectioned or flat -->
       <section
         v-for="group in fieldGroups"
         :key="group.id"
-        class="space-y-3"
+        class="card bg-base-100 border border-base-200 rounded-lg shadow-sm"
       >
-        <h3
-          v-if="group.title"
-          class="text-lg font-medium text-base-content border-b border-base-200 pb-1"
-        >
-          <span v-if="group.icon" class="mr-2">{{ group.icon }}</span>
-          {{ group.title }}
-        </h3>
-
-        <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-          <div
-            v-for="field in group.fields"
-            :key="field.name"
-            class="flex flex-col gap-1"
+        <div class="card-body p-5 gap-4">
+          <h3
+            v-if="group.title"
+            class="card-title text-sm font-medium text-base-content flex items-center gap-2"
           >
-            <dt class="text-xs uppercase tracking-wide text-base-content/50">
-              {{ field.label ?? capitalize(field.name) }}
-            </dt>
-            <dd class="text-sm text-base-content">
+            <span v-if="group.icon" aria-hidden="true">{{ group.icon }}</span>
+            {{ group.title }}
+          </h3>
+
+          <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+            <div
+              v-for="field in group.fields"
+              :key="field.name"
+              class="flex flex-col gap-1"
+            >
+              <dt class="text-xs font-medium text-base-content/50 uppercase tracking-wider">
+                {{ field.label ?? capitalize(field.name) }}
+              </dt>
+              <dd class="text-sm text-base-content">
               <!-- Secret field: masked with toggle -->
               <template v-if="isSecretField(field)">
                 <span class="inline-flex items-center gap-2 font-mono">
@@ -360,6 +380,7 @@ void refetch
             </dd>
           </div>
         </dl>
+        </div>
       </section>
     </div>
   </div>

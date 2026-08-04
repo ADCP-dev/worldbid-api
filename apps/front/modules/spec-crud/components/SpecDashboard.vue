@@ -555,17 +555,18 @@ onUnmounted(() => {
           </h2>
 
           <div class="flex items-center gap-2">
-            <label class="text-sm text-base-content/60" for="spec-dashboard-time-range">Range:</label>
-            <select
-              id="spec-dashboard-time-range"
-              v-model="timeRange"
-              class="select select-sm select-bordered"
-              data-action="time-range"
-            >
-              <option v-for="r in TIME_RANGES" :key="r.value" :value="r.value">
+            <div class="join">
+              <button
+                v-for="r in TIME_RANGES"
+                :key="r.value"
+                class="btn btn-xs join-item"
+                :class="timeRange === r.value ? 'btn-active btn-primary' : 'btn-ghost'"
+                data-action="time-range"
+                @click="timeRange = r.value"
+              >
                 {{ r.label }}
-              </option>
-            </select>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -575,11 +576,11 @@ onUnmounted(() => {
           <span
             v-for="[key, value] in activeFilterEntries"
             :key="`filter-${key}`"
-            class="badge badge-primary gap-1"
+            class="badge badge-ghost gap-1"
           >
             {{ key }} = {{ value }}
             <button
-              class="ml-1 hover:opacity-100"
+              class="ml-1 hover:opacity-100 btn btn-ghost btn-xs btn-circle"
               data-action="remove-filter"
               :aria-label="`Remove filter ${key}`"
               @click="removeFilter(key)"
@@ -599,25 +600,25 @@ onUnmounted(() => {
           <div
             v-for="panel in renderablePanels"
             :key="panel.name"
-            :class="['bg-base-100 rounded-box shadow p-4 border border-base-300', spanClass(spanFor(panel))]"
+            :class="['card bg-base-100 border border-base-200 rounded-lg shadow-sm p-4', spanClass(spanFor(panel))]"
           >
             <!-- Panel header -->
-            <div class="flex items-center justify-between mb-2">
-              <h3 class="text-sm font-medium text-base-content/70">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-sm font-medium text-base-content">
                 {{ panel.label || panel.name }}
               </h3>
-              <span class="text-xs text-base-content/50 uppercase">{{ panel.chart }}</span>
+              <span class="badge badge-ghost badge-xs uppercase">{{ panel.chart }}</span>
             </div>
 
             <!-- Stat panel: inline render, no ECharts container -->
             <div
               v-if="panel.chart === 'stat'"
-              class="flex flex-col items-center justify-center py-6"
+              class="flex flex-col items-center justify-center py-4"
             >
-              <span class="text-5xl font-bold text-base-content">
+              <span class="text-3xl font-bold text-primary">
                 {{ panel.data.value ?? '—' }}
               </span>
-              <span class="text-sm text-base-content/70 mt-1">{{ panel.label }}</span>
+              <span class="text-sm text-base-content/60 mt-1">{{ panel.label }}</span>
             </div>
 
             <!-- Table panel: mini read-only DaisyUI table -->
@@ -654,7 +655,10 @@ onUnmounted(() => {
                   </tr>
                 </tbody>
               </table>
-              <div v-else class="text-center text-base-content/40 py-8 text-sm">
+              <div v-else class="text-center text-base-content/40 py-8 text-sm flex flex-col items-center gap-1">
+                <svg class="w-8 h-8 text-base-content/20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M3 3h18v18H3z M3 9h18 M9 3v18" />
+                </svg>
                 No records.
               </div>
             </div>
@@ -687,7 +691,10 @@ onUnmounted(() => {
                   </div>
                 </li>
               </ul>
-              <div v-else class="text-center text-base-content/40 py-8 text-sm">
+              <div v-else class="text-center text-base-content/40 py-8 text-sm flex flex-col items-center gap-1">
+                <svg class="w-8 h-8 text-base-content/20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M3 3h18v18H3z M3 9h18 M9 3v18" />
+                </svg>
                 No records.
               </div>
             </div>

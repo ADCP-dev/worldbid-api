@@ -332,46 +332,62 @@ resources:
         position: 0
         estimateHours: 4
         isRecurring: false
+        assigneeId: 1
+        reporterId: 2
       - title: Design database schema
         status: in_progress
         priority: medium
         position: 1
         estimateHours: 8
         dueDate: '2026-08-10T00:00:00Z'
+        assigneeId: 2
+        reporterId: 1
       - title: Write API documentation
         status: pending
         priority: low
         position: 2
         estimateHours: 6
+        assigneeId: 1
+        reporterId: 1
       - title: Deploy staging environment
         status: blocked
         priority: urgent
         dueDate: '2026-08-15T00:00:00Z'
         position: 3
         estimateHours: 2
+        assigneeId: 2
+        reporterId: 1
       - title: Weekly metrics review
         status: pending
         priority: medium
         position: 4
         isRecurring: true
         recurrenceRule: 'FREQ=WEEKLY;BYDAY=MO'
+        assigneeId: 1
+        reporterId: 2
       - title: Refactor auth module
         status: review
         priority: high
         position: 5
         estimateHours: 16
         dueDate: '2026-08-20T00:00:00Z'
+        assigneeId: 2
+        reporterId: 1
       - title: Migrate to new S3 SDK
         status: in_progress
         priority: urgent
         position: 6
         estimateHours: 12
+        assigneeId: 1
+        reporterId: 2
       - title: Customer onboarding checklist
         status: pending
         priority: low
         position: 7
         isRecurring: true
         recurrenceRule: 'FREQ=MONTHLY;BYMONTHDAY=1'
+        assigneeId: 2
+        reporterId: 1
 
     ui:
       icon: CheckSquare
