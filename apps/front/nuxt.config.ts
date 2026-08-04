@@ -9,9 +9,9 @@ function getI18nFiles(_langCode: string) {
 export default defineNuxtConfig(
   {
     compatibilityDate: '2024-11-01',
-    extends: ['./modules/landing', './modules/base', './modules/spec-crud', './extensions/cms', './extensions/analytics', './extensions/upload-post', './extensions/crm', './extensions/affiliate', './extensions/content-pipeline', './extensions/autonomous-agent', './extensions/stripe', './extensions/tokens'],
+    extends: ['./modules/landing', './modules/base', './modules/spec-crud', './extensions/cms', './extensions/analytics', './extensions/upload-post', './extensions/crm', './extensions/affiliate', './extensions/content-pipeline', './extensions/autonomous-agent', './extensions/stripe', './extensions/tokens', './extensions/tasks'],
     devtools: { enabled: true },
-    ssr: true,
+    ssr: false,
 
     alias: {
       '@': '~/',
@@ -19,6 +19,7 @@ export default defineNuxtConfig(
       '@cms': '~/extensions/cms',
       '@upload-post': '~/extensions/upload-post',
       '@crm': '~/extensions/crm',
+      '@tasks': '~/extensions/tasks',
       '@affiliate': '~/extensions/affiliate',
       '@content-pipeline': '~/extensions/content-pipeline',
       '@autonomous-agent': '~/extensions/autonomous-agent',
@@ -70,6 +71,9 @@ export default defineNuxtConfig(
     vite: {
       // @ts-expect-error - Incompatible vite/rollup plugin types in this environment
       plugins: [tailwindcss()],
+      server: {
+        allowedHosts: ['f.vps.som-os.dev'],
+      },
     },
     colorMode: {
       classSuffix: '',
