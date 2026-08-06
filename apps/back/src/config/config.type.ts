@@ -8,8 +8,6 @@ import type { GoogleConfig } from '@iam/auth-google/config/google-config.type';
 import type { MailConfig } from '@comms/mail/config/mail-config.type';
 import type { StripeConfig } from '@ext/stripe/config/stripe-config.type';
 import type { UploadPostConfig } from '@ext/upload-post/config/upload-post-config.type';
-import type { ContentPipelineConfig } from '@ext/content-pipeline/config/content-pipeline-config.type';
-import type { AutonomousAgentConfig } from '@ext/autonomous-agent/config/autonomous-agent-config.type';
 import type { WorkerConfig } from './worker-config.type';
 
 /**
@@ -34,7 +32,5 @@ export type AllConfigType = {
   // Extension config keys — optional, decoupled from core.
   stripe?: StripeConfig;
   'upload-post'?: UploadPostConfig;
-  'content-pipeline'?: ContentPipelineConfig;
-  'autonomous-agent'?: AutonomousAgentConfig;
   worker: WorkerConfig;
 };
