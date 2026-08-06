@@ -49,9 +49,6 @@ const intervalOptions = [
   { value: 'year', label: 'Año' },
 ];
 
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
 
 onMounted(async () => {
   // Wait for product data then populate form

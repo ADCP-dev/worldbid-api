@@ -34,9 +34,6 @@ function formatRate(rate: number) {
   return `${(rate ?? 0).toFixed(2)}%`;
 }
 
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
 
 const columns = computed(() => [
   { accessorKey: 'name', headerName: 'Nombre', header: 'Nombre', filterType: 'string' as const },

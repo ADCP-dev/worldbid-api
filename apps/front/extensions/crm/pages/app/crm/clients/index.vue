@@ -43,9 +43,6 @@ const originOptions = computed(() => [
   ...origins.value.map((o) => ({ label: o.label, value: String(o.id) })),
 ]);
 
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
 
 const columns = computed(() => [
   { accessorKey: 'name', headerName: 'Nombre', header: 'Nombre', filterType: 'string' as const },

@@ -24,9 +24,6 @@ const users = ref<UserLight[]>([]);
 const search = ref('');
 const pendingStatus = ref<TaskStatus | ''>('');
 
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
 
 async function loadTasks() {
   loading.value = true;

@@ -47,9 +47,6 @@ const userMap = computed<Record<number, UserLight>>(() => {
   return m;
 });
 
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();

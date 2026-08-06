@@ -46,9 +46,6 @@ const redditPostId = ref('');
 const redditDetail = ref<Record<string, unknown> | null>(null);
 const redditLoading = ref(false);
 
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
 
 async function loadPlatform(key: PlatformKey) {
   const s = states.value[key];

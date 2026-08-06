@@ -19,9 +19,6 @@ const loading = ref(false);
 const activities = ref<TaskActivity[]>([]);
 const users = ref<UserLight[]>([]);
 
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
 
 async function loadActivities() {
   loading.value = true;

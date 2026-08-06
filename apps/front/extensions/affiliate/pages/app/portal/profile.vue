@@ -18,9 +18,6 @@ const name = ref('');
 const phone = ref('');
 const iban = ref('');
 
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
 
 async function loadProfile() {
   loading.value = true;

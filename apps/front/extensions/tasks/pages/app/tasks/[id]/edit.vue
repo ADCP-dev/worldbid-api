@@ -23,9 +23,6 @@ const saving = ref(false);
 const task = ref<Task | null>(null);
 const users = ref<UserLight[]>([]);
 
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
 
 async function loadTask() {
   loading.value = true;

@@ -43,9 +43,6 @@ const statusOptions = [
 
 const cancelTarget = ref<Subscription | null>(null);
 
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
 
 async function confirmCancel() {
   if (!cancelTarget.value) return;

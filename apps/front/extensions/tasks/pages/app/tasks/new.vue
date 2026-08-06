@@ -22,9 +22,6 @@ const users = ref<UserLight[]>([]);
 
 const initialStatus = computed(() => (route.query.status as string) || '');
 
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
 
 async function loadUsers() {
   try {

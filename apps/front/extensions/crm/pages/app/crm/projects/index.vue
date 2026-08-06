@@ -56,9 +56,6 @@ const statusOptions = computed(() => [
   ...Object.entries(PROJECT_STATUS_LABELS).map(([value, label]) => ({ value, label })),
 ]);
 
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
 
 function formatDate(date?: string | null): string {
   if (!date) return '—';

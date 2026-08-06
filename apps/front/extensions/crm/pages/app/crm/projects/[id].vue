@@ -84,9 +84,6 @@ const paymentStatusOptions = computed(() =>
   Object.entries(PAYMENT_STATUS_LABELS).map(([value, label]) => ({ value, label })),
 );
 
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null;

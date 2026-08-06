@@ -33,9 +33,6 @@ const settingsForm = ref({
 const settingsLoading = ref(false);
 const saving = ref(false);
 
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
 
 async function loadAll() {
   loading.value = true;

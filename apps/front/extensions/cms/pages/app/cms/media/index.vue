@@ -42,9 +42,6 @@ const filteredMedia = computed(() => {
   return media.value.filter((m) => m.name?.toLowerCase().includes(q));
 });
 
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
 
 function isImage(type?: string): boolean {
   return !!type && type.startsWith('image/');

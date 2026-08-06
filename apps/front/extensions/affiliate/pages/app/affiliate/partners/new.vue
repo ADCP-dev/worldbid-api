@@ -20,9 +20,6 @@ const phone = ref('');
 const iban = ref('');
 const commissionRate = ref<string | number>('');
 
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
 
 async function submit() {
   if (!name.value.trim()) {

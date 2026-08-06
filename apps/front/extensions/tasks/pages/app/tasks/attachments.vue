@@ -39,9 +39,6 @@ const tableState = computed(() => {
   };
 });
 
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
 
 function formatDate(d: string): string {
   return new Date(d).toLocaleDateString('en-ES', {

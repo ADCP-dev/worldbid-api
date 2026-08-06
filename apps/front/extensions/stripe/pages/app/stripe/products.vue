@@ -68,9 +68,6 @@ function closeModal() {
   resetForm();
 }
 
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
 
 async function submit() {
   if (!form.value.name.trim()) {

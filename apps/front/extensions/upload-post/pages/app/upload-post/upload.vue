@@ -58,9 +58,6 @@ function togglePlatform(platform: string) {
   }
 }
 
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
 
 async function handleSubmit() {
   if (!form.value.title.trim()) {
