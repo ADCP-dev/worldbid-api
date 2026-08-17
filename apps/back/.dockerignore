@@ -1,4 +1,37 @@
-/node_modules
-/.data
-/dist
-/files
+# Build context = apps/back/ (Coolify base_directory=/apps/back)
+# Keep the tarball sent to the daemon small.
+
+# Local deps + build artifacts (regenerated inside the image)
+node_modules
+dist
+coverage
+
+# Runtime data / local files
+.data
+files
+*.log
+logs
+
+# Env files (Coolify injects env vars at runtime)
+.env
+.env.*
+!.env.example
+
+# Tooling / editor / OS noise
+.git
+.gitignore
+.idea
+.vscode
+.DS_Store
+
+# Tests + docs not needed in the image
+test
+docs
+*.md
+TODO.md
+README.md
+LICENSE
+
+# Docker files themselves
+Dockerfile
+.dockerignore

@@ -1,21 +1,64 @@
-FROM node:22.16.0-alpine
+# syntax=docker/dockerfile:1.7
+
+# ============================================================================
+# Stage 1: deps — install ALL deps (prod + dev) in a cached layer
+# ============================================================================
+FROM node:22.16.0-alpine AS deps
+
+WORKDIR /usr/src/app
+
+# Copy only manifests first → this layer is cached unless package*.json change.
+COPY package.json package-lock.json ./
+
+# npm install (not ci: lockfile may have drift)
+RUN npm install --legacy-peer-deps --no-audit --no-fund
+
+# ============================================================================
+# Stage 2: build — compile TypeScript to dist/
+# ============================================================================
+FROM node:22.16.0-alpine AS build
+
+WORKDIR /usr/src/app
+
+# Reuse the installed node_modules from the deps stage.
+COPY --from=deps /usr/src/app/node_modules ./node_modules
+
+# Copy the rest of the source.
+COPY . .
+
+# Config loaders expect .env to exist at build time.
+RUN echo "" > .env
+
+# Compile: nest build → dist/
+RUN npm run build
+
+# ============================================================================
+# Stage 3: prod — slim runtime with dist/ + prod-only node_modules
+# ============================================================================
+FROM node:22.16.0-alpine AS prod
 
 RUN apk add --no-cache bash \
     ffmpeg chromium nss freetype harfbuzz ca-certificates ttf-freefont font-noto
-RUN npm i -g @nestjs/cli typescript ts-node
 
-COPY package*.json /tmp/app/
-RUN cd /tmp/app && npm install --legacy-peer-deps
-
-COPY . /usr/src/app
-RUN cp -a /tmp/app/node_modules /usr/src/app
-COPY ./startup.sh /opt/startup.sh
-RUN chmod +x /opt/startup.sh
-RUN sed -i 's/\r//g' /opt/startup.sh
+ENV NODE_ENV=production
 
 WORKDIR /usr/src/app
+
+# Copy manifests + full node_modules from deps, then prune to prod-only.
+COPY package.json package-lock.json ./
+COPY --from=deps /usr/src/app/node_modules ./node_modules
+RUN npm prune --production --legacy-peer-deps --no-audit --no-fund
+
+# Copy the compiled output from the build stage.
+COPY --from=build /usr/src/app/dist ./dist
+
+# Copy startup script.
+COPY startup.sh /opt/startup.sh
+RUN chmod +x /opt/startup.sh && sed -i 's/\r//g' /opt/startup.sh
+
+# Empty .env — runtime config comes from Coolify env vars.
 RUN echo "" > .env
-RUN npm run build
 
 EXPOSE 3000
+
 CMD ["/opt/startup.sh"]
