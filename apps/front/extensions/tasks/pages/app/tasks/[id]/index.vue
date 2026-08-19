@@ -190,7 +190,7 @@ const apiKeyMasked = computed(() => {
   const k = task.value?.apiKey;
   if (!k) return null;
   if (k.length <= 4) return '••••';
-  return `${'•'.repeat(Math.max(4, k.length - 4))}${k.slice(-4)}`);
+  return `${'•'.repeat(Math.max(4, k.length - 4))}${k.slice(-4)}`;
 });
 </script>
 

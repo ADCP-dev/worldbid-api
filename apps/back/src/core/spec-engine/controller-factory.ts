@@ -358,7 +358,11 @@ export class ControllerFactory {
     // `permissions.auth`, `resolveGuardStack` defaults to `jwt`, so the
     // per-method guard is identical to the pre-existing class-level
     // `AuthGuard('jwt')` — preserving the 106 existing tests.
-    @UseGuards(RolesGuard)
+    // NOTE: RolesGuard is applied per-method alongside the auth guard,
+    // not at class level, because NestJS executes class-level guards
+    // before method-level guards. If RolesGuard runs before AuthGuard,
+    // request.user is undefined and every request gets 403.
+    @UseGuards()
     @Controller({ path: routePath, version: '1' })
     class SpecDynamicController {
       private readonly logger = new Logger(`SpecController:${displayName}`);
@@ -609,7 +613,7 @@ export class ControllerFactory {
 
       // ─── GET / ──────────────────────────────────────────
       @Get()
-      @UseGuards(guardClassFor(listStack.guardKind))
+      @UseGuards(guardClassFor(listStack.guardKind), RolesGuard)
       @Roles(...listRoles)
       async findAll(
         @Query('page') page?: string,
@@ -735,7 +739,7 @@ export class ControllerFactory {
 
       // ─── GET /:id ───────────────────────────────────────
       @Get(':id')
-      @UseGuards(guardClassFor(readStack.guardKind))
+      @UseGuards(guardClassFor(readStack.guardKind), RolesGuard)
       @Roles(...readRoles)
       async findOne(
         @Param('id') id: string,
@@ -822,7 +826,7 @@ export class ControllerFactory {
       // ─── POST / ─────────────────────────────────────────
       @Post()
       @HttpCode(HttpStatus.CREATED)
-      @UseGuards(guardClassFor(createStack.guardKind))
+      @UseGuards(guardClassFor(createStack.guardKind), RolesGuard)
       @Roles(...createRoles)
       async create(
         @Body() body: unknown,
@@ -1035,7 +1039,7 @@ export class ControllerFactory {
 
       // ─── PATCH /:id ─────────────────────────────────────
       @Patch(':id')
-      @UseGuards(guardClassFor(updateStack.guardKind))
+      @UseGuards(guardClassFor(updateStack.guardKind), RolesGuard)
       @Roles(...updateRoles)
       async update(
         @Param('id') id: string,
@@ -1312,7 +1316,7 @@ export class ControllerFactory {
       // ─── DELETE /:id ────────────────────────────────────
       @Delete(':id')
       @HttpCode(HttpStatus.NO_CONTENT)
-      @UseGuards(guardClassFor(deleteStack.guardKind))
+      @UseGuards(guardClassFor(deleteStack.guardKind), RolesGuard)
       @Roles(...deleteRoles)
       async remove(
         @Param('id') id: string,
