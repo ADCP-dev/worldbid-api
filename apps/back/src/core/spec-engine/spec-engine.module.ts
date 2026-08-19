@@ -179,19 +179,44 @@ export class SpecEngineModule {
             manyToManySchemas: joinTableSchemas,
           });
 
+          // Create custom action controller (non-CRUD endpoints) BEFORE the
+          // CRUD controller so that action sub-paths (e.g. /tasks/stats) are
+          // matched before the CRUD :id param route (which would otherwise
+          // capture "stats" as an id and fail numeric validation).
+          if (resource.actions && resource.actions.length > 0) {
+            try {
+              const actionResult = SpecEngineActionFactory.create(
+                resource,
+                mainSchema,
+                loaded.dir,
+                process.env.NODE_ENV !== 'production',
+              );
+              if (actionResult) {
+                controllers.push(actionResult.controllerClass);
+                logger.log(
+                  `  ↳ Actions: ${resource.actions.length} endpoint(s) (${resource.actions.map((a) => a.path).join(', ')})`,
+                );
+              }
+            } catch (err) {
+              logger.error(
+                `  ↳ Failed to create actions for "${resource.name}": ${(err as Error).message}\n${(err as Error).stack ?? ''}`,
+              );
+            }
+          }
+
           controllers.push(controllerClass);
 
           logger.log(
             `✅ Materialized: ${resource.name} → table ${resource.table}, ${resource.fields.length} fields` +
-              (allHooks.beforeCreate ? ', beforeCreate hook' : '') +
-              (allHooks.afterCreate ? ', afterCreate hook' : '') +
-              (resource.notifications?.length
-                ? `, ${resource.notifications.length} notifications`
-                : '') +
-              (resource.jobs?.length ? `, ${resource.jobs.length} jobs` : '') +
-              (resource.webhooks?.length
-                ? `, ${resource.webhooks.length} webhooks`
-                : ''),
+            (allHooks.beforeCreate ? ', beforeCreate hook' : '') +
+            (allHooks.afterCreate ? ', afterCreate hook' : '') +
+            (resource.notifications?.length
+              ? `, ${resource.notifications.length} notifications`
+              : '') +
+            (resource.jobs?.length ? `, ${resource.jobs.length} jobs` : '') +
+            (resource.webhooks?.length
+              ? `, ${resource.webhooks.length} webhooks`
+              : ''),
           );
 
           // Create webhook controllers
@@ -211,28 +236,6 @@ export class SpecEngineModule {
                   `  ↳ Failed to create webhook "${webhook.name}": ${(err as Error).message}`,
                 );
               }
-            }
-          }
-
-          // Create custom action controller (non-CRUD endpoints)
-          if (resource.actions && resource.actions.length > 0) {
-            try {
-              const actionResult = SpecEngineActionFactory.create(
-                resource,
-                resource.name,
-                loaded.dir,
-                process.env.NODE_ENV !== 'production',
-              );
-              if (actionResult) {
-                controllers.push(actionResult.controllerClass);
-                logger.log(
-                  `  ↳ Actions: ${resource.actions.length} endpoint(s) (${resource.actions.map((a) => a.path).join(', ')})`,
-                );
-              }
-            } catch (err) {
-              logger.error(
-                `  ↳ Failed to create actions for "${resource.name}": ${(err as Error).message}`,
-              );
             }
           }
         } catch (err) {

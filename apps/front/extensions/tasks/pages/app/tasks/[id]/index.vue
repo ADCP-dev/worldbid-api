@@ -7,7 +7,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import { Pencil, Trash2, ArrowLeft } from 'lucide-vue-next';
-import type { Task, TaskActivity, TaskComment, UserLight, PaginatedResponse } from '@tasks/types';
+import type { Task, TaskActivity, TaskComment, TaskNote, UserLight, PaginatedResponse } from '@tasks/types';
 
 
 definePageMeta({
@@ -27,6 +27,7 @@ const users = ref<UserLight[]>([]);
 // Tabs data
 const comments = ref<TaskComment[]>([]);
 const activities = ref<TaskActivity[]>([]);
+const notes = ref<TaskNote[]>([]);
 const commentsLoading = ref(false);
 const activitiesLoading = ref(false);
 const addingComment = ref(false);
@@ -112,7 +113,7 @@ onMounted(async () => {
   await Promise.all([loadTask(), loadUsers(), loadComments(), loadActivities()]);
 });
 
-// Reload when navigating between task ids
+// Reload when navigating between task ids (notes load on mount of TaskNotesList)
 watch(taskId, () => {
   loadTask();
   loadComments();
@@ -153,6 +154,7 @@ watch(taskId, () => {
         :task="task"
         :comments="comments"
         :activities="activities"
+        :notes="notes"
         :users="users"
         :comments-loading="commentsLoading"
         :activities-loading="activitiesLoading"

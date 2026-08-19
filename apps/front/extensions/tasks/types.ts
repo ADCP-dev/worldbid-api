@@ -61,6 +61,7 @@ export interface Task {
   apiKey?: string | null;
   attachment?: string | null;
   coverImage?: string | null;
+  tags?: string[] | Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -81,6 +82,69 @@ export interface TaskPayload {
   apiKey?: string | null;
   attachment?: string | null;
   coverImage?: string | null;
+  tags?: string[] | Record<string, unknown> | null;
+}
+
+// ─── Task Note ────────────────────────────────────────────────────────
+
+export interface TaskNote {
+  id: number;
+  content: string;
+  authorId?: number | null;
+  taskId: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TaskNotePayload {
+  taskId: number;
+  content: string;
+}
+
+// ─── Task Stats (from action endpoint) ────────────────────────────────
+
+export type StatsRange = '7d' | '30d' | '90d';
+
+export interface TaskStatsByStatus extends Record<string, number> {}
+
+export interface TaskStatsByPriority extends Record<string, number> {}
+
+export interface TaskStatsAssignee {
+  id: number;
+  name: string;
+  count: number;
+}
+
+export interface TaskStatsThroughput {
+  date: string;
+  count: number;
+}
+
+export interface TaskStatsDeadlineItem {
+  id: number;
+  title: string;
+  dueDate: string | null;
+}
+
+export interface TaskStatsResponse {
+  byStatus: TaskStatsByStatus;
+  byPriority: TaskStatsByPriority;
+  byAssignee: TaskStatsAssignee[];
+  throughput: TaskStatsThroughput[];
+  upcoming: TaskStatsDeadlineItem[];
+  overdue: TaskStatsDeadlineItem[];
+}
+
+// ─── Bulk / Reorder payloads ──────────────────────────────────────────
+
+export interface ReorderItem {
+  id: number;
+  position: number;
+}
+
+export interface BulkStatusPayload {
+  ids: number[];
+  status: TaskStatus;
 }
 
 // ─── Task Comment ─────────────────────────────────────────────────────

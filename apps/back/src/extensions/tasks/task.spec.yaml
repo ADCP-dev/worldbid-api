@@ -107,6 +107,12 @@ resources:
         storage: local
         allowedMimes: ['image/png', 'image/jpeg', 'image/webp']
 
+      # ── Tagging (added by change tasks-v2-professional) ──
+      - name: tags
+        type: json
+        nullable: true
+        default: {}
+
     permissions:
       list: [admin, user, manager]
       read: [admin, user, manager]
@@ -132,6 +138,34 @@ resources:
       beforeCreate: ./hooks/task-before-create.ts
       afterCreate: ./hooks/task-after-create.ts
       afterUpdate: ./hooks/task-after-update.ts
+
+    # ── Custom actions (added by change tasks-v2-professional) ──
+    # Handlers are loaded via require() by SpecEngineActionFactory and receive
+    # (entityId, input, ctx). Auth is enforced via @Roles + jwt + RolesGuard.
+    # `stats` is read-like (all task roles); `reorder`/`bulk-status` mutate.
+    actions:
+      - name: stats
+        method: GET
+        path: stats
+        auth: [admin, user, manager]
+        handler: ./handlers/stats-handler.ts
+        input:
+          - { name: range, type: string, required: false }
+      - name: reorder
+        method: PATCH
+        path: reorder
+        auth: [admin, manager]
+        handler: ./handlers/reorder-handler.ts
+        input:
+          - { name: items, type: json, required: true }
+      - name: bulk-status
+        method: PATCH
+        path: bulk-status
+        auth: [admin, user, manager]
+        handler: ./handlers/bulk-status-handler.ts
+        input:
+          - { name: ids, type: json, required: true }
+          - { name: status, type: enum, required: true }
 
     notifications:
       - name: notify-assignee

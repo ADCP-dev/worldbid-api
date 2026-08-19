@@ -468,12 +468,12 @@ describe('Slice 7 — canonical tasks split-spec fixture', () => {
     expect(fs.existsSync(TASKS_DIR)).toBe(true);
   });
 
-  it('loads the canonical tasks extension with 4 resources from split files', () => {
+  it('loads the canonical tasks extension with 5 resources from split files', () => {
     const loaded = SpecLoader.load(path.dirname(TASKS_DIR));
 
     const tasks = loaded.find((l) => l.spec.name === 'tasks');
     expect(tasks).toBeDefined();
-    expect(tasks!.spec.resources).toHaveLength(4);
+    expect(tasks!.spec.resources).toHaveLength(5);
 
     const names = tasks!.spec.resources.map((r) => r.name).sort();
     expect(names).toEqual([
@@ -481,6 +481,7 @@ describe('Slice 7 — canonical tasks split-spec fixture', () => {
       'task-activity',
       'task-attachment',
       'task-comment',
+      'task-note',
     ]);
   });
 

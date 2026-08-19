@@ -4,6 +4,9 @@
  * 5 columns (pending, in_progress, review, done, blocked) with drag & drop.
  * Cross-column drop → updateTask(id, { status }) (pessimistic: refetch on
  * success, revert on fail).
+ *
+ * View switcher in the header links to /app/tasks (board), /app/tasks/list,
+ * /app/tasks/stats.
  */
 import { ref, onMounted, computed } from 'vue';
 import { toast } from 'vue-sonner';
@@ -16,6 +19,7 @@ definePageMeta({
   middleware: ['auth'],
 });
 
+const route = useRoute();
 const tasksApi = useTasks();
 
 const loading = ref(false);
@@ -23,6 +27,13 @@ const tasks = ref<Task[]>([]);
 const users = ref<UserLight[]>([]);
 const search = ref('');
 const pendingStatus = ref<TaskStatus | ''>('');
+
+const activeView = computed(() => {
+  const p = route.path;
+  if (p.endsWith('/list')) return 'list';
+  if (p.endsWith('/stats')) return 'stats';
+  return 'board';
+});
 
 
 async function loadTasks() {
@@ -89,7 +100,30 @@ onMounted(async () => {
   <div class="p-4 md:p-6 space-y-4 h-full flex flex-col">
     <!-- Header -->
     <div class="flex items-center justify-between gap-4 flex-wrap">
-      <h1 class="text-2xl font-bold">Tasks</h1>
+      <div class="flex items-center gap-3">
+        <h1 class="text-2xl font-bold">Tasks</h1>
+        <!-- View switcher -->
+        <div role="tablist" class="tabs tabs-boxed tabs-sm">
+          <NuxtLink
+            to="/app/tasks"
+            role="tab"
+            class="tab"
+            :class="{ 'tab-active': activeView === 'board' }"
+          >Board</NuxtLink>
+          <NuxtLink
+            to="/app/tasks/list"
+            role="tab"
+            class="tab"
+            :class="{ 'tab-active': activeView === 'list' }"
+          >List</NuxtLink>
+          <NuxtLink
+            to="/app/tasks/stats"
+            role="tab"
+            class="tab"
+            :class="{ 'tab-active': activeView === 'stats' }"
+          >Stats</NuxtLink>
+        </div>
+      </div>
       <div class="flex items-center gap-2 flex-1 justify-end">
         <div class="relative">
           <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-base-content/40 pointer-events-none" />

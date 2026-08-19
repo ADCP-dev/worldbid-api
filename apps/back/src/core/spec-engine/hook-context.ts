@@ -129,9 +129,19 @@ export class HookContextImpl {
    * For Foundation entities: throw with guidance (use getService instead).
    */
   getRepository(name: string, manager?: EntityManager): Repository<any> {
+    // If this context has a pre-injected resource repository (e.g. from
+    // the action controller), return it directly — avoids the
+    // getRepositoryToken(string) → 'undefinedRepository' bug.
+    const ctx = this as unknown as { _resourceRepo?: any };
+    if (ctx._resourceRepo && name === this.resource) {
+      return ctx._resourceRepo;
+    }
     try {
       if (manager) {
         return manager.getRepository(name as any);
+      }
+      if (this.dataSource) {
+        return this.dataSource.getRepository(name as any);
       }
       return this.moduleRef.get(getRepositoryToken(name as any), {
         strict: false,

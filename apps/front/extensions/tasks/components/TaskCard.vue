@@ -46,6 +46,15 @@ const isOverdue = computed(() => {
   if (!props.task.dueDate) return false;
   return new Date(props.task.dueDate).getTime() < Date.now();
 });
+
+const tagsList = computed<string[]>(() => {
+  const t = props.task.tags;
+  if (Array.isArray(t)) return t.filter((x): x is string => typeof x === 'string');
+  return [];
+});
+
+const visibleTags = computed(() => tagsList.value.slice(0, 3));
+const overflowCount = computed(() => Math.max(0, tagsList.value.length - 3));
 </script>
 
 <template>
@@ -88,6 +97,16 @@ const isOverdue = computed(() => {
         >
           <Clock class="w-3 h-3" />{{ task.estimateHours }}h
         </span>
+        <span
+          v-for="tag in visibleTags"
+          :key="tag"
+          class="badge badge-xs badge-ghost"
+        >{{ tag }}</span>
+        <span
+          v-if="overflowCount > 0"
+          class="badge badge-xs badge-ghost"
+          :title="tagsList.slice(3).join(', ')"
+        >+{{ overflowCount }}</span>
       </div>
 
       <div class="flex items-center justify-between mt-1">

@@ -6,13 +6,19 @@
 
 import type {
   ApiFetchOptions,
+  BulkStatusPayload,
   PaginatedResponse,
+  ReorderItem,
+  StatsRange,
   Task,
   TaskActivity,
   TaskAttachment,
   TaskComment,
   TaskCommentPayload,
+  TaskNote,
+  TaskNotePayload,
   TaskPayload,
+  TaskStatsResponse,
   UserLight,
 } from '../types';
 
@@ -74,6 +80,26 @@ export function useTasks() {
     return apiFetch<void>(`/tasks/${id}`, { method: 'DELETE' });
   }
 
+  // ─── Task Actions (stats / reorder / bulk-status) ────────────────────
+
+  async function getStats(range: StatsRange = '30d'): Promise<TaskStatsResponse> {
+    return apiFetch<TaskStatsResponse>('/tasks/stats', { query: { range } });
+  }
+
+  async function reorder(items: ReorderItem[]): Promise<{ success: true }> {
+    return apiFetch<{ success: true }>('/tasks/reorder', {
+      method: 'PATCH',
+      body: { items },
+    });
+  }
+
+  async function bulkStatus(payload: BulkStatusPayload): Promise<{ updated: number; skipped: number }> {
+    return apiFetch<{ updated: number; skipped: number }>('/tasks/bulk-status', {
+      method: 'PATCH',
+      body: payload,
+    });
+  }
+
   // ─── Task Comments ───────────────────────────────────────────────────
 
   async function getTaskComments(
@@ -88,6 +114,30 @@ export function useTasks() {
 
   async function createTaskComment(data: TaskCommentPayload): Promise<TaskComment> {
     return apiFetch<TaskComment>('/task-comments', { method: 'POST', body: data });
+  }
+
+  // ─── Task Notes ──────────────────────────────────────────────────────
+
+  async function getTaskNotes(
+    taskId?: number | string,
+    page = 1,
+    limit = 50,
+  ): Promise<PaginatedResponse<TaskNote> | TaskNote[]> {
+    const query: Record<string, string | number | undefined> = { page, limit };
+    if (taskId) query.taskId = taskId;
+    return apiFetch<PaginatedResponse<TaskNote> | TaskNote[]>('/task-notes', { query });
+  }
+
+  async function createTaskNote(data: TaskNotePayload): Promise<TaskNote> {
+    return apiFetch<TaskNote>('/task-notes', { method: 'POST', body: data });
+  }
+
+  async function updateTaskNote(id: number | string, content: string): Promise<TaskNote> {
+    return apiFetch<TaskNote>(`/task-notes/${id}`, { method: 'PATCH', body: { content } });
+  }
+
+  async function deleteTaskNote(id: number | string): Promise<void> {
+    return apiFetch<void>(`/task-notes/${id}`, { method: 'DELETE' });
   }
 
   // ─── Task Activities ──────────────────────────────────────────────────
@@ -127,9 +177,18 @@ export function useTasks() {
     createTask,
     updateTask,
     deleteTask,
+    // Task actions
+    getStats,
+    reorder,
+    bulkStatus,
     // Comments
     getTaskComments,
     createTaskComment,
+    // Notes
+    getTaskNotes,
+    createTaskNote,
+    updateTaskNote,
+    deleteTaskNote,
     // Activities
     getTaskActivities,
     // Attachments

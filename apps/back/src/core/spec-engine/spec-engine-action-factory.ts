@@ -42,7 +42,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
-import { Repository } from 'typeorm';
+import { EntitySchema, Repository } from 'typeorm';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import * as path from 'path';
 import type { Request, Response } from 'express';
@@ -100,18 +100,18 @@ export class SpecEngineActionFactory {
    * Returns the controller class to register with the Nest module, or null
    * if the resource has no actions.
    */
-  static create(
-    spec: ResourceSpec,
-    entitySchemaName: string,
-    extensionDir: string,
-    isDev: boolean,
-  ): ActionFactoryResult | null {
-    if (!spec.actions || spec.actions.length === 0) return null;
+   static create(
+     spec: ResourceSpec,
+     entitySchema: EntitySchema<any>,
+     extensionDir: string,
+     isDev: boolean,
+   ): ActionFactoryResult | null {
+     if (!spec.actions || spec.actions.length === 0) return null;
 
-    const resourceName = spec.name;
-    const displayName = spec.displayName || resourceName;
-    const routePath = this.pluralize(resourceName);
-    const diToken = getRepositoryToken(entitySchemaName as any);
+     const resourceName = spec.name;
+     const displayName = spec.displayName || resourceName;
+     const routePath = this.pluralize(resourceName);
+     const diToken = getRepositoryToken(entitySchema);
 
     // Default auth = resource create permissions (per spec contract)
     const createRoles = spec.permissions?.create || ['admin'];
@@ -143,14 +143,21 @@ export class SpecEngineActionFactory {
         operation: string,
         trace: TraceBuilder,
       ): HookContext {
-        return new HookContextImpl(
+        const ctx = new HookContextImpl(
           SpecEngineBootService.getModuleRef(),
           SpecEngineBootService.getConfigService(),
           user,
           resourceName,
           operation,
           trace,
-        ) as unknown as HookContext;
+        ) as unknown as HookContext & { _resourceRepo?: Repository<any> };
+
+        // Inject the resource's repository so the handler can access it
+        // via ctx.getRepository(resourceName) without relying on
+        // getRepositoryToken(string) which returns 'undefinedRepository'.
+        ctx._resourceRepo = this.repository;
+
+        return ctx;
       }
 
       // ─── entrypoint dispatcher ────────────────────────────────────────
@@ -395,27 +402,48 @@ export class SpecEngineActionFactory {
       // Define the method on the prototype with a unique name so NestJS can
       // reflect metadata without collisions.
       const methodName = `action_${action.name.replace(/[^a-zA-Z0-9_]/g, '_')}`;
-      (routeHandler as any).name = methodName;
-
-      // Apply @Roles to the method.
-      Roles(...(roles as RoleEnum[]))(routeHandler as any);
-      // Apply HTTP + status decorators.
-      (methodDecorator as any)(routeHandler as any);
-      (statusDecorator as any)(routeHandler as any);
 
       // Bind to controller prototype so `this` works when NestJS invokes it.
       (SpecActionController.prototype as any)[methodName] = routeHandler;
+
+      // Build a property descriptor that NestJS decorators expect.
+      // NestJS decorators (@Get, @HttpCode, @Roles) operate on
+      // (target, propertyKey, descriptor) and read descriptor.value.
+      const descriptor: PropertyDescriptor = {
+        value: routeHandler as any,
+        writable: true,
+        enumerable: true,
+        configurable: true,
+      };
+
+      // Apply @Roles to the method.
+      Roles(...(roles as RoleEnum[]))(
+        SpecActionController.prototype,
+        methodName,
+        descriptor,
+      );
+      // Apply HTTP + status decorators.
+      (methodDecorator as any)(
+        SpecActionController.prototype,
+        methodName,
+        descriptor,
+      );
+      (statusDecorator as any)(
+        SpecActionController.prototype,
+        methodName,
+        descriptor,
+      );
+
+      // Ensure the decorated method is on the prototype.
+      (SpecActionController.prototype as any)[methodName] = descriptor.value;
       Reflect.defineMetadata(
         'design:paramtypes',
         paramTypes,
-        routeHandler as any,
+        descriptor.value as any,
       );
     }
 
-    Object.defineProperty(SpecActionController, 'name', {
-      value: `${this.pascalCase(resourceName)}ActionController`,
-      configurable: true,
-    });
+    // Return the controller class and metadata.
 
     return { controllerClass: SpecActionController };
   }

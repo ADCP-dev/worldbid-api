@@ -8,19 +8,22 @@
  */
 import { ref, computed, watch } from 'vue';
 import { Calendar, Clock, Repeat, User as UserIcon, Tag } from 'lucide-vue-next';
-import type { Task, TaskActivity, TaskComment, UserLight } from '../types';
+import type { Task, TaskActivity, TaskComment, TaskNote, UserLight } from '../types';
 import TaskStatusBadge from './TaskStatusBadge.vue';
 import TaskPriorityBadge from './TaskPriorityBadge.vue';
 import TaskCommentList from './TaskCommentList.vue';
 import TaskActivityTimeline from './TaskActivityTimeline.vue';
+import TaskNotesList from './TaskNotesList.vue';
 
 const props = defineProps<{
   task: Task | null;
   comments: TaskComment[];
   activities: TaskActivity[];
+  notes: TaskNote[];
   users: UserLight[];
   commentsLoading?: boolean;
   activitiesLoading?: boolean;
+  notesLoading?: boolean;
   addingComment?: boolean;
 }>();
 
@@ -28,7 +31,7 @@ const emit = defineEmits<{
   (e: 'add-comment', content: string): void;
 }>();
 
-const activeTab = ref<'overview' | 'comments' | 'activity'>('overview');
+const activeTab = ref<'overview' | 'comments' | 'notes' | 'activity'>('overview');
 
 const userMap = computed<Record<number, UserLight>>(() => {
   const m: Record<number, UserLight> = {};
@@ -97,6 +100,12 @@ const metadataEntries = computed<Array<[string, unknown]>>(() => {
         :class="{ 'tab-active': activeTab === 'comments' }"
         @click="activeTab = 'comments'"
       >Comments <span v-if="comments.length" class="badge badge-xs badge-ghost ml-1">{{ comments.length }}</span></button>
+      <button
+        role="tab"
+        class="tab"
+        :class="{ 'tab-active': activeTab === 'notes' }"
+        @click="activeTab = 'notes'"
+      >Notes <span v-if="notes.length" class="badge badge-xs badge-ghost ml-1">{{ notes.length }}</span></button>
       <button
         role="tab"
         class="tab"
@@ -210,6 +219,16 @@ const metadataEntries = computed<Array<[string, unknown]>>(() => {
           :task-id="task?.id ?? 0"
           :loading="commentsLoading"
           @add="(c: string) => emit('add-comment', c)"
+        />
+      </div>
+    </div>
+
+    <!-- Tab: Notes -->
+    <div v-else-if="activeTab === 'notes'" class="card bg-base-100 shadow-sm border border-base-300">
+      <div class="card-body">
+        <TaskNotesList
+          :task-id="task?.id ?? 0"
+          :users="users"
         />
       </div>
     </div>
