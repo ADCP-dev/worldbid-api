@@ -324,8 +324,8 @@ watch([page, pageSize], () => loadTasks());
         <h1 class="text-2xl font-bold">Tasks</h1>
         <div role="tablist" class="tabs tabs-boxed tabs-sm">
           <NuxtLink to="/app/tasks" role="tab" class="tab">Board</NuxtLink>
-          <NuxtLink to="/app/tasks/list" role="tab" class="tab tab-active">List</NuxtLink>
-          <NuxtLink to="/app/tasks/stats" role="tab" class="tab">Stats</NuxtLink>
+          <NuxtLink to="/app/tasks-list" role="tab" class="tab tab-active">List</NuxtLink>
+          <NuxtLink to="/app/tasks-stats" role="tab" class="tab">Stats</NuxtLink>
         </div>
       </div>
       <div class="flex items-center gap-2">

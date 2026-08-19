@@ -5,8 +5,8 @@
  * Cross-column drop → updateTask(id, { status }) (pessimistic: refetch on
  * success, revert on fail).
  *
- * View switcher in the header links to /app/tasks (board), /app/tasks/list,
- * /app/tasks/stats.
+ * View switcher in the header links to /app/tasks (board), /app/tasks-list,
+ * /app/tasks-stats.
  */
 import { ref, onMounted, computed } from 'vue';
 import { toast } from 'vue-sonner';
@@ -111,13 +111,13 @@ onMounted(async () => {
             :class="{ 'tab-active': activeView === 'board' }"
           >Board</NuxtLink>
           <NuxtLink
-            to="/app/tasks/list"
+            to="/app/tasks-list"
             role="tab"
             class="tab"
             :class="{ 'tab-active': activeView === 'list' }"
           >List</NuxtLink>
           <NuxtLink
-            to="/app/tasks/stats"
+            to="/app/tasks-stats"
             role="tab"
             class="tab"
             :class="{ 'tab-active': activeView === 'stats' }"
