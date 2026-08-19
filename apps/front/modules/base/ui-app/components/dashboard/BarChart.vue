@@ -9,7 +9,7 @@ import {
   LegendComponent,
 } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
-import type { BarSeries } from '@base/ui-app/components/dashboard/types'
+import type { BarSeries } from './types'
 
 use([
   EBarChart,

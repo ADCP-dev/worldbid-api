@@ -4,7 +4,7 @@ import { format, parseISO, isValid } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Clock } from 'lucide-vue-next'
 import type { Component } from 'vue'
-import type { TimelineEvent } from '@base/ui-app/components/dashboard/types'
+import type { TimelineEvent } from './types'
 import EmptyState from '@base/ui-app/components/dashboard/EmptyState.vue'
 
 const props = withDefaults(

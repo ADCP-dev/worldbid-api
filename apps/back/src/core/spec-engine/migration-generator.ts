@@ -417,16 +417,32 @@ function buildCreateTable(
 /**
  * Build ALTER TABLE statements that add deferred FOREIGN KEY constraints
  * (FKs between spec-resource tables, emitted after all CREATE TABLEs).
+ *
+ * Diff-aware: only emits ADD CONSTRAINT for FKs that didn't exist in the
+ * previous snapshot. When `previousSnapshot` is undefined (first run / no
+ * snapshot stored), every spec-resource FK is emitted — matching the
+ * CREATE-TABLE-only behavior for first runs.
+ *
+ * For existing resources, only FKs on *new* `ref` fields are emitted
+ * (added via ALTER TABLE ADD COLUMN in buildAlterTable). FKs on fields
+ * that already existed are assumed to have been created in a previous
+ * migration — re-emitting them would fail with "constraint already exists".
  */
 function buildDeferredFkStatements(
   specs: ResourceSpec[],
   resourceMap: Map<string, ResourceSpec>,
+  previousSnapshot?: SpecSnapshot,
 ): MigrationStatement[] {
   const statements: MigrationStatement[] = [];
   for (const spec of specs) {
+    const prevResource = previousSnapshot?.resources[spec.name];
+    const prevFieldNames = new Set(prevResource?.fields.map((f) => f.name) ?? []);
     for (const f of spec.fields) {
       if (f.type !== 'ref' || !f.ref) continue;
       if (!resourceMap.has(f.ref)) continue; // only spec-resource FKs
+      // Skip FKs for fields that already existed in the previous snapshot:
+      // they were created in a prior migration, re-emitting would fail.
+      if (prevFieldNames.has(f.name)) continue;
       const targetTable = resolveRefTable(f.ref, resourceMap);
       if (!targetTable) continue;
       const cname = constraintName('FK', spec.table, f.name);
@@ -461,7 +477,7 @@ function buildAlterTable(
       statements.push({
         up: `ALTER TABLE ${table} ADD COLUMN ${col.sql}`,
         down: `ALTER TABLE ${table} DROP COLUMN "${field.name}"`,
-        description: `Add column ${field.name} to ${spec.table}`,
+        description: `Added field '${field.name}' (${columnSqlType(field)}) to ${spec.table}`,
       });
       continue;
     }
@@ -480,7 +496,7 @@ function buildAlterTable(
       statements.push({
         up: `ALTER TABLE ${table} ALTER COLUMN "${field.name}" TYPE ${newType}`,
         down: `ALTER TABLE ${table} ALTER COLUMN "${field.name}" TYPE ${oldType}`,
-        description: `Change column ${field.name} type in ${spec.table}`,
+        description: `Changed field '${field.name}' type from ${oldType} to ${newType} in ${spec.table}`,
       });
     }
 
@@ -490,13 +506,13 @@ function buildAlterTable(
         statements.push({
           up: `ALTER TABLE ${table} ALTER COLUMN "${field.name}" DROP NOT NULL`,
           down: `ALTER TABLE ${table} ALTER COLUMN "${field.name}" SET NOT NULL`,
-          description: `Make column ${field.name} nullable in ${spec.table}`,
+          description: `Changed field '${field.name}' nullable: ${prev.nullable} → true in ${spec.table}`,
         });
       } else {
         statements.push({
           up: `ALTER TABLE ${table} ALTER COLUMN "${field.name}" SET NOT NULL`,
           down: `ALTER TABLE ${table} ALTER COLUMN "${field.name}" DROP NOT NULL`,
-          description: `Make column ${field.name} non-nullable in ${spec.table}`,
+          description: `Changed field '${field.name}' nullable: ${prev.nullable} → false in ${spec.table}`,
         });
       }
     }
@@ -514,19 +530,19 @@ function buildAlterTable(
         statements.push({
           up: `ALTER TABLE ${table} ALTER COLUMN "${field.name}" DROP DEFAULT`,
           down: `ALTER TABLE ${table} ALTER COLUMN "${field.name}" SET DEFAULT ${oldDefaultStr}`,
-          description: `Drop default on column ${field.name} in ${spec.table}`,
+          description: `Dropped default on field '${field.name}' (was ${oldDefaultStr}) in ${spec.table}`,
         });
       } else if (oldDefaultStr === null) {
         statements.push({
           up: `ALTER TABLE ${table} ALTER COLUMN "${field.name}" SET DEFAULT ${newDefaultStr}`,
           down: `ALTER TABLE ${table} ALTER COLUMN "${field.name}" DROP DEFAULT`,
-          description: `Set default on column ${field.name} in ${spec.table}`,
+          description: `Set default on field '${field.name}' to ${newDefaultStr} in ${spec.table}`,
         });
       } else {
         statements.push({
           up: `ALTER TABLE ${table} ALTER COLUMN "${field.name}" SET DEFAULT ${newDefaultStr}`,
           down: `ALTER TABLE ${table} ALTER COLUMN "${field.name}" SET DEFAULT ${oldDefaultStr}`,
-          description: `Change default on column ${field.name} in ${spec.table}`,
+          description: `Changed default on field '${field.name}' from ${oldDefaultStr} to ${newDefaultStr} in ${spec.table}`,
         });
       }
     }
@@ -540,7 +556,7 @@ function buildAlterTable(
       statements.push({
         up: `ALTER TABLE ${table} DROP COLUMN "${prevField.name}"`,
         down: `ALTER TABLE ${table} ADD COLUMN ${col.sql}`,
-        description: `Drop column ${prevField.name} from ${spec.table}`,
+        description: `Removed field '${prevField.name}' from ${spec.table}`,
       });
     }
   }
@@ -831,9 +847,13 @@ export class MigrationGenerator {
     // After all CREATE TABLEs, emit deferred FK constraints (ALTER TABLE
     // ADD CONSTRAINT) for FKs between spec-resource tables. This avoids
     // ordering issues when a referenced table is created later in the loop.
+    // Diff-aware: only FKs absent from the previous snapshot are emitted,
+    // so existing FKs are not re-added (would fail with "constraint already
+    // exists"). On first run (no snapshot) every spec-resource FK is emitted.
     const deferredFkStatements = buildDeferredFkStatements(
       spec.resources,
       resourceMap,
+      previous,
     );
     for (const fkStmt of deferredFkStatements) {
       statements.push(fkStmt);

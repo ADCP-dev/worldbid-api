@@ -9,7 +9,7 @@ import {
   LegendComponent,
 } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
-import type { LineSeries } from '@base/ui-app/components/dashboard/types'
+import type { LineSeries } from './types'
 
 use([
   ELineChart,

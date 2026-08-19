@@ -3,10 +3,10 @@
  * human-readable description.
  *
  * Supports the simple modes used by CronScheduleEditor:
- *   - every-n-minutes  → `*/N * * * *`
- *   - daily-at         → `M HH * * *`
- *   - weekly-on        → `M HH * * 0,1,...`
- *   - monthly-on       → `M HH D * *`  (D may be a range like 28-31)
+ *   - every-n-minutes  → [star]/N [star] [star] [star] [star]
+ *   - daily-at         → M HH [star] [star] [star]
+ *   - weekly-on        → M HH [star] [star] 0,1,...
+ *   - monthly-on       → M HH D [star] [star]  (D may be a range like 28-31)
  *
  * Any other expression returns the raw cron string (advanced mode).
  * Invalid cron (wrong field count / non-numeric) → "Expresión cron inválida".
@@ -73,7 +73,7 @@ function splitCron(cron: string): string[] | null {
   return parts;
 }
 
-/** Parse "*/N" → N, else null. */
+/** Parse [star]/N → N, else null. */
 function parseStep(field: string): number | null {
   const match = /^(\*|\d+)\/(\d+)$/.exec(field);
   if (!match) return null;

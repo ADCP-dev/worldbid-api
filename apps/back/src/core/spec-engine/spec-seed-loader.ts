@@ -72,51 +72,54 @@ export async function runSpecSeeds(
     const seeds = resource.seeds;
     if (!seeds || seeds.length === 0) continue;
 
-      try {
-        const repo = dataSource.getRepository(resource.name);
-        let inserted = 0;
-        let skipped = 0;
+    try {
+      const repo = dataSource.getRepository(resource.name);
+      let inserted = 0;
+      let skipped = 0;
 
-        for (const seed of seeds) {
-          // If the seed declares an explicit `id`, upsert by id.
-          if (seed && typeof seed === 'object' && 'id' in seed) {
-            const existing = await repo.findOne({
-              where: { id: seed.id } as any,
-            });
-            if (existing) {
-              skipped++;
-              continue;
-            }
-            await repo.insert(seed);
-            inserted++;
-          } else {
-            // No explicit id — dedup by matching ALL non-auto fields.
-            // Build a where-clause from every key in the seed so re-runs
-            // don't insert duplicates. If any field is null/undefined we
-            // skip it from the where-clause (nulls match inconsistently).
-            const where: Record<string, unknown> = {};
-            for (const [k, v] of Object.entries(seed as Record<string, unknown>)) {
-              if (v !== null && v !== undefined) where[k] = v;
-            }
-            const existing = await repo.findOne({ where: where as any });
-            if (existing) {
-              skipped++;
-              continue;
-            }
-            await repo.insert(seed);
-            inserted++;
+      for (const seed of seeds) {
+        const seedRecord = seed as Record<string, unknown>;
+        // If the seed declares an explicit `id`, upsert by id.
+        if ('id' in seedRecord) {
+          const existing = await repo.findOne({
+            where: { id: seedRecord.id } as Record<string, unknown>,
+          });
+          if (existing) {
+            skipped++;
+            continue;
           }
+          await repo.insert(seed);
+          inserted++;
+        } else {
+          // No explicit id — dedup by matching ALL non-auto fields.
+          // Build a where-clause from every key in the seed so re-runs
+          // don't insert duplicates. If any field is null/undefined we
+          // skip it from the where-clause (nulls match inconsistently).
+          const where: Record<string, unknown> = {};
+          for (const [k, v] of Object.entries(seedRecord)) {
+            if (v !== null && v !== undefined) where[k] = v;
+          }
+          const existing = await repo.findOne({
+            where: where as Record<string, unknown>,
+          });
+          if (existing) {
+            skipped++;
+            continue;
+          }
+          await repo.insert(seed);
+          inserted++;
         }
+      }
 
-        if (inserted > 0 || skipped > 0) {
-          logger.log(
-            `Seeded "${resource.name}": ${inserted} inserted, ${skipped} skipped (already present).`,
-          );
-        }
-      } catch (err) {
-        logger.warn(
-          `Could not seed "${resource.name}": ${(err as Error).message}`,
+      if (inserted > 0 || skipped > 0) {
+        logger.log(
+          `Seeded "${resource.name}": ${inserted} inserted, ${skipped} skipped (already present).`,
         );
       }
+    } catch (err) {
+      logger.warn(
+        `Could not seed "${resource.name}": ${(err as Error).message}`,
+      );
     }
+  }
 }

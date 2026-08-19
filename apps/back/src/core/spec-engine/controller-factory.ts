@@ -92,7 +92,8 @@ function resolveRolesArray(roles: PermissionRole[]): number[] {
 
 // Parse and validate a numeric ID from a route param.
 // Returns NaN if invalid — callers should check with Number.isFinite().
-function parseId(id: string): number {
+// Exported for unit testing (pure function, no side effects).
+export function parseId(id: string): number {
   const num = Number(id);
   return Number.isFinite(num) ? num : NaN;
 }

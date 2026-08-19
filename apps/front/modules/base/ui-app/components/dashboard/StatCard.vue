@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import NumberFlow from '@number-flow/vue'
 import { TrendingUp, TrendingDown } from 'lucide-vue-next'
-import type { StatCardProps } from '@base/ui-app/components/dashboard/types'
+import type { StatCardProps } from './types'
 
 const props = withDefaults(defineProps<StatCardProps>(), {
   color: 'primary',

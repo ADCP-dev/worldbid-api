@@ -8,7 +8,7 @@ import {
   LegendComponent,
 } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
-import type { DonutSlice } from '@base/ui-app/components/dashboard/types'
+import type { DonutSlice } from './types'
 import EmptyState from '@base/ui-app/components/dashboard/EmptyState.vue'
 import { PieChart as PieIcon } from 'lucide-vue-next'
 
