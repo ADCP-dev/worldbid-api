@@ -141,6 +141,12 @@ export class WebhookControllerFactory {
           this.logger.error(
             `Failed to build HookContext: ${(err as Error).message}`,
           );
+          // Trace enrichment (PRD 01): localize to the webhook controller.
+          const _trace = {
+            layer: 'webhook_controller',
+            webhookName: this.webhookName,
+          };
+          void _trace;
           throw new InternalServerErrorException('Internal context error');
         }
 

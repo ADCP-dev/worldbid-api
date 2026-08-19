@@ -23,11 +23,19 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { execSync } from 'child_process';
-import { createHash } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { existsSync } from 'fs';
 import { join } from 'path';
 
-import type { SpecError, SpecTrace } from './spec.types';
+import type {
+  ActionableError,
+  ErrorCategory,
+  ErrorSeverity,
+  FailurePointLayer,
+  SuggestedFix,
+  SpecError,
+  SpecTrace,
+} from './spec.types';
 import type { ErrorTrackerService } from '@src/modules/error-tracker/error-tracker.service';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -164,12 +172,296 @@ function findGhBinary(): string | null {
   // 2. PATH lookup
   try {
     execSync('command -v gh', { stdio: 'ignore', shell: '/bin/sh' });
-    ghAvailabilityCache = true;
-    return 'gh';
-  } catch {
-    ghAvailabilityCache = false;
-    return null;
+     ghAvailabilityCache = true;
+     return 'gh';
+   } catch {
+     ghAvailabilityCache = false;
+     return null;
+   }
+}
+
+// ─── Actionable Error enrichment (PRD 01) ───────────────────────────────────
+
+/**
+ * Max serialized size of the `input` field in an ActionableError. Inputs
+ * larger than this are truncated so error logs / GitHub issues don't blow
+ * up on binary blobs or huge payloads.
+ */
+const MAX_INPUT_BYTES = 10 * 1024;
+
+/**
+ * Scrub sensitive keys from a payload and truncate it to MAX_INPUT_BYTES.
+ * Reuses `SENSITIVE_KEY_PATTERNS` so the scrubbing policy is consistent
+ * with the GitHub-issue body sanitizer. Pure function — no side effects.
+ */
+export function scrubSensitive(value: unknown): unknown {
+  const scrubbed = sanitizeForIssue(value);
+  // Truncate large string payloads to keep logs bounded.
+  if (typeof scrubbed === 'string' && scrubbed.length > MAX_INPUT_BYTES) {
+    return scrubbed.slice(0, MAX_INPUT_BYTES) + '[truncated]';
   }
+  if (
+    scrubbed &&
+    typeof scrubbed === 'object' &&
+    !Array.isArray(scrubbed)
+  ) {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(
+      scrubbed as Record<string, unknown>,
+    )) {
+      if (typeof v === 'string' && v.length > MAX_INPUT_BYTES) {
+        out[k] = v.slice(0, MAX_INPUT_BYTES) + '[truncated]';
+      } else {
+        out[k] = v;
+      }
+    }
+    return out;
+  }
+  return scrubbed;
+}
+
+/**
+ * Decide whether an error should be persisted to the error tracker.
+ * `permission_denied` is expected behavior (a guard did its job) and is
+ * NOT a bug — it is logged for audit but not tracked as an error. Client
+ * input validation failures (wrong shape, missing required field) are
+ * likewise not bugs in the server. Everything else is tracked.
+ */
+export function shouldTrackAsError(
+  error: SpecError,
+  trace: SpecTrace,
+): boolean {
+  if (trace.layer === 'permission_guard') return false;
+  if (trace.layer === 'validation_factory' && isClientInputError(error)) {
+    return false;
+  }
+  return true;
+}
+
+function isClientInputError(error: SpecError): boolean {
+  const msg = error.message.toLowerCase();
+  return (
+    msg.includes('expected') ||
+    msg.includes('required') ||
+    msg.includes('invalid') ||
+    msg.includes('must be')
+  );
+}
+
+/**
+ * Infer a suggested fix from the error message + trace using regex
+ * heuristics. Returns null when no heuristic matches (the caller / agent
+ * then decides what to do). Five patterns are detected:
+ *
+ *   1. null/undefined property access (Node 18+ and <18)
+ *   2. foreign key constraint violation
+ *   3. permission denied (layer=permission_guard)
+ *   4. hook crash generic (layer=hook_executor)
+ *   5. EntityMetadataNotFoundError (missing migration)
+ *
+ * Pure function — deterministic, no side effects.
+ */
+export function inferSuggestedFix(
+  error: SpecError,
+  trace: SpecTrace,
+): SuggestedFix | null {
+  const msg = error.message;
+
+  // 1. null/undefined property access — "Cannot read properties of
+  //    undefined (reading 'X')" (Node 18+) or "Cannot read property 'X'
+  //    of undefined" (Node <18).
+  if (
+    msg.includes('Cannot read properties of undefined') ||
+    msg.includes('Cannot read property')
+  ) {
+    const propMatch =
+      msg.match(/reading '(\w+)'/) || msg.match(/Cannot read property '(\w+)'/);
+    const prop = propMatch?.[1] || 'unknown';
+    return {
+      type: 'spec_fix',
+      description: `Handler assumes that ${prop} exists but it arrived undefined/null. Mark ${prop} as required in the spec or add a null check in the handler.`,
+      targetFile: trace.handlerFile ?? null,
+      targetSpec: trace.specFile ?? null,
+      targetField: prop,
+      suggestedCode: null,
+      confidence: 'medium',
+    };
+  }
+
+  // 2. foreign key constraint violation
+  if (msg.includes('violates foreign key constraint')) {
+    return {
+      type: 'data_fix',
+      description:
+        'Reference to an entity that does not exist. Verify the referenced ID exists before creating.',
+      targetFile: null,
+      targetSpec: trace.specFile ?? null,
+      targetField: null,
+      suggestedCode: null,
+      confidence: 'high',
+    };
+  }
+
+  // 3. permission denied — guard blocked access (expected, but we still
+  //    surface a fix so an admin can grant the role if intended).
+  if (trace.layer === 'permission_guard') {
+    return {
+      type: 'spec_fix',
+      description: `User with role ${trace.userRole ?? 'unknown'} attempted ${trace.operation} on ${trace.resource}. If they should be allowed, add the role to permissions.${trace.operation} in the spec.`,
+      targetFile: null,
+      targetSpec: trace.specFile ?? null,
+      targetField: null,
+      suggestedCode: null,
+      confidence: 'high',
+    };
+  }
+
+  // 5. EntityMetadataNotFoundError — the entity table doesn't exist in the DB.
+  if (msg.includes('EntityMetadataNotFoundError')) {
+    return {
+      type: 'config_fix',
+      description:
+        'Run `pnpm spec:generate-migration <extension>` and `pnpm migration:run` so the entity table exists in the database.',
+      targetFile: null,
+      targetSpec: null,
+      targetField: null,
+      suggestedCode: null,
+      confidence: 'high',
+    };
+  }
+
+  // 4. hook crash generic — a hook threw but the message doesn't match a
+  //    more specific heuristic. Point at the handler file.
+  if (trace.layer === 'hook_executor') {
+    return {
+      type: 'code_fix',
+      description: `Hook at step "${trace.step}" threw an exception. Inspect the handler in ${trace.handlerFile ?? 'the hook file'}.`,
+      targetFile: trace.handlerFile ?? null,
+      targetSpec: null,
+      targetField: null,
+      suggestedCode: null,
+      confidence: 'low',
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Categorize an error into the ErrorCategory taxonomy based on the trace
+ * layer + message. Pure function.
+ */
+function categorize(
+  error: SpecError,
+  trace: SpecTrace,
+): ErrorCategory {
+  switch (trace.layer) {
+    case 'permission_guard':
+      return 'permission_denied';
+    case 'hook_executor':
+      return 'hook_failure';
+    case 'job_runner':
+      return 'job_failure';
+    case 'webhook_controller':
+      return 'webhook_failure';
+    case 'action_factory':
+      return 'action_failure';
+    case 'validation_factory':
+      return 'validation';
+    case 'notification_dispatcher':
+      return 'notification';
+    case 'spec_loader':
+    case 'spec_engine_boot':
+      return msgIsSpecInvalid(error.message) ? 'spec_invalid' : 'extension_load';
+    case 'controller_factory':
+      return msgIsNotFound(error.message) ? 'not_found' : 'database';
+    default:
+      return 'unknown';
+  }
+}
+
+function msgIsSpecInvalid(msg: string): boolean {
+  const m = msg.toLowerCase();
+  return (
+    m.includes('spec') ||
+    m.includes('yaml') ||
+    m.includes('invalid') ||
+    m.includes('missing')
+  );
+}
+
+function msgIsNotFound(msg: string): boolean {
+  const m = msg.toLowerCase();
+  return m.includes('not found') || m.includes('no metadata');
+}
+
+/**
+ * Infer a severity from the category + message. Critical = the extension
+ * cannot load or the DB is unreachable; error = a real bug; warning =
+ * expected-but-noteworthy (not_found, rate_limit). Pure function.
+ */
+function inferSeverity(
+  error: SpecError,
+  trace: SpecTrace,
+): ErrorSeverity {
+  const cat = categorize(error, trace);
+  if (cat === 'extension_load' || cat === 'database') return 'critical';
+  if (cat === 'not_found' || cat === 'rate_limit') return 'warning';
+  return 'error';
+}
+
+/**
+ * Build a fully-populated ActionableError from a SpecError + SpecTrace.
+ * Pure function — the id + timestamp are generated here, occurrences are
+ * initialized to 1 (the persistence layer updates them on dedup).
+ */
+export function buildActionableError(
+  error: SpecError,
+  trace: SpecTrace,
+): ActionableError {
+  const timestamp = new Date().toISOString();
+  const category = categorize(error, trace);
+  const severity = inferSeverity(error, trace);
+  const layer: FailurePointLayer =
+    trace.layer ?? 'spec_engine_boot';
+  return {
+    id: randomUUID(),
+    hash: error.hash,
+    timestamp,
+    category,
+    severity,
+    extension: trace.extension ?? null,
+    resource: trace.resource ?? error.resource ?? null,
+    specFile: trace.specFile ?? null,
+    operation: trace.operation ?? error.operation ?? 'unknown',
+    input: (scrubSensitive(trace.input ?? {}) as Record<string, unknown>) ?? {},
+    userId: trace.userId ?? null,
+    requestId: trace.requestId ?? error.requestId ?? '',
+    message: error.message,
+    technicalMessage: error.message,
+    stack: error.stack ?? '',
+    handlerFile: trace.handlerFile ?? null,
+    handlerFunction: trace.handlerFunction ?? null,
+    failurePoint: {
+      layer,
+      step: trace.step ?? '',
+      rawError: error.message,
+    },
+    suggestedFix: inferSuggestedFix(error, trace),
+    relatedSpec: trace.specFile
+      ? {
+          specFile: trace.specFile,
+          resource: trace.resource ?? '',
+          field: null,
+          section: 'fields',
+          lineHint: null,
+        }
+      : null,
+    occurrences: error.occurrences || 1,
+    firstOccurredAt: timestamp,
+    lastOccurredAt: timestamp,
+    resolved: false,
+  };
 }
 
 // ─── Provider ───────────────────────────────────────────────────────────────

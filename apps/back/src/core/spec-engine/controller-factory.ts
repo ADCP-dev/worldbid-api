@@ -48,10 +48,16 @@ import type { Request, Response } from 'express';
 import { Roles } from '@iam/roles/roles.decorator';
 import { RoleEnum } from '@iam/roles/roles.enum';
 import { RolesGuard } from '@iam/roles/roles.guard';
+import {
+  ApiKeyAuthGuard,
+  FlexibleAuthGuard,
+} from '@iam/auth/guards';
 
 import type {
   ResourceSpec,
   PermissionRole,
+  PermissionSpec,
+  PermissionAction,
   HookContext,
   AuthenticatedUser,
   FieldSpec,
@@ -69,6 +75,8 @@ import { ComputedFieldResolver } from './spec-engine-computed';
 import { OutboundWebhookDispatcher } from './spec-engine-outbound-webhooks';
 import { SpecScheduledActionManager } from './spec-engine-scheduled-actions';
 import { RoleRegistry } from './role-registry';
+import { DenyAllGuard } from './deny-all.guard';
+import { PublicGuard } from './public.guard';
 
 // Role name → RoleEnum value map. Built-in roles resolve via RoleRegistry so
 // custom roles (manager) declared in ExtensionSpec.roles are honored.
@@ -96,6 +104,136 @@ function resolveRolesArray(roles: PermissionRole[]): number[] {
 export function parseId(id: string): number {
   const num = Number(id);
   return Number.isFinite(num) ? num : NaN;
+}
+
+// ─── Per-operation guard resolution (PRD 07) ────────────────────────────────
+
+/**
+ * The kind of auth guard the controller factory should apply for an
+ * operation. `deny-all` means the route is blocked entirely
+ * (DenyAllGuard); `public` means no authentication is required
+ * (PublicGuard); the rest map to the corresponding NestJS auth guard.
+ */
+export type GuardKind =
+  | 'jwt'
+  | 'api-key'
+  | 'jwt-or-api-key'
+  | 'public'
+  | 'deny-all';
+
+/**
+ * Resolved guard stack for a single CRUD operation. Pure data — the
+ * controller factory turns this into `@UseGuards(...)` + `@Roles(...)`
+ * decorators. Kept as a plain object so it is trivially unit-testable
+ * without spinning up NestJS.
+ */
+export interface GuardStack {
+  guardKind: GuardKind;
+  /** True when the operation is open to unauthenticated clients. */
+  isPublic: boolean;
+  /** True when the operation is disabled for everyone (empty roles + no public). */
+  denyAll: boolean;
+  /**
+   * Roles to pass to `@Roles(...)`, with `public` stripped out (it is
+   * not a real DB role). Empty when the operation is public or deny-all.
+   */
+  effectiveRoles: PermissionRole[];
+}
+
+/**
+ * Resolve the guard stack for a single CRUD operation given a resource's
+ * `permissions` block and the operation being guarded.
+ *
+ * Rules (PRD 07):
+ *   - `auth` absent → default `['jwt']` (preserves pre-existing behavior).
+ *   - operation roles `[]` and no `public` in auth → DenyAllGuard.
+ *   - `auth` includes `public` AND operation roles include `public` →
+ *     PublicGuard (no authentication required).
+ *   - `auth` includes `public` but operation roles do NOT include
+ *     `public` (e.g. `create: [admin]`) → JWT fallback, because you
+ *     cannot be admin anonymously.
+ *   - `auth: [api-key]` → ApiKeyGuard exclusively.
+ *   - `auth: [jwt, api-key]` → FlexibleAuthGuard (either passes).
+ *   - `public` is always stripped from the roles passed to RolesGuard.
+ *
+ * Pure function — no side effects, no NestJS dependencies.
+ */
+export function resolveGuardStack(
+  perms: PermissionSpec | undefined,
+  action: PermissionAction,
+): GuardStack {
+  const authMethods = perms?.auth ?? ['jwt'];
+  const roles = perms?.[action] ?? [];
+
+  // Deny all: nobody is in the operation's role list. An empty array is
+  // an explicit "disable this operation for everyone" regardless of which
+  // auth methods the resource accepts (PRD 07 AC 7). `public` only grants
+  // access when it appears in the operation's own role list, not merely
+  // in `auth`.
+  if (roles.length === 0) {
+    return {
+      guardKind: 'deny-all',
+      isPublic: false,
+      denyAll: true,
+      effectiveRoles: [],
+    };
+  }
+
+  const opIsPublic =
+    authMethods.includes('public') && roles.includes('public');
+
+  if (opIsPublic) {
+    return {
+      guardKind: 'public',
+      isPublic: true,
+      denyAll: false,
+      effectiveRoles: [],
+    };
+  }
+
+  // Auth required. Pick the auth guard from the declared methods,
+  // excluding `public` (already handled above).
+  const authOnly = authMethods.filter((m) => m !== 'public');
+  let guardKind: GuardKind;
+  if (authOnly.length === 0) {
+    // auth: [public] but this operation isn't public → JWT fallback.
+    guardKind = 'jwt';
+  } else if (authOnly.length === 1) {
+    guardKind = authOnly[0] === 'api-key' ? 'api-key' : 'jwt';
+  } else {
+    guardKind = 'jwt-or-api-key';
+  }
+
+  const effectiveRoles = roles.filter((r) => r !== 'public');
+
+  return {
+    guardKind,
+    isPublic: false,
+    denyAll: false,
+    effectiveRoles,
+  };
+}
+
+/**
+ * Map a `GuardKind` to the actual guard class used in `@UseGuards(...)`.
+ * `public` and `deny-all` return their dedicated guards; the rest return
+ * the existing IAM auth guards. RolesGuard is applied separately by the
+ * caller when `effectiveRoles` is non-empty.
+ */
+export function guardClassFor(kind: GuardKind): any {
+  switch (kind) {
+    case 'public':
+      return PublicGuard;
+    case 'deny-all':
+      return DenyAllGuard;
+    case 'api-key':
+      return ApiKeyAuthGuard;
+    case 'jwt-or-api-key':
+      return FlexibleAuthGuard;
+    case 'jwt':
+    default:
+      return AuthGuard('jwt');
+  }
 }
 
 export interface MaterializedController {
@@ -173,6 +311,22 @@ export class ControllerFactory {
     const updateRoles = this.resolveRoles(perms.update || ['admin']);
     const deleteRoles = this.resolveRoles(perms.delete || ['admin']);
 
+    // ─── Per-operation guard resolution (PRD 07) ───────────────────────
+    // When a resource declares `permissions.auth`, each CRUD method gets
+    // the auth guard resolved from `resolveGuardStack` (PublicGuard,
+    // DenyAllGuard, FlexibleAuthGuard, etc.). When `auth` is absent,
+    // `resolveGuardStack` falls back to `jwt`, which is identical to the
+    // pre-existing class-level `@UseGuards(AuthGuard('jwt'), RolesGuard)`.
+    // The class keeps `RolesGuard` so the existing `@Roles(...)` per
+    // method continues to work; the auth guard moves to per-method so
+    // different operations on the same resource can use different auth
+    // methods (e.g. list: [public] vs create: [admin]).
+    const listStack = resolveGuardStack(perms, 'list');
+    const readStack = resolveGuardStack(perms, 'read');
+    const createStack = resolveGuardStack(perms, 'create');
+    const updateStack = resolveGuardStack(perms, 'update');
+    const deleteStack = resolveGuardStack(perms, 'delete');
+
     // Row-level filters
     const rowLevel = perms.rowLevel || {};
 
@@ -195,7 +349,16 @@ export class ControllerFactory {
 
     @ApiTags(displayName)
     @ApiBearerAuth()
-    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    // RolesGuard is class-level so `@Roles(...)` per method keeps working.
+    // The auth guard (AuthGuard('jwt') / PublicGuard / DenyAllGuard /
+    // FlexibleAuthGuard / ApiKeyAuthGuard) is applied per-method via
+    // `guardClassFor(resolveGuardStack(...).guardKind)` so different
+    // operations on the same resource can use different auth methods
+    // (e.g. list: [public] vs create: [admin]). For resources without
+    // `permissions.auth`, `resolveGuardStack` defaults to `jwt`, so the
+    // per-method guard is identical to the pre-existing class-level
+    // `AuthGuard('jwt')` — preserving the 106 existing tests.
+    @UseGuards(RolesGuard)
     @Controller({ path: routePath, version: '1' })
     class SpecDynamicController {
       private readonly logger = new Logger(`SpecController:${displayName}`);
@@ -446,6 +609,7 @@ export class ControllerFactory {
 
       // ─── GET / ──────────────────────────────────────────
       @Get()
+      @UseGuards(guardClassFor(listStack.guardKind))
       @Roles(...listRoles)
       async findAll(
         @Query('page') page?: string,
@@ -571,6 +735,7 @@ export class ControllerFactory {
 
       // ─── GET /:id ───────────────────────────────────────
       @Get(':id')
+      @UseGuards(guardClassFor(readStack.guardKind))
       @Roles(...readRoles)
       async findOne(
         @Param('id') id: string,
@@ -657,6 +822,7 @@ export class ControllerFactory {
       // ─── POST / ─────────────────────────────────────────
       @Post()
       @HttpCode(HttpStatus.CREATED)
+      @UseGuards(guardClassFor(createStack.guardKind))
       @Roles(...createRoles)
       async create(
         @Body() body: unknown,
@@ -752,6 +918,15 @@ export class ControllerFactory {
               id: saved.id,
             });
           } catch (err) {
+            // Trace enrichment (PRD 01): localize the DB failure to the
+            // controller factory pipeline so ActionableError can point at
+            // the resource + operation.
+            const _trace = {
+              layer: 'controller_factory',
+              operation: 'create',
+              resource: resourceName,
+            };
+            void _trace;
             trace.endStage('db', 'fail', { error: (err as Error).message });
             throw err;
           }
@@ -860,6 +1035,7 @@ export class ControllerFactory {
 
       // ─── PATCH /:id ─────────────────────────────────────
       @Patch(':id')
+      @UseGuards(guardClassFor(updateStack.guardKind))
       @Roles(...updateRoles)
       async update(
         @Param('id') id: string,
@@ -1136,6 +1312,7 @@ export class ControllerFactory {
       // ─── DELETE /:id ────────────────────────────────────
       @Delete(':id')
       @HttpCode(HttpStatus.NO_CONTENT)
+      @UseGuards(guardClassFor(deleteStack.guardKind))
       @Roles(...deleteRoles)
       async remove(
         @Param('id') id: string,
@@ -1494,6 +1671,25 @@ export class ControllerFactory {
     Object.defineProperty(SpecDynamicController, 'name', {
       value: `${this.pascalCase(resourceName)}SpecController`,
     });
+
+    // Stamp `spec:resource` / `spec:operation` metadata on each handler so
+    // DenyAllGuard (and other spec-engine guards) can produce self-describing
+    // errors naming the resource and operation that was blocked.
+    const proto = SpecDynamicController.prototype;
+    const opMetadata: Record<string, string> = {
+      findAll: 'list',
+      findOne: 'read',
+      create: 'create',
+      update: 'update',
+      remove: 'delete',
+    };
+    for (const [method, op] of Object.entries(opMetadata)) {
+      const handler = proto[method];
+      if (typeof handler === 'function') {
+        Reflect.defineMetadata('spec:resource', resourceName, handler);
+        Reflect.defineMetadata('spec:operation', op, handler);
+      }
+    }
 
     return {
       controllerClass: SpecDynamicController,

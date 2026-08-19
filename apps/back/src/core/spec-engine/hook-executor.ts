@@ -25,6 +25,7 @@ import type {
   BeforeQueryHook,
   AfterHook,
   HookContext,
+  SpecTrace,
 } from './spec.types';
 import { HookAbortError } from './spec.types';
 import type { SpecErrorReporter } from './spec-error-reporter';
@@ -196,6 +197,44 @@ export class HookExecutor {
         undefined,
         { message: (err as Error).message, code: 'HOOK_ERROR' },
       );
+
+      // ─── Trace enrichment (PRD 01): report with an enriched SpecTrace ──
+      if (this.errorReporter) {
+        const message = (err as Error).message;
+        const stack = (err as Error).stack ?? '';
+        this.errorReporter
+          .report({
+            message,
+            source: `spec-engine/hook:${hook.path}`,
+            stack,
+            resource: ctx.resource,
+            operation: ctx.operation,
+            stage: 'beforeHook',
+            hash: computeSpecErrorHash(message, `spec-engine/hook:${hook.path}`, stack),
+            occurrences: 1,
+            inputData: data,
+            trace: {
+              requestId: trace.getRequestId(),
+              resource: ctx.resource,
+              operation: ctx.operation as SpecTrace['operation'],
+              user: null,
+              stages: [],
+              totalDurationMs: duration,
+              extension: undefined,
+              specFile: undefined,
+              layer: 'hook_executor',
+              step: `executing ${ctx.operation} beforeHook`,
+              input: data,
+              userId: ctx.user?.id ?? null,
+              userRole: ctx.user?.role?.name ?? null,
+              handlerFile: hook.path,
+              handlerFunction: 'default',
+            },
+          })
+          .catch(() => {
+            /* reporting never throws */
+          });
+      }
 
       throw new InternalServerErrorException(
         `Hook execution failed: ${(err as Error).message}`,

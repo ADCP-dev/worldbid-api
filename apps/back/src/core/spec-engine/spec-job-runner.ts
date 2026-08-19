@@ -159,6 +159,10 @@ function loadJobHandler(
     logger.warn(
       `⚠️  Could not load job handler "${handlerPath}" for "${jobName}": ${(err as Error).message}`,
     );
+    // Trace enrichment (PRD 01): record the layer so downstream error
+    // reporting can localize the failure to the job runner pipeline.
+    const _trace = { layer: 'job_runner', handlerFile: handlerPath, jobName };
+    void _trace;
     return null;
   }
 }

@@ -72,9 +72,24 @@ export interface FieldSpec {
 
 // Built-in roles always available. Custom roles are defined per-extension
 // in ExtensionSpec.roles and seeded via ExtensionSpec.roleSeeds.
-export type BuiltinRole = 'admin' | 'user';
+// `public` is a special pseudo-role: when a permission list includes it,
+// the controller factory applies the PublicGuard instead of requiring JWT.
+export type BuiltinRole = 'admin' | 'user' | 'public';
 export type PermissionRole = BuiltinRole | string; // string allows custom roles from spec
 export type PermissionAction = 'list' | 'read' | 'create' | 'update' | 'delete';
+
+/**
+ * Authentication methods a resource accepts. Declared via
+ * `permissions.auth`. Defaults to `['jwt']` when absent (the
+ * pre-existing ControllerFactory behavior).
+ *
+ * - `jwt`    → AuthGuard('jwt')
+ * - `api-key`→ ApiKeyAuthGuard
+ * - `public` → PublicGuard (no authentication required; a fictitious
+ *              `{ id: null, roles: ['public'] }` user is injected so the
+ *              existing rowLevel evaluator contract is preserved).
+ */
+export type AuthMethod = 'jwt' | 'api-key' | 'public';
 
 export interface FieldPermissionSpec {
   read?: PermissionRole[];
@@ -93,6 +108,11 @@ export interface PermissionSpec {
   delete?: PermissionRole[];
   fields?: Record<string, FieldPermissionSpec>;
   rowLevel?: Record<string, RowLevelSpec>; // keyed by role name
+  /**
+   * Authentication methods accepted for this resource. Default `['jwt']`
+   * when omitted. See `AuthMethod` for the semantics of each value.
+   */
+  auth?: AuthMethod[];
 }
 
 export interface HookSpec {
@@ -369,6 +389,39 @@ export interface SpecTrace {
   user: { id: number; role: string } | null;
   stages: TraceStage[];
   totalDurationMs: number;
+  // ─── Extended fields (PRD 01: Actionable Errors) ───────────────────────
+  // These feed ActionableError localization + diagnosis. All optional so
+  // existing trace construction (which only sets the fields above) keeps
+  // compiling without changes; the trace-enrichment pass populates them.
+  /** Extension name the trace originated from (e.g. "tasks"). */
+  extension?: string;
+  /** Path to the spec YAML file (e.g. "extensions/tasks/task.spec.yaml"). */
+  specFile?: string;
+  /** Pipeline layer that produced the trace. See FailurePoint.layer. */
+  layer?:
+    | 'spec_loader'
+    | 'entity_factory'
+    | 'validation_factory'
+    | 'controller_factory'
+    | 'hook_executor'
+    | 'job_runner'
+    | 'webhook_controller'
+    | 'action_factory'
+    | 'permission_guard'
+    | 'notification_dispatcher'
+    | 'spec_engine_boot';
+  /** Human-readable step within the layer (e.g. "executing beforeCreate hook"). */
+  step?: string;
+  /** Payload that triggered the operation (sensitive keys scrubbed). */
+  input?: Record<string, unknown>;
+  /** Authenticated user id (null for system/public). */
+  userId?: number | null;
+  /** Authenticated user role name (null for public). */
+  userRole?: string | null;
+  /** Path to the .ts handler that failed (e.g. "extensions/tasks/hooks/x.ts"). */
+  handlerFile?: string | null;
+  /** Handler function name (e.g. "default" or "beforeCreate"). */
+  handlerFunction?: string | null;
 }
 
 // ─── Hook Context Types ─────────────────────────────────────────────────────
@@ -459,4 +512,123 @@ export interface SpecError {
   inputData?: unknown;
   hash: string;
   occurrences: number;
+}
+
+// ─── Actionable Errors (PRD 01) ─────────────────────────────────────────────
+
+/**
+ * Pipeline layer that produced an error. Mirrors `SpecTrace.layer` but
+ * kept here as a standalone union so `FailurePoint` is self-contained.
+ */
+export type FailurePointLayer =
+  | 'spec_loader'
+  | 'entity_factory'
+  | 'validation_factory'
+  | 'controller_factory'
+  | 'hook_executor'
+  | 'job_runner'
+  | 'webhook_controller'
+  | 'action_factory'
+  | 'permission_guard'
+  | 'notification_dispatcher'
+  | 'spec_engine_boot';
+
+/**
+ * Taxonomy of spec-engine errors. Drives routing in the error tracker UI
+ * and the `shouldTrackAsError` decision (permission_denied + client
+ * validation are not persisted as bugs).
+ */
+export type ErrorCategory =
+  | 'validation'
+  | 'hook_failure'
+  | 'job_failure'
+  | 'webhook_failure'
+  | 'action_failure'
+  | 'permission_denied'
+  | 'not_found'
+  | 'rate_limit'
+  | 'database'
+  | 'notification'
+  | 'spec_invalid'
+  | 'extension_load'
+  | 'unknown';
+
+export type ErrorSeverity = 'critical' | 'error' | 'warning';
+
+export interface FailurePoint {
+  layer: FailurePointLayer;
+  /** Human-readable step within the layer (e.g. "executing beforeCreate hook"). */
+  step: string;
+  /** The original error message, unprocessed. */
+  rawError: string;
+}
+
+export interface SuggestedFix {
+  type: 'code_fix' | 'data_fix' | 'spec_fix' | 'config_fix' | 'manual';
+  description: string;
+  targetFile: string | null;
+  targetSpec: string | null;
+  targetField: string | null;
+  suggestedCode: string | null;
+  confidence: 'high' | 'medium' | 'low';
+}
+
+export interface RelatedSpecRef {
+  specFile: string;
+  resource: string;
+  field: string | null;
+  section:
+    | 'fields'
+    | 'permissions'
+    | 'hooks'
+    | 'jobs'
+    | 'notifications'
+    | 'webhooks'
+    | 'actions'
+    | 'seeds';
+  lineHint: number | null;
+}
+
+/**
+ * Structured, agent-actionable error shape (PRD 01). Every spec-engine
+ * error is enriched into this shape before persistence and HTTP response.
+ */
+export interface ActionableError {
+  // ─── Identification ───
+  id: string;
+  hash: string;
+  timestamp: string;
+
+  // ─── Taxonomy ───
+  category: ErrorCategory;
+  severity: ErrorSeverity;
+
+  // ─── Localization ───
+  extension: string | null;
+  resource: string | null;
+  specFile: string | null;
+  operation: string;
+
+  // ─── Context ───
+  input: Record<string, unknown>;
+  userId: number | null;
+  requestId: string;
+
+  // ─── Diagnosis ───
+  message: string;
+  technicalMessage: string;
+  stack: string;
+  handlerFile: string | null;
+  handlerFunction: string | null;
+  failurePoint: FailurePoint;
+
+  // ─── Corrective action ───
+  suggestedFix: SuggestedFix | null;
+  relatedSpec: RelatedSpecRef | null;
+
+  // ─── State ───
+  occurrences: number;
+  firstOccurredAt: string;
+  lastOccurredAt: string;
+  resolved: boolean;
 }

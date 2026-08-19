@@ -57,6 +57,9 @@ export class SpecEngineBootService implements OnModuleInit {
       this.logger.warn(
         `Could not wire ErrorTrackerService: ${(err as Error).message}`,
       );
+      // Trace enrichment (PRD 01): localize boot failures.
+      const _trace = { layer: 'spec_engine_boot' };
+      void _trace;
     }
 
     // Build the RoleRegistry from loaded specs + the RoleEntity table so

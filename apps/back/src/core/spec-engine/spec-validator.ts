@@ -12,14 +12,60 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import type { ResourceSpec, PermissionRole, LoadedSpec } from './spec.types';
+import type {
+  ResourceSpec,
+  PermissionRole,
+  PermissionAction,
+  LoadedSpec,
+  PermissionSpec,
+} from './spec.types';
+
+export interface ValidationFix {
+  type: 'spec_fix' | 'code_fix' | 'config_fix' | 'manual';
+  description: string;
+  targetSpec?: string;
+  targetFile?: string;
+  targetField?: string;
+  suggestedCode?: string;
+}
 
 export interface ValidationError {
   level?: 'error' | 'warning';
+  /**
+   * Stable machine-readable error code (e.g. `MISSING_PERMISSIONS`) so
+   * callers — including AI agents — can branch on the kind of problem
+   * without parsing the human message. Optional for backwards compat
+   * with pre-existing validation sites that only emit `message`.
+   */
+  code?: string;
   resource?: string;
   field?: string;
+  /**
+   * Dot-path to the offending section of the spec, e.g.
+   * `permissions.delete` or `actions.assign.auth`. Optional.
+   */
+  section?: string;
   message: string;
   suggestion?: string;
+  /**
+   * Structured suggested fix for the error. When present, callers can
+   * surface it directly to a developer or agent as an actionable next
+   * step instead of a free-form suggestion string.
+   */
+  fix?: ValidationFix;
+}
+
+export interface ValidateAllOptions {
+  /**
+   * When true, permission/action gaps surface as `errors` (and
+   * `valid` becomes false), blocking materialization. When false
+   * (default) they surface as `warnings` so existing extensions keep
+   * loading while authors migrate their specs.
+   *
+   * Also controlled by the `SPEC_ENGINE_STRICT` env var: setting it
+   * to `"true"` enables strict mode without an explicit option.
+   */
+  strict?: boolean;
 }
 
 export interface ValidationResult {
@@ -66,13 +112,45 @@ const VALID_HOOK_TYPES = [
 
 const VALID_CHANNELS = ['email', 'webhook', 'sms'];
 
+/**
+ * The five CRUD operations every resource must explicitly declare
+ * permissions for. An empty array (`[]`) is valid and means "deny all"
+ * — the operation is disabled via DenyAllGuard. `undefined` (key absent)
+ * is what the validator flags as `MISSING_PERMISSION_ACTION`.
+ */
+const PERMISSION_ACTIONS: PermissionAction[] = [
+  'list',
+  'read',
+  'create',
+  'update',
+  'delete',
+];
+
+/**
+ * Resolve whether validation runs in strict mode.
+ *
+ * Strict mode surfaces permission/action gaps as `errors` (blocking
+ * materialization); warn mode (default) surfaces them as `warnings` so
+ * existing extensions keep loading while authors migrate specs.
+ *
+ * Precedence: explicit option > `SPEC_ENGINE_STRICT` env var > false.
+ */
+function resolveStrictMode(opt?: boolean): boolean {
+  if (opt !== undefined) return opt;
+  return process.env.SPEC_ENGINE_STRICT === 'true';
+}
+
 export class SpecValidator {
   /**
    * Validate all loaded specs together (cross-reference checks)
    */
-  static validateAll(loadedSpecs: LoadedSpec[]): ValidationResult {
+  static validateAll(
+    loadedSpecs: LoadedSpec[],
+    options?: ValidateAllOptions,
+  ): ValidationResult {
     const errors: ValidationError[] = [];
     const warnings: ValidationError[] = [];
+    const strict = resolveStrictMode(options?.strict);
 
     // Build resource registry for cross-ref checks
     const resourceMap = new Map<
@@ -142,6 +220,7 @@ export class SpecValidator {
         resourceMap,
         loaded.dir,
         validRoles,
+        { strict, specFile: loaded.specPath },
       );
       errors.push(...result.errors);
       warnings.push(...result.warnings);
@@ -156,15 +235,23 @@ export class SpecValidator {
 
   /**
    * Validate a single resource spec
+   *
+   * `options.strict` controls whether permission gaps surface as errors
+   * (blocking) or warnings (default — extensions still load).
+   * `options.specFile` is propagated into `fix.targetSpec` so callers get
+   * an actionable reference to the offending YAML file.
    */
   static validateResource(
     spec: ResourceSpec,
     allResources: Map<string, { spec: ResourceSpec; loaded: LoadedSpec }>,
     extensionDir: string,
     validRoles?: Set<string>,
+    options?: { strict?: boolean; specFile?: string },
   ): ValidationResult {
     const errors: ValidationError[] = [];
     const warnings: ValidationError[] = [];
+    const strict = resolveStrictMode(options?.strict);
+    const specFile = options?.specFile;
 
     // Required fields
     if (!spec.name) {
@@ -311,7 +398,22 @@ export class SpecValidator {
       }
     }
 
-    // Validate permissions
+    // Validate permissions — PRD 07 mandatory guards.
+    // In strict mode, missing permissions / actions surface as errors
+    // (blocking materialization). In warn mode (default) they surface as
+    // warnings so existing extensions keep loading while authors migrate.
+    const permissionGapErrors = this.validatePermissionGaps(
+      spec,
+      specFile,
+    );
+    if (strict) {
+      errors.push(...permissionGapErrors);
+    } else {
+      warnings.push(...permissionGapErrors);
+    }
+
+    // Role/field structural permission checks (always errors — these are
+    // real bugs like referencing a non-existent role or field).
     if (spec.permissions) {
       const permErrors = this.validatePermissions(
         spec.permissions,
@@ -319,24 +421,6 @@ export class SpecValidator {
         validRoles,
       );
       errors.push(...permErrors);
-
-      // Warn about 'public' role — requires unguarding the route
-      const allPermRoles = [
-        ...(spec.permissions.list || []),
-        ...(spec.permissions.read || []),
-        ...(spec.permissions.create || []),
-        ...(spec.permissions.update || []),
-        ...(spec.permissions.delete || []),
-      ];
-      if (allPermRoles.includes('public')) {
-        warnings.push({
-          resource: spec.name,
-          message:
-            'Permission "public" requires the route to be unguarded. ' +
-            'Spec engine applies AuthGuard(jwt) on all routes. ' +
-            'Use "admin" or "customer" instead, or write a manual controller.',
-        });
-      }
     }
 
     // Validate hooks — check files exist
@@ -445,6 +529,113 @@ export class SpecValidator {
     }
 
     return { valid: errors.length === 0, errors, warnings };
+  }
+
+  /**
+   * Permission gap checks (PRD 07): detect resources/actions that do not
+   * declare the required permission blocks. These are the checks that
+   * differ between warn mode (default) and strict mode.
+   *
+   * Returns an array of ValidationErrors; the caller decides whether to
+   * place them in `errors` (strict) or `warnings` (warn).
+   */
+  private static validatePermissionGaps(
+    spec: ResourceSpec,
+    specFile?: string,
+  ): ValidationError[] {
+    const gaps: ValidationError[] = [];
+
+    // ─── MISSING_PERMISSIONS: no permissions block at all ───
+    if (!spec.permissions) {
+      gaps.push({
+        code: 'MISSING_PERMISSIONS',
+        resource: spec.name,
+        section: 'permissions',
+        message:
+          `Resource "${spec.name}" must declare permissions. Every ` +
+          'resource must explicitly define who can list, read, create, ' +
+          'update, and delete.',
+        fix: {
+          type: 'spec_fix',
+          description:
+            `Add a permissions block to resource "${spec.name}". Example:\n\n` +
+            'permissions:\n  list: [admin]\n  read: [admin, user]\n  create: [admin]\n  update: [admin]\n  delete: [admin]\n\n' +
+            'Or mark as public if intended:\n\npermissions:\n  auth: [public]\n  list: [public]\n  read: [public]',
+          targetSpec: specFile,
+        },
+      });
+      // No point checking action-level gaps if the whole block is missing.
+      return gaps;
+    }
+
+    // ─── MISSING_PERMISSION_ACTION: each of the 5 ops must be declared ───
+    // An empty array is valid (deny all). `undefined` (key absent) is the gap.
+    for (const op of PERMISSION_ACTIONS) {
+      if (spec.permissions[op] === undefined) {
+        gaps.push({
+          code: 'MISSING_PERMISSION_ACTION',
+          resource: spec.name,
+          section: `permissions.${op}`,
+          message:
+            `Resource "${spec.name}" is missing permissions.${op}. Every ` +
+            "operation must be explicitly declared, even if it's an empty " +
+            'array (no one can access) or [public].',
+          fix: {
+            type: 'spec_fix',
+            description:
+              `Add permissions.${op} to resource "${spec.name}". Use ` +
+              '[admin] for admin-only, [admin, user] for broader access, ' +
+              '[] for no access, or [public] for unauthenticated.',
+            targetSpec: specFile,
+          },
+        });
+      }
+    }
+
+    // ─── MISSING_ACTION_AUTH: custom actions must declare auth ───
+    if (spec.actions) {
+      for (const action of spec.actions) {
+        if (action.auth === undefined) {
+          gaps.push({
+            code: 'MISSING_ACTION_AUTH',
+            resource: spec.name,
+            section: `actions.${action.name}.auth`,
+            message:
+              `Action "${action.name}" on resource "${spec.name}" must ` +
+              'declare auth. Use [admin], [admin, user], [public], or [].',
+            fix: {
+              type: 'spec_fix',
+              description:
+                `Add an auth array to action "${action.name}". Example: ` +
+                `auth: [admin] or auth: [public].`,
+              targetSpec: specFile,
+            },
+          });
+        }
+      }
+    }
+
+    // ─── PUBLIC_ROWLEVEL_REQUIRES_USER: rowLevel.public must not ref ${user.*} ───
+    const publicRowLevel = spec.permissions.rowLevel?.public;
+    if (publicRowLevel && publicRowLevel.filter.includes('${user.')) {
+      gaps.push({
+        code: 'PUBLIC_ROWLEVEL_REQUIRES_USER',
+        resource: spec.name,
+        section: 'permissions.rowLevel.public',
+        message:
+          "rowLevel for 'public' role cannot reference ${user.*} — public " +
+          "users have no user context. Use entity fields only (e.g. 'published == true').",
+        fix: {
+          type: 'spec_fix',
+          description:
+            'Rewrite the public rowLevel filter to use entity fields only. ' +
+            "For example: filter: 'published == true'.",
+          targetSpec: specFile,
+        },
+      });
+    }
+
+    return gaps;
   }
 
   /**

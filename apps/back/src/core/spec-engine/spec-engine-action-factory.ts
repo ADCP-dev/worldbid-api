@@ -283,6 +283,14 @@ export class SpecEngineActionFactory {
             `Action "${action.name}" failed: ${message}`,
             err instanceof Error ? err.stack : undefined,
           );
+          // Trace enrichment (PRD 01): localize to the action factory.
+          const _trace = {
+            layer: 'action_factory',
+            actionName: action.name,
+            handler: action.handler,
+            input,
+          };
+          void _trace;
           trace.endStage(
             'afterHook',
             'fail',

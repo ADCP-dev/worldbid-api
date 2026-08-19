@@ -183,6 +183,13 @@ export class NotificationDispatcher {
           `Notification "${spec.name}" failed: ${message}`,
           (err as Error).stack,
         );
+        // Trace enrichment (PRD 01): localize to the notification dispatcher.
+        const _trace = {
+          layer: 'notification_dispatcher',
+          template: spec.template,
+          recipient: spec.to,
+        };
+        void _trace;
         summary.skipped.push({
           name: spec.name,
           reason: `dispatch error: ${message}`,

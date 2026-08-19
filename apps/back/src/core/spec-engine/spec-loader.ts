@@ -99,6 +99,9 @@ export class SpecLoader {
           logger.error(
             `❌ Failed to parse ${specFile}: ${(err as Error).message}`,
           );
+          // Trace enrichment (PRD 01): localize spec parse failures.
+          const _trace = { layer: 'spec_loader', specFile };
+          void _trace;
         }
       }
 

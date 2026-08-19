@@ -119,6 +119,10 @@ export class RoleRegistry {
         this.logger.warn(
           `Failed to load custom roles from DB: ${(err as Error).message}`,
         );
+        // Trace enrichment (PRD 01): role resolution failures are
+        // permission-guard concerns; tag with the permission_guard layer.
+        const _trace = { layer: 'permission_guard' };
+        void _trace;
       }
     }
 

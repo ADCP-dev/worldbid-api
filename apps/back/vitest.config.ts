@@ -5,7 +5,11 @@ const root = process.cwd()
 
 export default defineConfig({
   test: {
-    include: ['src/core/spec-engine/__tests__/**/*.spec.ts', 'src/extensions/tasks/__tests__/**/*.spec.ts'],
+    include: [
+      'src/core/spec-engine/__tests__/**/*.spec.ts',
+      'src/extensions/tasks/__tests__/**/*.spec.ts',
+      'src/modules/error-tracker/__tests__/**/*.spec.ts',
+    ],
     environment: 'node',
     globals: true,
     setupFiles: ['./vitest.setup.ts'],
