@@ -16,13 +16,8 @@ definePageMeta({
     <div class="flex items-center justify-between gap-4 flex-wrap">
       <div class="flex items-center gap-3">
         <h1 class="text-2xl font-bold">Tasks</h1>
-        <div role="tablist" class="tabs tabs-boxed tabs-sm">
-          <NuxtLink to="/app/tasks" role="tab" class="tab">Board</NuxtLink>
-          <NuxtLink to="/app/tasks-list" role="tab" class="tab">List</NuxtLink>
-          <NuxtLink to="/app/tasks-stats" role="tab" class="tab tab-active">Stats</NuxtLink>
-        </div>
+        <NuxtLink to="/app/tasks" class="btn btn-ghost btn-sm">← Board</NuxtLink>
       </div>
-      <NuxtLink to="/app/tasks" class="btn btn-ghost btn-sm">← Board</NuxtLink>
     </div>
 
     <!-- Dashboard (client-only: ECharts) -->

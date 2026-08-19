@@ -40,10 +40,11 @@ const closeDrawer = () => {
         >
           <NuxtLink
             :to="subItem.link"
-            exact-active-class="active"
+            class="rounded-md"
+            exact-active-class="bg-primary/10"
           >
-            <template #default="{ isExactActive }">
-              <span :class="[isExactActive ? 'text-primary dark:text-primary' : '']">{{ subItem.title }}</span>
+            <template #default>
+              <span>{{ subItem.title }}</span>
               <span
                 v-if="subItem.new"
                 class="rounded-md bg-#adfa1d px-1.5 py-0.5 text-xs text-black leading-none no-underline group-hover:no-underline"

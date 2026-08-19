@@ -71,6 +71,37 @@
   @apply opacity-80 rotate-1 shadow-xl;
 }
 
+/* ─── Sidebar menu: rounded items, text color stays constant ────────── */
+/* Only the background changes on hover/active; text color is always
+   base-content so nothing shifts visual weight to the words. */
+.menu li > a,
+.menu li > button,
+.menu li > summary {
+  border-radius: 0.375rem;
+  color: var(--color-base-content, #F5F5F5);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.menu li > a:hover,
+.menu li > button:hover,
+.menu li > summary:hover {
+  background-color: color-mix(in oklab, var(--color-primary) 8%, transparent);
+  color: var(--color-base-content, #F5F5F5);
+}
+
+/* Active state: subtle primary tint background, text color unchanged.
+   We avoid DaisyUI's .active/.menu-active classes (which flip text to
+   primary-content) by not applying them; this covers any leftover. */
+.menu li > a.active,
+.menu li > button.active,
+.menu li > a.menu-active,
+.menu li > button.menu-active,
+.menu li.active > a,
+.menu li.active > button {
+  background-color: color-mix(in oklab, var(--color-primary) 12%, transparent);
+  color: var(--color-base-content, #F5F5F5);
+}
+
 /* Calendar grid */
 .calendar-cell {
   @apply border border-base-300 p-1 cursor-pointer hover:bg-base-200 transition-colors;

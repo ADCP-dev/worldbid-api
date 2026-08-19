@@ -1,16 +1,17 @@
 <script setup lang="ts">
 /**
- * Tasks Kanban board — the main /app/tasks page.
- * 5 columns (pending, in_progress, review, done, blocked) with drag & drop.
- * Cross-column drop → updateTask(id, { status }) (pessimistic: refetch on
- * success, revert on fail).
+ * Tasks page — single URL (/app/tasks) with a Board / List toggle.
  *
- * View switcher in the header links to /app/tasks (board), /app/tasks-list,
- * /app/tasks-stats.
+ * Board: TaskKanbanBoard (5 columns, drag & drop).
+ * List:  TaskGroupedList (grouped by status, collapsible, drag & drop).
+ *
+ * Stats is NOT in this toggle — it lives at /app/tasks-stats and is linked
+ * from the sidebar. Both board and list emit the same @drop contract so a
+ * single handler drives the optimistic status update + API call.
  */
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import { toast } from 'vue-sonner';
-import { Plus, Search } from 'lucide-vue-next';
+import { Plus, Search, BarChart3 } from 'lucide-vue-next';
 import type { Task, TaskStatus, UserLight, PaginatedResponse } from '@tasks/types';
 
 
@@ -19,22 +20,13 @@ definePageMeta({
   middleware: ['auth'],
 });
 
-const route = useRoute();
 const tasksApi = useTasks();
 
 const loading = ref(false);
 const tasks = ref<Task[]>([]);
 const users = ref<UserLight[]>([]);
 const search = ref('');
-const pendingStatus = ref<TaskStatus | ''>('');
-
-const activeView = computed(() => {
-  const p = route.path;
-  if (p.endsWith('/list')) return 'list';
-  if (p.endsWith('/stats')) return 'stats';
-  return 'board';
-});
-
+const view = ref<'board' | 'list'>('board');
 
 async function loadTasks() {
   loading.value = true;
@@ -54,8 +46,7 @@ async function loadTasks() {
 
 async function loadUsers() {
   try {
-    const res = await tasksApi.getUsers();
-    users.value = Array.isArray(res) ? res : (res.data ?? res ?? []);
+    users.value = await tasksApi.getUsers();
   } catch (err: unknown) {
     toast.error('Error loading users', { description: errorMessage(err) });
   }
@@ -83,7 +74,7 @@ async function onDrop({ taskId, newStatus }: { taskId: number; newStatus: TaskSt
     // Revert
     task.status = oldStatus;
     toast.error('Failed to move task', { description: errorMessage(err) });
-    // Force re-sync board from canonical state
+    // Force re-sync from canonical state
     await loadTasks();
   }
 }
@@ -103,27 +94,28 @@ onMounted(async () => {
     <div class="flex items-center justify-between gap-4 flex-wrap">
       <div class="flex items-center gap-3">
         <h1 class="text-2xl font-bold">Tasks</h1>
-        <!-- View switcher -->
+        <!-- Board / List toggle (Stats is a separate page) -->
         <div role="tablist" class="tabs tabs-boxed tabs-sm">
-          <NuxtLink
-            to="/app/tasks"
+          <button
             role="tab"
             class="tab"
-            :class="{ 'tab-active': activeView === 'board' }"
-          >Board</NuxtLink>
-          <NuxtLink
-            to="/app/tasks-list"
+            :class="{ 'tab-active': view === 'board' }"
+            @click="view = 'board'"
+          >Board</button>
+          <button
             role="tab"
             class="tab"
-            :class="{ 'tab-active': activeView === 'list' }"
-          >List</NuxtLink>
-          <NuxtLink
-            to="/app/tasks-stats"
-            role="tab"
-            class="tab"
-            :class="{ 'tab-active': activeView === 'stats' }"
-          >Stats</NuxtLink>
+            :class="{ 'tab-active': view === 'list' }"
+            @click="view = 'list'"
+          >List</button>
         </div>
+        <NuxtLink
+          to="/app/tasks-stats"
+          class="btn btn-ghost btn-sm"
+          title="View stats"
+        >
+          <BarChart3 class="w-4 h-4" /> Stats
+        </NuxtLink>
       </div>
       <div class="flex items-center gap-2 flex-1 justify-end">
         <div class="relative">
@@ -145,9 +137,9 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- Kanban board -->
+    <!-- Board view -->
     <TaskKanbanBoard
-      v-if="!loading || tasks.length > 0"
+      v-if="view === 'board' && (!loading || tasks.length > 0)"
       :tasks="tasks"
       :users="users"
       :loading="loading"
@@ -156,6 +148,18 @@ onMounted(async () => {
       @edit="(id: number) => navigateTo(`/app/tasks/${id}/edit`)"
       @add="onAdd"
     />
+
+    <!-- List view -->
+    <TaskGroupedList
+      v-else-if="view === 'list' && (!loading || tasks.length > 0)"
+      :tasks="tasks"
+      :users="users"
+      :loading="loading"
+      @drop="onDrop"
+      @click="(id: number) => navigateTo(`/app/tasks/${id}`)"
+      @edit="(id: number) => navigateTo(`/app/tasks/${id}/edit`)"
+    />
+
     <div v-else class="flex-1 flex items-center justify-center">
       <span class="loading loading-spinner loading-lg text-primary"></span>
     </div>
