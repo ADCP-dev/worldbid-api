@@ -14,7 +14,6 @@ export default defineNuxtPlugin(() => {
         { title: 'Board', icon: 'Kanban', link: '/app/tasks', order: 0 },
         { title: 'Comments', icon: 'MessageSquare', link: '/app/tasks/comments', order: 10 },
         { title: 'Activity', icon: 'Activity', link: '/app/tasks/activities', order: 20 },
-        { title: 'Attachments', icon: 'Paperclip', link: '/app/tasks/attachments', order: 30 },
       ],
     });
   };

@@ -165,9 +165,13 @@ export function useTasks() {
   }
 
   // ─── Users (for assignee/reporter selects) ────────────────────────────
-
+  // The /users endpoint may return either a bare array or a paginated
+  // envelope { data: [...] }. Normalize to a plain array here so callers
+  // can always treat the result as UserLight[].
   async function getUsers(): Promise<UserLight[]> {
-    return apiFetch<UserLight[]>('/users');
+    const res = await apiFetch<UserLight[] | PaginatedResponse<UserLight>>('/users');
+    if (Array.isArray(res)) return res;
+    return res.data ?? [];
   }
 
   return {

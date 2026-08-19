@@ -82,7 +82,8 @@ async function loadTasks() {
 
 async function loadUsers() {
   try {
-    users.value = await tasksApi.getUsers();
+    const res = await tasksApi.getUsers();
+    users.value = Array.isArray(res) ? res : (res.data ?? res ?? []);
   } catch (err: unknown) {
     toast.error('Error loading users', { description: errorMessage(err) });
   }
@@ -90,7 +91,11 @@ async function loadUsers() {
 
 const userMap = computed<Record<number, UserLight>>(() => {
   const m: Record<number, UserLight> = {};
-  for (const u of users.value) m[u.id] = u;
+  if (Array.isArray(users.value)) {
+    for (const u of users.value) {
+      if (u && typeof u.id === 'number') m[u.id] = u;
+    }
+  }
   return m;
 });
 
@@ -372,7 +377,7 @@ watch([page, pageSize], () => loadTasks());
         @change="onFilterChange"
       >
         <option value="">Any assignee</option>
-        <option v-for="u in users" :key="u.id" :value="u.id">{{ u.firstName }} {{ u.lastName }}</option>
+        <option v-for="u in users" :key="u?.id ?? ''" :value="u?.id">{{ u?.firstName }} {{ u?.lastName }}</option>
       </select>
     </div>
 
@@ -388,7 +393,7 @@ watch([page, pageSize], () => loadTasks());
       </button>
       <select v-model="bulkAssigneeValue" class="select select-bordered select-sm">
         <option value="">Unassigned</option>
-        <option v-for="u in users" :key="u.id" :value="u.id">{{ u.firstName }} {{ u.lastName }}</option>
+        <option v-for="u in users" :key="u?.id ?? ''" :value="u?.id">{{ u?.firstName }} {{ u?.lastName }}</option>
       </select>
       <button class="btn btn-sm btn-outline" @click="bulkAssign">
         <UserCog class="w-4 h-4" /> Assign

@@ -54,7 +54,8 @@ async function loadTasks() {
 
 async function loadUsers() {
   try {
-    users.value = await tasksApi.getUsers();
+    const res = await tasksApi.getUsers();
+    users.value = Array.isArray(res) ? res : (res.data ?? res ?? []);
   } catch (err: unknown) {
     toast.error('Error loading users', { description: errorMessage(err) });
   }

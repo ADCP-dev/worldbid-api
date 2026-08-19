@@ -29,12 +29,12 @@ export function useThemeColors() {
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
   }
 
-  const primary      = read('--color-primary')         || '#7c3aed'
-  const secondary    = read('--color-secondary')       || '#a855f7'
-  const success      = read('--color-success')         || '#22c55e'
-  const error        = read('--color-error')           || '#dc2626'
-  const baseContent  = read('--color-base-content')    || '#f5f5f7'
-  const base300      = read('--color-base-300')         || '#111118'
+  const primary      = read('--color-primary')         || '#F97316'
+  const secondary    = read('--color-secondary')       || '#262626'
+  const success      = read('--color-success')         || '#22C55E'
+  const error        = read('--color-error')           || '#EF4444'
+  const baseContent  = read('--color-base-content')    || '#F5F5F5'
+  const base300      = read('--color-base-300')         || '#262626'
 
   const toHex = (val: string, fallback: string) =>
     val.startsWith('oklch') ? oklchToHex(val, fallback) : (val || fallback)
@@ -44,12 +44,12 @@ export function useThemeColors() {
     )
 
   return {
-    primary:      toHex(primary, '#7c3aed'),
-    primaryAlpha: (a: number) => withAlpha(primary, a, `rgba(124, 58, 237, ${a})`),
-    secondary:    toHex(secondary, '#a855f7'),
-    success:      toHex(success, '#22c55e'),
-    error:        toHex(error, '#dc2626'),
-    baseContent:  toHex(baseContent, '#f5f5f7'),
-    base300:      toHex(base300, '#111118'),
+    primary:      toHex(primary, '#F97316'),
+    primaryAlpha: (a: number) => withAlpha(primary, a, `rgba(249, 115, 22, ${a})`),
+    secondary:    toHex(secondary, '#262626'),
+    success:      toHex(success, '#22C55E'),
+    error:        toHex(error, '#EF4444'),
+    baseContent:  toHex(baseContent, '#F5F5F5'),
+    base300:      toHex(base300, '#262626'),
   }
 }
