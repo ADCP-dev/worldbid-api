@@ -14,6 +14,7 @@ import { Injectable, OnModuleInit, Logger, Inject } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
+import * as path from 'node:path';
 import { SpecErrorReporter } from './spec-error-reporter';
 import { RoleRegistry } from './role-registry';
 import { runSpecSeeds } from './spec-seed-loader';

@@ -1,18 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40" role="img" aria-label="Foundation">
-  <!-- Geometric foundation block: two stacked offset cubes + construction-orange accent bar. -->
-  <!-- Icon block (scales cleanly at 24x24) -->
-  <g>
-    <!-- Back block (off-white) -->
-    <path d="M8 10 L18 6 L18 18 L8 22 Z" fill="#F5F5F5"/>
-    <path d="M18 6 L28 10 L28 22 L18 18 Z" fill="#D4D4D4"/>
-    <path d="M8 22 L18 18 L28 22 L18 26 Z" fill="#A3A3A3"/>
-    <!-- Front block (off-white, lower) -->
-    <path d="M4 18 L14 14 L14 26 L4 30 Z" fill="#F5F5F5"/>
-    <path d="M14 14 L24 18 L24 30 L14 26 Z" fill="#E5E5E5"/>
-    <path d="M4 30 L14 26 L24 30 L14 34 Z" fill="#BFBFBF"/>
-    <!-- Construction-orange accent bar (foundation rebar) -->
-    <rect x="6" y="31.5" width="16" height="2.5" rx="0.5" fill="#F97316"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540.02 519.61" role="img" aria-label="Foundation">
+  <!-- Foundation logo — geometric isometric block. Colors from DaisyUI theme "luxury-dark"
+       (Industrial Dark with Construction Orange):
+       primary #F97316 (orange), base-content #F5F5F5 (off-white), base-300 #262626 (border), base-100 #161616 (charcoal). -->
+  <defs>
+    <style>
+      .cls-1{fill:#F97316;}
+      .cls-2{fill:#F5F5F5;}
+      .cls-3{fill:#262626;}
+      .cls-4{fill:#161616;}
+    </style>
+  </defs>
+  <g id="Layer_2" data-name="Layer 2">
+    <g id="Layer_1-2" data-name="Layer 1">
+      <polygon class="cls-1" points="540.02 103.92 540.02 109.58 424.46 238.69 360.02 207.83 180.02 103.92 360.02 0 539.98 103.92 540.02 103.92"/>
+      <polygon class="cls-2" points="540.02 103.92 540.02 311.75 360.02 415.67 360.02 207.83 539.98 103.92 540.02 103.92"/>
+      <rect class="cls-3" x="360" y="207.84" width="0.02" height="207.85"/>
+      <polygon class="cls-1" points="180 103.92 180 311.75 0.01 207.84 180 103.92"/>
+      <polygon class="cls-4" points="360 207.84 360 415.67 180 311.75 180 103.92 360 207.84"/>
+      <polygon class="cls-2" points="360 415.67 360 415.69 180 519.61 180 311.75 360 415.67"/>
+      <polygon class="cls-4" points="180.01 311.76 180.01 519.61 0 415.69 0 207.84 180.01 311.76"/>
+    </g>
   </g>
-  <!-- Wordmark -->
-  <text x="34" y="26" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="17" font-weight="700" letter-spacing="0.5" fill="#F5F5F5">Foundation</text>
 </svg>

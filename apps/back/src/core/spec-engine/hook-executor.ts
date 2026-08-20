@@ -26,8 +26,10 @@ import type {
   AfterHook,
   HookContext,
   SpecTrace,
+  ResourceSpec,
 } from './spec.types';
 import { HookAbortError } from './spec.types';
+import type { VectorFieldSpec } from './spec.types';
 import type { SpecErrorReporter } from './spec-error-reporter';
 import { computeSpecErrorHash } from './spec-error-reporter';
 import type { TraceBuilder } from './spec-trace';
@@ -394,5 +396,86 @@ export class HookExecutor {
       }
     }
     return changed;
+  }
+
+  // ─── PRD 06: pgvector auto-embed ─────────────────────────────────────
+
+  /**
+   * Execute auto-embed after create. Generates an embedding from the
+   * source field and updates the entity. Never throws — failures are
+   * logged and optionally enqueued for retry.
+   */
+  async executeAutoEmbed(
+    entity: Record<string, unknown>,
+    ctx: HookContext,
+    resource: ResourceSpec,
+  ): Promise<void> {
+    const vectorField = resource.fields.find(
+      (f) => f.type === 'vector',
+    ) as VectorFieldSpec | undefined;
+
+    if (!vectorField?.autoEmbed) return;
+
+    const { source, model, provider } = vectorField.autoEmbed;
+    const sourceValue = entity[source];
+
+    if (!sourceValue) return;
+
+    const entityId = (entity as { id: number }).id;
+
+    try {
+      const embedding = await ctx.embed(String(sourceValue), model, provider);
+      await ctx.getRepository(resource.name).update(entityId, {
+        [vectorField.name]: embedding,
+      });
+    } catch (err) {
+      ctx.logger.warn(
+        `autoEmbed failed for ${resource.name}:${entityId}: ${(err as Error).message}`,
+      );
+      // Retry async if queue is available
+      const ctxWithQueue = ctx as HookContext & {
+        queue?: { add: (name: string, data: unknown, opts?: unknown) => Promise<void> };
+      };
+      if (ctxWithQueue.queue) {
+        await ctxWithQueue.queue.add(
+          'embed-retry',
+          {
+            resourceId: entityId,
+            resource: resource.name,
+            field: vectorField.name,
+            source,
+            model,
+            provider,
+          },
+          {
+            attempts: 3,
+            backoff: { type: 'exponential', delay: 5000 },
+          },
+        );
+      }
+    }
+  }
+
+  /**
+   * Execute auto-embed after update. Only regenerates the embedding when
+   * the source field changed in the update.
+   */
+  async executeAutoEmbedOnUpdate(
+    entity: Record<string, unknown>,
+    ctx: HookContext,
+    resource: ResourceSpec,
+    changes?: Record<string, unknown>,
+  ): Promise<void> {
+    const vectorField = resource.fields.find(
+      (f) => f.type === 'vector',
+    ) as VectorFieldSpec | undefined;
+
+    if (!vectorField?.autoEmbed) return;
+
+    // Only re-embed if the source field was actually changed
+    if (!changes || !(vectorField.autoEmbed.source in changes)) return;
+
+    // Delegate to the same logic as afterCreate
+    return this.executeAutoEmbed(entity, ctx, resource);
   }
 }

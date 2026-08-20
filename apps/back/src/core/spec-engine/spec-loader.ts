@@ -16,6 +16,7 @@
 import { Logger } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
+import { EventEmitter } from 'node:events';
 import * as yaml from 'js-yaml';
 import type { ExtensionSpec, ResourceSpec } from './spec.types';
 import { mergeSpecs, SpecMergeError } from './spec-loader.merge';
@@ -30,6 +31,15 @@ export interface LoadedSpec {
   dir: string; // absolute path to extension directory
   specPath: string; // absolute path to the primary .spec.yaml file (monolith or first split)
 }
+
+/**
+ * Emitted when `load()` finishes parsing all specs. Introspectors subscribe
+ * to clear their in-memory cache so stale introspection data does not persist
+ * after a spec reload.
+ */
+export const specLoaderEvents = new EventEmitter();
+// Introspectors subscribe per-instance; raise the limit to avoid leak warnings.
+specLoaderEvents.setMaxListeners(50);
 
 export class SpecLoader {
   /**
@@ -129,6 +139,10 @@ export class SpecLoader {
         throw err;
       }
     }
+
+    // Notify introspectors (and any other subscribers) that specs were
+    // (re)loaded so they can invalidate cached introspection data.
+    specLoaderEvents.emit('reload');
 
     return results;
   }

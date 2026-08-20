@@ -29,6 +29,7 @@ import { QueuedMailerService } from '@comms/email-queue/queued-mailer.service';
 import { EmailService } from '@comms/email-queue/email.service';
 import { FilesService } from '@storage/files/files.service';
 import { ErrorTrackerService } from '@src/modules/error-tracker/error-tracker.service';
+import { EmbedService } from './embed-service';
 
 // Import driver-specific file services
 // These may not all be available depending on FILE_DRIVER config
@@ -240,6 +241,15 @@ export class HookContextImpl {
     } catch {
       this.logger.error(`Failed to log error to ErrorTracker: ${message}`);
     }
+  }
+
+  /**
+   * Generate an embedding vector for the given text (PRD 06).
+   * Delegates to EmbedService via ModuleRef.
+   */
+  async embed(text: string, model: string, provider?: string): Promise<number[]> {
+    const embedService = this.moduleRef.get(EmbedService, { strict: false });
+    return embedService.embed(text, model, provider);
   }
 }
 

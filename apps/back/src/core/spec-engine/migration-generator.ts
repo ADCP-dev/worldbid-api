@@ -37,8 +37,11 @@ import type {
   ResourceSpec,
   FieldSpec,
   FieldType,
+  RealtimeSpec,
+  VectorFieldSpec,
 } from './spec.types';
 import { SpecLoader } from './spec-loader';
+import { TriggerFactory } from './trigger-factory';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -58,12 +61,16 @@ export interface ResourceSnapshot {
     precision?: number;
     scale?: number;
     enum?: string[];
+    // PRD 06: pgvector — stored for diff-aware ALTER COLUMN TYPE
+    dimensions?: number;
+    indexType?: 'hnsw' | 'ivfflat';
   }>;
   timestamps: boolean;
   softDelete: boolean;
   indices: string[];
   uniques: string[];
   joinTables: JoinTableSnapshot[];
+  realtime?: RealtimeSpec;
 }
 
 export interface JoinTableSnapshot {
@@ -120,6 +127,8 @@ const FIELD_TYPE_TO_SQL: Record<FieldType, string> = {
   // No behavior change for pre-change field types.
   password: 'character varying(255)',
   secret: 'character varying(255)',
+  // PRD 06: pgvector — base type; dimensionality is appended in columnSqlType
+  vector: 'vector',
 };
 
 /**
@@ -202,6 +211,11 @@ function columnSqlType(field: FieldSpec): string {
       const p = field.precision ?? 10;
       const s = field.scale ?? 2;
       return `numeric(${p},${s})`;
+    }
+    case 'vector': {
+      // PRD 06: pgvector — vector(N) column type
+      const dims = (field as VectorFieldSpec).dimensions;
+      return `vector(${dims})`;
     }
     default:
       return FIELD_TYPE_TO_SQL[field.type] ?? 'character varying(255)';
@@ -288,6 +302,55 @@ function buildAuditColumns(spec: ResourceSpec): ColumnDef[] {
 }
 
 // ─── Statement Builders ───────────────────────────────────────────────────────
+
+/**
+ * PRD 06: Build a CREATE EXTENSION IF NOT EXISTS vector statement.
+ * Returns null when no vector fields are present (caller skips).
+ * Idempotent: IF NOT EXISTS allows safe re-runs.
+ */
+function buildVectorExtensionStatement(
+  hasVectorFields: boolean,
+): MigrationStatement | null {
+  if (!hasVectorFields) return null;
+  return {
+    up: 'CREATE EXTENSION IF NOT EXISTS vector',
+    down: 'DROP EXTENSION IF EXISTS vector',
+    description: 'Create pgvector extension',
+  };
+}
+
+/**
+ * PRD 06: Build a CREATE INDEX statement for a vector field.
+ * Supports HNSW (default) and IVFFlat index types with cosine ops.
+ * Returns null when the field has no index.
+ */
+function buildVectorIndexStatement(
+  spec: ResourceSpec,
+  field: VectorFieldSpec,
+): MigrationStatement | null {
+  if (!field.index) return null;
+  const indexType = field.indexType ?? 'hnsw';
+  const indexName = `idx_${spec.table}_${field.name}_vector`;
+  const ops = 'vector_cosine_ops';
+
+  if (indexType === 'hnsw') {
+    const m = field.indexParams?.m ?? 16;
+    const efConstruction = field.indexParams?.efConstruction ?? 64;
+    return {
+      up: `CREATE INDEX "${indexName}" ON "${spec.table}" USING hnsw ("${field.name}" ${ops}) WITH (m = ${m}, ef_construction = ${efConstruction})`,
+      down: `DROP INDEX "${indexName}"`,
+      description: `Create HNSW vector index on ${spec.table}.${field.name}`,
+    };
+  }
+
+  // ivfflat
+  const lists = field.indexParams?.lists ?? 100;
+  return {
+    up: `CREATE INDEX "${indexName}" ON "${spec.table}" USING ivfflat ("${field.name}" ${ops}) WITH (lists = ${lists})`,
+    down: `DROP INDEX "${indexName}"`,
+    description: `Create IVFFlat vector index on ${spec.table}.${field.name}`,
+  };
+}
 
 /**
  * Build a CREATE TABLE statement (up) + DROP TABLE (down) for a resource.
@@ -644,12 +707,20 @@ export function buildSnapshot(spec: ResourceSpec): ResourceSnapshot {
       precision: f.precision,
       scale: f.scale,
       enum: f.enum,
+      // PRD 06: pgvector — persist vector-specific metadata for diffing
+      ...(f.type === 'vector'
+        ? {
+            dimensions: (f as VectorFieldSpec).dimensions,
+            indexType: (f as VectorFieldSpec).indexType,
+          }
+        : {}),
     })),
     timestamps: spec.timestamps !== false,
     softDelete: spec.softDelete !== false,
     indices: spec.fields.filter((f) => f.index).map((f) => f.name),
     uniques: spec.fields.filter((f) => f.unique).map((f) => f.name),
     joinTables: buildJoinTableSnapshots(spec),
+    realtime: spec.realtime,
   };
 }
 
@@ -806,6 +877,18 @@ export class MigrationGenerator {
     const createdTables: string[] = [];
     const alteredTables: string[] = [];
 
+    // PRD 06: pgvector — emit CREATE EXTENSION IF NOT EXISTS vector as the
+    // very first statement when any resource has a vector field. This must
+    // run before any CREATE TABLE / ADD COLUMN that references the vector type.
+    const hasVectorFields = spec.resources.some((r) =>
+      r.fields.some((f) => f.type === 'vector'),
+    );
+    const extStmt = buildVectorExtensionStatement(hasVectorFields);
+    if (extStmt) {
+      statements.push(extStmt);
+      this.log(`🔌 ${extStmt.description}`);
+    }
+
     for (const resource of spec.resources) {
       const prevResource = previous?.resources[resource.name];
 
@@ -842,6 +925,18 @@ export class MigrationGenerator {
         }
         this.log(`  🔗 ${change.description}`);
       }
+
+      // PRD 06: pgvector — emit HNSW/IVFFlat index for vector fields with
+      // index: true. Emitted after CREATE TABLE so the column exists.
+      for (const field of resource.fields) {
+        if (field.type !== 'vector') continue;
+        const vecField = field as VectorFieldSpec;
+        const idxStmt = buildVectorIndexStatement(resource, vecField);
+        if (idxStmt) {
+          statements.push(idxStmt);
+          this.log(`  📐 ${idxStmt.description}`);
+        }
+      }
     }
 
     // After all CREATE TABLEs, emit deferred FK constraints (ALTER TABLE
@@ -858,6 +953,17 @@ export class MigrationGenerator {
     for (const fkStmt of deferredFkStatements) {
       statements.push(fkStmt);
       this.log(`  🔗 ${fkStmt.description}`);
+    }
+
+    // Realtime triggers (PRD 05): emit CREATE/DROP trigger statements
+    // diff-aware against the previous snapshot's realtime config.
+    const realtimeStatements = this.buildRealtimeStatements(
+      spec.resources,
+      previous,
+    );
+    for (const rtStmt of realtimeStatements) {
+      statements.push(rtStmt);
+      this.log(`  📡 ${rtStmt.description}`);
     }
 
     if (statements.length === 0) {
@@ -918,6 +1024,35 @@ export class MigrationGenerator {
   protected static log(message: string): void {
     // eslint-disable-next-line no-console
     console.log(`[MigrationGenerator] ${message}`);
+  }
+
+  /**
+   * Build CREATE/DROP trigger statements for realtime resources, diff-aware
+   * against the previous snapshot.
+   */
+  protected static buildRealtimeStatements(
+    resources: ResourceSpec[],
+    previous?: SpecSnapshot,
+  ): MigrationStatement[] {
+    const statements: MigrationStatement[] = [];
+    for (const resource of resources) {
+      const prevRealtime = previous?.resources[resource.name]?.realtime;
+      const currRealtime = resource.realtime;
+
+      if (currRealtime && !prevRealtime) {
+        statements.push(...TriggerFactory.create(resource));
+      } else if (!currRealtime && prevRealtime) {
+        statements.push(...TriggerFactory.drop(resource, prevRealtime));
+      } else if (currRealtime && prevRealtime) {
+        if (
+          JSON.stringify(currRealtime) !== JSON.stringify(prevRealtime)
+        ) {
+          statements.push(...TriggerFactory.drop(resource, prevRealtime));
+          statements.push(...TriggerFactory.create(resource));
+        }
+      }
+    }
+    return statements;
   }
 }
 

@@ -7,8 +7,13 @@ import {
   Delete,
   Param,
   Patch,
+  Query,
+  NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { ErrorTrackerService } from './error-tracker.service';
 import { CreateErrorDto } from './dto/create-error.dto';
 import { JwtAuthGuard } from '../iam/auth/guards';
@@ -19,7 +24,11 @@ import { RoleEnum } from '../iam/roles/roles.enum';
 @ApiTags('Error Tracker')
 @Controller({ path: 'system/errors', version: '1' })
 export class ErrorTrackerController {
-  constructor(private readonly errorTrackerService: ErrorTrackerService) {}
+  private readonly logger = new Logger('ErrorTrackerController');
+
+  constructor(
+    private readonly errorTrackerService: ErrorTrackerService,
+  ) {}
 
   @Post()
   async reportError(@Body() dto: CreateErrorDto) {
@@ -34,6 +43,8 @@ export class ErrorTrackerController {
   async getAllErrors() {
     return this.errorTrackerService.findAll();
   }
+
+  // ─── Existing endpoints ───────────────────────────────────────────────────
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)

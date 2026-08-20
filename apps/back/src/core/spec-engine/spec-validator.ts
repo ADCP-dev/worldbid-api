@@ -18,6 +18,7 @@ import type {
   PermissionAction,
   LoadedSpec,
   PermissionSpec,
+  VectorFieldSpec,
 } from './spec.types';
 
 export interface ValidationFix {
@@ -92,6 +93,8 @@ const VALID_FIELD_TYPES = [
   // Both are plain string columns; hashing is the auth module's concern.
   'password',
   'secret',
+  // PRD 06: pgvector — vector column for embeddings
+  'vector',
 ];
 
 // Built-in roles are always valid. Custom roles are collected from
@@ -305,6 +308,65 @@ export class SpecValidator {
           message: 'Enum field has no enum values',
           suggestion: 'Add enum values: enum: [value1, value2, ...]',
         });
+      }
+
+      // PRD 06: Vector field validation
+      if (field.type === 'vector') {
+        const vecField = field as VectorFieldSpec;
+        // Build complete set of field names for autoEmbed source check
+        const allFieldNames = new Set(spec.fields.map((f) => f.name));
+        if (
+          !vecField.dimensions ||
+          !Number.isInteger(vecField.dimensions) ||
+          vecField.dimensions <= 0
+        ) {
+          errors.push({
+            resource: spec.name,
+            field: field.name,
+            code: 'VECTOR_MISSING_DIMENSIONS',
+            message: `Vector field requires a positive integer "dimensions" (got: ${vecField.dimensions})`,
+            suggestion: 'Add: dimensions: 1536  # for text-embedding-3-small',
+          });
+        }
+        // Validate autoEmbed if present
+        if (vecField.autoEmbed) {
+          const ae = vecField.autoEmbed;
+          if (!ae.source) {
+            errors.push({
+              resource: spec.name,
+              field: field.name,
+              code: 'AUTOEMBED_MISSING_SOURCE',
+              message: 'autoEmbed requires a "source" field name',
+              suggestion: 'Add: source: content  # field to embed',
+            });
+          } else if (!allFieldNames.has(ae.source)) {
+            errors.push({
+              resource: spec.name,
+              field: field.name,
+              code: 'AUTOEMBED_SOURCE_NOT_FOUND',
+              message: `autoEmbed source field "${ae.source}" not found in resource fields`,
+              suggestion: `source must be one of: ${Array.from(allFieldNames).join(', ')}`,
+            });
+          }
+          if (!ae.model) {
+            errors.push({
+              resource: spec.name,
+              field: field.name,
+              code: 'AUTOEMBED_MISSING_MODEL',
+              message: 'autoEmbed requires a "model" identifier',
+              suggestion: 'Add: model: text-embedding-3-small',
+            });
+          }
+          if (!['openai', 'ollama', 'local'].includes(ae.provider)) {
+            errors.push({
+              resource: spec.name,
+              field: field.name,
+              code: 'AUTOEMBED_INVALID_PROVIDER',
+              message: `autoEmbed provider "${ae.provider}" is not valid (must be openai, ollama, or local)`,
+              suggestion: 'Set: provider: openai | ollama | local',
+            });
+          }
+        }
       }
 
       // Ref validation

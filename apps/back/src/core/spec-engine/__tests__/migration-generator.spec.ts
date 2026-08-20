@@ -117,3 +117,93 @@ describe('MigrationGenerator — split-spec merge (BUG #7)', () => {
     expect(content).toContain(result.migrationClassName);
   });
 });
+
+describe('MigrationGenerator — realtime triggers (PRD 05)', () => {
+  let tmpDir: string;
+  let extensionsDir: string;
+  let migrationsDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mg-rt-'));
+    extensionsDir = path.join(tmpDir, 'extensions');
+    migrationsDir = path.join(tmpDir, 'migrations');
+    fs.mkdirSync(migrationsDir, { recursive: true });
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  function writeRealtimeExtension(
+    realtime: unknown,
+    prevRealtime?: unknown,
+  ): void {
+    const extDir = path.join(extensionsDir, 'rt-demo');
+    fs.mkdirSync(extDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(extDir, 'demo.spec.yaml'),
+      `name: rt-demo\nversion: '1.0.0'\nresources:\n  - name: demo\n    table: ext_rt_demo_demo\n    fields:\n      - name: title\n        type: string\n` +
+        (realtime
+          ? `    realtime:\n      events: [insert, update, delete]\n      channel: demo\n      payload: ${typeof realtime === 'string' ? realtime : 'id'}\n`
+          : ''),
+    );
+  }
+
+  it('generates trigger statements when realtime declared', async () => {
+    writeRealtimeExtension('id');
+    const result = await MigrationGenerator.generate(
+      'rt-demo',
+      extensionsDir,
+      migrationsDir,
+    );
+
+    const allUp = result.statements.map((s) => s.up).join('\n');
+    expect(allUp).toContain('CREATE OR REPLACE FUNCTION "notify_demo"');
+    expect(allUp).toContain('CREATE TRIGGER "demo_realtime_notify"');
+    expect(allUp).toContain('pg_notify');
+  });
+
+  it('does NOT generate trigger statements when realtime absent', async () => {
+    writeRealtimeExtension(null);
+    const result = await MigrationGenerator.generate(
+      'rt-demo',
+      extensionsDir,
+      migrationsDir,
+    );
+
+    const allUp = result.statements.map((s) => s.up).join('\n');
+    expect(allUp).not.toContain('notify_demo');
+    expect(allUp).not.toContain('realtime_notify');
+  });
+
+  it('emits DROP trigger when realtime removed from previous snapshot', async () => {
+    writeRealtimeExtension(null);
+    const prevSnapshot = {
+      extensionName: 'rt-demo',
+      version: '1.0.0',
+      resources: {
+        demo: {
+          table: 'ext_rt_demo_demo',
+          fields: [{ name: 'title', type: 'string', nullable: false, unique: false }],
+          timestamps: true,
+          softDelete: true,
+          indices: [],
+          uniques: [],
+          joinTables: [],
+          realtime: { events: ['insert'], channel: 'demo' },
+        },
+      },
+    };
+
+    const result = await MigrationGenerator.generate(
+      'rt-demo',
+      extensionsDir,
+      migrationsDir,
+      { previousSnapshot: prevSnapshot },
+    );
+
+    const allUp = result.statements.map((s) => s.up).join('\n');
+    expect(allUp).toContain('DROP TRIGGER');
+    expect(allUp).toContain('DROP FUNCTION');
+  });
+});

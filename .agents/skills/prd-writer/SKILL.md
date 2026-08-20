@@ -1,6 +1,6 @@
 ---
 name: prd-writer
-description: Writes high-quality PRDs (Product Requirements Documents) optimized for AI coding agents. Uses EARS notation, multi-file structure, explicit open questions, Definition of Done. Trigger: when user asks to write a PRD, create product requirements, document a feature before implementation, or says /prd-new, /prd-review, /prd-update.
+description: "Writes high-quality PRDs (Product Requirements Documents) optimized for AI coding agents. Uses EARS notation, multi-file structure, explicit open questions, Definition of Done. Trigger: when user asks to write a PRD, create product requirements, document a feature before implementation, or says /prd-new, /prd-review, /prd-update."
 ---
 
 # Skill: prd-writer

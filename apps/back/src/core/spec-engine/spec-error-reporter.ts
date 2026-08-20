@@ -497,13 +497,18 @@ export class SpecErrorReporter {
    *
    * Additionally, when ALL of the following are true:
    *   - occurrences === 1  (first time we've seen this hash)
-   *   - NODE_ENV === 'production'
-   *   - the `gh` CLI is available
-   * then a GitHub issue is created so the team is notified.
-   *
-   * This method never throws — reporting failures must not cascade into
-   * the caller's error handling.
-   */
+    *   - NODE_ENV === 'production'
+    *   - the `gh` CLI is available
+    * then a GitHub issue is created so the team is notified.
+    *
+    * Auto-fix is handled by an external system (GitHub Issues → LangChain
+    * agent → PR). This reporter just creates the issue; the external agent
+    * reads it, uses the MCP introspection server to understand the app,
+    * and submits a fix PR.
+    *
+    * This method never throws — reporting failures must not cascade into
+    * the caller's error handling.
+    */
   async report(error: SpecError): Promise<void> {
     if (!error || !error.hash) {
       this.logger.warn(
@@ -525,9 +530,10 @@ export class SpecErrorReporter {
     await this.persistToDb(error);
 
     // 2. Open a GitHub issue on first occurrence in production.
+    //    The external auto-fix agent (LangChain/DeepAgents) picks up the
+    //    issue, uses the MCP server to introspect the app, and submits a PR.
     if (error.occurrences === 1 && this.isProduction()) {
       this.createGitHubIssue(error).catch((err) => {
-        // Already handled inside createGitHubIssue, but guard the promise too.
         this.logger.debug(
           `GitHub issue creation rejected: ${(err as Error).message}`,
         );
@@ -861,6 +867,31 @@ export class SpecErrorReporter {
 
   private isProduction(): boolean {
     return process.env.NODE_ENV === 'production';
+  }
+
+  /**
+   * Build a minimal SpecTrace from a SpecError when the error doesn't
+   * already carry one. Used so buildActionableError() has what it needs
+   * for the auto-fix evaluation path.
+   */
+  private buildMinimalTrace(error: SpecError): SpecTrace {
+    return {
+      requestId: error.requestId ?? '',
+      resource: error.resource ?? '',
+      operation: (error.operation as SpecTrace['operation']) ?? 'create',
+      user: null,
+      stages: [],
+      totalDurationMs: 0,
+      extension: undefined,
+      specFile: undefined,
+      layer: undefined,
+      step: undefined,
+      input: undefined,
+      userId: null,
+      userRole: null,
+      handlerFile: error.hookPath ?? null,
+      handlerFunction: null,
+    };
   }
 }
 

@@ -7,8 +7,10 @@ export default defineConfig({
   test: {
     include: [
       'src/core/spec-engine/__tests__/**/*.spec.ts',
+      'src/core/realtime/__tests__/**/*.spec.ts',
       'src/extensions/tasks/__tests__/**/*.spec.ts',
       'src/modules/error-tracker/__tests__/**/*.spec.ts',
+      'src/mcp/__tests__/**/*.spec.ts',
     ],
     environment: 'node',
     globals: true,

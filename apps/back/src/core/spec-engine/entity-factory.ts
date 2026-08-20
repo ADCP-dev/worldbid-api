@@ -16,7 +16,7 @@ import {
   EntitySchemaColumnOptions,
   EntitySchemaRelationOptions,
 } from 'typeorm';
-import type { ResourceSpec, FieldSpec } from './spec.types';
+import type { ResourceSpec, FieldSpec, VectorFieldSpec } from './spec.types';
 
 export interface EntityFactoryResult {
   mainSchema: EntitySchema<any>;
@@ -229,6 +229,11 @@ export class EntityFactory {
   private static createColumnOptions(
     field: FieldSpec,
   ): EntitySchemaColumnOptions {
+    // PRD 06: vector fields have a dedicated builder with transformer
+    if (field.type === 'vector') {
+      return this.buildVectorColumn(field as VectorFieldSpec);
+    }
+
     const options: EntitySchemaColumnOptions = {
       type: this.mapType(field),
       nullable: field.nullable ?? !field.required,
@@ -285,9 +290,38 @@ export class EntityFactory {
       case 'many-to-many':
         // computed and many-to-many are not stored as columns on the main table
         return String;
+      case 'vector':
+        // PRD 06: pgvector — TypeORM 0.3.x accepts custom string types
+        return 'vector';
       default:
         return String;
     }
+  }
+
+  /**
+   * Build a TypeORM column for a pgvector vector field.
+   *
+   * TypeORM 0.3.x accepts custom string types (it passes them to the driver
+   * without validation). The transformer converts between JS number[] and
+   * pgvector's text representation '[1,2,3]'.
+   */
+  private static buildVectorColumn(
+    field: VectorFieldSpec,
+  ): EntitySchemaColumnOptions {
+    return {
+      type: 'vector' as any,
+      nullable: field.nullable ?? true,
+      transformer: {
+        to: (value: number[] | null): string | null => {
+          if (value === null || value === undefined) return null;
+          return `[${value.join(',')}]`;
+        },
+        from: (value: string | null): number[] | null => {
+          if (value === null || value === undefined) return null;
+          return value.slice(1, -1).split(',').map(Number);
+        },
+      },
+    };
   }
 
   /**

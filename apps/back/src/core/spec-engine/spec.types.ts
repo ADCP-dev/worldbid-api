@@ -28,7 +28,10 @@ export type FieldType =
   // Both are plain string columns at the entity level; hashing is the auth
   // module's downstream concern (entity-factory does NOT hash).
   | 'password'
-  | 'secret';
+  | 'secret'
+  // ─── PRD 06: pgvector integration. Vector columns store embeddings as
+  // pgvector `vector(N)` type. Auto-embed hooks generate them at runtime.
+  | 'vector';
 
 export interface FieldValidationSpec {
   min?: number;
@@ -66,6 +69,39 @@ export interface FieldSpec {
   // Many-to-many-specific
   joinTable?: string;
   throughFields?: { from: string; to: string };
+}
+
+// ─── Vector Field Spec (PRD 06 — pgvector) ───────────────────────────────────
+
+export interface AutoEmbedSpec {
+  /** Name of the source field to generate the embedding from (e.g. "content"). */
+  source: string;
+  /** Embedding model identifier (e.g. "text-embedding-3-small"). */
+  model: string;
+  /** Embedding provider. */
+  provider: 'openai' | 'ollama' | 'local';
+}
+
+export interface VectorFieldSpec extends FieldSpec {
+  type: 'vector';
+  /** Vector dimensionality (e.g. 1536 for OpenAI text-embedding-3-small). */
+  dimensions: number;
+  /** When true, create an HNSW or IVFFlat index. Default false. */
+  index?: boolean;
+  /** Index type. Default 'hnsw'. */
+  indexType?: 'hnsw' | 'ivfflat';
+  /** Index build parameters (m/efConstruction for HNSW, lists for IVFFlat). */
+  indexParams?: {
+    /** HNSW: connections per layer (default 16). */
+    m?: number;
+    /** HNSW: build-time search width (default 64). */
+    efConstruction?: number;
+    /** IVFFlat: number of clusters (default 100). */
+    lists?: number;
+  };
+  /** Auto-embed configuration. When set, the hook executor generates
+   *  embeddings automatically after create/update of the source field. */
+  autoEmbed?: AutoEmbedSpec;
 }
 
 // ─── Permission Spec ────────────────────────────────────────────────────────
@@ -271,6 +307,15 @@ export interface ExportSpec {
   handler?: string;
 }
 
+// ─── Realtime Spec (PRD 05) ──────────────────────────────────────────────────
+
+export interface RealtimeSpec {
+  events: ('insert' | 'update' | 'delete')[];
+  channel?: string;
+  payload?: 'id' | 'full' | 'diff';
+  rowLevelFiltering?: 'client' | 'server';
+}
+
 // ─── UI Spec additions ─────────────────────────────────────────────────────
 
 // ─── Resource Spec ──────────────────────────────────────────────────────────
@@ -302,6 +347,7 @@ export interface ResourceSpec {
   outboundWebhooks?: OutboundWebhookSpec[];
   importConfig?: ImportSpec;
   exportConfig?: ExportSpec;
+  realtime?: RealtimeSpec;
 }
 
 // ─── Extension Spec ─────────────────────────────────────────────────────────
@@ -480,6 +526,13 @@ export interface HookContext {
   trace: TraceWriter;
   abort(message: string, statusCode?: number): never;
   transaction<T>(fn: (txContext: HookContext) => Promise<T>): Promise<T>;
+  // ─── PRD 06: pgvector auto-embed support ─────────────────────────────
+  /** Generate an embedding vector for the given text. */
+  embed(text: string, model: string, provider?: string): Promise<number[]>;
+  /** Optional queue for async embed retries (BullMQ). Absent in tests. */
+  queue?: {
+    add(name: string, data: unknown, opts?: unknown): Promise<void>;
+  };
 }
 
 export interface TraceWriter {

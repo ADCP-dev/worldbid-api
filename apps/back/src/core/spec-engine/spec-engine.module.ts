@@ -39,6 +39,7 @@ import { SpecEngineBootService } from './spec-engine-boot';
 import { SpecMetaController } from './meta-controller';
 import { buildFoundationEntitySchemas } from './foundation-entity-schemas';
 import { getAuditSchema } from './spec-engine-audit';
+import { EmbedService } from './embed-service';
 import type { ResourceSpec, HookSpec } from './spec.types';
 import type { LoadedHook } from './hook-executor';
 
@@ -263,6 +264,7 @@ export class SpecEngineModule {
 
     // Phase 6: Register providers
     providers.push(SpecEngineBootService);
+    providers.push(EmbedService);
     providers.push({
       provide: HookExecutor,
       useValue: hookExecutor,
