@@ -31,7 +31,8 @@
       "@settings/*": ["src/modules/app-settings/*"],
       "@infra/*": ["src/infrastructure/*"],
       "@src/*": ["src/*"],
-      "@core/*": ["src/core/*"]
+      "@core/*": ["src/core/*"],
+      "@emails/*": ["../../packages/emails/emails/*"]
     }
   }
 }

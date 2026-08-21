@@ -72,3 +72,4 @@ graphify-out/.needs_update
 
 # Frontend helpers (legacy JS, migrated to TS composables)
 apps/front/helpers/*.js
+prds/agent-native/

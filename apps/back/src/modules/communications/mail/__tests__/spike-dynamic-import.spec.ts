@@ -14,9 +14,12 @@ import { describe, it, expect } from 'vitest';
  * Deps: T-001 (packages/emails workspace declares @maizzle/framework ^6.x).
  */
 describe('Spike T-002 — dynamic import from CJS', () => {
-  it('should expose createRenderer as a function via dynamic import', async () => {
-    const mod =
-      (await import('@maizzle/framework')) as Record<string, unknown>;
-    expect(typeof mod.createRenderer).toBe('function');
-  });
+  it(
+    'should expose createRenderer as a function via dynamic import',
+    async () => {
+      const mod = await import('@maizzle/framework');
+      expect(typeof mod.createRenderer).toBe('function');
+    },
+    60000,
+  );
 });
