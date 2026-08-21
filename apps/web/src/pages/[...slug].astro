@@ -3,7 +3,6 @@
 // Also fetches SEO metadata for the page when available.
 import PublicLayout from '../layouts/PublicLayout.astro';
 import { fetchApi, PUBLIC_API } from '../lib/api';
-import { localeFromPath, type Locale } from '../i18n/ui';
 
 interface CmsPage {
   id: string;
@@ -21,8 +20,7 @@ interface SeoMeta {
   customJsonLd?: Record<string, unknown>;
 }
 
-const { pathname } = Astro.url;
-const locale: Locale = localeFromPath(pathname);
+const locale = Astro.locals.locale;
 const localePrefix = locale === 'en' ? '/en' : '';
 
 // [...slug] catch-all: join the path segments. Strip the locale prefix if present.

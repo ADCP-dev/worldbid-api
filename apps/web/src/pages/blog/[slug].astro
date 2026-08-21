@@ -4,7 +4,7 @@ import PublicLayout from '../../layouts/PublicLayout.astro';
 import BlogCard from '../../components/blog/BlogCard.astro';
 import Breadcrumbs from '../../components/blog/Breadcrumbs.astro';
 import { fetchApi, PUBLIC_API } from '../../lib/api';
-import { localeFromPath, t, type Locale } from '../../i18n/ui';
+import { t } from '../../i18n/ui';
 import { blogPostingJsonLd, breadcrumbListJsonLd } from '../../lib/seo';
 
 interface BlogPost {
@@ -21,8 +21,7 @@ interface BlogPost {
   [key: string]: unknown;
 }
 
-const { pathname } = Astro.url;
-const locale: Locale = localeFromPath(pathname);
+const locale = Astro.locals.locale;
 const localePrefix = locale === 'en' ? '/en' : '';
 const slug = Astro.params.slug ?? '';
 

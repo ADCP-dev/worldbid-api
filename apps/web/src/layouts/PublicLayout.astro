@@ -1,9 +1,8 @@
 ---
 import '../styles/global.css';
-import { localeFromPath, t, type Locale } from '../i18n/ui';
+import { t } from '../i18n/ui';
 
-const { pathname } = Astro.url;
-const locale: Locale = localeFromPath(pathname);
+const locale = Astro.locals.locale;
 const homeHref = locale === 'es' ? '/' : '/en';
 const blogHref = locale === 'es' ? '/blog' : '/en/blog';
 const contactHref = locale === 'es' ? '/#contact' : '/en/#contact';
