@@ -191,6 +191,11 @@ export interface NotificationSpec {
   subject?: string;
   payload?: Record<string, unknown>;
   url?: string;
+  attachments?: Array<{
+    filename: string;
+    content: string | Buffer;
+    contentType?: string;
+  }>;
 }
 
 // ─── Job Spec ───────────────────────────────────────────────────────────────

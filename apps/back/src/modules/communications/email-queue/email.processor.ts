@@ -1,21 +1,30 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-import { MailerService } from '@infra/mailer/mailer.service';
 import { Logger } from '@nestjs/common';
-import fs from 'node:fs/promises';
-import nodemailer from 'nodemailer';
-import Handlebars from 'handlebars';
 import { ConfigService } from '@nestjs/config';
+import nodemailer from 'nodemailer';
 import { ErrorTrackerService } from '@src/modules/error-tracker/error-tracker.service';
+import { TemplateRenderer } from '@comms/mail/services/template-renderer.service';
+import { EmailDiscoveryService } from '@comms/mail/services/email-discovery.service';
 
+/**
+ * Email job data shape (T-019).
+ *
+ * Changed from { templatePath, context } to { templateName, config } where
+ * templateName is resolved by EmailDiscoveryService and config is the
+ * Maizzle render config (accessed via useConfig() in the SFC).
+ *
+ * `html` is a pre-rendered fallback (when no templateName is provided).
+ * `attachments`, `from`, `to`, `subject` are transport-level fields.
+ */
 export interface EmailJobData {
   to: string | string[];
   subject: string;
   html?: string;
   text?: string;
-  templatePath?: string;
-  context?: Record<string, unknown>;
-  attachments?: any[];
+  templateName?: string;
+  config?: Record<string, unknown>;
+  attachments?: unknown[];
   from?: string;
 }
 
@@ -25,12 +34,13 @@ export class EmailProcessor extends WorkerHost {
   private readonly transporter: nodemailer.Transporter;
 
   constructor(
-    private readonly mailerService: MailerService,
+    private readonly mailerService: { sendMail: (data: Record<string, unknown>) => Promise<void> },
     private readonly configService: ConfigService,
     private readonly errorTrackerService: ErrorTrackerService,
+    private readonly templateRenderer: TemplateRenderer,
+    private readonly emailDiscoveryService: EmailDiscoveryService,
   ) {
     super();
-    // Create a transporter for direct email sending
     this.transporter = nodemailer.createTransport({
       host: configService.get('mail.host', { infer: true }),
       port: configService.get('mail.port', { infer: true }),
@@ -45,7 +55,6 @@ export class EmailProcessor extends WorkerHost {
   }
 
   async process(job: Job<EmailJobData>): Promise<void> {
-    // Only handle 'send-email' jobs
     if (job.name !== 'send-email') {
       throw new Error(`Unknown job name: ${job.name}`);
     }
@@ -53,39 +62,34 @@ export class EmailProcessor extends WorkerHost {
     try {
       this.logger.log(`Processing email job ${job.id} to: ${job.data.to}`);
 
-      // If templatePath is provided, we need to process the template ourselves
       let finalHtml = job.data.html;
-      if (job.data.templatePath) {
-        // Ensure context exists and add app_url to it
-        if (!job.data.context) {
-          job.data.context = {};
-        }
+      let finalText = job.data.text;
 
-        const backendDomain = this.configService.get<string>(
-          'app.backendDomain',
-          {
-            infer: true,
-          },
+      // Render via TemplateRenderer when a templateName is provided.
+      if (job.data.templateName) {
+        const templatePath = await this.emailDiscoveryService.resolveByName(
+          job.data.templateName,
         );
-        if (backendDomain) {
-          job.data.context.app_url = backendDomain;
-        } else {
-          // Fallback value if backendDomain is not configured
-          job.data.context.app_url = 'http://localhost';
+        if (!templatePath) {
+          throw new Error(
+            `Template not found: ${job.data.templateName}`,
+          );
         }
-
-        const template = await fs.readFile(job.data.templatePath, 'utf-8');
-        finalHtml = Handlebars.compile(template, {
-          strict: true,
-        })(job.data.context);
+        const result = await this.templateRenderer.render(
+          templatePath,
+          job.data.config ?? {},
+        );
+        finalHtml = result.html;
+        if (!finalText && result.plaintext) {
+          finalText = result.plaintext;
+        }
       }
 
-      // Send the email directly using nodemailer transporter
       await this.transporter.sendMail({
         to: job.data.to,
         subject: job.data.subject,
         html: finalHtml,
-        text: job.data.text,
+        text: finalText,
         attachments: job.data.attachments || [],
         from:
           job.data.from ||
@@ -99,9 +103,6 @@ export class EmailProcessor extends WorkerHost {
       this.logger.log(`Email job ${job.id} completed successfully`);
     } catch (error) {
       this.logger.error(`Email job ${job.id} failed:`, error);
-      // Persist to the error-tracker so the team notices when an email
-      // job exhausts its retries (Bull logs to stdout otherwise). The
-      // job is then re-thrown so Bull's retry policy can do its job.
       await this.errorTrackerService
         .logError({
           message: `Email job ${job.id} to ${Array.isArray(job.data.to) ? job.data.to.join(',') : job.data.to} failed: ${(error as Error).message}`,
