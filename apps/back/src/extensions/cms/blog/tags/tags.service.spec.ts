@@ -5,6 +5,7 @@ import { ConflictException, NotFoundException } from '@nestjs/common';
 import { TagsService } from './tags.service';
 import { TagEntity } from '../posts/infrastructure/entities/post-tag.entity';
 import { TranslationsService } from '@src/modules/translations/translations.service';
+import { WebhookDispatchService } from '@ext/web/webhook-dispatch.service';
 
 describe('TagsService', () => {
   let service: TagsService;
@@ -23,6 +24,10 @@ describe('TagsService', () => {
     getTranslationsForEntity: jest.fn().mockResolvedValue({}),
   };
 
+  const mockWebhookDispatch = {
+    fireRevalidateWebhook: jest.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -34,6 +39,10 @@ describe('TagsService', () => {
         {
           provide: TranslationsService,
           useValue: mockTranslationsService,
+        },
+        {
+          provide: WebhookDispatchService,
+          useValue: mockWebhookDispatch,
         },
       ],
     }).compile();

@@ -10,6 +10,7 @@ export default defineConfig({
       'src/core/realtime/__tests__/**/*.spec.ts',
       'src/extensions/tasks/__tests__/**/*.spec.ts',
       'src/modules/error-tracker/__tests__/**/*.spec.ts',
+      'src/modules/communications/mail/__tests__/**/*.spec.ts',
       'src/mcp/__tests__/**/*.spec.ts',
     ],
     environment: 'node',

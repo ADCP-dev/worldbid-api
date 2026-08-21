@@ -9,7 +9,6 @@
  */
 import type {
   AppOverviewView,
-  AutoFixLogView,
   EntityView,
   ErrorView,
   ExtensionDetailView,
@@ -73,7 +72,5 @@ export function useMcp() {
 
     listFrontendLayers: () => call<FrontendLayerView[]>('foundation.list_frontend_layers'),
 
-    listAutoFixes: (filter?: { errorId?: string; limit?: number }) =>
-      call<AutoFixLogView[]>('foundation.list_auto_fixes', filter ?? {}),
   };
 }

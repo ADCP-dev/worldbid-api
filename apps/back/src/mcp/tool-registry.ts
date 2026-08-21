@@ -147,10 +147,6 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     inputSchema: objNoProps(),
     handler: (_a, b) => b.specEngine.getAppOverview(),
   },
-  {
-    description: 'List auto-fix log entries (applied, pr_created, skipped, failed). Optional filters: errorId, limit.',
-    inputSchema: schema({ errorId: { type: 'string' }, limit: { type: 'number' } }, [], true),
-  },
 ];
 
 export class ToolRegistry {

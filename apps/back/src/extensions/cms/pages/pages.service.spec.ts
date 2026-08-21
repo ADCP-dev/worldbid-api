@@ -8,6 +8,7 @@ import { TranslationEntity } from '@src/modules/translations/infrastructure/enti
 import { TranslationsService } from '@src/modules/translations/translations.service';
 import { SeoService } from '../seo/seo.service';
 import { FilesService } from '@storage/files/files.service';
+import { WebhookDispatchService } from '@ext/web/webhook-dispatch.service';
 
 describe('PagesService', () => {
   let service: PagesService;
@@ -41,6 +42,10 @@ describe('PagesService', () => {
     save: jest.fn(),
   };
 
+  const mockWebhookDispatch = {
+    fireRevalidateWebhook: jest.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -64,6 +69,10 @@ describe('PagesService', () => {
         {
           provide: FilesService,
           useValue: mockFilesService,
+        },
+        {
+          provide: WebhookDispatchService,
+          useValue: mockWebhookDispatch,
         },
       ],
     }).compile();

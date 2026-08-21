@@ -1,0 +1,69 @@
+---
+// BlogCard — presentational card for a blog post in lists (FR-005).
+import type { Locale } from '../../i18n/ui';
+
+interface BlogPostCardData {
+  slug: string;
+  title: string;
+  excerpt?: string;
+  featuredImageUrl?: string | null;
+  category?: { slug: string; name?: string | null } | null;
+  publishedAt?: string | null;
+  author?: { name?: string } | null;
+}
+
+interface Props {
+  post: BlogPostCardData;
+  locale: Locale;
+}
+
+const { post, locale } = Astro.props;
+
+const localePrefix = locale === 'en' ? '/en' : '';
+const postHref = `${localePrefix}/blog/${post.slug}`;
+const categoryHref = post.category?.slug
+  ? `${localePrefix}/blog/c/${post.category.slug}`
+  : null;
+
+const title =
+  (post as any).translations?.[locale]?.title ?? post.title ?? post.slug;
+const excerpt =
+  (post as any).translations?.[locale]?.excerpt ?? post.excerpt ?? '';
+const categoryName = post.category?.name ?? null;
+
+const dateStr = post.publishedAt
+  ? new Date(post.publishedAt).toLocaleDateString(locale, {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
+  : null;
+---
+
+<article class="card bg-base-100 shadow-sm border border-base-200 hover:shadow-md transition-shadow">
+  {post.featuredImageUrl && (
+    <a href={postHref} class="block aspect-video overflow-hidden rounded-t-[inherit]">
+      <img
+        src={post.featuredImageUrl}
+        alt={title}
+        loading="lazy"
+        class="w-full h-full object-cover hover:scale-105 transition-transform"
+      />
+    </a>
+  )}
+  <div class="card-body p-5 gap-3">
+    <div class="flex items-center gap-2 text-xs text-base-content/60">
+      {categoryName && categoryHref && (
+        <a href={categoryHref} class="badge badge-primary badge-sm">{categoryName}</a>
+      )}
+      {dateStr && <time datetime={post.publishedAt ?? undefined}>{dateStr}</time>}
+    </div>
+    <h2 class="card-title text-lg leading-snug">
+      <a href={postHref} class="hover:text-primary transition-colors">{title}</a>
+    </h2>
+    {excerpt && <p class="text-sm text-base-content/70 line-clamp-3">{excerpt}</p>}
+    {post.author?.name && (
+      <p class="text-xs text-base-content/50 mt-auto">{locale === 'en' ? 'By' : 'Por'} {post.author.name}</p>
+    )}
+  </div>
+</article>

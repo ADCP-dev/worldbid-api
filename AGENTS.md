@@ -212,33 +212,17 @@ Skills = workflows especializados y conocimiento de dominio. Se auto-detectan se
 |-------|-----------|---------------|
 | `apify-scrape` | Run Apify Actors to scrape websites and extract structured data. Use to deep-scrape documentation sites into local Markdown for the knowledge graph. Use when Tavily results are insufficient. | See description |
 | `backend` | Foundation backend development — NestJS + TypeORM + Hygen generators. Use for ALL backend work: creating resources, adding properties, migrations, seeders, and NestJS patterns. Use proactively when working on apps/back/, creating CRUD modules, managing database schema, or writing NestJS code. Examples: - user: "Create a Product resource" → pnpm generate:resource -- --name=Product - user: "Add email field to User" → pnpm add:property -- --name=User --property=email --kind=primitive --type=string - user: "Run migrations" → pnpm migration:generate AddXxx + pnpm migration:run | See description |
-| `branch-pr` | PR creation workflow for Agent Teams Lite following the issue-first enforcement system. Trigger: When creating a pull request, opening a PR, or preparing changes for review. | See description |
-| `embedded-captions` | Add captions or subtitles to an existing single-subject talking-head video without editing the footage. Use for plain verbatim captions, cinematic captions embedded behind the subject, VFX captions, “炸/特效/酷炫字幕,” or a named identity from the 35-style catalog. Route by visual identity, not by backend engine. The quiet `anchor` rail is the default; embed every word only when the user explicitly wants a fully cinematic treatment. The workflow runs locally end to end, including transcription and subject matting; split multi-shot footage before applying it. | See description |
-| `faceless-explainer` | Turn arbitrary text — an article, notes, a topic, a brief — into a faceless explainer video: there is no site or footage to capture, so the visuals are invented per scene (typography, abstract graphics, diagrams, data-viz). Use for topic explainers, concept breakdowns, how-tos, listicles. Not a video built from a website (/product-launch-video — promo or tour). Unclear → /hyperframes. | See description |
-| `figma` | Import Figma content into a HyperFrames composition — rendered assets, brand tokens, components, storyboard sections → reconstructed motion (frames read as states, not slides) (REST/CLI), connector-assisted motion when available, and shaders from a connector or native export. Use when the user pastes a figma.com link or asks to bring a Figma design, frame, logo, brand, or animation into a video/composition. | See description |
-| `find-skills` | Helps users discover and install agent skills when they ask questions like "how do I do X", "find a skill for X", "is there a skill that can...", or express interest in extending capabilities. This skill should be used when the user is looking for functionality that might exist as an installable skill. | See description |
+| `branch-pr` | Create Gentle AI pull requests with issue-first checks. Trigger: creating, opening, or preparing PRs for review. | See description |
+| `chained-pr` | Trigger: PRs over 400 lines, stacked PRs, review slices. Split oversized changes into chained PRs that protect review focus. | See description |
+| `cognitive-doc-design` | Design docs that reduce cognitive load. Trigger: writing guides, READMEs, RFCs, onboarding, architecture, or review-facing docs. | See description |
+| `comment-writer` | Write warm, direct collaboration comments. Trigger: PR feedback, issue replies, reviews, Slack messages, or GitHub comments. | See description |
+| `coolify-deploy` | Trigger: deploy to coolify, coolify api, create coolify app, coolify deploy, dockerfile deploy coolify, coolify env vars, coolify domains. Deploy Dockerfile-based apps to Coolify via REST API + Caddy proxy. | See description |
 | `frontend` | Foundation frontend development — Nuxt 4 + Vue 3 + Tailwind + DaisyUI + TanStack. Use for ALL frontend work: forms, data tables, pages, components, and UI patterns. Use proactively when working on apps/front/, creating pages, forms, tables, or Vue components. Examples: - user: "Create a user form" → use FormInput, FormSelect from @base/ui-app/ - user: "Build a data table" → use DataTable from @base/ui-app/ - user: "Add a new page" → create in pages/, use Nuxt routing | See description |
-| `general-video` | Author or edit a custom HyperFrames composition when no specialized workflow fits, or when BRIEF.md sets flow: companion. Use for longer or multi-scene pieces, brand and sizzle reels, montages, static loops, static title cards, footage remixes, and freeform builds. Use motion-graphics instead for a short unnarrated motion-first unit, including an animated title. Route fresh creation through hyperframes before using this skill. | See description |
-| `github-cli` | github-cli | See description |
-| `go-testing` | Go testing patterns for Gentleman.Dots, including Bubbletea TUI testing. Trigger: When writing Go tests, using teatest, or adding test coverage. | See description |
-| `graph` | Query the Foundation knowledge graph (graphify-out/graph.json) for code architecture questions. Also: build/rebuild the graph from source code. Trigger: When user asks about architecture, dependencies, "how does X connect to Y", "show me the path", "graph query", "what depends on", or wants to explore the codebase structure. | See description |
-| `graphify` | any input (code, docs, papers, images) → knowledge graph → clustered communities → HTML + JSON + audit report | See description |
-| `hyperframes` | Mandatory entry point: read this first for any request to make, create, edit, animate, or render a video, animation, or motion graphic, including a promo, explainer, captioned clip, title card, overlay, slideshow or interactive deck, Remotion port, or any HyperFrames HTML composition. Also use it to inspect, diagnose, validate, preview, publish, or batch-render an existing HyperFrames project. Inputs may be a website URL, GitHub PR, Figma design or URL, text or brief, existing footage, or music. It resumes project state, captures intent when applicable, selects and installs the owning workflow, and routes domain capabilities. HyperFrames is the default output framework unless the user explicitly chooses another framework for the deliverable or asks only to record a browser session. | See description |
-| `hyperframes-animation` | All animation knowledge for HyperFrames — atomic motion rules, multi-phase scene blueprints, scene transitions, broader motion-design techniques, AND the seven runtime adapters (GSAP default, plus Lottie, Three.js, Anime.js, CSS keyframes, Web Animations API, TypeGPU). Use for any motion or animation task: pick 2-4 rules and compose, or load a blueprint, or look up runtime-specific API (e.g. GSAP eases / Lottie player / Three.js mixer). Also covers auditing an existing composition's choreography (animation map) and 24 named text-animation effects. HyperFrames-native: single paused timeline, seek-safe, deterministic. | See description |
-| `hyperframes-cli` | Use the HyperFrames CLI development loop: init, add, catalog, capture, lint, check, snapshot, compare, grade-compare, preview, play, present, beats, keyframes, single or batch render, publish, cloud, cloudrun, feedback, lambda, doctor, browser, info, upgrade, skills, compositions, docs, benchmark, telemetry, transcribe, auth, tts, and remove-background. Also use when diagnosing build or render failures. validate, inspect, and layout are deprecated aliases; use check. Covers local, HeyGen-hosted cloud, AWS Lambda, and Google Cloud Run rendering. | See description |
-| `hyperframes-core` | The HyperFrames composition contract — build one renderable project. Use for composition structure, the `data-*` timing attributes, `class="clip"`, tracks, sub-compositions, variables, framework-owned media playback, deterministic-render rules, and validation. Also covers Tailwind projects and the STORYBOARD.md / SCRIPT.md plan formats. Read before writing composition HTML. | See description |
-| `hyperframes-creative` | Non-animation creative direction for HyperFrames videos. Use for design spec (frame.md / design.md) handling, palettes, typography, narration, beat planning, audio-reactive visuals, composition patterns, and brand / style decisions. For atomic motion patterns and scene blueprints, use `hyperframes-animation`. | See description |
-| `hyperframes-keyframes` | Use when a HyperFrames composition needs seek-safe 2D/3D keyframes, GSAP timelines, CSS keyframes, Anime.js, WAAPI, FLIP, paths, masks, SVG morph/draw, text trails, 3D depth, or `hyperframes keyframes` diagnostics. Don't use for broad scene strategy, brand design, media sourcing, captions, or general video planning. | See description |
-| `hyperframes-registry` | Install, discover, and wire registry blocks and components into HyperFrames compositions. Use when running hyperframes add or hyperframes catalog, installing one item or every block matching a tag, wiring an installed item into index.html, or working with hyperframes.json. Covers discovery, install locations, block sub-composition wiring, component snippet merging, and authoring a new block or component to contribute upstream (idea → scaffold → validate → PR). | See description |
-| `issue-creation` | Issue creation workflow for Agent Teams Lite following the issue-first enforcement system. Trigger: When creating a GitHub issue, reporting a bug, or requesting a feature. | See description |
-| `judgment-day` | Parallel adversarial review protocol that launches two independent blind judge sub-agents simultaneously to review the same target, synthesizes their findings, applies fixes, and re-judges until both pass or escalates after 2 iterations. Trigger: When user says "judgment day", "judgment-day", "review adversarial", "dual review", "doble review", "juzgar", "que lo juzguen". | See description |
-| `media-use` | Agent Media OS, the single skill for every media need in a HyperFrames project. Resolve BGM, SFX, image, icon, brand logo, voice, color grade, or LUT into a frozen local file or paste-ready block + ledger record (one verb, `resolve`); generate via TTS / music / image models when the catalog misses; produce voiceover, transcription, captions, and background removal through one shared audio engine; operate on media (cut / reframe / transform); and reuse assets across projects. Keeps search noise on disk, hands the agent one path or block. Use for any audio, image, icon, logo, voiceover, caption, color-grading, or media-asset need. | See description |
-| `motion-graphics` | A short, design-led motion graphic where motion is the message — kinetic typography, stat count-up, chart/data-viz hit, logo sting / brand lockup, lower-third / callout / social overlay, animated map (highlight regions, connect places, zoom to a location), animated tweet / news-article / headline, webpage / UI animation (scroll, cursor, callouts), or fusing a real image's geometry into a chart. Usually under 10s (up to ~30s), no narration or live-action subject; renders to MP4 or transparent overlay. Longer / narrated / multi-scene → /general-video. Unclear → /hyperframes. | See description |
-| `music-to-video` | Turn a music track (an audio file, a video to pull audio from, or a track generated from a mood brief) into a beat-synced video — lyric video, slideshow, or kinetic promo. The music drives all pacing; any user-supplied images/videos are cut onto the same beat grid, and a complete video needs zero assets. Narrated pieces → the input-matched workflow (see /hyperframes). Unclear → /hyperframes. | See description |
-| `pr-to-video` | Turn a GitHub pull request (a PR URL, owner/repo#N, or 'this PR' in a checked-out repo) into a code-change explainer video — changelog, feature reveal, fix, or refactor walkthrough built from the diff, commits, and files: the input is a code change, not a website. Not a product promo (/product-launch-video) or a no-PR topic explainer (/faceless-explainer). Unclear → /hyperframes. | See description |
-| `prd-writer` | prd-writer | See description |
-| `product-launch-video` | Turn a product or marketing URL, pasted script, or brief into a product launch / promo video — SaaS promos, feature reveals, product demos, app and company launches. Use when the user wants to market, launch, promote, or reveal a product; the default for any commercial URL. Site tours / showcases of a website route here too — the brief carries the show-it-as-is intent. Unclear → /hyperframes. | See description |
-| `remotion-to-hyperframes` | 'Port an existing Remotion (React) composition''s source to HyperFrames HTML. Use ONLY on an explicit ask to port/convert/migrate/translate a Remotion source — one-way, Remotion-only. A passing Remotion mention, reference-only code, or "make something like my Remotion video" is a fresh build (/general-video). Unclear → /hyperframes.' | See description |
+| `github-cli` | Expert help with GitHub CLI (gh) for managing pull requests, issues, repositories, workflows, and releases. Use this when working with GitHub operations from the command line. | See description |
+| `go-testing` | Trigger: Go tests, go test coverage, Bubbletea teatest, golden files. Apply focused Go testing patterns. | See description |
+| `issue-creation` | Create and triage GitHub issues from repository evidence. Trigger: issue creation, bug reports, feature requests, or issue approval. | See description |
+| `judgment-day` | Trigger: judgment day, dual review, adversarial review, juzgar. Run explicit blind dual review with at most two scoped fix/re-judgment rounds. | See description |
+| `prd-writer` | Writes high-quality PRDs (Product Requirements Documents) optimized for AI coding agents. Uses EARS notation, multi-file structure, explicit open questions, Definition of Done. Trigger: when user asks to write a PRD, create product requirements, document a feature before implementation, or says /prd-new, /prd-review, /prd-update. | See description |
 | `sdd-apply` | Implement tasks from the change, writing actual code following the specs and design. Trigger: When the orchestrator launches you to implement one or more tasks from a change. | See description |
 | `sdd-archive` | Sync delta specs to main specs and archive a completed change. Trigger: When the orchestrator launches you to archive a change after implementation and verification. | See description |
 | `sdd-design` | Create technical design document with architecture decisions and approach. Trigger: When the orchestrator launches you to write or update the technical design for a change. | See description |
@@ -249,11 +233,11 @@ Skills = workflows especializados y conocimiento de dominio. Se auto-detectan se
 | `sdd-spec` | Write specifications with requirements and scenarios (delta specs for changes). Trigger: When the orchestrator launches you to write or update specs for a change. | See description |
 | `sdd-tasks` | Break down a change into an implementation task checklist. Trigger: When the orchestrator launches you to create or update the task breakdown for a change. | See description |
 | `sdd-verify` | Validate that implementation matches specs, design, and tasks. Trigger: When the orchestrator launches you to verify a completed (or partially completed) change. | See description |
-| `skill-creator` | Creates new AI agent skills following the Agent Skills spec. Trigger: When user asks to create a new skill, add agent instructions, or document patterns for AI. | See description |
-| `skill-registry` | Create or update the skill registry for the current project. Scans user skills and project conventions, writes .atl/skill-registry.md, and saves to engram if available. Trigger: When user says "update skills", "skill registry", "actualizar skills", "update registry", or after installing/removing skills. | See description |
-| `slideshow` | Author a HyperFrames slideshow — a presentation, pitch deck, or interactive deck with discrete slides, fragment reveals, branching, hotspot navigation, and built-in presenter mode with speaker notes; also converts an existing page into a deck. Output is a navigable deck, not a rendered MP4. If the user didn't explicitly ask for a slideshow, confirm before authoring. Unclear → /hyperframes. | See description |
-| `talking-head-recut` | Package an existing talking-head / interview / podcast video with timed, designed GRAPHIC OVERLAY cards — kinetic titles, lower-thirds, data callouts, quotes, side panels, picture-in-picture — synced to the transcript, on a 16:9 / 9:16 / 4:5 canvas of your choice; the clip plays untouched underneath. Trigger on "graphic overlays", "on-screen graphics", "package / dress up my video". Not plain subtitles (/embedded-captions). Unclear → /hyperframes. | See description |
+| `skill-creator` | Trigger: new skills, agent instructions, documenting AI usage patterns. Create LLM-first skills with valid frontmatter. | See description |
+| `skill-improver` | Trigger: improve skills, audit skills, refactor skills, skill quality. Audit and upgrade existing LLM-first skills. | See description |
+| `skill-registry` | Trigger: update skills, skill registry, actualizar skills, after skill changes. Index available skills by trigger and path. | See description |
 | `tavily-cli` | Web search, content extraction, crawling, and deep research via the Tavily CLI. Use this skill whenever the user wants to search the web, find articles, research a topic, look something up online, extract content from a URL, grab text from a webpage, crawl documentation, download a site's pages, discover URLs on a domain, or conduct in-depth research with citations. Also use when they say "fetch this page", "pull the content from", "get the page at https://", "find me articles about", or reference extracting data from external websites. This provides LLM-optimized web search, content extraction, site crawling, URL discovery, and AI-powered deep research — capabilities beyond what agents can do natively. Do NOT trigger for local file operations, git commands, deployments, or code editing tasks. | See description |
+| `work-unit-commits` | Plan commits as reviewable work units. Trigger: implementation, commit splitting, chained PRs, or keeping tests and docs with code. | See description |
 
 <!-- skills-end -->
 
@@ -411,10 +395,8 @@ Docs en `docs/`. Docs pa contexto y teoría. Skills pa acción.
 | `docs/modules/translations.md` | i18n Translations |
 | `docs/modules/webhooks.md` | Webhooks |
 | `docs/extensions/affiliate.md` | Affiliate Program |
-| `docs/extensions/autonomous-agent.md` | Autonomous Agent |
 | `docs/extensions/cms-audit.md` | CMS Audit & Gap Analysis |
 | `docs/extensions/cms.md` | CMS |
-| `docs/extensions/content-pipeline.md` | Content Pipeline |
 | `docs/extensions/crm.md` | CRM |
 | `docs/extensions/spec-engine.md` | Spec Engine |
 | `docs/extensions/stripe.md` | Stripe Billing |
@@ -434,15 +416,15 @@ Docs en `docs/`. Docs pa contexto y teoría. Skills pa acción.
 | `docs/prds/affiliate/06-migration-phases.md` | 06-migration-phases |
 | `docs/prds/affiliate/07-open-questions.md` | 07-open-questions |
 | `docs/prds/affiliate/08-definition-of-done.md` | 08-definition-of-done |
-| `docs/prds/autonomous-agent/00-index.md` | 00-index |
-| `docs/prds/autonomous-agent/01-overview.md` | 01-overview |
-| `docs/prds/autonomous-agent/02-architecture.md` | 02-architecture |
-| `docs/prds/autonomous-agent/03-requirements.md` | 03-requirements |
-| `docs/prds/autonomous-agent/04-context.md` | 04-context |
-| `docs/prds/autonomous-agent/05-risks-and-tradeoffs.md` | 05-risks-and-tradeoffs |
-| `docs/prds/autonomous-agent/06-migration-phases.md` | 06-migration-phases |
-| `docs/prds/autonomous-agent/07-open-questions.md` | 07-open-questions |
-| `docs/prds/autonomous-agent/08-definition-of-done.md` | 08-definition-of-done |
+| `docs/prds/astro-public/00-index.md` | 00-index |
+| `docs/prds/astro-public/01-overview.md` | 01-overview |
+| `docs/prds/astro-public/02-architecture.md` | 02-architecture |
+| `docs/prds/astro-public/03-requirements.md` | 03-requirements |
+| `docs/prds/astro-public/04-context.md` | 04-context |
+| `docs/prds/astro-public/05-risks-and-tradeoffs.md` | 05-risks-and-tradeoffs |
+| `docs/prds/astro-public/06-migration-phases.md` | 06-migration-phases |
+| `docs/prds/astro-public/07-open-questions.md` | 07-open-questions |
+| `docs/prds/astro-public/08-definition-of-done.md` | 08-definition-of-done |
 | `docs/prds/base-ui-components/00-index.md` | 00-index |
 | `docs/prds/base-ui-components/01-overview.md` | 01-overview |
 | `docs/prds/base-ui-components/02-architecture.md` | 02-architecture |
@@ -469,15 +451,6 @@ Docs en `docs/`. Docs pa contexto y teoría. Skills pa acción.
 | `docs/prds/cms/06-migration-phases.md` | 06-migration-phases |
 | `docs/prds/cms/07-open-questions.md` | 07-open-questions |
 | `docs/prds/cms/08-definition-of-done.md` | 08-definition-of-done |
-| `docs/prds/content-pipeline/00-index.md` | 00-index |
-| `docs/prds/content-pipeline/01-overview.md` | 01-overview |
-| `docs/prds/content-pipeline/02-architecture.md` | 02-architecture |
-| `docs/prds/content-pipeline/03-requirements.md` | 03-requirements |
-| `docs/prds/content-pipeline/04-context.md` | 04-context |
-| `docs/prds/content-pipeline/05-risks-and-tradeoffs.md` | 05-risks-and-tradeoffs |
-| `docs/prds/content-pipeline/06-migration-phases.md` | 06-migration-phases |
-| `docs/prds/content-pipeline/07-open-questions.md` | 07-open-questions |
-| `docs/prds/content-pipeline/08-definition-of-done.md` | 08-definition-of-done |
 | `docs/prds/crm/00-index.md` | 00-index |
 | `docs/prds/crm/01-overview.md` | 01-overview |
 | `docs/prds/crm/02-architecture.md` | 02-architecture |
@@ -486,6 +459,15 @@ Docs en `docs/`. Docs pa contexto y teoría. Skills pa acción.
 | `docs/prds/crm/05-risks-and-tradeoffs.md` | 05-risks-and-tradeoffs |
 | `docs/prds/crm/07-open-questions.md` | 07-open-questions |
 | `docs/prds/crm/08-definition-of-done.md` | 08-definition-of-done |
+| `docs/prds/email-system-v2/00-index.md` | 00-index |
+| `docs/prds/email-system-v2/01-overview.md` | 01-overview |
+| `docs/prds/email-system-v2/02-architecture.md` | 02-architecture |
+| `docs/prds/email-system-v2/03-requirements.md` | 03-requirements |
+| `docs/prds/email-system-v2/04-context.md` | 04-context |
+| `docs/prds/email-system-v2/05-risks-and-tradeoffs.md` | 05-risks-and-tradeoffs |
+| `docs/prds/email-system-v2/06-migration-phases.md` | 06-migration-phases |
+| `docs/prds/email-system-v2/07-open-questions.md` | 07-open-questions |
+| `docs/prds/email-system-v2/08-definition-of-done.md` | 08-definition-of-done |
 | `docs/prds/RESOLVED-OPEN-QUESTIONS.md` | RESOLVED-OPEN-QUESTIONS |
 | `docs/prds/stripe/00-index.md` | 00-index |
 | `docs/prds/stripe/01-overview.md` | 01-overview |

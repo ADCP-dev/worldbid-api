@@ -262,7 +262,6 @@ export interface FrontendLayerView {
   stores: string[];
 }
 
-export interface AutoFixLogView {
   id: string;
   errorId: string;
   status: string;

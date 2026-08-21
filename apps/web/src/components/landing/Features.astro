@@ -1,0 +1,44 @@
+---
+import { type Locale } from '../../i18n/ui';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+
+const features = locale === 'en'
+  ? [
+      { title: 'Authentication', desc: 'JWT, roles, social login, API keys.' },
+      { title: 'Payments', desc: 'Stripe billing out of the box.' },
+      { title: 'Content', desc: 'CMS with blog, pages, SEO.' },
+      { title: 'i18n', desc: 'Spanish + English, extensible.' },
+      { title: 'Email', desc: 'Transactional emails via SMTP.' },
+      { title: 'Storage', desc: 'S3-compatible file storage.' },
+    ]
+  : [
+      { title: 'Autenticación', desc: 'JWT, roles, login social, API keys.' },
+      { title: 'Pagos', desc: 'Facturación con Stripe lista para usar.' },
+      { title: 'Contenido', desc: 'CMS con blog, páginas, SEO.' },
+      { title: 'i18n', desc: 'Español + Inglés, extensible.' },
+      { title: 'Email', desc: 'Emails transaccionales vía SMTP.' },
+      { title: 'Storage', desc: 'Almacenamiento de archivos compatible S3.' },
+    ];
+---
+
+<section class="py-20 bg-base-200" id="features">
+  <div class="container mx-auto max-w-screen-xl">
+    <h2 class="text-3xl md:text-4xl font-bold text-center mb-12">
+      {locale === 'en' ? 'Features' : 'Características'}
+    </h2>
+    <div class="grid md:grid-cols-3 gap-8">
+      {features.map((f) => (
+        <div class="card bg-base-100 shadow-md hover:shadow-xl transition-shadow">
+          <div class="card-body">
+            <h3 class="card-title">{f.title}</h3>
+            <p class="text-base-content/70">{f.desc}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

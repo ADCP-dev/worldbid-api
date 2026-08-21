@@ -7,6 +7,7 @@ import { TranslationEntity } from '@src/modules/translations/infrastructure/enti
 import { SeoModule } from '../seo/seo.module';
 import { TranslationsModule } from '@src/modules/translations/translations.module';
 import { FilesModule } from '@storage/files/files.module';
+import { WebExtensionModule } from '@ext/web/extension.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { FilesModule } from '@storage/files/files.module';
     SeoModule,
     TranslationsModule,
     FilesModule.register(),
+    WebExtensionModule,
   ],
   controllers: [PagesController],
   providers: [PagesService],

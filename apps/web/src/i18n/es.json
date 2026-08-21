@@ -1,0 +1,17 @@
+{
+  "nav.home": "Inicio",
+  "nav.blog": "Blog",
+  "nav.contact": "Contacto",
+  "contact.title": "Contáctanos",
+  "contact.subtitle": "Cuéntanos en qué podemos ayudarte",
+  "contact.form.name": "Nombre",
+  "contact.form.email": "Correo electrónico",
+  "contact.form.message": "Mensaje",
+  "contact.form.submit": "Enviar",
+  "contact.form.success": "¡Mensaje enviado! Te responderemos pronto.",
+  "contact.form.error": "Ocurrió un error. Intenta nuevamente.",
+  "contact.form.nameMin": "El nombre debe tener al menos 2 caracteres",
+  "contact.form.emailInvalid": "Correo electrónico inválido",
+  "contact.form.messageMin": "El mensaje debe tener al menos 10 caracteres",
+  "footer.rights": "Todos los derechos reservados"
+}

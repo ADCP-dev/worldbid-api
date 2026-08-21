@@ -12,6 +12,7 @@ import { TagsService } from './tags/tags.service';
 import { FilesModule } from '@storage/files/files.module';
 import { TranslationsModule } from '@src/modules/translations/translations.module';
 import { TranslationEntity } from '@src/modules/translations/infrastructure/entities/translation.entity';
+import { WebExtensionModule } from '@ext/web/extension.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { TranslationEntity } from '@src/modules/translations/infrastructure/enti
     ]),
     FilesModule.register(),
     TranslationsModule,
+    WebExtensionModule,
   ],
   controllers: [BlogPostsController, BlogCategoriesController, TagsController],
   providers: [BlogPostsService, BlogCategoriesService, TagsService],

@@ -12,6 +12,7 @@ import { UpdateTagDto } from '../posts/dto/update-tag.dto';
 import { FindAllTagDto } from '../posts/dto/find-all-tag.dto';
 import { TranslationsService } from '@src/modules/translations/translations.service';
 import { slugify } from '@infra/utils/slugify';
+import { WebhookDispatchService } from '@ext/web/webhook-dispatch.service';
 
 @Injectable()
 export class TagsService {
@@ -21,7 +22,20 @@ export class TagsService {
     @InjectRepository(TagEntity)
     private readonly tagRepository: Repository<TagEntity>,
     private readonly translationsService: TranslationsService,
+    private readonly webhookDispatch: WebhookDispatchService,
   ) {}
+
+  // Fire-and-forget revalidate webhook (R-CMS-A-04, D-07). NEVER throws.
+  private async fireRevalidate(tag: TagEntity): Promise<void> {
+    try {
+      await this.webhookDispatch.fireRevalidateWebhook('tag.updated', {
+        id: tag.id,
+        slug: tag.slug,
+      });
+    } catch (err) {
+      this.logger.warn(`fireRevalidate(tag.updated) failed: ${(err as Error).message}`);
+    }
+  }
 
   async create(createTagDto: CreateTagDto, lang = 'es'): Promise<TagEntity> {
     const slug = createTagDto.slug ?? slugify(createTagDto.name);
@@ -209,6 +223,7 @@ export class TagsService {
       });
     }
 
+    await this.fireRevalidate(saved);
     return saved;
   }
 

@@ -12,6 +12,7 @@ import { CreateBlogCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { TranslationsService } from '@src/modules/translations/translations.service';
 import { slugify } from '@infra/utils/slugify';
+import { WebhookDispatchService } from '@ext/web/webhook-dispatch.service';
 
 export interface CategoryTree {
   id: string;
@@ -37,7 +38,20 @@ export class BlogCategoriesService {
     @InjectRepository(TagEntity)
     private readonly tagRepository: Repository<TagEntity>,
     private readonly translationsService: TranslationsService,
+    private readonly webhookDispatch: WebhookDispatchService,
   ) {}
+
+  // Fire-and-forget revalidate webhook (R-CMS-A-03, D-07). NEVER throws.
+  private async fireRevalidate(category: BlogCategoryEntity): Promise<void> {
+    try {
+      await this.webhookDispatch.fireRevalidateWebhook('category.updated', {
+        id: category.id,
+        slug: category.slug,
+      });
+    } catch (err) {
+      this.logger.warn(`fireRevalidate(category.updated) failed: ${(err as Error).message}`);
+    }
+  }
 
   async create(
     createCategoryDto: CreateBlogCategoryDto,
@@ -257,6 +271,7 @@ export class BlogCategoriesService {
       await this.categoryRepository.save(saved);
     }
 
+    await this.fireRevalidate(saved);
     return saved;
   }
 

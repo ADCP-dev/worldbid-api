@@ -530,8 +530,7 @@ export class SpecErrorReporter {
     await this.persistToDb(error);
 
     // 2. Open a GitHub issue on first occurrence in production.
-    //    The external auto-fix agent (LangChain/DeepAgents) picks up the
-    //    issue, uses the MCP server to introspect the app, and submits a PR.
+    //    An external system picks up the issue and submits a fix PR.
     if (error.occurrences === 1 && this.isProduction()) {
       this.createGitHubIssue(error).catch((err) => {
         this.logger.debug(
@@ -872,7 +871,7 @@ export class SpecErrorReporter {
   /**
    * Build a minimal SpecTrace from a SpecError when the error doesn't
    * already carry one. Used so buildActionableError() has what it needs
-   * for the auto-fix evaluation path.
+   * for the external fix system.
    */
   private buildMinimalTrace(error: SpecError): SpecTrace {
     return {

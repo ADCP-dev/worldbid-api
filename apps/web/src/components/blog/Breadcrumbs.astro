@@ -1,0 +1,29 @@
+---
+// Breadcrumbs — presentational navigation trail (FR-023, BreadcrumbList JSON-LD source).
+import type { Locale } from '../../i18n/ui';
+import type { BreadcrumbItem } from '../../lib/seo';
+
+interface Props {
+  items: BreadcrumbItem[];
+  locale: Locale;
+}
+
+const { items, locale } = Astro.props;
+---
+
+<nav class="breadcrumbs text-sm py-2" aria-label="Breadcrumb">
+  <ol class="flex flex-wrap items-center gap-1 text-base-content/60">
+    {items.map((item, index) => (
+      <li class="flex items-center gap-1">
+        {index < items.length - 1 ? (
+          <>
+            <a href={item.url} class="hover:text-primary transition-colors">{item.name}</a>
+            <span class="text-base-content/30">/</span>
+          </>
+        ) : (
+          <span class="text-base-content font-medium" aria-current="page">{item.name}</span>
+        )}
+      </li>
+    ))}
+  </ol>
+</nav>

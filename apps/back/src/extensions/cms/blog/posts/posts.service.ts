@@ -18,6 +18,7 @@ import { FileUploadDto } from '@storage/files/dto/file-upload.dto';
 import { ConfigService } from '@nestjs/config';
 import { AllConfigType } from '@src/config/config.type';
 import { TranslationEntity } from '@src/modules/translations/infrastructure/entities/translation.entity';
+import { WebhookDispatchService } from '@ext/web/webhook-dispatch.service';
 
 @Injectable()
 export class BlogPostsService {
@@ -34,7 +35,25 @@ export class BlogPostsService {
     @Inject('FILE_UPLOADER_SERVICE')
     private readonly fileUploaderService: any,
     private readonly configService: ConfigService<AllConfigType>,
+    private readonly webhookDispatch: WebhookDispatchService,
   ) {}
+
+  // Fire-and-forget revalidate webhook (R-CMS-A-01, D-07). NEVER throws —
+  // a webhook failure MUST NOT block the CMS admin operation.
+  private async fireRevalidate(
+    event: 'post.updated' | 'post.published' | 'post.unpublished' | 'post.deleted',
+    post: BlogPostEntity,
+  ): Promise<void> {
+    try {
+      await this.webhookDispatch.fireRevalidateWebhook(event, {
+        id: post.id,
+        slug: post.slug,
+        categoryId: post.categoryId,
+      });
+    } catch (err) {
+      this.logger.warn(`fireRevalidate(${event}) failed: ${(err as Error).message}`);
+    }
+  }
 
   private async loadTranslationsForPosts(
     posts: BlogPostEntity[],
@@ -345,14 +364,21 @@ export class BlogPostsService {
       }
     }
 
-    return this.blogPostRepository.save(post);
+    const saved = await this.blogPostRepository.save(post);
+    await this.fireRevalidate('post.updated', saved);
+    return saved;
   }
 
   async publish(id: string, isPublished: boolean): Promise<BlogPostEntity> {
     const post = await this.findById(id);
     post.isPublished = isPublished;
     post.publishedAt = isPublished ? new Date() : null;
-    return this.blogPostRepository.save(post);
+    const saved = await this.blogPostRepository.save(post);
+    await this.fireRevalidate(
+      isPublished ? 'post.published' : 'post.unpublished',
+      saved,
+    );
+    return saved;
   }
 
   async uploadFeaturedImage(
@@ -386,6 +412,10 @@ export class BlogPostsService {
 
   async remove(id: string): Promise<void> {
     const post = await this.findById(id);
+
+    // Fire revalidate webhook BEFORE removal while we still have the slug.
+    // Fire-and-forget: never blocks the delete (D-07).
+    await this.fireRevalidate('post.deleted', post);
 
     try {
       const { data: files } = await this.filesService.findWithFilters({

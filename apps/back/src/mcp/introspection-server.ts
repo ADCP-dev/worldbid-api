@@ -26,10 +26,8 @@ import { ErrorIntrospector } from './introspectors/error.introspector';
 import { ModuleIntrospector } from './introspectors/module.introspector';
 import { SearchCodeIntrospector } from './introspectors/search-code.introspector';
 import { FrontendIntrospector } from './introspectors/frontend.introspector';
-import { AutoFixIntrospector, type AutoFixQueryFn } from './introspectors/auto-fix.introspector';
 import { ToolRegistry, type IntrospectorBundle } from './tool-registry';
 import { SpecLoader } from '@core/spec-engine/spec-loader';
-import { FixLogEntity } from '@core/spec-engine/auto-fix-log.entity';
 import type { LoadedSpec } from '@core/spec-engine/spec-loader';
 import path from 'node:path';
 
@@ -76,36 +74,6 @@ async function main(): Promise<void> {
     },
   };
 
-  const autoFixQueryFn: AutoFixQueryFn = {
-    async queryFixes(filter?: { errorId?: string; limit?: number }) {
-      const repo = ds.getRepository(FixLogEntity);
-      const findOpts: Record<string, unknown> = {
-        order: { createdAt: 'DESC' },
-        take: filter?.limit ?? 25,
-      };
-      if (filter?.errorId) {
-        (findOpts as Record<string, unknown>).where = { errorId: filter.errorId };
-      }
-      const rows = await repo.find(findOpts as Parameters<typeof repo.find>[0]);
-      return rows.map((r) => ({
-        id: r.id,
-        errorId: r.errorId,
-        status: r.status,
-        confidence: r.confidence,
-        fixType: r.fixType,
-        changes: r.changes.map((c) => ({
-          file: c.file,
-          before: c.before,
-          after: c.after,
-          diff: c.diff,
-        })),
-        prUrl: r.prUrl,
-        reason: r.reason,
-        createdAt: r.createdAt.toISOString(),
-      }));
-    },
-  };
-
   const bundle: IntrospectorBundle = {
     specEngine: new SpecEngineIntrospector(loadedSpecs, cache, repoRoot),
     route: new RouteIntrospector(loadedSpecs, cache),
@@ -120,7 +88,6 @@ async function main(): Promise<void> {
     module: new ModuleIntrospector(cache, repoRoot),
     searchCode: new SearchCodeIntrospector(cache, repoRoot),
     frontend: new FrontendIntrospector(cache, repoRoot),
-    autoFix: new AutoFixIntrospector(cache, autoFixQueryFn),
   };
   const _registry = new ToolRegistry(bundle, cache);
 

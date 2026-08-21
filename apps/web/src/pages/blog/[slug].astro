@@ -1,0 +1,136 @@
+---
+// Single blog post — detail + related posts (FR-005/008/021/023, R-PWA-02/04).
+import PublicLayout from '../../layouts/PublicLayout.astro';
+import BlogCard from '../../components/blog/BlogCard.astro';
+import Breadcrumbs from '../../components/blog/Breadcrumbs.astro';
+import { fetchApi, PUBLIC_API } from '../../lib/api';
+import { localeFromPath, t, type Locale } from '../../i18n/ui';
+import { blogPostingJsonLd, breadcrumbListJsonLd } from '../../lib/seo';
+
+interface BlogPost {
+  id: string;
+  slug: string;
+  categoryId?: string | null;
+  featuredImage?: { path?: string } | null;
+  author?: { name?: string } | null;
+  category?: { slug?: string; name?: string | null } | null;
+  tags?: Array<{ slug: string; name?: string }>;
+  publishedAt?: string | null;
+  updatedAt?: string | null;
+  translations?: Record<string, Record<string, string>>;
+  [key: string]: unknown;
+}
+
+const { pathname } = Astro.url;
+const locale: Locale = localeFromPath(pathname);
+const localePrefix = locale === 'en' ? '/en' : '';
+const slug = Astro.params.slug ?? '';
+
+const post = await fetchApi<BlogPost>(PUBLIC_API.blogPost(slug), { lang: locale });
+
+if (!post) {
+  return Astro.redirect(`/${localePrefix}/404`);
+}
+
+const related = await fetchApi<BlogPost[]>(PUBLIC_API.blogPostRelated(slug), {
+  lang: locale,
+  searchParams: { limit: 3 },
+});
+
+const translations = post.translations?.[locale] ?? {};
+const title = translations.title ?? (post as any).title ?? post.slug;
+const content = translations.content ?? (post as any).content ?? '';
+const excerpt = translations.excerpt ?? (post as any).excerpt ?? '';
+
+const siteUrl = import.meta.env.PUBLIC_SITE_URL || Astro.site?.origin || '';
+const postUrl = `${siteUrl}${localePrefix}/blog/${post.slug}`;
+const cdnBase = import.meta.env.PUBLIC_CDN_BASE_URL || '';
+const imageUrl = post.featuredImage?.path
+  ? (cdnBase ? `${cdnBase}/${post.featuredImage.path}` : post.featuredImage.path)
+  : undefined;
+
+const categoryName = post.category?.name ?? null;
+const categoryHref = post.category?.slug
+  ? `${localePrefix}/blog/c/${post.category.slug}`
+  : null;
+
+const crumbs = [
+  { name: t(locale, 'nav.home'), url: `${siteUrl}${localePrefix}/` },
+  { name: t(locale, 'nav.blog'), url: `${siteUrl}${localePrefix}/blog` },
+  { name: title, url: postUrl },
+];
+
+// Cache tags for this route (R-ISR-01). routeRules declares 'blog'.
+Astro.cache.set({ tags: ['blog'] });
+
+const blogPostingLd = blogPostingJsonLd({
+  title,
+  description: excerpt,
+  url: postUrl,
+  image: imageUrl,
+  datePublished: post.publishedAt ?? new Date().toISOString(),
+  dateModified: post.updatedAt ?? undefined,
+  authorName: post.author?.name ?? 'Foundation',
+  siteName: 'Foundation',
+});
+const breadcrumbLd = breadcrumbListJsonLd(crumbs);
+
+const dateStr = post.publishedAt
+  ? new Date(post.publishedAt).toLocaleDateString(locale, {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
+  : null;
+---
+
+<PublicLayout>
+  <article class="container mx-auto px-4 py-12 max-w-3xl">
+    <Breadcrumbs items={crumbs} locale={locale} />
+
+    <header class="mb-8 mt-4">
+      {categoryName && categoryHref && (
+        <a href={categoryHref} class="badge badge-primary badge-sm mb-3">{categoryName}</a>
+      )}
+      <h1 class="text-3xl md:text-4xl font-bold leading-tight">{title}</h1>
+      <div class="flex items-center gap-3 mt-4 text-sm text-base-content/60">
+        {post.author?.name && <span>{locale === 'en' ? 'By' : 'Por'} {post.author.name}</span>}
+        {dateStr && <time datetime={post.publishedAt ?? undefined}>{dateStr}</time>}
+      </div>
+    </header>
+
+    {imageUrl && (
+      <img src={imageUrl} alt={title} class="w-full rounded-lg mb-8 aspect-video object-cover" />
+    )}
+
+    <div class="prose prose-lg max-w-none" set:html={content} />
+
+    {post.tags && post.tags.length > 0 && (
+      <footer class="mt-8 pt-6 border-t border-base-200">
+        <div class="flex flex-wrap gap-2">
+          {post.tags.map((tag) => (
+            <a href={`${localePrefix}/blog/t/${tag.slug}`} class="badge badge-outline badge-sm hover:badge-primary">
+              #{tag.name ?? tag.slug}
+            </a>
+          ))}
+        </div>
+      </footer>
+    )}
+  </article>
+
+  {related && related.length > 0 && (
+    <section class="container mx-auto px-4 py-12 max-w-6xl">
+      <h2 class="text-2xl font-bold mb-6">
+        {locale === 'en' ? 'Related posts' : 'Artículos relacionados'}
+      </h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {related.map((p) => (
+          <BlogCard post={p as any} locale={locale} />
+        ))}
+      </div>
+    </section>
+  )}
+
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(blogPostingLd)} />
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(breadcrumbLd)} />
+</PublicLayout>

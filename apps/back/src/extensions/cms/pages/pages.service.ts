@@ -15,6 +15,7 @@ import { SeoService } from '../seo/seo.service';
 import { FilesService } from '@storage/files/files.service';
 import { slugify } from '@infra/utils/slugify';
 import { TranslationEntity } from '@src/modules/translations/infrastructure/entities/translation.entity';
+import { WebhookDispatchService } from '@ext/web/webhook-dispatch.service';
 
 @Injectable()
 export class PagesService {
@@ -28,7 +29,23 @@ export class PagesService {
     private readonly translationsService: TranslationsService,
     private readonly seoService: SeoService,
     private readonly filesService: FilesService,
+    private readonly webhookDispatch: WebhookDispatchService,
   ) {}
+
+  // Fire-and-forget revalidate webhook (R-CMS-A-02, D-07). NEVER throws —
+  // a webhook failure MUST NOT block the CMS admin operation.
+  // pageSection is the page `name` (e.g. 'landing' → receiver adds 'home' tag).
+  private async fireRevalidate(page: PageEntity): Promise<void> {
+    try {
+      await this.webhookDispatch.fireRevalidateWebhook('page.updated', {
+        id: page.id,
+        slug: page.slug,
+        pageSection: page.name,
+      });
+    } catch (err) {
+      this.logger.warn(`fireRevalidate(page.updated) failed: ${(err as Error).message}`);
+    }
+  }
 
   async create(createPageDto: CreatePageDto): Promise<PageEntity> {
     const { name, slug, author, ...rest } = createPageDto;
@@ -240,14 +257,18 @@ export class PagesService {
 
     // Reload translations if name changed
     const translationsMap = await this.loadTranslationsForPages([saved]);
-    return this.attachTranslations(saved, translationsMap);
+    const attached = this.attachTranslations(saved, translationsMap);
+    await this.fireRevalidate(attached);
+    return attached;
   }
 
   async publish(id: string, isPublished: boolean): Promise<PageEntity> {
     const page = await this.findById(id);
     page.isPublished = isPublished;
     page.publishedAt = isPublished ? new Date() : null;
-    return this.pageRepository.save(page);
+    const saved = await this.pageRepository.save(page);
+    await this.fireRevalidate(saved);
+    return saved;
   }
 
   async reorder(orderedIds: string[]): Promise<void> {
@@ -314,6 +335,9 @@ export class PagesService {
 
   async remove(id: string): Promise<void> {
     const page = await this.findById(id);
+
+    // Fire revalidate webhook BEFORE removal while we still have the slug.
+    await this.fireRevalidate(page);
 
     // Cascade delete: remove associated files
     try {

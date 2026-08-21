@@ -226,4 +226,50 @@ export class MailService {
       context: {},
     });
   }
+
+  /**
+   * Send a contact form notification to the site owner (R-CS-06/07, GAP2).
+   *
+   * - Recipient: app.notificationEmail via getOrThrow (fails loudly if unset).
+   * - Template: Handlebars contact-notification.hbs (NOT Maizzle).
+   * - Sends synchronously via mailerService.sendMail (NOT queued) — contact
+   *   must surface SMTP failures immediately so the controller can return 500.
+   * - Throws on any failure (render error, SMTP down, missing config).
+   */
+  async contactFormNotification(
+    name: string,
+    email: string,
+    message: string,
+    lang: string = 'es',
+  ): Promise<void> {
+    const to = this.configService.getOrThrow('app.notificationEmail', {
+      infer: true,
+    });
+
+    const subject =
+      lang === 'en'
+        ? `New contact form message from ${name}`
+        : `Nuevo mensaje de contacto de ${name}`;
+
+    const greeting =
+      lang === 'en'
+        ? `You received a new message from the contact form:`
+        : `Recibiste un nuevo mensaje del formulario de contacto:`;
+
+    await this.mailerService.sendMail({
+      to,
+      subject,
+      text: `De: ${name} <${email}>\n\n${message}`,
+      templatePath: getMailTemplatePath('contact-notification.hbs'),
+      context: this.buildContext({
+        title: subject,
+        subject,
+        greeting,
+        name,
+        email,
+        message,
+        lang,
+      }),
+    });
+  }
 }

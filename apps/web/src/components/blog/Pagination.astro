@@ -1,0 +1,60 @@
+---
+// Pagination — presentational pager for blog lists (FR-007).
+import type { Locale } from '../../i18n/ui';
+
+interface Props {
+  page: number;
+  totalPages: number;
+  basePath: string; // e.g. '/blog', '/en/blog'
+  locale: Locale;
+}
+
+const { page, totalPages, basePath, locale } = Astro.props;
+
+const labels = {
+  es: { prev: '« Anterior', next: 'Siguiente »', page: 'Página' },
+  en: { prev: '« Previous', next: 'Next »', page: 'Page' },
+};
+const t = labels[locale] ?? labels.es;
+
+function pageHref(p: number): string {
+  return p <= 1 ? basePath : `${basePath}?page=${p}`;
+}
+
+// Build a window of page numbers around the current page.
+const window = 1;
+const start = Math.max(1, page - window);
+const end = Math.min(totalPages, page + window);
+const pages: number[] = [];
+for (let p = start; p <= end; p++) pages.push(p);
+---
+
+{totalPages > 1 && (
+  <nav class="flex justify-center items-center gap-2 my-8" aria-label={t.page}>
+    {page > 1 && (
+      <a href={pageHref(page - 1)} class="btn btn-sm btn-ghost" rel="prev">{t.prev}</a>
+    )}
+    {start > 1 && (
+      <>
+        <a href={pageHref(1)} class="btn btn-sm btn-ghost">1</a>
+        {start > 2 && <span class="px-1 text-base-content/40">…</span>}
+      </>
+    )}
+    {pages.map((p) => (
+      <a
+        href={pageHref(p)}
+        class={`btn btn-sm ${p === page ? 'btn-primary' : 'btn-ghost'}`}
+        aria-current={p === page ? 'page' : undefined}
+      >{p}</a>
+    ))}
+    {end < totalPages && (
+      <>
+        {end < totalPages - 1 && <span class="px-1 text-base-content/40">…</span>}
+        <a href={pageHref(totalPages)} class="btn btn-sm btn-ghost">{totalPages}</a>
+      </>
+    )}
+    {page < totalPages && (
+      <a href={pageHref(page + 1)} class="btn btn-sm btn-ghost" rel="next">{t.next}</a>
+    )}
+  </nav>
+)}

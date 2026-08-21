@@ -19,7 +19,11 @@
     "ext:validate": "tsx bin/ext-validate.ts",
     "ext:tree": "tsx bin/ext-tree.ts",
     "create:bundle": "tsx bin/create-bundle.ts",
-    "sync:translations": "cd apps/back && ts-node -r tsconfig-paths/register src/modules/translations/cli/sync-translations.ts"
+    "sync:translations": "cd apps/back && ts-node -r tsconfig-paths/register src/modules/translations/cli/sync-translations.ts",
+
+    "dev:web": "turbo run dev --filter=web",
+    "build:web": "turbo run build --filter=web",
+    "check-types:web": "turbo run check-types --filter=web"
 
   },
   "devDependencies": {

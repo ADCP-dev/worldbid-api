@@ -1,0 +1,49 @@
+---
+import '../styles/global.css';
+import { localeFromPath, t, type Locale } from '../i18n/ui';
+
+const { pathname } = Astro.url;
+const locale: Locale = localeFromPath(pathname);
+const homeHref = locale === 'es' ? '/' : '/en';
+const blogHref = locale === 'es' ? '/blog' : '/en/blog';
+const contactHref = locale === 'es' ? '/#contact' : '/en/#contact';
+---
+
+<!doctype html>
+<html lang={locale}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="generator" content={Astro.generator} />
+    <slot name="head" />
+  </head>
+  <body data-theme="light">
+    <nav class="navbar bg-base-100 border-b border-base-200">
+      <div class="navbar-start">
+        <a href={homeHref} class="btn btn-ghost text-xl">Foundation</a>
+      </div>
+      <div class="navbar-center hidden md:flex gap-2">
+        <a href={homeHref} class="btn btn-ghost btn-sm">{t(locale, 'nav.home')}</a>
+        <a href={blogHref} class="btn btn-ghost btn-sm">{t(locale, 'nav.blog')}</a>
+        <a href={contactHref} class="btn btn-ghost btn-sm">{t(locale, 'nav.contact')}</a>
+      </div>
+      <div class="navbar-end gap-2">
+        {locale === 'es' ? (
+          <a href="/en" class="btn btn-ghost btn-sm">EN</a>
+        ) : (
+          <a href="/" class="btn btn-ghost btn-sm">ES</a>
+        )}
+      </div>
+    </nav>
+
+    <main>
+      <slot />
+    </main>
+
+    <footer class="footer footer-center p-8 bg-base-200 text-base-content mt-16">
+      <aside>
+        <p>&copy; {new Date().getFullYear()} Foundation. {t(locale, 'footer.rights')}.</p>
+      </aside>
+    </footer>
+  </body>
+</html>

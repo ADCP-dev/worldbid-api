@@ -6,6 +6,7 @@ import { BlogCategoriesService } from './categories.service';
 import { BlogCategoryEntity } from './infrastructure/entities/blog-category.entity';
 import { TagEntity } from '../posts/infrastructure/entities/post-tag.entity';
 import { TranslationsService } from '@src/modules/translations/translations.service';
+import { WebhookDispatchService } from '@ext/web/webhook-dispatch.service';
 
 describe('BlogCategoriesService', () => {
   let service: BlogCategoriesService;
@@ -29,6 +30,10 @@ describe('BlogCategoriesService', () => {
     getTranslationsForEntity: jest.fn().mockResolvedValue({}),
   };
 
+  const mockWebhookDispatch = {
+    fireRevalidateWebhook: jest.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -44,6 +49,10 @@ describe('BlogCategoriesService', () => {
         {
           provide: TranslationsService,
           useValue: mockTranslationsService,
+        },
+        {
+          provide: WebhookDispatchService,
+          useValue: mockWebhookDispatch,
         },
       ],
     }).compile();

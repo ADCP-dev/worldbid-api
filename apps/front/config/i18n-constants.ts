@@ -2,7 +2,7 @@
  * i18n configuration — single source of truth for supported locales.
  * Used by:
  * - nuxt.config.ts → i18n.locales + prerender seeds
- * - @nuxtjs/sitemap → _i18nTransform generates URLs for each locale
+ * - (sitemap now centralized in Astro apps/web via @astrojs/sitemap)
  *
  * To add a locale:
  * 1. Add its code to SUPPORTED_LOCALES

@@ -25,10 +25,8 @@ import { ErrorIntrospector } from './introspectors/error.introspector';
 import { ModuleIntrospector } from './introspectors/module.introspector';
 import { SearchCodeIntrospector } from './introspectors/search-code.introspector';
 import { FrontendIntrospector } from './introspectors/frontend.introspector';
-import { AutoFixIntrospector, type AutoFixQueryFn } from './introspectors/auto-fix.introspector';
 import { ToolRegistry, validateToolInput, type ToolDefinition, type IntrospectorBundle } from './tool-registry';
-import type { AutoFixLogView, ErrorView } from './types';
-import { FixLogEntity } from '@core/spec-engine/auto-fix-log.entity';
+import type { ErrorView } from './types';
 
 interface ToolListResponse {
   tools: Array<{ name: string; description: string; inputSchema: unknown }>;
@@ -55,37 +53,6 @@ export class McpController implements OnModuleInit {
     const errorQueryFn = {
       async queryErrors() { return [] as ErrorView[]; },
     };
-    const autoFixQueryFn: AutoFixQueryFn = dataSource
-      ? {
-          async queryFixes(filter?: { errorId?: string; limit?: number }): Promise<AutoFixLogView[]> {
-            const repo = dataSource.getRepository(FixLogEntity);
-            const findOpts: Record<string, unknown> = {
-              order: { createdAt: 'DESC' },
-              take: filter?.limit ?? 25,
-            };
-            if (filter?.errorId) {
-              (findOpts as Record<string, unknown>).where = { errorId: filter.errorId };
-            }
-            const rows = await repo.find(findOpts as Parameters<typeof repo.find>[0]);
-            return rows.map((r) => ({
-              id: r.id,
-              errorId: r.errorId,
-              status: r.status,
-              confidence: r.confidence,
-              fixType: r.fixType,
-              changes: r.changes.map((c) => ({
-                file: c.file,
-                before: c.before,
-                after: c.after,
-                diff: c.diff,
-              })),
-              prUrl: r.prUrl,
-              reason: r.reason,
-              createdAt: r.createdAt.toISOString(),
-            }));
-          },
-        }
-      : { async queryFixes() { return [] as AutoFixLogView[]; } };
     const migrationsDir = process.env.MCP_MIGRATIONS_DIR
       ?? require('node:path').join(process.cwd(), 'apps/back/src/infrastructure/database/migrations');
     const bundle: IntrospectorBundle = {
@@ -99,7 +66,6 @@ export class McpController implements OnModuleInit {
       module: new ModuleIntrospector(cache),
       searchCode: new SearchCodeIntrospector(cache),
       frontend: new FrontendIntrospector(cache),
-      autoFix: new AutoFixIntrospector(cache, autoFixQueryFn),
     };
     this.registry = new ToolRegistry(bundle, cache);
     this.logger.log(`MCP tools ready: ${this.registry.list().length} tools, ${loadedSpecs.length} extensions`);

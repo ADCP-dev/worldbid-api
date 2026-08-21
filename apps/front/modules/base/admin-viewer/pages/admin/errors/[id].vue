@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import type { ErrorView, AutoFixLogView, SuggestedFixView } from '@base/admin-viewer/utils/mcp-types';
+import type { ErrorView, SuggestedFixView } from '@base/admin-viewer/utils/mcp-types';
 
 definePageMeta({
   layout: 'default',
@@ -20,12 +20,7 @@ const { data: error } = await useAsyncData<ErrorView | null>(
   },
 );
 
-const { data: autoFixes } = await useAsyncData<AutoFixLogView[]>(
-  () => `admin-error-fixes-${errorId.value}`,
-  () => mcp.listAutoFixes({ errorId: errorId.value, limit: 10 }),
-);
-
-const activeTab = ref<'stack' | 'trace' | 'fix' | 'spec' | 'raw'>('stack');
+const activeTab = ref<'stack' | 'trace' | 'suggested' | 'spec' | 'raw'>('stack');
 
 const suggestedFix = computed<SuggestedFixView | null>(() => {
   const fixes = error.value?.suggestedFixes;
@@ -82,7 +77,7 @@ function fmtDate(date?: string) {
       <div role="tablist" class="tabs tabs-bordered mb-4">
         <a role="tab" class="tab" :class="{ 'tab-active': activeTab === 'stack' }" @click="activeTab = 'stack'">Stack Trace</a>
         <a role="tab" class="tab" :class="{ 'tab-active': activeTab === 'trace' }" @click="activeTab = 'trace'">Pipeline Trace</a>
-        <a role="tab" class="tab" :class="{ 'tab-active': activeTab === 'fix' }" @click="activeTab = 'fix'">Fix</a>
+        <a role="tab" class="tab" :class="{ 'tab-active': activeTab === 'suggested' }" @click="activeTab = 'suggested'">Suggested</a>
         <a role="tab" class="tab" :class="{ 'tab-active': activeTab === 'spec' }" @click="activeTab = 'spec'">Spec</a>
         <a role="tab" class="tab" :class="{ 'tab-active': activeTab === 'raw' }" @click="activeTab = 'raw'">Raw</a>
       </div>
@@ -96,7 +91,7 @@ function fmtDate(date?: string) {
         <AdminViewerPipelineTraceViewer :trace="null" />
       </div>
 
-      <div v-else-if="activeTab === 'fix'" class="space-y-4">
+      <div v-else-if="activeTab === 'suggested'" class="space-y-4">
         <div v-if="suggestedFix" class="bg-base-100 rounded-box p-4 shadow">
           <h3 class="font-bold mb-2">Suggested Fix (confidence: {{ suggestedFix.confidence }})</h3>
           <div class="space-y-1 text-sm">
@@ -105,29 +100,9 @@ function fmtDate(date?: string) {
             <div v-if="suggestedFix.target"><span class="text-base-content/60">Target:</span> <span class="font-mono">{{ suggestedFix.target }}</span></div>
             <div v-if="suggestedFix.field"><span class="text-base-content/60">Field:</span> <span class="font-mono">{{ suggestedFix.field }}</span></div>
           </div>
-          <div class="flex gap-2 mt-4">
-            <button class="btn btn-sm btn-success">Apply Fix</button>
-            <button class="btn btn-sm btn-outline">Create PR</button>
-            <button class="btn btn-sm btn-ghost">Dismiss</button>
-          </div>
         </div>
         <div v-else class="alert alert-info">
           <span>No suggested fix for this error.</span>
-        </div>
-
-        <div v-if="autoFixes && autoFixes.length > 0" class="bg-base-100 rounded-box p-4 shadow">
-          <h3 class="font-bold mb-2">Auto-fix history</h3>
-          <div class="space-y-2">
-            <div v-for="fix in autoFixes" :key="fix.id" class="text-sm border-b border-base-300 pb-2">
-              <div class="flex items-center gap-2">
-                <span class="font-mono text-xs">{{ fmtDate(fix.createdAt) }}</span>
-                <span class="badge badge-xs" :class="fix.status === 'applied' ? 'badge-success' : 'badge-ghost'">{{ fix.status }}</span>
-                <span class="badge badge-xs badge-info">{{ fix.fixType }} ({{ fix.confidence }})</span>
-              </div>
-              <div v-if="fix.reason" class="text-xs text-base-content/60 mt-1">{{ fix.reason }}</div>
-              <NuxtLink v-if="fix.prUrl" :to="fix.prUrl" class="link link-primary text-xs">PR →</NuxtLink>
-            </div>
-          </div>
         </div>
       </div>
 

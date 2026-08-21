@@ -1,0 +1,73 @@
+---
+// Tag page — posts filtered by tag slug (FR-009, R-PWA-02).
+// GET /cms/blog/posts/public?tagSlugs=<slug>&lang=<locale>
+import PublicLayout from '../../../layouts/PublicLayout.astro';
+import BlogCard from '../../../components/blog/BlogCard.astro';
+import Pagination from '../../../components/blog/Pagination.astro';
+import Breadcrumbs from '../../../components/blog/Breadcrumbs.astro';
+import { fetchApi, PUBLIC_API } from '../../../lib/api';
+import { localeFromPath, t, type Locale } from '../../../i18n/ui';
+
+interface BlogListResponse {
+  data: Array<Record<string, unknown>>;
+  meta: { page: number; limit: number; total: number; totalPages: number };
+}
+
+const { pathname, searchParams } = Astro.url;
+const locale: Locale = localeFromPath(pathname);
+const localePrefix = locale === 'en' ? '/en' : '';
+const slug = Astro.params.slug ?? '';
+
+const pageParam = Number(searchParams.get('page')) || 1;
+const page = Math.max(1, pageParam);
+const limit = 9;
+
+const result = await fetchApi<BlogListResponse>(PUBLIC_API.blogPosts, {
+  lang: locale,
+  searchParams: { page, limit, tagSlugs: slug },
+});
+
+const posts = result?.data ?? [];
+const meta = result?.meta ?? { page, limit, total: 0, totalPages: 0 };
+
+const siteUrl = import.meta.env.PUBLIC_SITE_URL || Astro.site?.origin || '';
+const crumbs = [
+  { name: t(locale, 'nav.home'), url: `${siteUrl}${localePrefix}/` },
+  { name: t(locale, 'nav.blog'), url: `${siteUrl}${localePrefix}/blog` },
+  { name: `#${slug}`, url: `${siteUrl}${localePrefix}/blog/t/${slug}` },
+];
+
+Astro.cache.set({ tags: ['blog'] });
+---
+
+<PublicLayout>
+  <section class="container mx-auto px-4 py-12 max-w-6xl">
+    <Breadcrumbs items={crumbs} locale={locale} />
+
+    <header class="mb-8 mt-4">
+      <h1 class="text-4xl font-bold">#{slug}</h1>
+      <p class="text-base-content/60 mt-2">
+        {locale === 'en' ? 'Posts tagged with this topic.' : 'Artículos etiquetados con este tema.'}
+      </p>
+    </header>
+
+    {posts.length > 0 ? (
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {posts.map((post) => (
+          <BlogCard post={post as any} locale={locale} />
+        ))}
+      </div>
+    ) : (
+      <p class="text-base-content/60 py-12 text-center">
+        {locale === 'en' ? 'No posts with this tag yet.' : 'No hay artículos con esta etiqueta.'}
+      </p>
+    )}
+
+    <Pagination
+      page={meta.page}
+      totalPages={meta.totalPages}
+      basePath={`${localePrefix}/blog/t/${slug}`}
+      locale={locale}
+    />
+  </section>
+</PublicLayout>

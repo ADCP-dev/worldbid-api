@@ -1,0 +1,13 @@
+{
+  "name": "@foundation/emails",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./emails/index.ts"
+  },
+  "dependencies": {
+    "@maizzle/framework": "^6.1.0",
+    "@maizzle/tailwindcss": "^1.5.6"
+  }
+}

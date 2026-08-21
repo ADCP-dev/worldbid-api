@@ -1,0 +1,64 @@
+---
+// CMS dynamic pages — fetch a published page by slug (FR-006, R-PWA-03).
+// Also fetches SEO metadata for the page when available.
+import PublicLayout from '../layouts/PublicLayout.astro';
+import { fetchApi, PUBLIC_API } from '../lib/api';
+import { localeFromPath, type Locale } from '../i18n/ui';
+
+interface CmsPage {
+  id: string;
+  slug: string;
+  name: string;
+  isPublished: boolean;
+  featuredImage?: { path?: string } | null;
+  translations?: Record<string, Record<string, string>>;
+  [key: string]: unknown;
+}
+interface SeoMeta {
+  metaTitle?: string;
+  metaDescription?: string;
+  ogImage?: string;
+  customJsonLd?: Record<string, unknown>;
+}
+
+const { pathname } = Astro.url;
+const locale: Locale = localeFromPath(pathname);
+const localePrefix = locale === 'en' ? '/en' : '';
+
+// [...slug] catch-all: join the path segments. Strip the locale prefix if present.
+const rawSlug = Astro.params.slug ?? '';
+const slug = rawSlug.replace(/^en\//, '');
+
+const page = await fetchApi<CmsPage>(PUBLIC_API.cmsPage(slug), { lang: locale });
+
+if (!page) {
+  return Astro.redirect(`/${localePrefix}/404`);
+}
+
+const translations = page.translations?.[locale] ?? {};
+const title = translations.title ?? page.name ?? page.slug;
+const content = translations.content ?? (page as any).content ?? '';
+
+// Optional SEO metadata (R-PWA-09). Non-blocking — falls back to page title.
+const seo = await fetchApi<SeoMeta>(PUBLIC_API.seoByPageId(page.id), { lang: locale });
+const metaTitle = seo?.metaTitle ?? title;
+const metaDescription = seo?.metaDescription ?? translations.excerpt ?? '';
+
+Astro.cache.set({ tags: ['pages'] });
+---
+
+<PublicLayout>
+  <article class="container mx-auto px-4 py-12 max-w-3xl">
+    <h1 class="text-3xl md:text-4xl font-bold mb-8">{title}</h1>
+    <div class="prose prose-lg max-w-none" set:html={content} />
+  </article>
+
+  <Fragment slot="head">
+    <title>{metaTitle}</title>
+    <meta name="description" content={metaDescription} />
+    {seo?.ogImage && <meta property="og:image" content={seo.ogImage} />}
+    {seo?.customJsonLd && (
+      <script type="application/ld+json" set:html={JSON.stringify(seo.customJsonLd)} />
+    )}
+  </Fragment>
+</PublicLayout>

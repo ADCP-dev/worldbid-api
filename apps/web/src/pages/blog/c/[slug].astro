@@ -1,0 +1,90 @@
+---
+// Category page — 2-step slug→id orchestration (R-PWA-05, GAP3).
+// Step 1: GET /cms/blog/categories/public/by-slug/:slug → categoryId
+// Step 2: GET /cms/blog/posts/public?categoryId=<id>&lang=<locale> → posts
+import PublicLayout from '../../../layouts/PublicLayout.astro';
+import BlogCard from '../../../components/blog/BlogCard.astro';
+import Pagination from '../../../components/blog/Pagination.astro';
+import Breadcrumbs from '../../../components/blog/Breadcrumbs.astro';
+import { fetchApi, PUBLIC_API } from '../../../lib/api';
+import { localeFromPath, t, type Locale } from '../../../i18n/ui';
+
+interface Category {
+  id: string;
+  slug: string;
+  name?: string | null;
+  description?: string | null;
+}
+interface BlogListResponse {
+  data: Array<Record<string, unknown>>;
+  meta: { page: number; limit: number; total: number; totalPages: number };
+}
+
+const { pathname, searchParams } = Astro.url;
+const locale: Locale = localeFromPath(pathname);
+const localePrefix = locale === 'en' ? '/en' : '';
+const slug = Astro.params.slug ?? '';
+
+const pageParam = Number(searchParams.get('page')) || 1;
+const page = Math.max(1, pageParam);
+const limit = 9;
+
+// Step 1: resolve slug → category (includes id).
+const category = await fetchApi<Category>(PUBLIC_API.blogCategoryBySlug(slug), {
+  lang: locale,
+});
+
+if (!category) {
+  return Astro.redirect(`/${localePrefix}/404`);
+}
+
+// Step 2: fetch posts by categoryId.
+const result = await fetchApi<BlogListResponse>(PUBLIC_API.blogPosts, {
+  lang: locale,
+  searchParams: { page, limit, categoryId: category.id },
+});
+
+const posts = result?.data ?? [];
+const meta = result?.meta ?? { page, limit, total: 0, totalPages: 0 };
+
+const siteUrl = import.meta.env.PUBLIC_SITE_URL || Astro.site?.origin || '';
+const crumbs = [
+  { name: t(locale, 'nav.home'), url: `${siteUrl}${localePrefix}/` },
+  { name: t(locale, 'nav.blog'), url: `${siteUrl}${localePrefix}/blog` },
+  { name: category.name ?? slug, url: `${siteUrl}${localePrefix}/blog/c/${slug}` },
+];
+
+Astro.cache.set({ tags: ['blog'] });
+---
+
+<PublicLayout>
+  <section class="container mx-auto px-4 py-12 max-w-6xl">
+    <Breadcrumbs items={crumbs} locale={locale} />
+
+    <header class="mb-8 mt-4">
+      <h1 class="text-4xl font-bold">{category.name ?? slug}</h1>
+      {category.description && (
+        <p class="text-base-content/60 mt-2">{category.description}</p>
+      )}
+    </header>
+
+    {posts.length > 0 ? (
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {posts.map((post) => (
+          <BlogCard post={post as any} locale={locale} />
+        ))}
+      </div>
+    ) : (
+      <p class="text-base-content/60 py-12 text-center">
+        {locale === 'en' ? 'No posts in this category yet.' : 'No hay artículos en esta categoría.'}
+      </p>
+    )}
+
+    <Pagination
+      page={meta.page}
+      totalPages={meta.totalPages}
+      basePath={`${localePrefix}/blog/c/${slug}`}
+      locale={locale}
+    />
+  </section>
+</PublicLayout>
