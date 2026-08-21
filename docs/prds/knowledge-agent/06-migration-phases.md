@@ -1,192 +1,167 @@
 ---
 doc: knowledge-agent/06-migration-phases
-title: "Fases de Implementación"
+title: "Knowledge Agent — Fases de Migración"
 status: draft
 created: 2026-08-21
 ---
 
-# Fases de Implementación
+# Knowledge Agent — Fases de Migración
 
-Extensión greenfield. Implementación incremental en 6 fases. Cada fase entregable y mergeable de forma independiente. Fase 1 es base bloqueante para todas las demás.
+6 fases incrementales. Cada fase es independiente y entregable. Se implementa
+tras la anterior sin rollback global (cada fase deja el sistema funcional).
 
-## Fase 1 — Schema DB + pgvector (BASE, primero)
+## Diagrama de orden
 
-**Objetivo**: Crear todas las tablas + habilitar pgvector. Base para todo lo demás.
-
-**Entregables**:
-- Scaffold extensión con `pnpm generate:extension -- --name=knowledge-agent`.
-- `extension.module.ts` + `extension.manifest.ts` + `extension.config.ts` (registerAs).
-- 6 entidades:
-  - `NoteEntity` (`ext_ka_notes`): id, title, content_md (text), frontmatter (jsonb), embedding (vector(1536)), createdAt, updatedAt.
-  - `ChatSessionEntity` (`ext_ka_chat_sessions`): id, agent_config_id (FK), title, createdAt, updatedAt.
-  - `AgentConfigEntity` (`ext_ka_agent_configs`): id, name, system_prompt (text), model_id (FK), createdAt, updatedAt.
-  - `McpServerEntity` (`ext_ka_mcp_servers`): id, agent_config_id (FK), name, transport (enum), url, api_key_ref, enabled, createdAt.
-  - `ModelProviderEntity` (`ext_ka_model_providers`): id, name, provider (enum), api_key_ref, base_url, createdAt.
-  - `ModelEntity` (`ext_ka_models`): id, provider_id (FK), model_id, display_name, context_window (int), active (boolean), createdAt.
-- Migración: `pnpm migration:generate InitKnowledgeAgent` + `pnpm migration:run`.
-  - Migración incluye `CREATE EXTENSION IF NOT EXISTS vector;` al inicio.
-  - Índice IVFFlat o HNSW en `ext_ka_notes.embedding`.
-  - Índice en `ext_ka_notes(frontmatter->>'tags')` para query por tags.
-- Seeds: provider Ollama Cloud (default), provider OpenRouter, model `glm-5.2` (active), agent config default con system prompt base.
-
-**Criterios de salida**:
-- `pnpm migration:run` sin errores.
-- `ext_ka_*` tablas creadas en DB.
-- `pgvector` extensión habilitada.
-- `pnpm lint` + `pnpm check-types` apps/back pasa.
-- Extensión auto-discovered (aparece en boot sin tocar `app.module.ts`).
-
-**Riesgos**: R-03 — pgvector no disponible. Mitigado: migración verifica y loguea instrucciones.
-
-**Rollback**: `pnpm migration:revert`. Drop tablas + extensión.
-
----
-
-## Fase 2 — Knowledge Base CRUD + RAG
-
-**Objetivo**: CRUD de notas + embedding + búsqueda semántica.
-
-**Entregables**:
-- `NotesService`: CRUD, frontmatter parse, link extraction (`[[link]]`), embedding on save (OllamaEmbeddings), backlinks query.
-- `NotesController`: `GET/POST/PATCH/DELETE /ka/notes/*`, `GET /ka/notes/search`, `GET /ka/notes/:id/backlinks`.
-- `RagService`: `PGVectorStore` integration, `similaritySearchWithScore(query, k)`.
-- Embedding async via Bull queue (si sync falla, no bloquea save). [NEEDS CLARIFICATION: Bull ya en monorepo — ver Q-13].
-- Frontend: `KaNotesPage` (DataTable lista), `KaNoteEditor` (RichEditor + FormInput título + frontmatter editor), `KaTreeSidebar` (árbol jerárquico).
-- i18n keys `knowledgeAgent.*` en `apps/front/i18n/locales/{es,en}/`.
-
-**Depende de**: Fase 1.
-
-**Criterios de salida**:
-- Crear nota → embedding generado < 2s (5k chars).
-- Search `?q=test&top=5` retorna notas relevantes < 500ms (10k notas seed).
-- Backlinks query retorna notas que linkean a la nota dada.
-- `RichEditor` base usado (no custom TipTap).
-- `DataTable` base usado para lista.
-- `pnpm lint` + `pnpm check-types` pasa.
-
-**Riesgos**: R-02 — embedding latencia. Mitigado: async + `embedding=NULL` fallback.
-
-**Rollback**: Borrar controllers/services/frontend. Tablas persisten (Fase 1).
-
----
-
-## Fase 3 — Visor de grafo + Sandbox
-
-**Objetivo**: Grafo de nodos/links/backlinks + sandbox de comandos aislados.
-
-**Entregables**:
-- `KaGraphView` (frontend): grafo con vue-flow o cytoscape [NEEDS CLARIFICATION: Q-05]. Nodos = notas, edges = links. Backlinks como edges bidireccionales. Filtro por tag/categoría.
-- `SandboxService` (backend): `execute` tool con SandboxBackend. Node VFS (dev). Permisos deny a `.env`, creds, `apps/`, `packages/`, `src/`. `isolated-vm` para eval liviano.
-- Tests de aislamiento: comando intenta leer `.env` → denied. Comando intenta `ls apps/` → denied.
-
-**Depende de**: Fase 2 (necesita notas para grafo).
-
-**Criterios de salida**:
-- Grafo de 500 nodos renderiza < 1s.
-- Sandbox ejecuta `curl https://api.example.com` y retorna response.
-- Sandbox deniega acceso a `.env` y `apps/` (test explícito).
-- `isolated-vm` evalúa `2+2` → 4 sin I/O.
-- `pnpm lint` + `pnpm check-types` pasa.
-
-**Riesgos**: R-01 (sandbox escape), R-05 (grafo grande). Mitigados: deny declarativo + filtros grafo.
-
-**Rollback**: Borrar grafo view + sandbox service. CRUD notas sigue funcionando.
-
----
-
-## Fase 4 — DeepAgent + Tools de extensiones + MCP
-
-**Objetivo**: DeepAgent con `deepagents`, tools auto-discovered, MCP externos, config en DB.
-
-**Entregables**:
-- `AgentFactoryService`: `build_agent(agent_config_id)` con cache por config hash. Carga systemPrompt de DB, tools de ToolCollector + MCPLoader, model string de DB.
-- `ToolCollectorService`: glob auto-discovery de `agent.tools.ts` en todas las extensiones.
-- `McpLoaderService`: `MultiServerMCPClient` desde `ext_ka_mcp_servers`. Timeout 3s. Graceful degradation (NFR-010).
-- `ConfigService` + `ConfigController`: CRUD model-providers, models, agent-configs, mcp-servers. RBAC admin (FR-701).
-- Frontend: `KaAdminPanel` (config modelos, providers, MCP servers, agent configs con FormInput, FormSelect, FormSwitch, DataTable).
-- Integración sandbox: agente usa `execute` tool de Fase 3.
-
-**Depende de**: Fase 1 (tablas config), Fase 3 (sandbox).
-
-**Criterios de salida**:
-- `build_agent(config_id)` retorna instancia < 1s (cache hit).
-- Tools de extensión con `agent.tools.ts` se cargan. Extensión sin archivo → skip graceful.
-- MCP server configurado → tools cargadas en agente. MCP caído → warning + agente sin esas tools.
-- Cambiar model active en DB → agente se reconstruye con nuevo model (cache invalidation).
-- RBAC: non-admin → 403 en config endpoints.
-- `pnpm lint` + `pnpm check-types` pasa.
-
-**Riesgos**: R-04 (deepagents breaking changes), R-06 (MCP caído), R-11 (build lento). Mitigados: pin versión, graceful degradation, cache.
-
-**Rollback**: Borrar factory/services/config frontend. Tablas config persisten.
-
----
-
-## Fase 5 — Chat con sesiones + Streaming SSE
-
-**Objetivo**: Chat estilo ChatGPT con sesiones persistentes + streaming + RAG context injection.
-
-**Entregables**:
-- `ChatService`: `PostgresSaver` checkpointer. Sesiones en `ext_ka_chat_sessions`. RAG context injection (FR-202) antes de enviar al agente.
-- `ChatController`: `POST /ka/chat/:sessionId/stream` (SSE endpoint). `GET /ka/chat/sessions` (lista). `POST /ka/chat/sessions` (crear). `PATCH /ka/chat/sessions/:id` (rename).
-- SSE stream: `stream_events(version="v3")` → emitir chunks typed (messages, tool_calls, values).
-- Frontend: `KaChatPage` (chat UI estilo ChatGPT), `KaChatMessage` (render markdown-it + highlight.js + DOMPurify), session sidebar, streaming indicators, code block copy button.
-- `useKa` composable: TanStack Query keys + SSE consumption via EventSource.
-
-**Depende de**: Fase 4 (agente), Fase 2 (RAG).
-
-**Criterios de salida**:
-- Primer token SSE < 3s (Ollama Cloud) / < 2s (OpenRouter).
-- Sesión persiste tras server restart (PostgresSaver).
-- Markdown, code blocks (syntax highlighting), HTML sanitizado renderizan correctamente.
-- Code block tiene copy button + language label.
-- RAG context: notas relevantes se inyectan en el prompt del agente.
-- `pnpm lint` + `pnpm check-types` pasa.
-
-**Riesgos**: R-10 (XSS via chat render). Mitigado: DOMPurify + CSP.
-
-**Rollback**: Borrar chat service/controller/frontend. Agente y notas siguen funcionando.
-
----
-
-## Fase 6 — Polish + tests E2E + docs
-
-**Objetivo**: Tests E2E, docs, sync architecture, edge cases.
-
-**Entregables**:
-- Tests E2E: crear nota → embeddar → buscar → chat usa resultado. Cambiar model → agente reconstruido. MCP caído → graceful degradation. Sandbox deny a `.env`.
-- `docs/extensions/knowledge-agent.md` con YAML frontmatter (id, name, type, parent, dependencies, entities, external_apis).
-- `pnpm docs:sync` — `docs/ARCHITECTURE.md` regenerado.
-- Edge cases: nota sin frontmatter, embedding NULL, grafo vacío, sesión sin mensajes, MCP sin tools.
-- i18n completo (es + en).
-- Responsive mobile.
-
-**Depende de**: Fases 1-5.
-
-**Criterios de salida**:
-- Tests E2E pasan.
-- `docs/extensions/knowledge-agent.md` creado con YAML válido.
-- `pnpm docs:sync` sin errores YAML.
-- `pnpm lint` + `pnpm check-types` apps/back + apps/front pasa.
-- i18n es + en completo.
-
-**Rollback**: N/A (fase de validación + docs).
-
----
-
-## Orden recomendado
-
-```
-Fase 1 (schema + pgvector) ──► Fase 2 (CRUD + RAG) ──► Fase 3 (grafo + sandbox)
-                                     │                        │
-                                     │                        ▼
-                                     │              Fase 4 (agent + tools + MCP)
-                                     │                        │
-                                     ▼                        ▼
-                                     └────────────► Fase 5 (chat + SSE)
-                                                              │
-                                                              ▼
-                                                    Fase 6 (polish + tests + docs)
+```mermaid
+flowchart LR
+  F1[Fase 1<br/>Schema + KB CRUD] --> F2[Fase 2<br/>Visor grafo d3-force]
+  F1 --> F3[Fase 3<br/>DeepAgent + sandbox]
+  F3 --> F4[Fase 4<br/>Agent KB tools +<br/>tools de extensiones]
+  F4 --> F5[Fase 5<br/>MCP externos +<br/>chat con sesiones]
+  F5 --> F6[Fase 6<br/>Config UI + polish]
 ```
 
-Fase 1 **bloqueante** para todas. Fases 2 y 3 paralelizables tras Fase 1. Fase 4 depende de 1 + 3. Fase 5 depende de 2 + 4. Fase 6 depende de todas.
+## Fase 1: Schema + Knowledge Base CRUD
+
+**Objetivo**: Knowledge base funcional con notas en PostgreSQL, embeddings
+generados, editor básico.
+
+**Entregables**:
+- Crear extensión `knowledge-agent` con generador Hygen
+  (`pnpm generate:extension`).
+- Migraciones: `ext_ka_notes`, `ext_ka_note_links`, indexes (pgvector,
+  `category_path`, `user_id`).
+- Backend: CRUD service/controller para notas con `user_id` filter.
+- Re-embed on create/update (`OllamaEmbeddings`).
+- Frontend: editor TipTap + visor árbol básico (sidebar jerárquico).
+
+**Criterio de salida**:
+- [ ] CRUD de notas funciona (crear, leer, editar, soft delete).
+- [ ] Embeddings se generan al crear/editar.
+- [ ] `category_path` jerárquico navegable.
+- [ ] Visor árbol expande/colapsa categorías.
+- [ ] Tests backend pasan (≥ 80% cobertura módulo).
+
+**Riesgos**: Q-01 (LTREE vs path string), Q-10 (TipTap extensions).
+
+## Fase 2: Visor grafo d3-force
+
+**Objetivo**: Grafo visual de notas con nodos, links, zoom/pan, panel lateral.
+
+**Entregables**:
+- Port de demo React + d3-force a Vue 3 component (`GraphView.vue`).
+- Endpoint `GET /api/knowledge/graph` (nodos + edges).
+- `forceLink`, `forceManyBody`, `forceCollide`, `forceX`/`forceY`.
+- Zoom/pan con `d3-zoom`.
+- Panel lateral con backlinks (vínculos bidireccionales).
+- Search + filter por categoría.
+- Hover: highlight vecinos, dim resto. Selected: halo glow.
+- Drag para fijar posición.
+
+**Criterio de salida**:
+- [ ] Grafo renderiza notas como nodos con radio por degree.
+- [ ] Hover/selected/drag funcionan.
+- [ ] Zoom/pan fluido (≥ 30 FPS hasta 500 nodos).
+- [ ] Panel lateral muestra backlinks al seleccionar nodo.
+- [ ] Search + filter por categoría funcionan.
+
+**Riesgos**: R-05 (SVG > 1000 nodos), Q-09 (canvas/WebGL si escala).
+
+## Fase 3: DeepAgent runtime + sandbox
+
+**Objetivo**: Agente ejecuta comandos aislados, carga config de DB.
+
+**Entregables**:
+- Instalar `deepagents` npm + dependencias LangChain (ver Q-06 antes).
+- `build_agent(agent_config_id, userId)` factory (carga config de DB, construye
+  agente con cache por config hash).
+- Sandbox Node VFS + `isolated-vm`.
+- `execute(command, args)` tool con permisos declarativos.
+- Tabla `ext_ka_agent_configs` (agent.md dinámico en DB).
+- Reconstrucción por request + cache por config hash.
+
+**Criterio de salida**:
+- [ ] Agente se construye desde config en DB.
+- [ ] `execute` tool ejecuta comandos en working dir aislado.
+- [ ] Permisos deny bloquean `.env`, creds, código del proyecto.
+- [ ] `isolated-vm` evalúa scripts sin shell/network.
+- [ ] Cache por config hash funciona (hit/miss logs).
+
+**Riesgos**: Q-06 (nombres paquetes), Q-07 (Ollama Cloud URL), Q-08 (compat
+Node.js).
+
+## Fase 4: Agent KB tools + tools de extensiones
+
+**Objetivo**: Agente busca, crea, edita y elimina notas. Tools de extensiones
+se auto-discoverean.
+
+**Entregables**:
+- Tools: `search_notes_tree`, `search_notes_semantic`, `create_note`,
+  `update_note`, `delete_note`.
+- Re-embed on create/update desde tools del agente.
+- Auto-discovery de `agent.tools.ts` en cada extensión (glob, mismo patrón que
+  `ExtensionLoaderModule`).
+- Merge tools nativas en agente como array unificado.
+
+**Criterio de salida**:
+- [ ] Agente busca notas por árbol (`search_notes_tree`).
+- [ ] Agente busca notas semánticamente (`search_notes_semantic`, pgvector).
+- [ ] Agente crea/edita/elimina notas vía tools.
+- [ ] `delete_note` hace soft delete + auditoría.
+- [ ] Tools de extensiones se auto-discoverean vía `agent.tools.ts`.
+- [ ] Tools se mergean en array unificado en el agente.
+
+**Riesgos**: R-01 (agente elimina notas importantes).
+
+## Fase 5: MCP externos + chat con sesiones
+
+**Objetivo**: Chat funcional con sesiones aisladas por usuario, MCP externo
+configurable, streaming SSE.
+
+**Entregables**:
+- Tabla `ext_ka_mcp_servers` (config de servers externos).
+- `MultiServerMCPClient` carga servers al construir agente.
+- `PostgresSaver` checkpointer (sesiones persistentes en PostgreSQL).
+- Tabla `ext_ka_chat_sessions` (con `user_id`, aislamiento por usuario).
+- Streaming SSE desde NestJS (`stream_events v3`).
+- Render rich frontend (`markdown-it` + `highlight.js` + `DOMPurify`).
+- Verificar ownership en cada endpoint (403 si no match).
+
+**Criterio de salida**:
+- [ ] Chat funciona con streaming SSE.
+- [ ] Sesiones aisladas por usuario (test cross-user → 403).
+- [ ] `PostgresSaver` persiste sesiones.
+- [ ] Render rich muestra código, HTML y markdown sanitizado.
+- [ ] MCP server externo configurable y sus tools se mergean en el agente.
+- [ ] Reanudar sesión carga historial previo.
+
+**Riesgos**: R-02 (cross-user leakage), R-07 (paquetes MCP).
+
+## Fase 6: Config UI + polish
+
+**Objetivo**: Config completa de agente, modelos, proveedores y MCP servers
+desde UI. RBAC aplicado.
+
+**Entregables**:
+- Tablas `ext_ka_model_providers`, `ext_ka_models`.
+- UI para gestionar configs de agente (`system_prompt`, `model`, `provider`).
+- UI para gestionar modelos y proveedores.
+- UI para gestionar MCP servers.
+- RBAC sobre todos los endpoints de config.
+- Reconstrucción de agente al cambiar config (invalidate cache).
+
+**Criterio de salida**:
+- [ ] Admin cambia modelo/proveedor de agente desde UI.
+- [ ] Agente se reconstruye con nuevo model string al cambiar config.
+- [ ] `api_key_ref` guarda referencia (no valor plano).
+- [ ] RBAC permite solo admin gestionar configs.
+- [ ] Tests E2E de config UI pasan.
+
+**Riesgos**: ninguno nuevo.
+
+## Estrategia de rollback
+
+- Cada fase es independiente: si Fase N falla, Fase N-1 queda funcional.
+- Migraciones con `pnpm migration:revert` (una migración atrás).
+- Soft delete en notas permite recuperación sin rollback.
+- No hay migración de datos desde .md a DB (knowledge base nueva, vacía).

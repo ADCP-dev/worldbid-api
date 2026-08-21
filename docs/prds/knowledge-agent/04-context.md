@@ -1,115 +1,123 @@
 ---
 doc: knowledge-agent/04-context
-title: "Contexto"
+title: "Knowledge Agent — Contexto"
 status: draft
 created: 2026-08-21
 ---
 
-# Contexto
+# Knowledge Agent — Contexto
 
 ## Stack actual
 
+- **Backend**: NestJS + TypeORM + PostgreSQL + Bull (queues) + Nodemailer
+- **Frontend**: Nuxt 3 + Vue 3 + DaisyUI + Tailwind CSS + Pinia + TanStack Query
+  + Nuxt Layers
+- **Monorepo**: Turborepo
+- **Arquitectura**: Clean/Hexagonal, modular extensions (copy-paste pattern)
+
+Stack nuevo que incorpora esta extensión:
+
+- **Backend IA**: langchainjs (`deepagents` npm) + pgvector + LangGraph
+  (`PostgresSaver`) + `isolated-vm`
+- **Frontend visores/editor**: TipTap + `d3-force` + `d3-selection` +
+  `d3-zoom` + `markdown-it` + `highlight.js` + `dompurify`
+
+## Aliases
+
+| Alias                  | Destino                                        |
+|------------------------|------------------------------------------------|
+| `@ext/knowledge-agent/*` | `src/extensions/knowledge-agent/*` (backend) |
+| `@iam/*`               | `src/modules/iam/*` (auth dependency)         |
+| `@infra/*`             | `src/infrastructure/*`                         |
+| `@base` (frontend)     | `apps/front/modules/base`                     |
+| `@knowledge` (frontend) | `apps/front/modules/knowledge` (Nuxt layer)  |
+
+## Dependencias npm nuevas
+
 ### Backend
-- NestJS + TypeORM + PostgreSQL + Bull (queues)
-- Extensiones auto-discovered en `apps/back/src/extensions/`
-- Path alias: `@ext/knowledge-agent/*`, `@iam/*`, `@users/*`, `@infra/*`, `@src/*`
-- NestJS `Logger` — nunca `console.log`
+
+| Paquete                                          | Propósito                          |
+|--------------------------------------------------|------------------------------------|
+| `deepagents`                                     | `createDeepAgent` runtime          |
+| `@langchain/core`                               | LangChain core (Tool, BaseMessage)  |
+| `@langchain/community`                            | `PGVectorStore`, `OllamaEmbeddings`|
+| `@langchain/mcp-adapters`                         | `MultiServerMCPClient` [Q-06]      |
+| `@langchain/langgraph-checkpoint-postgres`        | `PostgresSaver` checkpointer [Q-06]|
+| `isolated-vm`                                    | Eval liviano sin shell/network     |
+
+> Nombres exactos a verificar en npm antes de Fase 3 (ver Q-06).
 
 ### Frontend
-- Nuxt 3 + Vue 3 + DaisyUI + Tailwind + Pinia + TanStack Query
-- Extensiones en `apps/front/extensions/`
-- Path alias: `@ka` → `apps/front/extensions/knowledge-agent` [NEEDS CLARIFICATION: convención de alias — ver Q-07]
-- `@base/ui-app/components/` — `FormInput`, `FormSelect`, `DataTable`, `RichEditor`, etc.
 
-### Convenciones del proyecto
+| Paquete                | Propósito                              |
+|------------------------|----------------------------------------|
+| `d3-force`             | Force simulation (grafo)              |
+| `d3-selection`        | Selección de nodos/links               |
+| `d3-zoom`              | Zoom/pan del grafo                     |
+| `@tiptap/vue-3`        | Editor rich text                       |
+| `@tiptap/starter-kit`  | Bundle base TipTap                     |
+| `markdown-it`          | Render markdown en chat                |
+| `highlight.js`         | Syntax highlighting en chat            |
+| `dompurify`            | Sanitización HTML en render rich       |
 
-| Convención | Regla |
-|------------|-------|
-| Tablas extensión | Prefijo `ext_ka_` (knowledge-agent) |
-| Path alias back | `@ext/knowledge-agent/*` |
-| Path alias front | `@ka/*` [NEEDS CLARIFICATION: ver Q-07] |
-| Entity discovery | TypeORM glob `**/*.entity{.ts,.js}` — automático |
-| Module discovery | `extension.module.ts` auto-cargado por `ExtensionLoaderModule` |
-| Logs | NestJS `Logger` — nunca `console.log` |
-| Imports | Alias absolutos, nunca relativas largas |
-| `import type` | Para tipos only |
-| Migraciones | `pnpm migration:generate` + `pnpm migration:run` — nunca SQL a mano |
-| Front forms | Zod + `@base/ui-app` form components |
-| Front tables | `DataTable` base + TanStack Vue Table |
-| Generadores | Hygen — `pnpm generate:extension` para scaffold inicial |
+> Extensiones TipTap específicas (code-block-lowlight, link, table, etc.) a
+> definir en Fase 1 (ver Q-10).
 
-## Dependencias
+## Convenciones del proyecto
 
-### Internas (extensiones/módulos)
-- `auth` — JWT, UsersService, RolesGuard, `@Roles(RoleEnum.admin)`
-- Ninguna otra extensión es dependencia directa. Las tools de otras extensiones se coleccionan via auto-discovery (FR-305), no via import directo.
+- **Table prefix**: `ext_ka_` en todas las tablas de la extensión (evita
+  colisiones con core y otras extensiones).
+- **Extension auto-discovery**: carpeta copiada a `src/extensions/` →
+  funciona. Módulo se llama `extension.module.ts`. Cero wiring manual.
+- **Migrations**: NUNCA hardcode SQL. Siempre `pnpm migration:generate
+  <Name>` + `pnpm migration:run` desde `apps/back/`.
+- **Generadores Hygen**: para CRUD base usar `pnpm generate:extension` (no
+  escribir entity/service/controller a mano).
+- **TypeScript**: aliases absolutos, `import type` para solo tipos, nunca
+  `any`, `NullableType`/`MaybeType` del proyecto, funciones < 30 líneas.
+- **Logger**: NestJS `Logger` (no `console.log`).
 
-### Externas (npm) — nuevas a añadir
+## Dependencias (módulos)
 
-| Paquete | Propósito | Estado |
-|---------|-----------|--------|
-| `deepagents` | Agent harness sobre LangGraph. `createDeepAgent`, SandboxBackend, filesystem. | [NEEDS CLARIFICATION: versión v0.7+ — verificar compatibilidad Node.js. ver Q-08] |
-| `@langchain/core` | LangChain core (tools, messages). | Dep de deepagents |
-| `@langchain/langgraph` | LangGraph (graph, checkpointer, streaming). | Dep de deepagents |
-| `@langchain/mcp-adapters` | `MultiServerMCPClient` para MCP externos. | [NEEDS CLARIFICATION: nombre exacto del paquete npm — ver Q-09] |
-| `@langchain/community` | `PGVectorStore`, `OllamaEmbeddings`, chat model integrations. | |
-| `pgvector` | PostgreSQL extension para vector storage. | Extensión DB, no npm |
-| `markdown-it` | Render markdown en frontend chat. | Front |
-| `highlight.js` | Syntax highlighting code blocks en chat. | Front |
-| `dompurify` | HTML sanitization en chat render. | Front |
-| `vue-flow` o `cytoscape` | Visor de grafo. | [NEEDS CLARIFICATION: cuál — ver Q-05] |
-| `isolated-vm` | QuickJS sandbox para eval liviano. | Backend (native addon) |
-| `@langchain/langgraph-checkpoint-postgres` | `PostgresSaver` checkpointer. | [NEEDS CLARIFICATION: nombre exacto — ver Q-09] |
+- **`auth` (iam)**: user_id, JWT token, RBAC. Dependencia obligatoria.
 
-### APIs externas
-- **Ollama Cloud** — `https://api.ollama.cloud` [NEEDS CLARIFICATION: URL exacta — ver Q-10]
-- **OpenRouter** — `https://openrouter.ai/api/v1`
-- **MCP servers externos** — URLs configurables en DB
+## Constraints
 
-### Extensiones PostgreSQL requeridas
-- `pgvector` — debe estar instalada y habilitada en la DB. `CREATE EXTENSION IF NOT EXISTS vector;` en migración.
+### ✅ Always
 
-## Constraints (three-tier)
+- Usar aliases absolutos (`@ext/knowledge-agent/*`, `@iam/*`, `@infra/*`).
+- `import type` para tipos que no se instancian.
+- NestJS `Logger` para logs (no `console.log`).
+- Funciones < 30 líneas, una responsabilidad.
+- Table prefix `ext_ka_` en todas las tablas.
+- `user_id` filter en todas las queries de notas y sesiones.
+- Verificar ownership en cada endpoint de chat/sesiones.
+- Migraciones con `pnpm migration:generate` (no SQL hardcode).
+- Soft delete con `deleted_at` + `deleted_by` para notas.
 
-| Tier | Constraint |
-|------|-----------|
-| ✅ Always | Mantener auto-discovery (no tocar `app.module.ts`) |
-| ✅ Always | Tabla prefix `ext_ka_` para todas las tablas nuevas |
-| ✅ Always | Migraciones vía TypeORM CLI (`pnpm migration:generate` + `pnpm migration:run`) |
-| ✅ Always | API keys via env vars, nunca hardcode. DB guarda `api_key_ref` (nombre var), no valor |
-| ✅ Always | `RichEditor` base para editor de notas — no custom TipTap desde cero |
-| ✅ Always | `DataTable` base para listas — no custom table |
-| ✅ Always | Form components base (`FormInput`, `FormSelect`, `FormSwitch`) — no custom |
-| ✅ Always | Agente único, no orquestador + subagentes |
-| ✅ Always | Sandbox deny a `.env`, creds, `apps/`, `packages/`, `src/` |
-| ✅ Always | PostgresSaver para persistencia de sesiones (no MemorySaver) |
-| ✅ Always | SSE para streaming (no WebSocket) |
-| ⚠️ Ask first | Añadir deps npm: `deepagents`, `@langchain/*`, `markdown-it`, `highlight.js`, `dompurify`, `isolated-vm`, `vue-flow`/`cytoscape` |
-| ⚠️ Ask first | Instalar extensión `pgvector` en PostgreSQL (requiere access DB admin) |
-| ⚠️ Ask first | Daytona sandbox en prod (requiere cuenta + configuración) — ver Q-04 |
-| 🚫 Never | Modificar `app.module.ts` |
-| 🚫 Never | Hardcodear API keys, secrets, URLs de API |
-| 🚫 Never | Guardar contenido de notas en archivos `.md` del repo — todo en PostgreSQL |
-| 🚫 Never | Usar OpenWiki CLI como dependencia runtime |
-| 🚫 Never | `console.log` — usar `Logger` |
-| 🚫 Never | Rutas relativas largas — usar aliases |
-| 🚫 Never | Escribir entity/service/controller a mano — usar Hygen generators para scaffold |
-| 🚫 Never | SQL DDL a mano — migraciones CLI |
-| 🚫 Never | `any` type — usar `unknown` + guards |
-| 🚫 Never | Permitir sandbox acceso a código del proyecto o creds |
-| 🚫 Never | Hot-swap de agente en runtime — reconstruir por request |
+### ⚠️ Ask first
+
+- Instalar dependencias npm nuevas (puede romper algo).
+- Instalar extensión `ltree` de PostgreSQL si se usa LTREE para
+  `category_path`.
+- Instalar extensión `pgvector` de PostgreSQL si no está disponible.
+
+### 🚫 Never
+
+- Escribir `.md` en el repo para knowledge base (todo en PostgreSQL).
+- Hardcode SQL DDL (usar `migration:generate`).
+- Usar sandbox externo (Daytona/Modal/E2B): solo Node VFS.
+- RAG automático sobre cada query: el agente decide cuándo buscar vía tools.
+- `console.log` en código backend.
+- Usar `any` en TypeScript (usar `unknown` + guards).
 
 ## Supuestos asumidos
 
-| Supuesto | Razón |
-|----------|-------|
-| `pgvector` disponible en PostgreSQL | Extensión estándar, ampliamente soportada. Si no está, se instala. |
-| `deepagents` v0.7+ compatible con Node.js del proyecto | LangChain JS soporta Node 18+. Verificar en Q-08. |
-| Ollama Cloud URL y API estables | Brief del usuario indica Ollama Cloud. URL exacta a confirmar (Q-10). |
-| OpenRouter API compatible con langchainjs | LangChain JS tiene integración OpenRouter. |
-| `PostgresSaver` disponible en langchainjs | Brief indica que sí. Nombre exacto del paquete a confirmar (Q-09). |
-| Single shared knowledge base | No multi-tenant en v1 (Q-03). |
-| `vue-flow` o `cytoscape` suficiente para grafo de < 1000 nodos | Escala razonable para KB interna. |
-| Sandbox Node VFS suficiente para dev | deepagents lo soporta. |
-| `isolated-vm` instalable como native addon | Requiere build tools. Si falla, fallback a `vm` module de Node (menos seguro). [NEEDS CLARIFICATION: ver Q-11] |
-| Formato OKF de OpenWiki es estable | Inspirado en OpenWiki. Si OKF evoluciona, adaptar frontmatter. |
+- **Asumido**: PostgreSQL tiene extensión `pgvector` disponible. Si no →
+  instalar antes de Fase 1.
+- **Asumido**: Ollama Cloud es accesible desde el backend (endpoint a confirmar,
+  ver Q-07).
+- **Asumido**: OpenRouter es accesible desde el backend con API key válida.
+- **Asumido**: `deepagents` npm tiene paridad JS/TS suficiente con la versión
+  Python (confirmado en memoria de sesión previa, ver Q-06 para paquetes).
+- **Asumido**: KB interna < 10k notas (no escala a millones — no es objetivo).

@@ -1,126 +1,39 @@
 ---
 doc: knowledge-agent/07-open-questions
-title: "Open Questions"
+title: "Knowledge Agent — Open Questions"
 status: draft
 created: 2026-08-21
 ---
 
-# Open Questions
+# Knowledge Agent — Open Questions
 
-## Q-01 — ¿Multi-agente en el futuro?
+## Resueltas
 
-**Pregunta**: El PRD especifica agente único (no orquestador + subagentes). ¿Se contempla multi-agente para v2? Si sí, ¿la arquitectura de `build_agent` + tools de extensiones es compatible con evolucionar a supervisor?
+| ID  | Pregunta                                              | Decisión                                                                       | Razón                                              |
+|-----|-------------------------------------------------------|--------------------------------------------------------------------------------|----------------------------------------------------|
+| Q-04 | ¿Sandbox prod?                                        | Node VFS para todo (dev + prod). Sin sandbox externo.                           | Comandos del agente son livianos, no justifican infra externa. |
+| Q-05 | ¿Librería para visor grafo?                           | `d3-force` (port de demo del usuario a Vue 3).                                  | El usuario ya tiene demo React + d3-force. Control total sobre SVG. |
+| Q-14 | ¿RAG automático vs tool?                              | Tool opt-in. Dos tools: `search_notes_tree` (tree search) + `search_notes_semantic` (pgvector). | RAG automático ensucia contexto innecesario. El agente decide cuándo buscar. |
+| Q-15 | ¿Tools nativas vs MCP para extensiones internas?      | Nativas para extensiones internas (`agent.tools.ts` auto-discovery). MCP solo para externos. | Tools internas in-process = cero overhead. MCP solo agrega valor para servicios de terceros. |
 
-**Impacto**: No bloqueante para v1. Arquitectura de tools de extensiones (FR-305) es compatible — un supervisor consumiría las mismas tools. `AgentFactoryService` podría construir supervisor en v2.
-**Recomendación**: No en v1. Arquitectura deja puerta abierta. Si surge necesidad, `langgraph-supervisor` npm es el path (no verificado en JS — ver investigación técnica).
+## Abiertas
 
----
+| ID  | Pregunta                                                | Impacto     | Recomendación del agente                                                  |
+|-----|---------------------------------------------------------|-------------|---------------------------------------------------------------------------|
+| Q-01 | ¿LTREE vs path string para `category_path`?             | No-bloqueante | LTREE si está disponible (queries nativas). Fallback a path string indexado con GIN/GiST. Verificar disponibilidad en Fase 1. |
+| Q-02 | ¿Soft delete requiere human-in-the-loop para delete del agente? | No-bloqueante | Soft delete + auditoría (`deleted_at` + `deleted_by`). HITL deferible a v2 — el soft delete ya permite recuperación. |
+| Q-03 | ¿Row-level security de PostgreSQL para session isolation o solo app-level? | No-bloqueante | App-level (verificar ownership en cada endpoint, 403). Considerar RLS como defense-in-depth. No bloqueante para Fase 5. |
+| Q-06 | ¿Nombres exactos de paquetes npm LangChain?              | Bloqueante (Fase 3) | Verificar `@langchain/mcp-adapters` y `@langchain/langgraph-checkpoint-postgres` en npm antes de Fase 3. |
+| Q-07 | ¿URL/base de Ollama Cloud?                               | Bloqueante (Fase 3) | Confirmar endpoint antes de Fase 3.                                      |
+| Q-08 | ¿Compatibilidad Node.js de todos los paquetes nuevos?    | Bloqueante (Fase 3) | Verificar compat con Node.js del proyecto en Fase 3 al instalar.         |
+| Q-09 | ¿Canvas/WebGL si grafo escala > 1000 nodos?              | No-bloqueante | Deferir. SVG suficiente para KB interna (< 10k notas, grafo típico < 500 nodos visibles). |
+| Q-10 | ¿TipTap extensions necesarias?                          | No-bloqueante | Definir en Fase 1. Mínimo: starter-kit. A evaluar: code-block-lowlight, link, table. |
 
-## Q-02 — ¿Tomar más de OpenWiki que el formato OKF?
+### Notas
 
-**Pregunta**: Solo tomamos el formato OKF (YAML frontmatter) de OpenWiki. ¿Vale la pena reusar algo más? ¿El visualizer de OpenWiki tiene patrones útiles para el grafo?
-
-**Impacto**: No bloqueante. OpenWiki es CLI, no lib embebible.
-**Recomendación**: Solo OKF. Visualizer de OpenWiki es local/CLI — no reutilizable. Nuestro grafo (vue-flow/cytoscape) es web-based.
-
----
-
-## Q-03 — ¿Multi-tenant knowledge bases?
-
-**Pregunta**: ¿Cada tenant/usuario tiene su propia KB, o es una KB compartida para todo el equipo?
-
-**Impacto**: No bloqueante para v1 (asumido single shared KB). Si multi-tenant: `ext_ka_notes` necesita `tenant_id` o `user_id` + RLS. Busquedas RAG filtradas por tenant.
-**Recomendación**: Single shared KB en v1. Si surge multi-tenant, añadir `owner_id` + filtros. No arquietctura bloqueante para migrar.
-
----
-
-## Q-04 — ¿Daytona o Modal para sandbox prod?
-
-**Pregunta**: D-07 propone Daytona (microVM) para prod. Modal (serverless) es alternativa. ¿Cuál? Diferencias: Daytona = microVM persistente, más control. Modal = serverless, scale-to-zero, menos infra.
-
-**Impacto**: Bloqueante para Fase 3 (sandbox prod). Dev usa Node VFS (no bloqueante).
-**Recomendación**: Daytona — alineado con deepagents SandboxBackend. Modal como fallback si Daytona no es viable (costo, availability). Evaluar en Fase 3.
-
----
-
-## Q-05 — ¿vue-flow o cytoscape para visor de grafo?
-
-**Pregunta**: Ambos renderizan grafos en Vue. vue-flow es más Vue-nativo (composables, reactividad). cytoscape es más maduro, más features de layout, pero menos Vue-friendly (wrapper needed).
-
-**Impacto**: Bloqueante para Fase 3 (grafo frontend). Performance similar para < 1000 nodos.
-**Recomendación**: vue-flow — más idiomático en ecosistema Vue 3 + Nuxt. Si performance insuficiente > 1000 nodos, evaluar cytoscape con `vue-cytoscape` wrapper.
-
----
-
-## Q-06 — ¿OpenAI y Anthropic en v1?
-
-**Pregunta**: FR-304 soporta Ollama Cloud + OpenRouter. ¿Añadir OpenAI y Anthropic como providers directos en v1? langchainjs los soporta.
-
-**Impacto**: No bloqueante. OpenRouter ya da acceso a OpenAI y Anthropic models indirectamente.
-**Recomendación**: No en v1. OpenRouter cubre OpenAI/Anthropic models. Añadir providers directos en v2 si se necesita (solo añadir enum + integration).
-
----
-
-## Q-07 — Alias frontend `@ka` vs `@knowledge-agent`
-
-**Pregunta**: Convención de alias frontend para la extensión. Otros usan `@stripe`, `@cms`, `@crm` (nombres cortos). `@ka` es corto pero poco descriptivo. `@knowledge-agent` es largo.
-
-**Impacto**: No bloqueante pero afecta todos los imports frontend.
-**Recomendación**: `@ka` — consistente con prefijo de tablas `ext_ka_` y nombres cortos de otras extensiones. Documentar en `nuxt.config.ts`.
-
----
-
-## Q-08 — Compatibilidad deepagents con Node.js del proyecto
-
-**Pregunta**: `deepagents` v0.7+ requiere Node.js 18+ (LangChain JS). ¿Qué versión de Node usa el proyecto? ¿Hay restricciones de runtime?
-
-**Impacto**: Bloqueante para Fase 4 (agent). Si Node < 18, deepagents no funciona.
-**Recomendación**: Verificar `engines` en `apps/back/package.json` + `.nvmrc`. Si Node < 18, actualizar runtime o evaluar alternativa.
-
----
-
-## Q-09 — Nombres exactos de paquetes npm LangChain
-
-**Pregunta**: Varios paquetes LangChain referenciados. Nombres exactos a verificar:
-- `@langchain/mcp-adapters` — ¿existe con ese nombre? ¿O es `@langchain/langchain-mcp-adapters`?
-- `@langchain/langgraph-checkpoint-postgres` — ¿nombre exacto de PostgresSaver?
-- `@langchain/community` — ¿incluye PGVectorStore + OllamaEmbeddings?
-
-**Impacto**: Bloqueante para Fase 4. Nombres incorrectos = import failures.
-**Recomendación**: Verificar en npm registry antes de Fase 4. Context7 puede resolver docs actualizadas.
-
----
-
-## Q-10 — Ollama Cloud URL y API
-
-**Pregunta**: ¿Cuál es la URL base exacta de Ollama Cloud? `https://api.ollama.cloud` es asumido. ¿La API es compatible con `OllamaEmbeddings` de langchainjs? ¿Requiere API key?
-
-**Impacto**: Bloqueante para Fase 2 (embedding) y Fase 4 (model). Si URL o API differ, configuración de provider necesita ajuste.
-**Recomendación**: Verificar docs de Ollama Cloud. Configurar `base_url` en `ext_ka_model_providers` para flexibilidad.
-
----
-
-## Q-11 — isolated-vm native addon installable?
-
-**Pregunta**: `isolated-vm` es un native addon de Node (QuickJS). Requiere build tools (python, make, g++). ¿El entorno de deploy tiene build tools? Si no, ¿fallback a `vm` module de Node (menos seguro)?
-
-**Impacto**: No bloqueante (fallback `vm` existe). Pero `vm` es menos seguro (no es true isolation).
-**Recomendación**: Intentar `isolated-vm`. Si build falla en deploy, fallback a `vm` con warning de seguridad. Documentar en constraints.
-
----
-
-## Q-12 — Estrategia de cluster para grafo grande
-
-**Pregunta**: R-05 menciona > 500 nodos. ¿Estrategia de cluster? Opciones: (a) clusters por tag (agrupar notas con mismo tag), (b) paginación visual (mostrar 100 nodos, scroll para ver más), (c) filtro por tag/categoría obligatorio, (d) fisheye/zoom.
-
-**Impacto**: No bloqueante para v1 (NFR-003 cubre 500 nodos). Bloqueante para escala > 1000.
-**Recomendación**: Filtro por tag/categoría obligatorio para > 500 nodos. Sin filtro, mostrar solo top-100 por relevance. Cluster visual como v2.
-
----
-
-## Q-13 — ¿Bull queue para embedding async?
-
-**Pregunta**: R-02 propone embedding async via Bull si sync falla. Bull ya está en el monorepo. ¿Usar Bull para todos los embeddings (siempre async) o solo como fallback?
-
-**Impacto**: No bloqueante. Si siempre async, UX más rápida (save retorna antes de embedding). Si fallback, save espera embedding con timeout.
-**Recomendación**: Siempre async via Bull. Save retorna inmediatamente. Nota con `embedding=NULL` hasta que job complete. Search excluye notas sin embedding. Frontend muestra indicador "embedding pendiente".
+- **Q-04** refine la decisión previa en memoria (#856 decía "Node VFS dev +
+  Daytona prod"). Ahora es **Node VFS para todo** — sin sandbox externo.
+- Las preguntas bloqueantes (Q-06, Q-07, Q-08) se resuelven al inicio de Fase 3,
+  antes de instalar dependencias.
+- Las no-bloqueantes pueden resolverse durante la implementación sin detener
+  el avance.

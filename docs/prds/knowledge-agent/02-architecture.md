@@ -1,232 +1,179 @@
 ---
 doc: knowledge-agent/02-architecture
-title: "Arquitectura"
+title: "Knowledge Agent — Arquitectura"
 status: draft
 created: 2026-08-21
 ---
 
-# Arquitectura
+# Knowledge Agent — Arquitectura
 
-## Estado actual
+## Componentes propuestos (8)
 
-**No existe.** Extensión greenfield. No hay código previo de knowledge-agent en `apps/back/src/extensions/` ni en `apps/front/extensions/`.
+### Componente 1: Knowledge Base (PostgreSQL + pgvector)
 
-## Arquitectura propuesta — 7 componentes
+- **Tabla `ext_ka_notes`**: `id` (uuid PK), `title` (varchar), `content_md`
+  (text), `category_path` (ltree o path string indexado, jerarquía tipo
+  `frontend/frameworks/react`), `tags` (jsonb array, transversales),
+  `frontmatter` (jsonb, formato OKF: `type`, `sources`, `generated`),
+  `embedding` (`vector(1536)`), `user_id` (FK a `iam` user, ownership),
+  `created_at`, `updated_at`, `deleted_at` (soft delete), `deleted_by`
+  (auditoría).
+- **Tabla `ext_ka_note_links`**: `source_note_id`, `target_note_id`. Links
+  extraídos del markdown (sintaxis `[[wiki-link]]` o `[text](rel:path)`),
+  usados para backlinks y grafo.
+- `PGVectorStore` de `langchainjs` para RAG semántico.
+- Embeddings con `OllamaEmbeddings`.
+- Re-embeddar cuando se edita una nota (si `content_md` cambia).
+- **Formato OKF** (inspirado en OpenWiki): frontmatter con `type`, `tags`,
+  `sources`, `generated`, `okf_version`.
+- Frontend: TipTap editor que serializa a MD → guarda en DB → re-embedda.
 
-```mermaid
-flowchart TD
-  subgraph Front[Nuxt Frontend]
-    TipTap[TipTap Editor<br/>RichEditor base]
-    Tree[Visor Arbol<br/>sidebar jerárquico]
-    Graph[Visor Grafo<br/>d3-force]
-    Chat[Chat UI<br/>SSE + render rich]
-    Admin[Admin Panel<br/>modelos, MCP, agent configs]
-  end
+### Componente 2: DeepAgent runtime (`deepagents` npm)
 
-  subgraph Back[NestJS Backend]
-    KB[Knowledge Base Service<br/>CRUD notas + embedding + categorías/tags]
-    TreeSearch[Tree Search Tool<br/>search_notes_tree]
-    SemSearch[Semantic Search Tool<br/>search_notes_semantic]
-    RAG[RAG Service<br/>PGVectorStore similarity search]
-    AgentFactory[Agent Factory<br/>build_agent config_id]
-    Sandbox[Sandbox Service<br/>execute tool aislado]
-    ToolCollector[Tool Collector<br/>auto-discovery agent.tools.ts]
-    MCP[MCP Loader<br/>MultiServerMCPClient]
-    ChatSvc[Chat Service<br/>PostgresSaver + SSE stream]
-    ConfigSvc[Config Service<br/>modelos, providers, agent configs]
-  end
+- `createDeepAgent` con factory function `build_agent(agent_config_id, userId)`
+  que carga `systemPrompt` + tools + model desde DB.
+- **Model string**: `"ollama:X"` o `"openrouter:z-ai/glm-5.2"` — configurable
+  por agente en DB.
+- **Agent.md dinámico**: tabla `ext_ka_agent_configs` (`id`, `name`,
+  `system_prompt`, `model`, `provider`, `permissions` jsonb, `mcp_servers`
+  jsonb).
+- Reconstrucción por request con **cache por config hash** (no reconstruir si
+  el hash no cambió).
+- **Tools del agente**:
+  - `search_notes_tree(categoryPath, depth)` — tree search por niveles, navega
+    jerarquía de categorías eficientemente.
+  - `search_notes_semantic(query, topK)` — RAG con pgvector, búsqueda semántica
+    opt-in.
+  - `create_note(title, content_md, category_path, tags?)` — crea nota,
+    auto-genera embedding.
+  - `update_note(note_id, content_md?, category_path?, tags?)` — edita nota,
+    re-embedda si `content_md` cambia.
+  - `delete_note(note_id)` — soft delete (`deleted_at`), con auditoría
+    (`deleted_by`).
+  - `execute(command, args)` — ejecuta comandos aislados en sandbox Node VFS.
+  - Tools nativas de extensiones (auto-discovery).
+  - Tools de MCP externos (`MultiServerMCPClient`).
 
-  subgraph DB[(PostgreSQL + pgvector)]
-    Notes[ext_ka_notes<br/>content_md + frontmatter + embedding]
-    Sessions[ext_ka_chat_sessions]
-    AgentCfg[ext_ka_agent_configs]
-    MCPSrv[ext_ka_mcp_servers]
-    Models[ext_ka_models]
-    Providers[ext_ka_model_providers]
-  end
+### Componente 3: Sandbox Node VFS (dev + prod)
 
-  TipTap -->|save| KB
-  Tree -->|query| KB
-  Graph -->|query links/backlinks| KB
-  Chat -->|stream| ChatSvc
-  Admin -->|CRUD| ConfigSvc
+- `execute` tool con `SandboxBackend` Node VFS.
+- **Permisos declarativos**: allow/deny + glob paths. Deny a `.env`, creds y
+  código del proyecto.
+- **Working dir aislado**: temp dir por session.
+- `isolated-vm` para eval liviano (math, loops, scripts) sin shell/network.
+- **Sin infra externa.** Node VFS para todo (dev + prod).
 
-  KB -->|embed on save| RAG
-  RAG --> Notes
-  AgentFactory -->|load config| AgentCfg
-  AgentFactory -->|load tools| ToolCollector
-  AgentFactory -->|load MCP tools| MCP
-  AgentFactory -->|resolve model| Models
-  MCP --> MCPSrv
-  ChatSvc --> AgentFactory
-  ChatSvc --> Sessions
-  Sandbox -->|isolated exec| AgentFactory
-```
+### Componente 4: Tools nativas de extensiones (auto-discovery)
 
-### Componente 1 — Knowledge Base (PostgreSQL + pgvector)
+- Cada extensión exporta tools como array de objetos LangChain `Tool` en
+  `agent.tools.ts`.
+- Convención: `<extension>/agent.tools.ts` → `export const tools: Tool[] = [...]`.
+- Orchestrator module colecciona vía **glob auto-discovery** (mismo patrón que
+  `ExtensionLoaderModule` de Foundation).
+- Tools se mergean en el agente como **array unificado**. Cero overhead,
+  in-process.
+- El agente ve todas las tools como un array, sin distinguir origen.
 
-Tabla `ext_ka_notes`: `id`, `title`, `content_md` (text), `frontmatter` (jsonb OKF: type, title, description, tags, sources, generated, okf_version), `embedding` (vector(1536)), `createdAt`, `updatedAt`.
+### Componente 5: MCP externos configurables
 
-- **RAG**: `PGVectorStore` (langchainjs) con extensión `pgvector` de PostgreSQL. Embeddings con `OllamaEmbeddings` (configurable).
-- **Frontend**: `RichEditor` (TipTap, base `@base/ui-app`) serializa a markdown. Visor árbol (sidebar jerárquico por tags/categorías). Visor grafo (vue-flow o cytoscape — nodos = notas, edges = links `[[]]`, backlinks desde query SQL reversa).
-- **Formato OKF**: inspirado en OpenWiki. YAML frontmatter con `type`, `title`, `description`, `tags`, `sources`, `generated`, `okf_version`. Links entre notas en markdown estándar `[[]]`.
-- **Re-embeddar**: cuando se edita una nota, se regenera el embedding.
+- Tabla `ext_ka_mcp_servers` (`id`, `agent_config_id`, `name`, `transport`
+  enum `http|stdio`, `url`, `api_key_ref`, `enabled`).
+- `MultiServerMCPClient` de `@langchain/mcp-adapters` carga servers al
+  construir el agente.
+- Tools de MCP se mergean con tools nativas en el array unificado.
+- Solo para servicios externos de terceros. Configurables desde UI.
 
-### Componente 2 — DeepAgent runtime (deepagents npm)
+### Componente 6: Chat con sesiones por usuario
 
-`createDeepAgent({ model, systemPrompt, tools, filesystem, mcpServers })` con factory function `build_agent(agent_config_id)`:
+- `PostgresSaver` checkpointer de LangGraph = sesiones persistentes en
+  PostgreSQL.
+- Tabla `ext_ka_chat_sessions` (`id`, `agent_config_id`, `user_id` FK,
+  `title`, `created_at`, `updated_at`).
+- **Aislamiento por usuario**: `user_id` en todas las queries; verificar
+  ownership en cada endpoint.
+- Un usuario **NO** puede ver, acceder o linkear a sesiones de otro usuario
+  (403).
+- El agente corre con `userId` en el state de LangGraph.
+- **Streaming SSE** desde NestJS hacia Nuxt (`stream_events v3`).
+- **Render rich**: `markdown-it` + `highlight.js` + `DOMPurify` (código, HTML,
+  markdown) estilo ChatGPT.
 
-1. Carga `systemPrompt` desde `ext_ka_agent_configs` (agent.md dinámico en DB, no archivo fijo).
-2. Carga `tools` desde `ToolCollector` (tools de extensiones) + `MCPLoader` (tools de MCP externos).
-3. Resuelve `model` string desde `ext_ka_models` → `"provider:model"` (ej: `"ollama-cloud:glm-5.2"`, `"openrouter:z-ai/glm-5.2"`).
-4. Cache por config hash. No hot-swap — se reconstruye por request si config cambió.
+### Componente 7: Config en DB (modelo/proveedor/api)
 
-### Componente 3 — Sandbox de comandos aislados
+- Tabla `ext_ka_model_providers` (`id`, `name`, `provider` enum
+  `ollama|openrouter`, `api_key_ref`, `base_url`, `enabled`).
+- Tabla `ext_ka_models` (`id`, `provider_id`, `model_id`, `display_name`,
+  `context_window`, `active`).
+- Frontend cambia modelo/proveedor por agente. El agente se reconstruye con el
+  nuevo model string.
 
-`execute` tool con `SandboxBackend` (deepagents):
+### Componente 8: Visores (árbol + grafo)
 
-- **Dev**: Node VFS (virtual filesystem).
-- **Prod**: Daytona (cloud microVM) [NEEDS CLARIFICATION: ver Q-04 — ¿Daytona o Modal serverless?].
-- **Permisos declarativos**: deny a `.env`, creds, código del proyecto (`apps/`, `packages/`, `src/`). Allow paths explícitos (tmp, workspace sandbox).
-- **Eval liviano**: `isolated-vm` (QuickJS Node-native) para math/scripts sin overhead de microVM.
+- **Visor árbol**: sidebar jerárquico mostrando `category_path`.
+  Expandir/colapsar. Click en nota → abre editor.
+- **Visor grafo**: `d3-force` portado a Vue 3. Usa `d3-force`, `d3-selection`,
+  `d3-zoom` + SVG.
+  - Force simulation: `forceLink` (links entre notas), `forceManyBody`
+    (repulsión), `forceCollide` (no overlap), `forceX`/`forceY` (centrado).
+  - Zoom/pan con `d3-zoom`.
+  - Nodos con radio según degree (conexiones).
+  - Hover: highlight vecinos, dim resto.
+  - Selected: halo glow, panel lateral con backlinks.
+  - Search + filter por categoría.
+  - Drag para fijar posición.
+  - Panel lateral: título, tags, vínculos bidireccionales (backlinks).
+  - Datos del endpoint `/api/knowledge/graph` (nodos + edges).
 
-### Componente 4 — Tools de extensiones (auto-discovery)
-
-Cada extensión puede exportar tools en archivo convención: `<extension>/agent.tools.ts` → exporta array de LangChain tools.
-
-- **Orchestrator module** (`ToolCollector`) colecciona via glob auto-discovery (mismo patrón que `ExtensionLoaderModule` — no tocar `app.module.ts`).
-- Tools se mergean en el agente al construirlo.
-- Convención: si el archivo no existe, la extensión simplemente no aporta tools (graceful).
-
-### Componente 5 — MCP externos configurables
-
-Tabla `ext_ka_mcp_servers`: `id`, `agent_config_id` (FK), `name`, `transport` (enum: http | stdio), `url`, `api_key_ref` (referencia a env var, no valor directo), `enabled`, `createdAt`.
-
-- `MultiServerMCPClient({ server: { transport, url } }).getTools()` → array de tools → mergear con tools custom en `build_agent`.
-- Configurable desde frontend admin panel.
-
-### Componente 6 — Chat con sesiones
-
-`PostgresSaver` checkpointer (langchainjs) = sesiones persistentes en PostgreSQL.
-
-Tabla `ext_ka_chat_sessions`: `id`, `agent_config_id`, `title`, `createdAt`, `updatedAt`.
-
-- **Streaming**: `stream_events(version="v3")` → SSE (Server-Sent Events) desde NestJS hacia Nuxt. Typed projections: messages, tool_calls, values.
-- **Render rich frontend**: consumir SSE stream → markdown con `markdown-it`, code blocks con `highlight.js`, HTML sanitizado con `DOMPurify`. No hay lib oficial Vue — adaptar patrones.
-
-### Componente 7 — Config en DB (modelo/proveedor/api)
-
-Tabla `ext_ka_model_providers`: `id`, `name`, `provider` (enum: ollama | openrouter | [NEEDS CLARIFICATION: openai? anthropic?]), `api_key_ref`, `base_url`, `createdAt`.
-
-Tabla `ext_ka_models`: `id`, `provider_id` (FK), `model_id` (string ej: `glm-5.2`), `display_name`, `context_window` (int), `active` (boolean), `createdAt`.
-
-- Frontend cambia modelo/proveedor por agente via admin panel.
-- `build_agent` resuelve model string desde config activa.
-
-## Flujo del agente
-
-```mermaid
-sequenceDiagram
-  participant U as User
-  participant FE as Nuxt Frontend
-  participant BE as NestJS Backend
-  participant DB as PostgreSQL
-  participant TC as ToolCollector
-  participant MC as MCPLoader
-  participant A as DeepAgent
-  participant S as Sandbox
-
-  U->>FE: Escribe mensaje en chat
-  FE->>BE: POST /ka/chat/:sessionId/stream (SSE)
-  BE->>DB: Load agent_config + active model
-  BE->>BE: build_agent(config_id) [cache check]
-  BE->>TC: Collect tools from extensions
-  BE->>MC: Load MCP servers → getTools()
-  BE->>A: createDeepAgent({model, systemPrompt, tools, mcpServers, filesystem})
-  BE->>DB: PostgresSaver checkpoint (session state)
-  BE->>A: stream_events(v3)
-  A->>S: execute tool (if needed)
-  S-->>A: isolated result
-  A-->>BE: SSE chunks (messages, tool_calls)
-  BE-->>FE: SSE stream
-  FE->>FE: render markdown-it + highlight.js + DOMPurify
-  FE-->>U: Stream rendered
-```
-
-## Flujo de datos — Knowledge Base
+## Diagrama de flujo
 
 ```mermaid
 flowchart LR
-  E[Editor TipTap] -->|serialize MD| S[KB Service]
-  S -->|parse frontmatter| F[OKF YAML]
-  S -->|save content_md + frontmatter| DB[(ext_ka_notes)]
-  S -->|embed| O[OllamaEmbeddings]
-  O -->|vector 1536| DB
-  S -->|extract links [[]]| L[Links index]
-  L -->|query backlinks| GV[Visor Grafo]
-  DB -->|PGVectorStore search| RAG[RAG Service]
-  RAG -->|top-k notas| A[DeepAgent context]
+  U[Usuario] -->|mensaje| Chat[Chat SSE]
+  Chat -->|build_agent config, userId| FA[build_agent factory]
+  FA -->|cache por hash| DA[DeepAgent]
+  DA -->|tools nativas| TN[Tools de extensiones<br/>auto-discovery]
+  DA -->|MCP| MC[MultiServerMCPClient]
+  DA -->|sandbox| SB[Node VFS + isolated-vm]
+  DA -->|KB tools| KB[Knowledge Base<br/>PostgreSQL + pgvector]
+  DA -->|stream_events v3| Chat
+  Chat -->|SSE| U
+  KB -->|PGVectorStore| RAG[RAG semántico]
+  KB -->|OllamaEmbeddings| RAG
 ```
 
-## Componentes afectados — paths propuestos
+## Paths propuestos
 
-### Backend — `apps/back/src/extensions/knowledge-agent/`
+### Backend (`apps/back/src/extensions/knowledge-agent/`)
 
-| Componente | Path | Rol |
-|------------|------|-----|
-| `ExtensionModule` | `extension.module.ts` | Auto-discovered. Registra entities, services, controllers. |
-| `NotesService` | `services/notes.service.ts` | CRUD notas, embedding on save, link extraction. |
-| `NotesController` | `controllers/notes.controller.ts` | `GET/POST/PATCH/DELETE /ka/notes/*` |
-| `RagService` | `services/rag.service.ts` | PGVectorStore similarity search. |
-| `AgentFactoryService` | `services/agent-factory.service.ts` | `build_agent(config_id)` con cache. |
-| `ToolCollectorService` | `services/tool-collector.service.ts` | Glob auto-discovery de `agent.tools.ts`. |
-| `McpLoaderService` | `services/mcp-loader.service.ts` | MultiServerMCPClient desde DB config. |
-| `SandboxService` | `services/sandbox.service.ts` | Execute tool con SandboxBackend. |
-| `ChatService` | `services/chat.service.ts` | PostgresSaver + SSE stream. |
-| `ChatController` | `controllers/chat.controller.ts` | `POST /ka/chat/:sessionId/stream` (SSE). |
-| `ConfigService` | `services/config.service.ts` | CRUD modelos, providers, agent configs. |
-| `ConfigController` | `controllers/config.controller.ts` | `GET/PATCH /ka/config/*` |
-| Entities | `infrastructure/persistence/entities/` | `notes`, `chat-sessions`, `agent-configs`, `mcp-servers`, `models`, `model-providers` |
+| Path                                         | Rol                                       |
+|----------------------------------------------|-------------------------------------------|
+| `extension.module.ts`                        | Auto-discovered module                    |
+| `agent.tools.ts`                             | Tools exportadas a otros agentes (convención) |
+| `domain/note.ts`                             | Dominio nota                              |
+| `domain/agent-config.ts`                     | Dominio config de agente                  |
+| `infrastructure/persistence/entities/...`    | Entities TypeORM                          |
+| `infrastructure/persistence/relational/...`  | Repositories + mappers                    |
+| `application/agent.factory.ts`               | `build_agent(agent_config_id, userId)`    |
+| `application/sandbox/node-vfs.sandbox.ts`    | Sandbox Node VFS                          |
+| `application/sandbox/isolated-vm.eval.ts`    | Eval con isolated-vm                      |
+| `application/tools/*.tool.ts`                | Tools del agente (search, create, etc.)   |
+| `application/mcp/multi-server.client.ts`     | MultiServerMCPClient loader               |
+| `presentation/knowledge.controller.ts`       | CRUD notas + graph endpoint               |
+| `presentation/chat.controller.ts`            | Chat SSE + sesiones                       |
+| `presentation/config.controller.ts`          | Config UI endpoints                       |
+| `seeds/...`                                  | Seeds idempotentes                        |
 
-### Frontend — `apps/front/extensions/knowledge-agent/`
+### Frontend (`apps/front/modules/knowledge/` como Nuxt layer)
 
-| Componente | Path | Rol |
-|------------|------|-----|
-| `KaNotesPage` | `pages/app/ka/notes/index.vue` | Lista notas con `DataTable` base. |
-| `KaNoteEditor` | `pages/app/ka/notes/[id]/edit.vue` | `RichEditor` (TipTap) + `FormInput` título + frontmatter editor. |
-| `KaGraphView` | `pages/app/ka/graph.vue` | Visor grafo (vue-flow o cytoscape). |
-| `KaTreeView` | `components/KaTreeSidebar.vue` | Sidebar jerárquico por tags/categorías. |
-| `KaChatPage` | `pages/app/ka/chat.vue` | Chat UI con SSE stream + render rich. |
-| `KaChatMessage` | `components/KaChatMessage.vue` | Render markdown-it + highlight.js + DOMPurify. |
-| `KaAdminPanel` | `pages/app/ka/admin.vue` | Config modelos, providers, MCP servers, agent configs. |
-| `useKa` | `composables/useKa.ts` | TanStack Query keys + hooks. |
-
-## Decisiones técnicas
-
-### D-01 — pgvector en PostgreSQL (✅ Always)
-
-Embedding del contenido markdown para RAG. `PGVectorStore` de langchainjs + `OllamaEmbeddings`. Vector(1536). Alternativa: Qdrant externo (descartada: añade infra obligatoria, Postgres ya está).
-
-### D-02 — deepagents npm sobre LangGraph (✅ Always)
-
-`createDeepAgent` con factory `build_agent(config_id)`. Agente único (no supervisor). Alternativa: orquestador + subagentes (descartada por requisito del usuario: patrón agente único con tools de extensiones).
-
-### D-03 — Agent.md dinámico en DB (✅ Always)
-
-`ext_ka_agent_configs` guarda systemPrompt como text. No archivo fijo. Factory carga de DB. Alternativa: archivo `AGENTS.md` fijo (descartada: no es modificable sin deploy).
-
-### D-04 — Auto-discovery de tools (✅ Always)
-
-Convención `<extension>/agent.tools.ts` → array de LangChain tools. Glob auto-discovery (mismo patrón que `ExtensionLoaderModule`). Alternativa: registro manual en module (descartada: viola auto-discovery principle).
-
-### D-05 — PostgresSaver para sesiones (✅ Always)
-
-`PostgresSaver` checkpointer = sesiones persistentes en PostgreSQL. Alternativa: MemorySaver (descartada: no persiste tras restart), Redis checkpointer (descartada: añade dep).
-
-### D-06 — SSE streaming desde NestJS (✅ Always)
-
-`stream_events(version="v3")` → SSE. NestJS expone endpoint SSE. Frontend Nuxt consume con EventSource. Alternativa: WebSocket (descartada: SSE más simple para unidireccional server→client).
-
-### D-07 — Sandbox con Node VFS (dev) + Daytona (prod) (⚠️ Ask first)
-
-`SandboxBackend` con Node VFS en dev, Daytona microVM en prod. `isolated-vm` para eval liviano. Alternativa prod: Modal serverless (descartada por ahora — ver Q-04).
+| Path                                       | Rol                                       |
+|--------------------------------------------|-------------------------------------------|
+| `pages/index.vue`                           | Layout: sidebar árbol + editor + grafo    |
+| `pages/chat/[sessionId].vue`               | Vista de chat                             |
+| `pages/admin/agents/[id].vue`              | Config de agente                          |
+| `components/TipTapEditor.vue`               | Editor markdown → TipTap                  |
+| `components/NoteTreeView.vue`              | Visor árbol de categorías                 |
+| `components/GraphView.vue`                 | Visor grafo d3-force                      |
+| `components/ChatStream.vue`                 | Chat con streaming SSE                    |
+| `components/RichMessage.vue`               | Render rich (markdown-it + hljs + DOMPurify) |
+| `composables/useKnowledgeGraph.ts`         | Fetch + cache de grafo                    |
+| `composables/useChatStream.ts`             | SSE client + state de sesión              |

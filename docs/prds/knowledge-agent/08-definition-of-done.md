@@ -1,123 +1,125 @@
 ---
 doc: knowledge-agent/08-definition-of-done
-title: "Definition of Done"
+title: "Knowledge Agent — Definition of Done"
 status: draft
 created: 2026-08-21
 ---
 
-# Definition of Done
+# Knowledge Agent — Definition of Done
 
-## Por fase (gate de merge)
+## Checklist por fase
 
-### Fase 1 — Schema DB + pgvector
-- [ ] Extensión scaffolded con `pnpm generate:extension -- --name=knowledge-agent`.
-- [ ] `extension.module.ts` auto-discovered (no se modificó `app.module.ts`).
-- [ ] `extension.config.ts` con `registerAs('knowledge-agent')`.
-- [ ] 6 entidades creadas con `@Entity('ext_ka_*')` prefix.
-- [ ] Migración generada con `pnpm migration:generate InitKnowledgeAgent` y aplicada con `pnpm migration:run`.
-- [ ] Migración incluye `CREATE EXTENSION IF NOT EXISTS vector;`.
-- [ ] Índice IVFFlat o HNSW en `ext_ka_notes.embedding`.
-- [ ] Seeds: provider Ollama Cloud, provider OpenRouter, model `glm-5.2` (active), agent config default.
-- [ ] `pnpm lint` (apps/back) pasa sin errores.
-- [ ] `pnpm check-types` (apps/back) pasa.
-- [ ] No `console.log` (Logger).
-- [ ] No rutas relativas largas (aliases `@ext/knowledge-agent/*`).
+### Fase 1: Schema + KB CRUD
 
-### Fase 2 — Knowledge Base CRUD + RAG
-- [ ] `NotesService` + `NotesController` creados con CRUD completo.
-- [ ] `RagService` con `PGVectorStore` integration.
-- [ ] Embedding on save (OllamaEmbeddings) — async via Bull o sync con fallback `embedding=NULL`.
-- [ ] Link extraction `[[link]]` + backlinks query.
-- [ ] Frontmatter OKF parse (YAML).
-- [ ] `KaNotesPage` usa `DataTable` base (no custom table).
-- [ ] `KaNoteEditor` usa `RichEditor` base (no custom TipTap).
-- [ ] `KaTreeSidebar` renderiza árbol jerárquico por tags.
-- [ ] i18n keys `knowledgeAgent.*` en `apps/front/i18n/locales/es.json` y `en.json`.
-- [ ] Test: crear nota → embedding generado < 2s (5k chars).
-- [ ] Test: search `?q=test&top=5` < 500ms (10k notas seed).
-- [ ] Test: backlinks query retorna notas correctas.
-- [ ] `pnpm lint` + `pnpm check-types` apps/back + apps/front pasa.
+- [ ] Migraciones generadas con `pnpm migration:generate` (no SQL hardcode).
+- [ ] Tabla `ext_ka_notes` con prefijo `ext_ka_` y todas las columnas
+  (`id`, `title`, `content_md`, `category_path`, `tags`, `frontmatter`,
+  `embedding`, `user_id`, `created_at`, `updated_at`, `deleted_at`,
+  `deleted_by`).
+- [ ] Tabla `ext_ka_note_links` (`source_note_id`, `target_note_id`).
+- [ ] Index pgvector en `embedding`.
+- [ ] Index en `category_path` y `user_id`.
+- [ ] CRUD endpoints funcionan con `user_id` filter.
+- [ ] Re-embed on create/update con `OllamaEmbeddings`.
+- [ ] Soft delete funciona (`deleted_at` + `deleted_by`).
+- [ ] Editor TipTap serializa a markdown y guarda en DB.
+- [ ] Visor árbol básico expande/colapsa categorías.
+- [ ] Tests backend pasan (≥ 80% cobertura módulo).
+- [ ] Lint pasa.
 
-### Fase 3 — Visor de grafo + Sandbox
-- [ ] `KaGraphView` renderiza grafo con vue-flow o cytoscape [Q-05 resuelto].
-- [ ] Nodos = notas, edges = links `[[]]`, backlinks bidireccionales.
-- [ ] Grafo de 500 nodos renderiza < 1s.
-- [ ] Filtro por tag/categoría funcional.
-- [ ] `SandboxService` con `execute` tool + SandboxBackend (Node VFS dev).
-- [ ] Permisos declarativos: deny a `.env`, creds, `apps/`, `packages/`, `src/`.
-- [ ] `isolated-vm` para eval liviano (o fallback `vm` documentado — Q-11).
-- [ ] Test: sandbox ejecuta `curl` retorna response.
-- [ ] Test: sandbox deniega acceso a `.env` (test explícito).
-- [ ] Test: sandbox deniega acceso a `apps/` (test explícito).
-- [ ] `pnpm lint` + `pnpm check-types` pasa.
+### Fase 2: Visor grafo d3-force
 
-### Fase 4 — DeepAgent + Tools + MCP
-- [ ] `AgentFactoryService` con `build_agent(config_id)` + cache por config hash.
-- [ ] `ToolCollectorService` con glob auto-discovery de `agent.tools.ts`.
-- [ ] `McpLoaderService` con `MultiServerMCPClient` + timeout 3s + graceful degradation.
-- [ ] `ConfigService` + `ConfigController` con CRUD model-providers, models, agent-configs, mcp-servers.
-- [ ] RBAC: `@Roles(RoleEnum.admin)` en config endpoints (FR-701).
-- [ ] `KaAdminPanel` frontend con `FormInput`, `FormSelect`, `FormSwitch`, `DataTable` base.
-- [ ] Test: `build_agent` retorna instancia < 1s (cache hit).
-- [ ] Test: tools de extensión con `agent.tools.ts` se cargan.
-- [ ] Test: extensión sin `agent.tools.ts` → skip graceful.
-- [ ] Test: MCP caído → warning + agente sin esas tools (NFR-010).
-- [ ] Test: cambiar model active → agente reconstruido (cache invalidation).
-- [ ] Test: non-admin → 403 en config endpoints.
-- [ ] `pnpm lint` + `pnpm check-types` pasa.
+- [ ] `GraphView.vue` portado de demo React + d3-force a Vue 3.
+- [ ] Endpoint `GET /api/knowledge/graph` retorna `{ nodes, edges }`.
+- [ ] `forceLink`, `forceManyBody`, `forceCollide`, `forceX`/`forceY`
+  configurados.
+- [ ] Zoom/pan con `d3-zoom` funciona.
+- [ ] Nodos con radio según degree.
+- [ ] Hover: highlight vecinos, dim resto.
+- [ ] Selected: halo glow + panel lateral con backlinks.
+- [ ] Search + filter por categoría funcionan.
+- [ ] Drag para fijar posición funciona.
+- [ ] Render ≥ 30 FPS hasta 500 nodos.
+- [ ] Tests frontend pasan.
+- [ ] Lint pasa.
 
-### Fase 5 — Chat con sesiones + Streaming SSE
-- [ ] `ChatService` con `PostgresSaver` checkpointer.
-- [ ] `ext_ka_chat_sessions` persistencia de sesiones.
-- [ ] RAG context injection (FR-202) antes de enviar al agente.
-- [ ] `ChatController` con `POST /ka/chat/:sessionId/stream` (SSE).
-- [ ] SSE stream usa `stream_events(version="v3")`.
-- [ ] `KaChatPage` con chat UI estilo ChatGPT.
-- [ ] `KaChatMessage` con `markdown-it` + `highlight.js` + `DOMPurify`.
-- [ ] Code block copy button + language label.
-- [ ] `useKa` composable con TanStack Query + EventSource.
-- [ ] Test: primer token SSE < 3s (Ollama) / < 2s (OpenRouter).
-- [ ] Test: sesión persiste tras server restart.
-- [ ] Test: markdown, code highlighting, HTML sanitizado renderizan.
-- [ ] Test: RAG context inyecta notas relevantes en prompt.
-- [ ] `pnpm lint` + `pnpm check-types` pasa.
+### Fase 3: DeepAgent + sandbox
 
-### Fase 6 — Polish + tests E2E + docs
-- [ ] Tests E2E: flujo completo nota → embedding → search → chat.
-- [ ] Test E2E: cambiar model → agente reconstruido.
-- [ ] Test E2E: MCP caído → graceful degradation.
-- [ ] Test E2E: sandbox deny a `.env`.
-- [ ] `docs/extensions/knowledge-agent.md` creado con YAML frontmatter válido (id, name, type, parent, dependencies, entities, external_apis).
-- [ ] `pnpm docs:sync` ejecutado — `docs/ARCHITECTURE.md` regenerado sin errores YAML.
-- [ ] Edge cases cubiertos: nota sin frontmatter, embedding NULL, grafo vacío, sesión sin mensajes.
-- [ ] i18n es + en completo.
-- [ ] Responsive mobile.
+- [ ] `deepagents` npm + dependencias LangChain instaladas (Q-06, Q-07, Q-08
+  resueltas).
+- [ ] `build_agent(agent_config_id, userId)` factory implementada.
+- [ ] Tabla `ext_ka_agent_configs` con `name`, `system_prompt`, `model`,
+  `provider`, `permissions`, `mcp_servers`.
+- [ ] Cache por config hash funciona (hit/miss logs en `build_agent`).
+- [ ] Reconstrucción por request cuando config hash cambió.
+- [ ] Sandbox Node VFS con working dir aislado por session.
+- [ ] Permisos declarativos: deny a `.env`, creds, código del proyecto.
+- [ ] `isolated-vm` evalúa scripts sin shell/network.
+- [ ] `execute(command, args)` tool funciona.
+- [ ] Test: permisos deny bloquean acceso a `.env` (verificar 403/throw).
+- [ ] Tests backend pasan.
+- [ ] Lint pasa.
 
-## Globales (todas las fases)
+### Fase 4: Agent KB tools + tools de extensiones
 
-- [ ] Commits con conventional commits (`feat(ka):`, `fix(ka):`, `docs(ka):`).
-- [ ] Sin `Co-Authored-By` ni atribución IA.
-- [ ] No se modificó `app.module.ts`.
-- [ ] No se tocaron archivos fuera de scope (ver TypeScript guidelines §11.8).
-- [ ] `docs/extensions/knowledge-agent.md` actualizado con entities/rutas/dependencies.
-- [ ] `pnpm docs:sync` ejecutado sin errores.
-- [ ] Branch + PR creado (con `gh pr create`).
-- [ ] Decisiones clave guardadas en Engram (`mem_save`) — pgvector, deepagents, sandbox, SSE, PostgresSaver.
+- [ ] `search_notes_tree(categoryPath, depth)` funciona.
+- [ ] `search_notes_semantic(query, topK)` usa pgvector.
+- [ ] `create_note` genera embedding automáticamente.
+- [ ] `update_note` re-embedda si `content_md` cambia.
+- [ ] `delete_note` hace soft delete + auditoría (`deleted_by`).
+- [ ] Re-embed y re-extract `note_links` on create/update.
+- [ ] Auto-discovery de `agent.tools.ts` en extensiones (glob).
+- [ ] Tools se mergean en array unificado en el agente.
+- [ ] Tests backend pasan (incluye test de agente creando/editando nota).
+- [ ] Lint pasa.
 
-## Gates de no-merge
+### Fase 5: MCP externos + chat con sesiones
 
-Cualquiera de estos bloquea merge:
+- [ ] Tabla `ext_ka_mcp_servers` (`agent_config_id`, `name`, `transport`,
+  `url`, `api_key_ref`, `enabled`).
+- [ ] `MultiServerMCPClient` carga servers al construir agente.
+- [ ] Tools de MCP se mergean con tools nativas.
+- [ ] `PostgresSaver` checkpointer persiste sesiones.
+- [ ] Tabla `ext_ka_chat_sessions` con `user_id` (aislamiento).
+- [ ] Streaming SSE desde NestJS (`stream_events v3`).
+- [ ] Render rich: `markdown-it` + `highlight.js` + `DOMPurify` funciona.
+- [ ] **Test cross-user access → 403** (sesión de usuario A no accesible por
+  usuario B).
+- [ ] Reanudar sesión carga historial previo.
+- [ ] `userId` en state de LangGraph para que tools operen en scope del usuario.
+- [ ] Tests backend + frontend pasan.
+- [ ] Lint pasa.
 
-- ❌ Sandbox permite acceso a `.env`, creds, o código del proyecto.
-- ❌ API key hardcodeada en código o DB (no `api_key_ref`).
-- ❌ `app.module.ts` modificado.
-- ❌ `console.log` introducido.
-- ❌ Secret en código.
-- ❌ Ruta relativa larga (`../../../`).
-- ❌ Migración SQL escrita a mano.
-- ❌ Componente custom cuando existe base-ui equivalente (RichEditor, DataTable, FormInput, etc.).
-- ❌ `any` type sin `eslint-disable` justificado.
-- ❌ `pgvector` extensión no verificada en migración.
-- ❌ MCP server caído bloquea build del agente (no graceful degradation).
-- ❌ Chat sin DOMPurify (XSS risk).
-- ❌ Sesiones no persisten tras restart (no PostgresSaver).
+### Fase 6: Config UI + polish
+
+- [ ] Tabla `ext_ka_model_providers` (`name`, `provider`, `api_key_ref`,
+  `base_url`, `enabled`).
+- [ ] Tabla `ext_ka_models` (`provider_id`, `model_id`, `display_name`,
+  `context_window`, `active`).
+- [ ] UI cambia modelo/proveedor de agente.
+- [ ] Agente se reconstruye al cambiar config (invalidate cache).
+- [ ] `api_key_ref` guarda referencia (no valor plano).
+- [ ] RBAC: solo admin gestiona configs.
+- [ ] Tests E2E de config UI pasan.
+- [ ] Lint pasa.
+
+## Checklist globales
+
+- [ ] Tests pasan (backend, strict TDD).
+- [ ] Lint pasa (`pnpm lint`).
+- [ ] Type-check pasa (`pnpm check-types`).
+- [ ] Todas las tablas usan prefijo `ext_ka_`.
+- [ ] Extension auto-discovery funciona (copiar carpeta → funciona, borrar
+  carpeta → desaparece).
+- [ ] Sesiones aisladas por usuario (test cross-user access → 403).
+- [ ] Sandbox aislado (test permisos deny a `.env` → bloqueado).
+- [ ] `doc .md` creado en `docs/extensions/knowledge-agent.md` con YAML
+  frontmatter (`id: knowledge-agent`, `name`, `type: extension`, `parent: null`,
+  `dependencies: [auth]`).
+- [ ] `pnpm docs:sync` ejecutado exitosamente (regenera `ARCHITECTURE.md`).
+- [ ] Commits con conventional commits (`feat:`, `fix:`, `docs:`).
+- [ ] Sin "Co-Authored-By" ni atribución IA en commits.
+- [ ] NestJS `Logger` usado (no `console.log`).
+- [ ] Aliases absolutos (`@ext/knowledge-agent/*`, `@iam/*`, `@infra/*`).
+- [ ] `import type` para tipos que no se instancian.
+- [ ] Sin `any` (usar `unknown` + guards).
