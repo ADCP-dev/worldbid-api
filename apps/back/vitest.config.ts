@@ -12,6 +12,7 @@ export default defineConfig({
       'src/modules/error-tracker/__tests__/**/*.spec.ts',
       'src/modules/communications/mail/__tests__/**/*.spec.ts',
       'src/mcp/__tests__/**/*.spec.ts',
+      '../../packages/emails/emails/__tests__/**/*.spec.ts',
     ],
     environment: 'node',
     globals: true,
@@ -33,6 +34,7 @@ export default defineConfig({
       '@settings': path.resolve(root, 'src/modules/settings'),
       '@billing': path.resolve(root, 'src/modules/billing'),
       '@social': path.resolve(root, 'src/modules/social'),
+      '@emails': path.resolve(root, '../../packages/emails/emails'),
     },
   },
 })
