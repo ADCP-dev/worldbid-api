@@ -78,23 +78,21 @@ export default [
             'fs.readFile is eliminated from email paths. Use TemplateRenderer for template rendering.',
         },
       ],
-      'no-restricted-modules': [
+      'no-restricted-imports': [
         'error',
         {
-          name: 'handlebars',
-          message:
-            'Handlebars is eliminated. Use TemplateRenderer for email rendering.',
-        },
-      ],
-      'no-restricted-paths': [
-        'error',
-        {
-          target: 'src/modules/communications/mail/mail.service.ts',
-          zones: [
+          paths: [
             {
-              target: 'src/modules/communications/mail/mail.service.ts',
+              name: 'handlebars',
               message:
-                'No inline HTML strings in mail.service.ts. Use a .vue template via TemplateRenderer.',
+                'Handlebars is eliminated. Use TemplateRenderer (@comms/mail/services/template-renderer.service) for email rendering.',
+            },
+          ],
+          patterns: [
+            {
+              group: ['*.hbs', '**/*.hbs'],
+              message:
+                'Handlebars (.hbs) templates are eliminated. Use .vue templates via TemplateRenderer.',
             },
           ],
         },

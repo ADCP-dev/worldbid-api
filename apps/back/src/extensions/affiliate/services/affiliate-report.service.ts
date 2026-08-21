@@ -128,7 +128,7 @@ This report was generated automatically.`;
       await this.mailerService.sendMail({
         to: notificationEmail,
         subject: `Affiliate Monthly Report — ${monthName} ${now.getFullYear()}`,
-        templateName: 'affiliate-report',
+        templateName: 'monthly-report',
         config: {
           subject: `Affiliate Monthly Report — ${monthName} ${now.getFullYear()}`,
           partnerName: 'Partner',

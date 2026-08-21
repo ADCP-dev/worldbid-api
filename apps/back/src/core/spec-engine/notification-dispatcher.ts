@@ -35,6 +35,7 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as path from 'path';
 
 import type { NotificationSpec, HookContext } from './spec.types';
@@ -102,6 +103,7 @@ export class NotificationDispatcher {
   constructor(
     private readonly templateRenderer?: TemplateRenderer,
     private readonly emailDiscoveryService?: EmailDiscoveryService,
+    private readonly configService?: ConfigService,
   ) {}
 
   /**
@@ -320,11 +322,22 @@ export class NotificationDispatcher {
 
     // Send — fire-and-forget at the call site, but we await here so a send
     // failure surfaces into the dispatch() try/catch and gets logged.
+    // Per D-06, the from address is unified to mail.defaultName <mail.defaultEmail>
+    // in BOTH pipelines (core MailService AND dispatcher). app.notificationEmail
+    // remains a recipient (for admin alerts), NOT the sender.
+    const fromName =
+      this.configService?.get<string>('mail.defaultName') ??
+      appConfig.name ??
+      '';
+    const fromEmail =
+      this.configService?.get<string>('mail.defaultEmail') ??
+      appConfig.notificationEmail ??
+      '';
     await ctx.sendEmail({
       to,
       subject,
       html,
-      from: `${appConfig.name} <${appConfig.notificationEmail}>`,
+      from: `"${fromName}" <${fromEmail}>`,
       attachments: spec.attachments as unknown[],
     });
 
