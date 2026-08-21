@@ -39,8 +39,18 @@ export default async function staleTasksDetector(
       await ctx.sendEmail({
         to: notificationEmail,
         subject: `${staleTasks.length} tareas pendientes sin actualizar`,
-        text: `Hay ${staleTasks.length} tareas que llevan más de 24 horas en estado "pending":\n\n${staleTasks.map((t: any) => `- ${t.title} (creada: ${t.createdAt})`).join('\n')}`,
-        html: `<h2>Tareas pendientes sin actualizar</h2><p>Hay <strong>${staleTasks.length}</strong> tareas que llevan más de 24 horas en estado "pending":</p><ul>${staleTasks.map((t: any) => `<li>${t.title} (creada: ${t.createdAt?.toISOString?.() || t.createdAt})</li>`).join('')}</ul>`,
+        templateName: 'stale-tasks',
+        config: {
+          subject: `${staleTasks.length} tareas pendientes sin actualizar`,
+          count: staleTasks.length,
+          staleTasks: staleTasks.map((t: { id: string; title: string; createdAt: Date | string }) => ({
+            id: t.id,
+            title: t.title,
+            createdAt: t.createdAt instanceof Date ? t.createdAt.toISOString() : t.createdAt,
+          })),
+          lang: 'es',
+        },
+        text: `Hay ${staleTasks.length} tareas que llevan más de 24 horas en estado "pending":\n\n${staleTasks.map((t: { title: string; createdAt: Date | string }) => `- ${t.title} (creada: ${t.createdAt})`).join('\n')}`,
       });
       ctx.logger.log(`Stale notification sent to ${notificationEmail}`);
     } else {

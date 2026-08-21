@@ -178,52 +178,6 @@ export class MailService {
   }
 
   /**
-   * @deprecated T-027/T-028 will migrate stripe to NotificationDispatcher.
-   * This method is kept temporarily until the stripe invoice.vue template
-   * and dispatcher wiring are in place (Fase 3).
-   */
-  async invoicePaymentConfirmed(
-    mailData: MailData<{
-      invoiceNumber: string;
-      amount: string;
-      currency: string;
-      attachment?: {
-        filename: string;
-        content: string;
-        contentType: string;
-      };
-    }>,
-  ): Promise<void> {
-    const emailData = mailData.data;
-    const attachments = emailData.attachment
-      ? [
-          {
-            filename: emailData.attachment.filename,
-            content: Buffer.from(emailData.attachment.content, 'base64'),
-            contentType: emailData.attachment.contentType,
-          },
-        ]
-      : [];
-
-    await this.mailerService.sendMail({
-      to: mailData.to,
-      subject: `Factura ${emailData.invoiceNumber} - ${emailData.amount} ${emailData.currency}`,
-      html: `
-        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px">
-          <h2 style="color:#1f2937">Factura ${emailData.invoiceNumber}</h2>
-          <p>Adjuntamos tu factura por importe de <strong>${emailData.amount} ${emailData.currency}</strong>.</p>
-          <p>Gracias por tu confianza.</p>
-          <hr style="border:0;border-top:1px solid #e5e7eb;margin:20px 0">
-          <p style="color:#9ca3af;font-size:12px">Ikiraisolutions - Facturación automática</p>
-        </div>
-      `,
-      attachments,
-      templatePath: '',
-      context: {},
-    });
-  }
-
-  /**
    * Send a contact form notification to the site owner (R-CS-06/07, GAP2).
    *
    * - Recipient: app.notificationEmail via getOrThrow (fails loudly if unset).

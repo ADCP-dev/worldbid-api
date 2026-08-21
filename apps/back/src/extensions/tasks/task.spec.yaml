@@ -173,7 +173,7 @@ resources:
           on: afterCreate
           when: 'assigneeId != null'
         channel: email
-        template: ./templates/task-assigned.hbs
+        template: ./emails/task-assigned.vue
         to: '${app.notificationEmail}'
         subject: 'Nueva tarea asignada: ${entity.title}'
 
@@ -182,16 +182,16 @@ resources:
           on: afterUpdate
           when: 'changed.status != null'
         channel: email
-        template: ./templates/task-assigned.hbs
+        template: ./emails/task-assigned.vue
         to: '${app.notificationEmail}'
-        subject: 'Tarea "${entity.title}" cambió de estado'
+        subject: 'Tarea "${entity.title}" cambio de estado'
 
       - name: notify-stale
         trigger:
           on: job
           jobName: stale-tasks-detector
         channel: email
-        template: ./templates/stale-tasks.hbs
+        template: ./emails/stale-tasks.vue
         to: '${app.notificationEmail}'
         subject: 'Tareas pendientes sin actualizar'
 
@@ -200,7 +200,7 @@ resources:
           on: job
           jobName: overdue-tasks-detector
         channel: email
-        template: ./templates/stale-tasks.hbs
+        template: ./emails/overdue-tasks.vue
         to: '${app.notificationEmail}'
         subject: 'Tareas vencidas'
 
