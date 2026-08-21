@@ -76,8 +76,15 @@ export default async function taskNoteAfterCreate(
     await ctx.sendEmail({
       to: notificationEmail,
       subject,
+      templateName: 'task-note',
+      config: {
+        subject,
+        taskTitle: task.title,
+        taskId: task.id,
+        noteContent: note.content,
+        lang: 'en',
+      },
       text,
-      html: `<h2>${subject}</h2><p>${note.content}</p>`,
     });
     ctx.logger.log(
       `task-note-after-create: notified assignee of task ${task.id} about note ${note.id}`,

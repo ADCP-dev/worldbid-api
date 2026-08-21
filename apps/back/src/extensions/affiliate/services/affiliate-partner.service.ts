@@ -157,16 +157,24 @@ export class AffiliatePartnerService {
       await this.mailerService.sendMail({
         to: partner.email,
         subject: 'Welcome to the Affiliate Program',
-        html: `<p>Hello ${partner.name},</p>
-<p>You have been invited to the affiliate program. You can now log in to the portal.</p>
-<p>Email: ${partner.email}</p>
-${passwordSection}`,
+        templateName: 'welcome',
+        config: {
+          partnerName: partner.name,
+          subject: 'Welcome to the Affiliate Program',
+          greeting: `Hello ${partner.name},`,
+          bodyText: `You have been invited to the affiliate program. You can now log in to the portal.`,
+          link: '',
+          buttonText: '',
+          passwordSection,
+          email: partner.email,
+          lang: 'en',
+        },
         text: `Hello ${partner.name},\n\nYou have been invited to the affiliate program. You can now log in to the portal.\nEmail: ${partner.email}${
           tempPassword !== null
             ? `\n\nYour temporary password is: ${tempPassword}\nPlease log in and change your password immediately.`
             : ''
         }`,
-      });
+      } as never);
       this.logger.log(`Invitation email sent to ${partner.email}`);
     } catch (err) {
       this.logger.error(

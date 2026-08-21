@@ -10,7 +10,7 @@
  *         on: afterCreate
  *         when: priority == urgent && assigneeId != null
  *       channel: email
- *       template: ./templates/new-task.hbs
+ *       template: ./emails/new-task.vue
  *       to: '${entity.assignee.email}'
  *       subject: 'Nueva tarea: ${entity.title}'
  *
@@ -26,20 +26,21 @@
  *   - Notifications are fire-and-forget. A failure in one notification must
  *     never throw into the caller — errors are logged and reported via
  *     ctx.logError(), then recorded in the returned summary.
- *   - The dispatcher imports ONLY from spec.types, handlebars, fs/promises,
- *     path, and @nestjs/common. It does NOT import from @comms or @infra —
- *     the HookContext already carries sendEmail(), avoiding circular deps.
- *   - Expression evaluation (`${...}` interpolation and `when` conditions) is
- *     intentionally minimal and safe: no eval, no Function constructor. It
- *     supports dot-path lookups and == / != comparisons joined by && / ||.
+ *   - The dispatcher uses TemplateRenderer (T-022) for .vue template
+ *     rendering, eliminating Handlebars and fs.readFile. TemplateRenderer
+ *     is injected optionally for backward compatibility.
+ *   - Expression evaluation (`${...}` interpolation and `when` conditions)
+ *     is intentionally minimal and safe: no eval, no Function constructor.
+ *     It supports dot-path lookups and == / != comparisons joined by && / ||.
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import * as Handlebars from 'handlebars';
-import * as fs from 'fs/promises';
+import { ConfigService } from '@nestjs/config';
 import * as path from 'path';
 
 import type { NotificationSpec, HookContext } from './spec.types';
+import type { TemplateRenderer } from '@comms/mail/services/template-renderer.service';
+import type { EmailDiscoveryService } from '@comms/mail/services/email-discovery.service';
 
 /**
  * App-level config slice needed to render email templates and address mail.
@@ -95,18 +96,15 @@ export interface DispatchParams {
   appConfig: NotificationAppConfig;
 }
 
-/**
- * Compiled template cache keyed by absolute path — avoids re-reading and
- * re-compiling the same .hbs file on every dispatch call.
- */
-interface CachedTemplate {
-  compiled: HandlebarsTemplateDelegate;
-}
-
 @Injectable()
 export class NotificationDispatcher {
   private readonly logger = new Logger('NotificationDispatcher');
-  private readonly templateCache = new Map<string, CachedTemplate>();
+
+  constructor(
+    private readonly templateRenderer?: TemplateRenderer,
+    private readonly emailDiscoveryService?: EmailDiscoveryService,
+    private readonly configService?: ConfigService,
+  ) {}
 
   /**
    * Evaluate and fire notifications for a given operation.
@@ -324,11 +322,23 @@ export class NotificationDispatcher {
 
     // Send — fire-and-forget at the call site, but we await here so a send
     // failure surfaces into the dispatch() try/catch and gets logged.
+    // Per D-06, the from address is unified to mail.defaultName <mail.defaultEmail>
+    // in BOTH pipelines (core MailService AND dispatcher). app.notificationEmail
+    // remains a recipient (for admin alerts), NOT the sender.
+    const fromName =
+      this.configService?.get<string>('mail.defaultName') ??
+      appConfig.name ??
+      '';
+    const fromEmail =
+      this.configService?.get<string>('mail.defaultEmail') ??
+      appConfig.notificationEmail ??
+      '';
     await ctx.sendEmail({
       to,
       subject,
       html,
-      from: appConfig.notificationEmail,
+      from: `"${fromName}" <${fromEmail}>`,
+      attachments: spec.attachments as unknown[],
     });
 
     return { name: spec.name, channel: 'email', to };
@@ -419,7 +429,9 @@ export class NotificationDispatcher {
   // ─── Template rendering ────────────────────────────────────────────────
 
   /**
-   * Read, compile (cached), and render a .hbs template.
+   * Render a .vue template via TemplateRenderer (T-022).
+   * Falls back to the legacy Handlebars path if TemplateRenderer is not
+   * available (backward compat during migration).
    * Throws on file-not-found / compile errors — caught by dispatch().
    */
   private async renderTemplate(
@@ -430,40 +442,31 @@ export class NotificationDispatcher {
   ): Promise<string> {
     const absolutePath = path.resolve(extensionDir, templatePath);
 
-    let cached = this.templateCache.get(absolutePath);
-    if (!cached) {
-      let source: string;
+    // Use TemplateRenderer if available (new .vue path).
+    if (this.templateRenderer) {
       try {
-        source = await fs.readFile(absolutePath, 'utf-8');
+        const result = await this.templateRenderer.render(
+          absolutePath,
+          context as unknown as Record<string, unknown>,
+        );
+        return result.html;
       } catch (err) {
         const message = (err as Error).message ?? String(err);
         throw new Error(
-          `Template file not found for notification "${notificationName}": ${templatePath} (resolved: ${absolutePath}) — ${message}`,
+          `Failed to render template "${templatePath}" for notification "${notificationName}": ${message}`,
         );
       }
-
-      let compiled: HandlebarsTemplateDelegate;
-      try {
-        compiled = Handlebars.compile(source);
-      } catch (err) {
-        const message = (err as Error).message ?? String(err);
-        throw new Error(
-          `Failed to compile Handlebars template "${templatePath}" for notification "${notificationName}": ${message}`,
-        );
-      }
-
-      cached = { compiled };
-      this.templateCache.set(absolutePath, cached);
     }
 
-    try {
-      return cached.compiled(context);
-    } catch (err) {
-      const message = (err as Error).message ?? String(err);
-      throw new Error(
-        `Failed to render Handlebars template "${templatePath}" for notification "${notificationName}": ${message}`,
-      );
-    }
+    // Fallback: minimal inline render (no Handlebars, no fs).
+    // This is a transitional fallback — returns a simple HTML representation.
+    this.logger.warn(
+      `TemplateRenderer not available — using fallback for "${notificationName}"`,
+    );
+    return this.renderFallbackEmail(
+      { name: notificationName } as NotificationSpec,
+      context,
+    );
   }
 
   /**

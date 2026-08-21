@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from '@users/users.module';
+import { MailerModule } from '@infra/mailer/mailer.module';
+import { EmailQueueModule } from '@comms/email-queue/email-queue.module';
 import { ProductEntity } from './infrastructure/persistence/entities/product.entity';
 import { PriceEntity } from './infrastructure/persistence/entities/price.entity';
 import { PlanEntity } from './infrastructure/persistence/entities/plan.entity';
@@ -29,6 +31,8 @@ import { stripeProvider } from './stripe.provider';
   imports: [
     ConfigModule,
     UsersModule,
+    MailerModule,
+    EmailQueueModule.register(),
     TypeOrmModule.forFeature([
       ProductEntity,
       PriceEntity,

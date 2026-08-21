@@ -1,15 +1,32 @@
 import { Injectable } from '@nestjs/common';
-import fs from 'node:fs/promises';
 import { ConfigService } from '@nestjs/config';
 import nodemailer from 'nodemailer';
-import Handlebars from 'handlebars';
-import { AllConfigType } from '@src/config/config.type';
+import type { AllConfigType } from '@src/config/config.type';
+import { TemplateRenderer } from '@comms/mail/services/template-renderer.service';
 
+/**
+ * MailerService — sends emails via nodemailer.
+ *
+ * Refactored (T-018): uses TemplateRenderer for .vue template rendering
+ * instead of fs.readFile + Handlebars.compile. Eliminates Handlebars dep.
+ *
+ * The `templatePath` field now points to a .vue SFC (absolute path). The
+ * `context` field is the Maizzle config object passed to
+ * TemplateRenderer.render() — accessed via useConfig() in the SFC (C-01).
+ *
+ * Pre-rendered `html` is still supported (when templatePath is empty) for
+ * callers that build HTML inline (e.g. fallback emails).
+ *
+ * Unified from address: mail.defaultName <mail.defaultEmail> (D-06).
+ */
 @Injectable()
 export class MailerService {
   private readonly transporter: nodemailer.Transporter;
 
-  constructor(private readonly configService: ConfigService<AllConfigType>) {
+  constructor(
+    private readonly configService: ConfigService<AllConfigType>,
+    private readonly templateRenderer: TemplateRenderer,
+  ) {
     this.transporter = nodemailer.createTransport({
       host: configService.get('mail.host', { infer: true }),
       port: configService.get('mail.port', { infer: true }),
@@ -31,16 +48,18 @@ export class MailerService {
     templatePath: string;
     context: Record<string, unknown>;
   }): Promise<void> {
-    let html: string | undefined;
-    // Add to context app_url
-    context.app_url = this.configService.getOrThrow('app.backendDomain', {
-      infer: true,
-    });
+    let html: string | undefined = mailOptions.html;
+
     if (templatePath) {
-      const template = await fs.readFile(templatePath, 'utf-8');
-      html = Handlebars.compile(template, {
-        strict: true,
-      })(context);
+      const result = await this.templateRenderer.render(
+        templatePath,
+        context ?? {},
+      );
+      html = result.html;
+      // Use generated plaintext if no explicit text was provided.
+      if (!mailOptions.text && result.plaintext) {
+        mailOptions.text = result.plaintext;
+      }
     }
 
     await this.transporter.sendMail({
@@ -52,7 +71,7 @@ export class MailerService {
           })}" <${this.configService.get('mail.defaultEmail', {
             infer: true,
           })}>`,
-      html: mailOptions.html ? mailOptions.html : html,
+      html,
       attachments: mailOptions.attachments || [],
     });
   }

@@ -42,8 +42,18 @@ export default async function overdueTasksDetector(
       await ctx.sendEmail({
         to: notificationEmail,
         subject: `${overdue.length} tareas vencidas`,
+        templateName: 'overdue-tasks',
+        config: {
+          subject: `${overdue.length} tareas vencidas`,
+          count: overdue.length,
+          overdueTasks: overdue.map((t: { id: string; title: string; dueDate: Date | string }) => ({
+            id: t.id,
+            title: t.title,
+            dueDate: t.dueDate instanceof Date ? t.dueDate.toISOString() : t.dueDate,
+          })),
+          lang: 'es',
+        },
         text: `Hay ${overdue.length} tareas vencidas:\n\n${overdue.map((t: { title: string; dueDate: Date | string }) => `- ${t.title} (vencía: ${t.dueDate})`).join('\n')}`,
-        html: `<h2>Tareas vencidas</h2><p>Hay <strong>${overdue.length}</strong> tareas vencidas:</p><ul>${overdue.map((t: { title: string; dueDate: Date | string }) => `<li>${t.title} (vencía: ${t.dueDate})</li>`).join('')}</ul>`,
       });
       ctx.logger.log(`Overdue notification sent to ${notificationEmail}`);
     } else {

@@ -105,16 +105,6 @@ export class AffiliateReportService {
 
       const monthName = now.toLocaleString('default', { month: 'long' });
 
-      const html = `
-<h2>Affiliate Monthly Report — ${monthName} ${now.getFullYear()}</h2>
-<ul>
-  <li><strong>New referrals:</strong> ${newReferrals}</li>
-  <li><strong>Converted referrals:</strong> ${convertedReferralsThisMonth}</li>
-  <li><strong>Commissions approved:</strong> ${commissionsApproved}</li>
-  <li><strong>Commissions paid:</strong> ${commissionsPaid}</li>
-</ul>
-<p>This report was generated automatically.</p>`;
-
       const text = `Affiliate Monthly Report — ${monthName} ${now.getFullYear()}
 
 New referrals: ${newReferrals}
@@ -138,9 +128,20 @@ This report was generated automatically.`;
       await this.mailerService.sendMail({
         to: notificationEmail,
         subject: `Affiliate Monthly Report — ${monthName} ${now.getFullYear()}`,
-        html,
+        templateName: 'monthly-report',
+        config: {
+          subject: `Affiliate Monthly Report — ${monthName} ${now.getFullYear()}`,
+          partnerName: 'Partner',
+          period: `${monthName} ${now.getFullYear()}`,
+          totalClicks: newReferrals,
+          totalConversions: convertedReferralsThisMonth,
+          totalEarnings: commissionsApproved,
+          currency: '',
+          details: `Commissions paid: ${commissionsPaid}`,
+          lang: 'en',
+        },
         text,
-      });
+      } as never);
 
       this.logger.log(
         `handleMonthlyReport: sent monthly report email — newReferrals=${newReferrals}, converted=${convertedReferralsThisMonth}, approved=${commissionsApproved}, paid=${commissionsPaid}`,

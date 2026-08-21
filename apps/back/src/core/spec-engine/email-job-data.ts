@@ -5,6 +5,8 @@
  * We re-declare it here as a type alias to avoid a circular import
  * dependency (the spec-engine module should not import from communications).
  * The actual QueuedMailerService.sendMail() accepts the same shape.
+ *
+ * Updated (T-019): templateName + config replace templatePath + context.
  */
 
 export interface EmailJobDataLike {
@@ -12,8 +14,8 @@ export interface EmailJobDataLike {
   subject: string;
   html?: string;
   text?: string;
-  templatePath?: string;
-  context?: Record<string, unknown>;
+  templateName?: string;
+  config?: Record<string, unknown>;
   attachments?: unknown[];
   from?: string;
 }

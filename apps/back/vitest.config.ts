@@ -11,6 +11,8 @@ export default defineConfig({
       'src/extensions/tasks/__tests__/**/*.spec.ts',
       'src/modules/error-tracker/__tests__/**/*.spec.ts',
       'src/modules/communications/mail/__tests__/**/*.spec.ts',
+      'src/modules/communications/email-queue/__tests__/**/*.spec.ts',
+      'src/infrastructure/mailer/__tests__/**/*.spec.ts',
       'src/mcp/__tests__/**/*.spec.ts',
       '../../packages/emails/emails/__tests__/**/*.spec.ts',
     ],

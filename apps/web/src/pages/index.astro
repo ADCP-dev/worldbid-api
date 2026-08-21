@@ -4,11 +4,9 @@ import PublicLayout from '../layouts/PublicLayout.astro';
 import Hero from '../components/landing/Hero.astro';
 import Features from '../components/landing/Features.astro';
 import Contact from '../components/landing/Contact.astro';
-import { localeFromPath, type Locale } from '../i18n/ui';
 import { organizationJsonLd, webSiteJsonLd } from '../lib/seo';
 
-const { pathname } = Astro.url;
-const locale: Locale = localeFromPath(pathname);
+const locale = Astro.locals.locale;
 
 const siteUrl = import.meta.env.PUBLIC_SITE_URL || Astro.site?.origin || '';
 const orgLd = organizationJsonLd({ name: 'Foundation', url: siteUrl });

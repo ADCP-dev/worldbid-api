@@ -40,6 +40,8 @@ import { SpecMetaController } from './meta-controller';
 import { buildFoundationEntitySchemas } from './foundation-entity-schemas';
 import { getAuditSchema } from './spec-engine-audit';
 import { EmbedService } from './embed-service';
+import { MailerModule } from '@infra/mailer/mailer.module';
+import { TemplateRenderer } from '@comms/mail/services/template-renderer.service';
 import type { ResourceSpec, HookSpec } from './spec.types';
 import type { LoadedHook } from './hook-executor';
 
@@ -271,8 +273,13 @@ export class SpecEngineModule {
     });
     providers.push({
       provide: NotificationDispatcher,
-      useValue: notificationDispatcher,
+      useFactory: (templateRenderer?: TemplateRenderer) => {
+        return new NotificationDispatcher(templateRenderer);
+      },
+      inject: [TemplateRenderer],
     });
+    // Also export the dispatcher for injection into controllers.
+    exports.push(NotificationDispatcher);
     providers.push({
       provide: SpecErrorReporter,
       useValue: specErrorReporter,
@@ -280,6 +287,7 @@ export class SpecEngineModule {
     // Register job runner with BullMQ (if Redis available) or setInterval fallback
     const jobRegistration = SpecJobRunner.register(loadedSpecs);
     imports.push(...jobRegistration.imports);
+    imports.push(MailerModule);
     providers.push(...jobRegistration.providers);
 
     // Store loaded specs for the boot service to wire ModuleRef

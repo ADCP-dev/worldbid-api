@@ -5,7 +5,8 @@ import { Repository } from 'typeorm';
 import Stripe from 'stripe';
 import { AllConfigType } from '@src/config/config.type';
 import { UsersService } from '@users/users.service';
-import { MailService } from '@comms/mail/mail.service';
+import { QueuedMailerService } from '@comms/email-queue/queued-mailer.service';
+import { EmailDiscoveryService } from '@comms/mail/services/email-discovery.service';
 import { PdfInvoiceService } from '@ext/stripe/services/pdf-invoice.service';
 import { SubscriptionEntity } from '@ext/stripe/infrastructure/persistence/entities/subscription.entity';
 import { PriceEntity } from '@ext/stripe/infrastructure/persistence/entities/price.entity';
@@ -21,7 +22,8 @@ export class StripeService {
     @Inject('STRIPE') private readonly stripe: Stripe | null,
     private readonly configService: ConfigService<AllConfigType>,
     private readonly usersService: UsersService,
-    @Optional() private readonly mailService: MailService,
+    @Optional() private readonly queuedMailerService: QueuedMailerService,
+    @Optional() private readonly emailDiscoveryService: EmailDiscoveryService,
     private readonly pdfInvoiceService: PdfInvoiceService,
     @InjectRepository(SubscriptionEntity)
     private readonly subscriptionRepository: Repository<SubscriptionEntity>,
@@ -597,24 +599,39 @@ export class StripeService {
         status: invoice.status ?? 'paid',
       });
 
-      if (!this.mailService) {
-        this.logger.warn('MailService not available, skipping invoice email');
+      if (!this.queuedMailerService || !this.emailDiscoveryService) {
+        this.logger.warn('Mailer services not available, skipping invoice email');
         return;
       }
 
-      await this.mailService.invoicePaymentConfirmed({
+      const templatePath = await this.emailDiscoveryService.resolveByName(
+        'invoice',
+      );
+      if (!templatePath) {
+        this.logger.warn('Invoice template not found, skipping invoice email');
+        return;
+      }
+
+      const attachments = [
+        {
+          filename: `factura-${invoice.number ?? invoice.id}.pdf`,
+          content: pdfBuffer,
+          contentType: 'application/pdf',
+        },
+      ];
+
+      await this.queuedMailerService.sendMail({
         to,
-        data: {
+        subject: `Factura ${invoice.number ?? invoice.id} - ${(total / 100).toFixed(2)} ${currency.toUpperCase()}`,
+        templateName: 'invoice',
+        config: {
           invoiceNumber: invoice.number ?? invoice.id!,
           amount: (total / 100).toFixed(2),
           currency: currency.toUpperCase(),
-          attachment: {
-            filename: `factura-${invoice.number ?? invoice.id}.pdf`,
-            content: pdfBuffer.toString('base64'),
-            contentType: 'application/pdf',
-          },
+          subject: `Factura ${invoice.number ?? invoice.id}`,
         },
-      });
+        attachments,
+      } as never);
 
       this.logger.log(`Invoice email sent to ${to}`);
     } catch (error: any) {
