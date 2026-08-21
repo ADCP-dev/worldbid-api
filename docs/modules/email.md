@@ -6,11 +6,13 @@ parent: null
 dependencies: ["auth"]
 conventions:
   - "Nodemailer via MailerService for transport (infrastructure layer)"
-  - "Maizzle (Tailwind CSS for email) for HTML template authoring"
+  - "Maizzle v6 runtime renderer (createRenderer) for .vue SFC templates"
+  - "TemplateRenderer wraps createRenderer with cache (path + configHash)"
+  - "EmailDiscoveryService auto-discovers .vue templates from 3 roots"
+  - "buildEmailProps() helper for unified EmailProps shape + i18n pre-resolution"
   - "BullMQ for async email queue with Redis"
   - "Mailpit for local development (no real emails sent)"
-  - "Email subjects internationalized via nestjs-i18n"
-  - "Templates compiled from Maizzle .html → Handlebars .hbs"
+  - "Email subjects pre-resolved via nestjs-i18n in buildEmailProps"
   - "Async delivery by default; sync fallback for tests"
 ---
 
@@ -18,9 +20,23 @@ conventions:
 
 ## Overview
 
-The email system handles transactional emails with three layers: a low-level Nodemailer wrapper (`MailerService`), a high-level `MailService` that builds email content with i18n subjects, and an `EmailQueueModule` for async delivery via BullMQ. This architecture provides reliable asynchronous delivery by default while allowing synchronous fallback for testing and immediate-confirmation flows.
+The email system handles transactional emails with a unified Maizzle v6 runtime renderer. Templates are `.vue` SFCs rendered on-demand via `createRenderer()` — no build step, no Handlebars. The `TemplateRenderer` service wraps the renderer with a cache layer, `EmailDiscoveryService` auto-discovers templates from three roots, and `buildEmailProps()` provides a unified config shape with i18n pre-resolution.
 
 ## Architecture
+
+### Unified Pipeline
+
+```mermaid
+flowchart LR
+  Caller["MailService / Dispatcher / Extension"] --> BEP["buildEmailProps()"]
+  BEP --> TR["TemplateRenderer.render(path, config)"]
+  TR --> Cache{"cache hit?"}
+  Cache -- hit --> Out["{html, plaintext}"]
+  Cache -- miss --> CR["createRenderer().render()"]
+  CR --> Out
+  Out --> SMTP["nodemailer SMTP<br/>(attachments passthrough)"]
+  DISC["EmailDiscoveryService"] -.-> TR
+```
 
 ### Layered Design
 
@@ -28,11 +44,17 @@ The email system handles transactional emails with three layers: a low-level Nod
 flowchart TD
     subgraph "Application Layer"
         A[AuthService]
-        B[Other Services]
+        B[Extension Services]
     end
 
     subgraph "Mail Service"
         MS[MailService]
+        BEP[buildEmailProps]
+    end
+
+    subgraph "Renderer Layer"
+        TR[TemplateRenderer]
+        DISC[EmailDiscoveryService]
     end
 
     subgraph "Delivery Layer"
@@ -51,17 +73,51 @@ flowchart TD
 
     A --> MS
     B --> MS
+    MS --> BEP
+    BEP --> TR
     MS -->|async=true (default)| QMS
     MS -->|async=false| M
     QMS --> Q
     Q --> EP
+    EP --> TR
     EP --> M
     M --> SMTP
+    TR --> DISC
 ```
 
 ### When Redis is Unavailable
 
 If Redis is not configured (no `REDIS_URL`), `EmailQueueModule` logs `Redis enabled: false` and falls back to synchronous sending. No emails are lost — they just don't go through the queue.
+
+## TemplateRenderer
+
+Located at `src/modules/communications/mail/services/template-renderer.service.ts`.
+
+Wraps Maizzle v6 `createRenderer()` (lazy, dynamic import from CJS). Caches render results by `path + sha256(stableStringify(config))` — cache hits return in <5ms (NFR-001).
+
+### Key Design Deviations
+
+1. **Plaintext**: `createRenderer().render()` returns `plaintext` as a config object, NOT the string. The actual plaintext is generated via `createPlaintext(html)`.
+2. **Performance**: Raw first render is ~5-10s (cold Vite SSR server). The cache layer meets the <5ms cache-hit target. A warm-up plan (pre-render core templates on bootstrap) hides the first-render cost.
+3. **Module Resolution**: apps/back uses classic `moduleResolution` which cannot read @maizzle/framework v6's `exports` field. An ambient module shim exists at `types/maizzle-framework.d.ts`.
+
+## EmailDiscoveryService
+
+Located at `src/modules/communications/mail/services/email-discovery.service.ts`.
+
+Scans three roots for `.vue` email templates and returns `Map<name, absolutePath>`:
+
+1. `apps/back/src/extensions/*/emails/*.vue` (extension-level, most specific)
+2. `apps/back/src/modules/**/emails/*.vue` (module-level)
+3. `packages/emails/emails/*.vue` (shared workspace)
+
+Convention: NO `templates/` subfolder required. Drop a folder `emails/*.vue` in any extension or module and it's discovered automatically. Extension-level takes precedence over packages-level on name collision.
+
+## buildEmailProps()
+
+Located at `src/modules/communications/mail/services/build-email-props.helper.ts`.
+
+Produces a unified `EmailProps` shape with camelCase fields (eliminates `app_url` vs `app.url` divergence). Pre-resolves i18n keys via `I18nService.t(key, { lang })` so templates receive plain strings, NOT `{{t "key"}}` helpers.
 
 ## MailService API
 
@@ -71,210 +127,94 @@ Located at `src/modules/communications/mail/mail.service.ts`.
 
 | Method | Description | Template |
 |--------|-------------|----------|
-| `userSignUp(mailData, async?)` | Email confirmation link after registration | `activation.hbs` |
-| `forgotPassword(mailData, async?)` | Password reset link | `reset-password.hbs` |
-| `confirmNewEmail(mailData, async?)` | Confirm email address change | `confirm-new-email.hbs` |
+| `userSignUp(mailData, async?)` | Email confirmation link after registration | `activation.vue` |
+| `forgotPassword(mailData, async?)` | Password reset link | `reset-password.vue` |
+| `confirmNewEmail(mailData, async?)` | Confirm email address change | `confirm-new-email.vue` |
+| `contactFormNotification(name, email, message, lang?)` | Contact form to site owner | `contact-notification.vue` |
 
 All methods accept an `async` boolean (default: `true`). When `true`, the email goes through BullMQ. When `false`, it sends synchronously (useful in tests).
 
-### Usage Example
+## Email Templates (Maizzle v6)
 
-```typescript
-import { MailService } from '@comms/mail/mail.service';
+Templates are `.vue` SFCs using Maizzle components (`<Html>`, `<Head>`, `<Body>`, `<Container>`, `<Text>`, `<Button>`) and `useConfig()` for per-render data. No build step — rendered on-demand at runtime.
 
-@Injectable()
-export class AuthService {
-  constructor(private readonly mailService: MailService) {}
+### Template Locations
 
-  async sendWelcomeEmail(user: User, hash: string) {
-    await this.mailService.userSignUp({
-      to: user.email,
-      data: { hash },
-    });
-  }
-}
+| Location | Purpose |
+|----------|---------|
+| `packages/emails/emails/` | Shared core templates (activation, reset-password, confirm-new-email, contact-notification, Layout) |
+| `apps/back/src/extensions/*/emails/` | Extension-specific templates (tasks, stripe, affiliate) |
+| `apps/back/src/modules/*/emails/` | Module-specific templates |
+
+### Template Structure
+
+```vue
+<script setup>
+import Layout from './Layout.vue'
+import { useConfig, usePlaintext } from '@maizzle/framework'
+
+usePlaintext()
+
+const { subject, greeting, bodyText, buttonText, link } = useConfig()
+</script>
+
+<template>
+  <Layout>
+    <Html>
+      <Head><title>{{ subject }}</title></Head>
+      <Body class="bg-slate-50">
+        <Container class="bg-white p-8 max-w-600px mx-auto">
+          <Text>{{ greeting }}</Text>
+          <Text>{{ bodyText }}</Text>
+          <Button :href="link">{{ buttonText }}</Button>
+        </Container>
+      </Body>
+    </Html>
+  </Layout>
+</template>
+
+<style>
+@import '@maizzle/tailwindcss';
+@theme { --color-primary: #2563eb; }
+</style>
 ```
-
-### Adding a New Email Type
-
-```typescript
-async myNewEmail(mailData: MailData<{ link: string }>, async = true): Promise<void> {
-  const i18n = I18nContext.current();
-  const subject = await i18n?.t('my-module.emailSubject');
-
-  const mailOptions = {
-    to: mailData.to,
-    subject: subject ?? 'Notification',
-    text: mailData.data.link,
-    templatePath: path.join(
-      this.configService.getOrThrow('app.workingDirectory', { infer: true }),
-      'src', 'modules', 'communications', 'mail', 'mail-templates', 'build',
-      'my-new-template.hbs',
-    ),
-    context: {
-      link: mailData.data.link,
-      app_name: this.configService.get('app.name', { infer: true }),
-    },
-  };
-
-  if (async) {
-    await this.queuedMailerService.sendMail(mailOptions);
-  } else {
-    await this.mailerService.sendMail(mailOptions);
-  }
-}
-```
-
-## Email Templates (Maizzle)
-
-Maizzle allows writing email templates with Tailwind CSS — it compiles to inline-styled HTML compatible with all major email clients (Gmail, Outlook, Apple Mail).
-
-### Configuration
-
-| File | Purpose |
-|------|---------|
-| `maizzle.config.js` | Maizzle build config: paths, CSS inlining, output |
-| `tailwind.email.config.js` | Tailwind theme synced with frontend DaisyUI colors |
-
-**Color sync:** `tailwind.email.config.js` defines the same primary color palette as the frontend (`--color-primary: oklch(58% 0.233 277.117) ≈ #8b5cf6`). When frontend colors change, update this file too.
-
-**CSS inlining:** `css: { inline: true }` in `maizzle.config.js` ensures Tailwind classes are compiled to `style="..."` attributes on each element — required for email client compatibility.
-
-### Build Command
-
-```bash
-cd apps/back && pnpm maizzle:build
-# → maizzle build && node ./scripts/flatten-maizzle-output.js
-```
-
-This compiles `.hbs` templates from `emails/` to `build/` with inlined CSS, then flattens any nested directory structure.
-
-### Template Directory Structure
-
-```
-apps/back/src/modules/communications/mail/
-└── mail-templates/
-    ├── emails/              # Source templates (.hbs) — Maizzle format
-    │   ├── activation.hbs
-    │   ├── reset-password.hbs
-    │   └── confirm-new-email.hbs
-    ├── build/               # Compiled output (.hbs) — used by MailService
-    │   ├── activation.hbs
-    │   ├── reset-password.hbs
-    │   └── confirm-new-email.hbs
-    └── layouts/             # Shared Maizzle layouts
-        └── main.hbs
-```
-
-> **Logo synchronization**: The email banner (`banner.svg`) and logo (`logo.svg`) in `apps/back/public/assets/` are synchronized from `apps/front/public/`. When the frontend branding changes, copy the updated assets to the backend to keep email branding consistent.
 
 ### Creating a New Template
 
-1. Create the Maizzle source file:
-
-```html
----
-title: "My Notification"
-preheader: "You have a new notification"
----
-
-<x-main>
-  <p>Hello {{ name }}!</p>
-  <p>{{ message }}</p>
-  <a href="{{ link }}">Click here</a>
-</x-main>
-```
-
-2. Compile templates:
-
-```bash
-cd apps/back
-npm run maizzle:build
-```
-
-This outputs compiled Handlebars (`.hbs`) files to `mail-templates/build/`.
-
-### Template Conventions
-
-| Rule | Description |
-|------|-------------|
-| Source files | `emails/*.hbs` (Maizzle) |
-| Compiled output | `build/*.hbs` (Handlebars) |
-| Layout inheritance | Use `<x-main>` tag to wrap content |
-| CSS | Tailwind classes in source → inline styles in output |
-| Variables | Handlebars `{{ variable }}` syntax in compiled templates |
+1. Create a `.vue` file in the appropriate `emails/` directory.
+2. Use `useConfig()` to access per-render data (NOT `defineProps()`).
+3. Use Maizzle components (`<Html>`, `<Body>`, `<Container>`, etc.).
+4. Import the shared `Layout.vue` from `@emails/Layout.vue`.
+5. The template is auto-discovered by `EmailDiscoveryService` — no manual registration needed.
 
 ## Email Queue (BullMQ)
 
-### How It Works
+### Job Data Shape
 
-1. `MailService` calls `QueuedMailerService.sendMail(options)` with email options
-2. `QueuedMailerService` adds a job to the BullMQ queue
-3. `EmailProcessor` (a BullMQ worker) picks up the job asynchronously
-4. `EmailProcessor` calls `MailerService.sendMail()` which sends via Nodemailer over SMTP
+```typescript
+interface EmailJobData {
+  to: string | string[];
+  subject: string;
+  html?: string;           // pre-rendered fallback
+  text?: string;
+  templateName?: string;   // resolved by EmailDiscoveryService
+  config?: Record<string, unknown>;  // Maizzle render config
+  attachments?: unknown[];
+  from?: string;
+}
+```
 
 ### Queue Flow
 
-```mermaid
-sequenceDiagram
-    participant Service as MailService
-    participant Queue as QueuedMailerService
-    participant BullMQ as BullMQ Queue (Redis)
-    participant Worker as EmailProcessor
-    participant SMTP as SMTP Server
+1. `MailService` calls `QueuedMailerService.sendMail(data)` with `templateName` + `config`
+2. `QueuedMailerService` adds a job to the BullMQ queue
+3. `EmailProcessor` picks up the job, resolves the template name via `EmailDiscoveryService`, renders via `TemplateRenderer`, and sends via Nodemailer
 
-    Service->>Queue: sendMail(options)
-    Queue->>BullMQ: add job to queue
-    Note right of Queue: Returns immediately
+## NotificationDispatcher
 
-    Worker->>BullMQ: pick up job (async)
-    BullMQ-->>Worker: job payload
-    Worker->>SMTP: MailerService.sendMail()
-    SMTP-->>Worker: 250 OK
-    Worker->>BullMQ: job completed
-```
+Located at `src/core/spec-engine/notification-dispatcher.ts`.
 
-### Module Registration
-
-`EmailQueueModule` is self-registering — no extra config needed:
-
-```typescript
-// app.module.ts
-import { EmailQueueModule } from '@comms/mail/email-queue.module';
-
-@Module({
-  imports: [
-    EmailQueueModule.register(),
-  ],
-})
-export class AppModule {}
-```
-
-## Local Development with Mailpit
-
-For local development, use [Mailpit](https://github.com/axllent/mailpit) — an email testing tool with a web UI:
-
-```bash
-# Start Mailpit (Docker)
-docker run -d --name mailpit \
-  -p 1025:1025 \  # SMTP port
-  -p 8025:8025 \  # Web UI
-  axllent/mailpit
-```
-
-Configure your `.env`:
-
-```env
-MAIL_HOST=localhost
-MAIL_PORT=1025
-MAIL_USER=
-MAIL_PASSWORD=
-MAIL_IGNORE_TLS=true
-MAIL_SECURE=false
-MAIL_REQUIRE_TLS=false
-```
-
-Access the Mailpit web UI at `http://localhost:8025` to view all sent emails.
+Uses `TemplateRenderer` for `.vue` template rendering. Supports `attachments` in `NotificationSpec` (C-08) for PDF invoices. Unified `from` address: `mail.defaultName <mail.defaultEmail>` (D-06).
 
 ## SMTP Configuration
 
@@ -293,29 +233,6 @@ Access the Mailpit web UI at `http://localhost:8025` to view all sent emails.
 | `MAIL_DEFAULT_NAME` | `Foundation App` | From name |
 | `REDIS_URL` | — | Required for BullMQ queue |
 
-### Example SMTP Configurations
-
-**Production (SendGrid):**
-
-```env
-MAIL_HOST=smtp.sendgrid.net
-MAIL_PORT=587
-MAIL_USER=apikey
-MAIL_PASSWORD=SG.xxxxx
-MAIL_SECURE=false
-MAIL_REQUIRE_TLS=true
-```
-
-**Development (Mailpit):**
-
-```env
-MAIL_HOST=localhost
-MAIL_PORT=1025
-MAIL_IGNORE_TLS=true
-MAIL_SECURE=false
-MAIL_REQUIRE_TLS=false
-```
-
 ## Dependencies
 
 - **auth** — Email links contain auth tokens (email confirmation, password reset); user context required for template personalization
@@ -324,12 +241,12 @@ MAIL_REQUIRE_TLS=false
 
 | Convention | Rule |
 |------------|------|
+| Template format | `.vue` SFCs with Maizzle components + `useConfig()` |
+| No build step | Templates rendered on-demand at runtime |
+| No Handlebars | Eliminated — use TemplateRenderer |
+| No inline HTML | Use `.vue` templates, not inline HTML strings |
+| Auto-discovery | Drop `emails/*.vue` in any extension/module — no manual registration |
 | Async default | All `MailService` methods default to async delivery via BullMQ |
-| Subject i18n | Email subjects use `nestjs-i18n` with `x-custom-lang` header |
-| Template compilation | Run `npm run maizzle:build` after creating/editing templates |
+| Subject i18n | Pre-resolved in `buildEmailProps()` via `nestjs-i18n` |
 | Local dev | Use Mailpit — never send real emails during development |
 | SMTP required | SMTP config must be set in `.env` for production delivery |
-
-## Rationale
-
-The layered architecture separates concerns cleanly: Nodemailer handles transport protocol, MailService handles business logic and i18n, and BullMQ ensures reliable async delivery with retry capability. This means email sending never blocks the main request-response cycle. Internationalized subjects handle multi-language deployments transparently based on the request's language header. Maizzle-based templates provide the developer experience of Tailwind CSS while producing email-client-compatible HTML with inline styles.

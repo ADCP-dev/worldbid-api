@@ -65,6 +65,39 @@ export default [
             'CallExpression[callee.name=it][arguments.0.value!=/^should/]',
           message: '"it" should start with "should"',
         },
+        {
+          selector:
+            "ImportDeclaration[source.value='handlebars']",
+          message:
+            'Handlebars is eliminated. Use TemplateRenderer (@comms/mail/services/template-renderer.service) for email rendering.',
+        },
+        {
+          selector:
+            "ImportDeclaration[source.value='fs/promises'] ImportSpecifier[local.name='readFile']",
+          message:
+            'fs.readFile is eliminated from email paths. Use TemplateRenderer for template rendering.',
+        },
+      ],
+      'no-restricted-modules': [
+        'error',
+        {
+          name: 'handlebars',
+          message:
+            'Handlebars is eliminated. Use TemplateRenderer for email rendering.',
+        },
+      ],
+      'no-restricted-paths': [
+        'error',
+        {
+          target: 'src/modules/communications/mail/mail.service.ts',
+          zones: [
+            {
+              target: 'src/modules/communications/mail/mail.service.ts',
+              message:
+                'No inline HTML strings in mail.service.ts. Use a .vue template via TemplateRenderer.',
+            },
+          ],
+        },
       ],
     },
   },
