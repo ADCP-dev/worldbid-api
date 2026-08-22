@@ -9,8 +9,17 @@
  *   1. logo.svg          — apps/front/public/logo.svg → apps/web/public/ + apps/back/public/assets/
  *   2. DaisyUI theme     — apps/front/assets/css/tailwind.css @plugin "daisyui/theme" block
  *                          → apps/web/src/styles/global.css (replaces existing theme block)
+ *   3. Email theme      — brand color tokens extracted from the DaisyUI theme
+ *                          → all .vue email templates' @theme blocks (Maizzle)
  */
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+  readdirSync,
+} from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -29,6 +38,27 @@ const LOGO_TARGETS = [
 
 const FRONT_CSS = join(ROOT, 'apps/front/assets/css/tailwind.css');
 const WEB_CSS = join(ROOT, 'apps/web/src/styles/global.css');
+
+// ─── 3. Email theme ───────────────────────────────────────────────────────
+
+// The email theme is a subset of the full DaisyUI theme — only the color
+// tokens that the Maizzle @theme block uses. These are the token names we
+// extract from the DaisyUI theme block and inject into .vue @theme blocks.
+const EMAIL_THEME_TOKENS = [
+  '--color-primary',
+  '--color-primary-content',
+  '--color-base-100',
+  '--color-base-200',
+  '--color-base-300',
+  '--color-base-content',
+];
+
+// Email template roots — mirrors EmailDiscoveryService scan order.
+const EMAIL_DIRS = [
+  join(ROOT, 'packages/emails/emails'),
+  join(ROOT, 'apps/back/src/modules/communications/mail/emails'),
+  join(ROOT, 'apps/back/src/extensions'),
+];
 
 /**
  * Extract the `@plugin "daisyui/theme" { ... }` block (including the preceding
@@ -72,11 +102,87 @@ function injectThemeBlock(webCssPath, themeBlock) {
   writeFileSync(webCssPath, out);
 }
 
+/**
+ * Extract the value of a `--color-*` token from the DaisyUI theme block.
+ * Lines look like: `--color-primary: #F97316;  (comment) `
+ * Returns the trimmed hex value or null if not found.
+ */
+function extractThemeToken(themeBlock, tokenName) {
+  // Match: --token-name: <value>;  (value is the first hex word after colon)
+  const re = new RegExp(tokenName + '\\s*:\\s*([#0-9a-fA-F]+)');
+  const match = themeBlock.match(re);
+  return match ? match[1] : null;
+}
+
+/**
+ * Build the Maizzle @theme block string from the extracted brand colors.
+ */
+function buildEmailThemeBlock(colors) {
+  const lines = EMAIL_THEME_TOKENS.map((token) => {
+    const value = colors[token];
+    return value ? `  ${token}: ${value};` : null;
+  }).filter(Boolean);
+  return `@theme {\n${lines.join('\n')}\n}`;
+}
+
+/**
+ * Replace the `@theme { ... }` block in a .vue email template with the given
+ * emailThemeBlock. Preserves the `@import` line before it.
+ */
+function injectEmailTheme(vuePath, emailThemeBlock) {
+  const content = readFileSync(vuePath, 'utf-8');
+  // Match the existing @theme block (handles nested braces).
+  const themeIdx = content.indexOf('@theme');
+  if (themeIdx === -1) return false;
+  const braceOpen = content.indexOf('{', themeIdx);
+  if (braceOpen === -1) return false;
+  let depth = 0;
+  let end = -1;
+  for (let i = braceOpen; i < content.length; i++) {
+    if (content[i] === '{') depth++;
+    else if (content[i] === '}') {
+      depth--;
+      if (depth === 0) {
+        end = i + 1;
+        break;
+      }
+    }
+  }
+  if (end === -1) return false;
+  const out =
+    content.slice(0, themeIdx) +
+    emailThemeBlock +
+    content.slice(end) +
+    (content.endsWith('\n') ? '' : '\n');
+  writeFileSync(vuePath, out);
+  return true;
+}
+
+/**
+ * Recursively find all .vue files in a directory.
+ */
+function findVueFiles(dir) {
+  if (!existsSync(dir)) return [];
+  const results = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      // For extensions/, only descend into emails/ subdirectories.
+      if (entry.name === 'emails' || dir.includes('extensions')) {
+        results.push(...findVueFiles(full));
+      }
+    } else if (entry.name.endsWith('.vue')) {
+      results.push(full);
+    }
+  }
+  return results;
+}
+
 // ─── Run ───────────────────────────────────────────────────────────────────
 
 let synced = 0;
 
-// Logo
+// 1. Logo
 if (!existsSync(LOGO_SOURCE)) {
   console.warn(`⚠️  Logo source not found: ${LOGO_SOURCE}`);
 } else {
@@ -89,7 +195,7 @@ if (!existsSync(LOGO_SOURCE)) {
   }
 }
 
-// Theme
+// 2. Theme (web CSS)
 if (!existsSync(FRONT_CSS)) {
   console.warn('⚠️  Frontend tailwind.css not found. Skipping theme sync.');
 } else if (!existsSync(WEB_CSS)) {
@@ -103,6 +209,35 @@ if (!existsSync(FRONT_CSS)) {
     injectThemeBlock(WEB_CSS, themeBlock);
     console.log('✅ Theme synced → apps/web/src/styles/global.css');
     synced++;
+
+    // 3. Email theme — extract brand colors and inject into all .vue templates.
+    const colors = {};
+    for (const token of EMAIL_THEME_TOKENS) {
+      const value = extractThemeToken(themeBlock, token);
+      if (value) colors[token] = value;
+    }
+
+    if (Object.keys(colors).length === 0) {
+      console.warn('⚠️  No brand color tokens found in DaisyUI theme. Skipping email theme sync.');
+    } else {
+      const emailThemeBlock = buildEmailThemeBlock(colors);
+      let emailCount = 0;
+      for (const dir of EMAIL_DIRS) {
+        for (const vuePath of findVueFiles(dir)) {
+          if (injectEmailTheme(vuePath, emailThemeBlock)) {
+            const rel = vuePath.replace(ROOT + '/', '');
+            console.log(`✅ Email theme synced → ${rel}`);
+            emailCount++;
+          }
+        }
+      }
+      if (emailCount > 0) {
+        console.log(`✅ Email theme synced (${emailCount} template(s))`);
+        synced++;
+      } else {
+        console.warn('⚠️  No .vue email templates found with @theme blocks.');
+      }
+    }
   }
 }
 

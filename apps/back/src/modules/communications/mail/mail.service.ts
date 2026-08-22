@@ -184,6 +184,9 @@ export class MailService {
    * - Sends synchronously via mailerService.sendMail (NOT queued) — contact
    *   must surface SMTP failures immediately so the controller can return 500.
    * - Throws on any failure (render error, SMTP down, missing config).
+   *
+   * Config passed to the template via useConfig():
+   *   subject, greeting, name, email, message, logoUrl, replyUrl, lang
    */
   async contactFormNotification(
     name: string,
@@ -205,6 +208,16 @@ export class MailService {
         ? `You received a new message from the contact form:`
         : `Recibiste un nuevo mensaje del formulario de contacto:`;
 
+    // Logo is synced to apps/back/public/assets/logo.svg by scripts/sync-assets.mjs.
+    const backendDomain = this.configService.get<string>('app.backendDomain', {
+      infer: true,
+    });
+    const logoUrl = backendDomain
+      ? `${backendDomain.replace(/\/$/, '')}/assets/logo.svg`
+      : undefined;
+
+    const replyUrl = `mailto:${email}`;
+
     const props = buildEmailProps(this.configService, this.i18nService, {
       lang,
       subject,
@@ -213,6 +226,8 @@ export class MailService {
       email,
       message,
       title: subject,
+      logoUrl,
+      replyUrl,
     });
 
     const templatePath = await this.emailDiscoveryService.resolveByName(
