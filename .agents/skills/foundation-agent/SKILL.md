@@ -275,3 +275,206 @@ El agente puede usar el Postgres MCP (ya configurado en opencode.jsonc) para:
 - **Tablas en extensiones**: prefijo `ext_<name>_` — ej: `ext_tasks_task`
 - `import type` para tipos, never `any`
 - Migraciones con CLI, no hand-SQL
+
+## Crear spec YAML desde cero
+
+Para crear un resource nuevo con spec-engine, escribir el YAML en
+`apps/back/src/extensions/<extension>/<resource>.spec.yaml`:
+
+```yaml
+name: <resource>                    # Requerido: nombre del resource (singular)
+table: ext_<ext>_<resource>         # Requerido: nombre de tabla (prefijo ext_)
+displayName: <Display>              # Opcional: nombre para UI
+fields:
+  - name: <field>                   # Requerido
+    type: <string|text|integer|decimal|boolean|datetime|enum|ref|json|file|password>
+    required: <true|false>          # Default: false
+    nullable: <true|false>          # Default: true (si no required)
+    default: <value>                # Opcional
+    length: <number>                # Opcional (string/text: default 255)
+    precision: <number>             # Opcional (decimal: default 10)
+    scale: <number>                  # Opcional (decimal: default 2)
+    enum: [a, b, c]                  # Requerido si type=enum
+    ref: <resource>                  # Requerido si type=ref (a qué resource apunta)
+    refOnDelete: CASCADE|SET NULL|RESTRICT  # Default: RESTRICT
+    validation:
+      min: <number>                  # Mínimo (string: chars, number: valor)
+      max: <number>                  # Máximo
+      pattern: <regex>               # Regex
+permissions:
+  list: [admin, user]                # Roles que pueden listar
+  read: [admin, user]                # Roles que pueden leer
+  create: [admin]                    # Roles que pueden crear
+  update: [admin, user]              # Roles que pueden updatear
+  delete: [admin]                    # Roles que pueden borrar
+  rowLevel:                          # Opcional: filtro por rol
+    user:
+      filter: 'assigneeId == ${user.id}'  # SQL-like filter
+hooks:
+  beforeCreate: <hook-file>         # Nombre del archivo en hooks/
+  afterCreate: <hook-file>
+  afterUpdate: <hook-file>
+actions:                             # Opcional: endpoints custom no-CRUD
+  - name: <action>
+    method: GET|POST|PATCH|DELETE
+    path: /<path>
+    auth: { list: [admin, user] }
+    handler: <handler-file>
+notifications:                       # Opcional: notificaciones
+  - name: <notification>
+    trigger: afterCreate|afterUpdate|afterDelete
+    channel: email
+    template: ./templates/<template>.hbs
+jobs:                                # Opcional: jobs programados
+  - name: <job>
+    type: interval|cron
+    schedule: 60000                # ms (interval) o '0 8 * * *' (cron)
+    handler: ./handlers/<handler>.ts
+seeds:                               # Opcional: datos iniciales
+  - <field1>: <value1>
+    <field2>: <value2>
+```
+
+### Verificar spec YAML antes de cargar
+
+```bash
+# Validar que el YAML es parseable
+python3 -c "import yaml; yaml.safe_load(open('apps/back/src/extensions/tasks/task.spec.yaml'))"
+
+# Verificar campos requeridos
+python3 -c "
+import yaml
+spec = yaml.safe_load(open('apps/back/src/extensions/tasks/task.spec.yaml'))
+assert 'name' in spec, 'Missing name'
+assert 'table' in spec, 'Missing table'
+assert 'fields' in spec, 'Missing fields'
+for f in spec['fields']:
+    assert 'name' in f, f'Field missing name: {f}'
+    assert 'type' in f, f'Field {f[\"name\"]} missing type'
+print(f'OK: {spec[\"name\"]} — {len(spec[\"fields\"])} fields')
+"
+
+# Verificar que permissions están completos
+python3 -c "
+import yaml
+spec = yaml.safe_load(open('apps/back/src/extensions/tasks/task.spec.yaml'))
+for f in spec['fields']:
+    if f.get('required') and f.get('type') == 'string':
+        print(f'  Required string: {f[\"name\"]}')
+"
+```
+
+### Listar endpoints existentes
+
+```bash
+# Todos los endpoints (NestJS + spec-engine)
+grep -rn "@Get\|@Post\|@Patch\|@Delete\|@Put" apps/back/src/ --include="*.ts" \
+  | grep -v node_modules \
+  | grep -v __tests__ \
+  | sed 's/.*@\(Get\|Post\|Patch\|Delete\|Put\)(.*)/\1/' \
+  | sort | uniq -c | sort -rn
+
+# Endpoints de spec-engine (auto-generados)
+grep -rn "@Get\|@Post\|@Patch\|@Delete" apps/back/src/core/spec-engine/ --include="*.ts" \
+  | grep -v __tests__ \
+  | head -20
+
+# Endpoints con info de roles
+grep -B1 -A1 "@Roles\|@UseGuards" apps/back/src/core/spec-engine/controller-factory.ts \
+  | grep -E "@Get|@Post|@Patch|@Delete|@Roles|@UseGuards" | head -20
+```
+
+### Listar jobs existentes
+
+```bash
+# Jobs de spec-engine (BullMQ + setInterval)
+grep -rn "type: interval\|type: cron\|schedule:" apps/back/src/extensions/*/`*.spec.yaml \
+  | grep -v node_modules | head -10
+
+# Jobs de NestJS tradicional (BullMQ processors)
+grep -rn "@Processor\|@Interval\|@Cron" apps/back/src/ --include="*.ts" \
+  | grep -v node_modules | grep -v __tests__ | head -10
+
+# Ver queues de BullMQ
+docker exec vps-dev-arch-redis-1 redis-cli KEYS "bull:*" 2>/dev/null | head -10
+```
+
+### Listar validaciones de campos
+
+```bash
+# Validaciones de spec-engine
+grep -rn "validation:" apps/back/src/extensions/*/*.spec.yaml \
+  | head -10
+
+# Validaciones de NestJS tradicional (class-validator)
+grep -rn "@IsString\|@IsEmail\|@IsNumber\|@IsBoolean\|@IsEnum\|@IsOptional\|@Min\|@Max\|@Length" \
+  apps/back/src/ --include="*.ts" | grep -v node_modules | grep -v __tests__ | head -15
+
+# DTOs con validaciones
+find apps/back/src/ -name "*.dto.ts" -not -path "*node_modules*" -not -path "*__tests__*" \
+  | head -10
+```
+
+### Listar migraciones aplicadas
+
+```bash
+# Migraciones aplicadas (vía DB)
+docker exec vps-dev-arch-postgres-1 psql -U dev -d foundation -c \
+  "SELECT id, name, timestamp FROM typeorm_migrations ORDER BY timestamp DESC LIMIT 20"
+
+# Migraciones pendientes (archivos sin entry en DB)
+ls apps/back/src/infrastructure/database/migrations/*.ts \
+  | grep -v __tests__ | wc -l
+
+# Migraciones de spec-engine (archivos generados)
+ls apps/back/src/infrastructure/database/migrations/*Spec*.ts 2>/dev/null | head -10
+```
+
+### Listar rutas con guards y roles
+
+```bash
+# Mapeo completo: ruta → método → guards → roles
+grep -B5 "@Get\|@Post\|@Patch\|@Delete" apps/back/src/core/spec-engine/controller-factory.ts \
+  | grep -E "@Get|@Post|@Patch|@Delete|@UseGuards|@Roles" \
+  | head -30
+
+# Controllers tradicionales con sus rutas
+grep -rn "@Controller" apps/back/src/ --include="*.ts" \
+  | grep -v node_modules | grep -v __tests__ | head -15
+```
+
+### Listar estructura de extensiones
+
+```bash
+# Extensiones spec-engine
+ls apps/back/src/extensions/
+
+# Resources por extensión
+for ext in apps/back/src/extensions/*/; do
+  name=$(basename "$ext")
+  count=$(ls "$ext"*.spec.yaml 2>/dev/null | wc -l)
+  echo "$name: $count resources"
+done
+
+# Hooks por extensión
+for ext in apps/back/src/extensions/*/; do
+  name=$(basename "$ext")
+  hooks=$(ls "$ext"hooks/*.ts 2>/dev/null | wc -l)
+  handlers=$(ls "$ext"handlers/*.ts 2>/dev/null | wc -l)
+  echo "$name: $hooks hooks, $handlers handlers"
+done
+```
+
+### Ver datos seed
+
+```bash
+# Seeds de spec-engine (auto-cargados al boot)
+grep -A5 "seeds:" apps/back/src/extensions/tasks/task.spec.yaml | head -10
+
+# Seeds tradicionales
+ls apps/back/src/infrastructure/database/seeds/ | head -10
+
+# Ver datos actuales en DB
+docker exec vps-dev-arch-postgres-1 psql -U dev -d foundation -c \
+  "SELECT COUNT(*) FROM ext_tasks_task"
+```
