@@ -27,6 +27,9 @@ export class NoteService {
   async create(dto: CreateNoteDto & { userId?: number | null }): Promise<Note> {
     const data = {
       ...dto,
+      // Global knowledge base: userId is creator provenance only. Default
+      // to null so the repository write path always gets a defined value.
+      userId: dto.userId ?? null,
       frontmatter: dto.frontmatter ?? { ...DEFAULT_OKF_FRONTMATTER },
       tags: dto.tags ?? [],
     };

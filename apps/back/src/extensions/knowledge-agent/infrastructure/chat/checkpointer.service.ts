@@ -10,14 +10,17 @@ import type { BaseCheckpointSaver } from '@langchain/langgraph';
  * Design (AD-03): PostgresSaver from `@langchain/langgraph-checkpoint-postgres`
  * — same Postgres instance as TypeORM, `await saver.setup()` once.
  *
- * DEVIATION from design: `@langchain/langgraph-checkpoint-postgres` is NOT
- * installed in this project (only `@langchain/langgraph` + its transitive
- * `@langchain/langgraph-checkpoint`). The design's fallback (MemorySaver) is
- * used instead so chat sessions work end-to-end. State is kept in-process and
- * is lost on restart — acceptable for v1 single-instance dev. When the
- * postgres checkpointer package is added, swap `createCheckpointerImpl` to
- * return a `PostgresSaver.fromConnString(...)` and call `await saver.setup()`
- * — no other code changes needed.
+ * The connection string is resolved from `DATABASE_URL` (same env used by the
+ * TypeORM database config) so the checkpointer shares the dev/prod Postgres.
+ * Falls back to MemorySaver (in-process, no persistence across restarts) only
+ * when PostgresSaver initialization fails — chat still streams, just state is
+ * lost on restart.
+ *
+ * PostgresSaver is imported LAZILY inside `createCheckpointerImpl` (not at the
+ * top of the file) so unit tests that stub the checkpointer do not pay the
+ * ESM-resolution cost of the @langchain/langgraph-checkpoint-postgres package
+ * (whose transitive `@langchain/langgraph-checkpoint` peer demands a newer
+ * `@langchain/core` export surface than the project currently pins).
  */
 @Injectable()
 export class CheckpointerService implements OnModuleInit {
@@ -29,10 +32,10 @@ export class CheckpointerService implements OnModuleInit {
   async onModuleInit(): Promise<void> {
     try {
       this.saver = await this.createCheckpointerImpl();
-      this.logger.log('Checkpointer initialized');
+      this.logger.log('Checkpointer initialized (PostgresSaver)');
     } catch (err) {
       this.logger.warn(
-        `Failed to initialize checkpointer: ${err instanceof Error ? err.message : String(err)}. Chat state will not persist.`,
+        `Failed to initialize PostgresSaver: ${err instanceof Error ? err.message : String(err)}. Falling back to MemorySaver — chat state will NOT persist across restarts.`,
       );
       // Fallback: in-memory so the chat still streams, just no persistence.
       this.saver = new MemorySaver();
@@ -48,16 +51,28 @@ export class CheckpointerService implements OnModuleInit {
   }
 
   /**
-   * Wrapper that builds the checkpointer. Stubbed in tests.
+   * Build a PostgresSaver from the DATABASE_URL conn string and run
+   * `await saver.setup()` once to create the checkpoint tables. Stubbed in
+   * tests so the test suite never needs a live Postgres.
    *
-   * Currently returns a `MemorySaver` (in-process). Swap this method to
-   * `PostgresSaver.fromConnString(connString)` + `await saver.setup()` once
-   * `@langchain/langgraph-checkpoint-postgres` is installed.
+   * The checkpointer shares the same Postgres instance as TypeORM (DATABASE_URL
+   * in the database config); checkpoint tables live in the `public` schema.
    */
   protected async createCheckpointerImpl(): Promise<BaseCheckpointSaver> {
-    // Future: read KA_DB_URI or DATABASE_URL and build a PostgresSaver.
-    // For now, MemorySaver — no external dep beyond @langchain/langgraph.
-    void this.configService; // used by the future postgres branch
-    return new MemorySaver();
+    const connString =
+      this.configService.get<string>('database.url') ??
+      process.env.DATABASE_URL;
+    if (!connString) {
+      throw new Error(
+        'DATABASE_URL is not set; cannot build PostgresSaver checkpointer',
+      );
+    }
+    // Lazy import keeps the package out of unit-test module resolution.
+    const { PostgresSaver } = await import(
+      '@langchain/langgraph-checkpoint-postgres'
+    );
+    const saver = PostgresSaver.fromConnString(connString);
+    await saver.setup();
+    return saver;
   }
 }
