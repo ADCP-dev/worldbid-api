@@ -193,3 +193,64 @@ export function useModelProviders() {
     createModel,
   };
 }
+
+export interface CreateMcpServerPayload {
+  agentConfigId?: string;
+  name: string;
+  transport: string;
+  url: string;
+  apiKeyRef?: string;
+  enabled?: boolean;
+}
+
+export interface UpdateMcpServerPayload {
+  agentConfigId?: string;
+  name?: string;
+  transport?: string;
+  url?: string;
+  apiKeyRef?: string;
+  enabled?: boolean;
+}
+
+export function useMcpServers() {
+  const { apiFetch } = useApi();
+
+  async function getServers(): Promise<McpServer[]> {
+    return apiFetch<McpServer[]>('/ka/mcp-servers');
+  }
+
+  async function getServer(id: string): Promise<McpServer | null> {
+    return apiFetch<McpServer | null>(`/ka/mcp-servers/${id}`);
+  }
+
+  async function createServer(
+    payload: CreateMcpServerPayload,
+  ): Promise<McpServer> {
+    return apiFetch<McpServer>('/ka/mcp-servers', {
+      method: 'POST',
+      body: payload,
+    });
+  }
+
+  async function updateServer(
+    id: string,
+    payload: UpdateMcpServerPayload,
+  ): Promise<McpServer> {
+    return apiFetch<McpServer>(`/ka/mcp-servers/${id}`, {
+      method: 'PATCH',
+      body: payload,
+    });
+  }
+
+  async function deleteServer(id: string): Promise<void> {
+    await apiFetch<void>(`/ka/mcp-servers/${id}`, { method: 'DELETE' });
+  }
+
+  return {
+    getServers,
+    getServer,
+    createServer,
+    updateServer,
+    deleteServer,
+  };
+}

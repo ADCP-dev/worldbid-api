@@ -7,10 +7,12 @@ import { AgentConfigEntity } from './entities/agent-config.entity';
 import { ModelProviderEntity } from './entities/model-provider.entity';
 import { ModelEntity } from './entities/model.entity';
 import { McpServerEntity } from './entities/mcp-server.entity';
+import { ChatSessionEntity } from './entities/chat-session.entity';
 import { AgentConfigRepository } from './agent-config.repository';
 import { ModelProviderRepository } from './model-provider.repository';
 import { ModelRepository } from './model.repository';
 import { McpServerRepository } from './mcp-server.repository';
+import { ChatSessionRepository } from './chat-session.repository';
 
 @Module({
   imports: [
@@ -21,6 +23,7 @@ import { McpServerRepository } from './mcp-server.repository';
       ModelProviderEntity,
       ModelEntity,
       McpServerEntity,
+      ChatSessionEntity,
     ]),
   ],
   providers: [
@@ -29,6 +32,7 @@ import { McpServerRepository } from './mcp-server.repository';
     ModelProviderRepository,
     ModelRepository,
     McpServerRepository,
+    ChatSessionRepository,
   ],
   exports: [
     NoteRepository,
@@ -36,6 +40,7 @@ import { McpServerRepository } from './mcp-server.repository';
     ModelProviderRepository,
     ModelRepository,
     McpServerRepository,
+    ChatSessionRepository,
   ],
 })
 export class NotePersistenceModule {}

@@ -9,6 +9,7 @@ import { AgentConfigController } from './agent-config.controller';
 import { ModelProviderController } from './model-provider.controller';
 import { ModelController } from './model.controller';
 import { McpServerController } from './mcp-server.controller';
+import { ChatSessionController } from './chat-session.controller';
 import { NotePersistenceModule } from './infrastructure/persistence.module';
 import { EmbeddingProcessor } from './infrastructure/embeddings/embedding.processor';
 import { EmbeddingsService } from './infrastructure/embeddings/embeddings.service';
@@ -18,6 +19,8 @@ import { AgentFactoryService } from './infrastructure/agent/agent-factory.servic
 import { ToolRegistryService } from './infrastructure/agent/tool-registry.service';
 import { McpLoaderService } from './infrastructure/agent/mcp-loader.service';
 import { SandboxService } from './infrastructure/agent/sandbox.service';
+import { ChatService } from './infrastructure/chat/chat.service';
+import { CheckpointerService } from './infrastructure/chat/checkpointer.service';
 import kaConfig from './config/knowledge-agent.config';
 import { KnowledgeAgentSeedModule } from './seeds/knowledge-agent-seed.module';
 
@@ -35,6 +38,7 @@ import { KnowledgeAgentSeedModule } from './seeds/knowledge-agent-seed.module';
     ModelProviderController,
     ModelController,
     McpServerController,
+    ChatSessionController,
   ],
   providers: [
     NoteService,
@@ -47,6 +51,8 @@ import { KnowledgeAgentSeedModule } from './seeds/knowledge-agent-seed.module';
     ToolRegistryService,
     McpLoaderService,
     SandboxService,
+    ChatService,
+    CheckpointerService,
   ],
   exports: [
     NoteService,
@@ -58,6 +64,8 @@ import { KnowledgeAgentSeedModule } from './seeds/knowledge-agent-seed.module';
     ToolRegistryService,
     McpLoaderService,
     SandboxService,
+    ChatService,
+    CheckpointerService,
     NotePersistenceModule,
   ],
 })
