@@ -17,34 +17,49 @@ interface CacheEntry {
 }
 
 /**
- * TemplateRenderer — wraps Maizzle v6 createRenderer() (C-02).
+ * TemplateRenderer — wraps Maizzle v6 top-level render() (C-02).
  *
- * The renderer is created ONCE (lazy via dynamic import) and reused across
- * all renders. Results are cached by `path + sha256(stableStringify(config))`
- * so cache hits return in <5ms (NFR-001).
+ * Uses the top-level render() function which runs the FULL pipeline:
+ * SSR (Vue → HTML) + transformers (CSS inlining, purging) + doctype +
+ * plaintext generation. This is the correct way to get fully inlined
+ * HTML emails with Tailwind CSS.
  *
- * DEVIATION 1 (plaintext): Maizzle v6 createRenderer().render() returns
- * `plaintext` as a CONFIG OBJECT ({}), NOT the generated plaintext string.
- * The actual plaintext string is generated via `createPlaintext(html)`.
+ * Results are cached by `path + sha256(stableStringify(config))` so cache
+ * hits return in <5ms (NFR-001). First render is ~5-30s (cold Vite SSR).
  *
- * DEVIATION 2 (perf): Raw first render is ~5-10s (cold Vite SSR server).
- * The cache layer meets the <5ms cache-hit target. A warm-up plan
- * (pre-render core templates on bootstrap) hides the first-render cost.
+ * DEVIATION 1 (plaintext): render() returns plaintext as a string when
+ * usePlaintext() is called in the SFC.
  *
- * DEVIATION 3 (moduleResolution): apps/back uses classic moduleResolution
- * which cannot read @maizzle/framework v6's exports field. An ambient
- * module shim exists at types/maizzle-framework.d.ts. Runtime dynamic
- * import works (Node reads exports); only tsc needs the shim.
+ * DEVIATION 2 (perf): Raw first render is ~5-30s (cold Vite SSR server).
+ * The cache layer meets the <5ms cache-hit target.
+ *
+ * DEVIATION 3 (moduleResolution): apps/back compiles to CJS via SWC, which
+ * transforms `await import()` into `require()`. @maizzle/framework v6 is
+ * ESM-only — require() fails with ERR_PACKAGE_PATH_NOT_EXPORTED. We bypass
+ * SWC's static analysis with new Function() to use Node's native import().
+ *
+ * DEVIATION 4 (CSS inlining): createRenderer().render() only does SSR —
+ * it does NOT inline CSS. The top-level render() runs the full transformer
+ * pipeline including CSS inlining. This is why we use render() instead of
+ * createRenderer().render().
+ *
+ * DEVIATION 5 (@emails alias): Extension templates import Layout via
+ * `@emails/Layout.vue`. We pass a Vite resolve.alias config via the
+ * config object's `vite` field so Maizzle's Vite SSR can resolve it.
  */
 @Injectable()
 export class TemplateRenderer implements OnModuleDestroy {
   private readonly logger = new Logger(TemplateRenderer.name);
   private readonly cache = new Map<string, CacheEntry>();
+  private renderFn:
+    | ((
+        template: string,
+        config: Record<string, unknown>,
+      ) => Promise<{ html: string; plaintext?: string }>)
+    | null = null;
   private renderer: Awaited<
     ReturnType<typeof import('@maizzle/framework')['createRenderer']>
   > | null = null;
-  private createPlaintextFn: ((html: string) => string) | null = null;
-  private inlineCssFn: ((html: string) => string) | null = null;
 
   private readonly MAX_ENTRIES = 500;
 
@@ -65,35 +80,34 @@ export class TemplateRenderer implements OnModuleDestroy {
     }
 
     this.logger.log(`Rendering: ${templatePath}`);
-    const renderer = await this.getRenderer();
-    let result: { html: string; plaintext?: unknown };
+    const renderFn = await this.getRenderFn();
+
+    let result: { html: string; plaintext?: string };
     try {
-      result = await renderer.render(templatePath, config);
+      // Merge the Vite alias config into the template config so Maizzle's
+      // Vite SSR server can resolve @emails/* imports in extension templates.
+      const configWithVite = {
+        ...config,
+        vite: {
+          resolve: {
+            alias: {
+              '@emails': this.emailsPkgDir,
+            },
+          },
+        },
+      };
+      result = await renderFn(templatePath, configWithVite);
     } catch (err) {
       const message = (err as Error).message ?? String(err);
       this.logger.error(`Render failed for ${templatePath}: ${message}`);
       throw err;
     }
 
-    // DEVIATION 4 (CSS inlining): createRenderer().render() only does SSR —
-    // it does NOT run the transformer pipeline (CSS inlining, purging, etc).
-    // We call inlineCss() to inline Tailwind classes into style attributes.
-    let html = result.html;
-    if (this.inlineCssFn) {
-      try {
-        html = this.inlineCssFn(html);
-      } catch (err) {
-        this.logger.warn(
-          `inlineCss failed (using raw SSR HTML): ${(err as Error).message}`,
-        );
-      }
-    }
-
-    // DEVIATION 1: plaintext is generated via createPlaintext(html), NOT
-    // from result.plaintext (which is a config object, not the string).
-    const plaintext = this.generatePlaintext(html);
-
-    const entry: CacheEntry = { html, plaintext, ts: Date.now() };
+    const entry: CacheEntry = {
+      html: result.html,
+      plaintext: result.plaintext,
+      ts: Date.now(),
+    };
     this.evictIfNeeded();
     this.cache.set(key, entry);
 
@@ -133,53 +147,25 @@ export class TemplateRenderer implements OnModuleDestroy {
     }
   }
 
-  private async getRenderer() {
-    if (!this.renderer) {
-      // DEVIATION 3: @maizzle/framework v6 is ESM-only ("type": "module",
-      // exports has no "require" entry). The backend compiles to CJS via SWC,
-      // which transforms `await import()` into `require()` — that fails with
-      // ERR_PACKAGE_PATH_NOT_EXPORTED. We bypass SWC's static analysis with
-      // new Function() so Node's native dynamic import() is used at runtime.
+  private emailsPkgDir = '';
+
+  private async getRenderFn() {
+    if (!this.renderFn) {
+      // DEVIATION 3: bypass SWC's import-to-require transform with new Function().
       const nativeImport = new Function(
         'specifier',
         'return import(specifier)',
       ) as (s: string) => Promise<typeof import('@maizzle/framework')>;
-      const { createRenderer, createPlaintext, inlineCss } = await nativeImport(
-        '@maizzle/framework',
-      );
+      const { render } = await nativeImport('@maizzle/framework');
 
-      // Resolve @emails/* alias used by extension templates to the shared
-      // packages/emails/emails/ directory. Maizzle's Vite SSR server needs
-      // this alias to resolve `import Layout from '@emails/Layout.vue'`.
+      // Pre-compute the @emails alias path for extension templates.
       const cwd = process.cwd();
-      const emailsPkgDir = resolve(cwd, '../../packages/emails/emails');
-      this.renderer = await createRenderer({
-        root: cwd,
-        vite: {
-          resolve: {
-            alias: {
-              '@emails': emailsPkgDir,
-            },
-          },
-        },
-      });
-      this.createPlaintextFn = createPlaintext;
-      this.inlineCssFn = inlineCss;
-      this.logger.log('Maizzle renderer created (createRenderer)');
-    }
-    return this.renderer;
-  }
+      this.emailsPkgDir = resolve(cwd, '../../packages/emails/emails');
 
-  /**
-   * DEVIATION 1: Generate plaintext via createPlaintext(html).
-   */
-  private generatePlaintext(html: string): string {
-    if (!this.createPlaintextFn) {
-      // Should not happen — getRenderer() sets it. Fallback: empty string.
-      this.logger.warn('createPlaintext not initialized — empty plaintext');
-      return '';
+      this.renderFn = render as unknown as typeof this.renderFn;
+      this.logger.log('Maizzle render() ready');
     }
-    return this.createPlaintextFn(html);
+    return this.renderFn;
   }
 
   private cacheKey(
