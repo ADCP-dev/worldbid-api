@@ -338,30 +338,38 @@ seeds:                               # Opcional: datos iniciales
 ### Verificar spec YAML antes de cargar
 
 ```bash
-# Validar que el YAML es parseable
-python3 -c "import yaml; yaml.safe_load(open('apps/back/src/extensions/tasks/task.spec.yaml'))"
+# Validar todas las specs (sin la app corriendo)
+cd apps/back && pnpm spec:validate
 
-# Verificar campos requeridos
-python3 -c "
-import yaml
-spec = yaml.safe_load(open('apps/back/src/extensions/tasks/task.spec.yaml'))
-assert 'name' in spec, 'Missing name'
-assert 'table' in spec, 'Missing table'
-assert 'fields' in spec, 'Missing fields'
-for f in spec['fields']:
-    assert 'name' in f, f'Field missing name: {f}'
-    assert 'type' in f, f'Field {f[\"name\"]} missing type'
-print(f'OK: {spec[\"name\"]} — {len(spec[\"fields\"])} fields')
-"
+# Validar una extensión específica
+cd apps/back && node src/core/spec-engine/spec-validate.ts tasks --verbose
 
-# Verificar que permissions están completos
-python3 -c "
-import yaml
-spec = yaml.safe_load(open('apps/back/src/extensions/tasks/task.spec.yaml'))
-for f in spec['fields']:
-    if f.get('required') and f.get('type') == 'string':
-        print(f'  Required string: {f[\"name\"]}')
-"
+# Output: errors (missing/invalid), warnings (files not found),
+# summary (resources, errors, warnings). Verbose muestra todos los
+# fields, permissions, hooks, actions, jobs, notifications, seeds.
+```
+
+### Listar TODOS los endpoints (spec-engine + tradicionales)
+
+```bash
+# Listar 308 endpoints con guards, roles, validaciones
+cd apps/back && pnpm spec:list-endpoints --verbose
+
+# Sin verbose (solo ruta + método + guard + roles)
+cd apps/back && pnpm spec:list-endpoints
+
+# Output JSON (para parsear desde un agente)
+cd apps/back && pnpm spec:list-endpoints --json
+
+# Muestra para cada endpoint:
+# - HTTP method + path
+# - Guard (jwt, public, deny-all, hmac, none)
+# - Roles (admin, user, manager, etc)
+# - Source: spec-engine YAML file o traditional controller file
+# - Validations: fields con min/max/pattern/enum/ref/required
+# - rowLevel: qué roles tienen filtro por fila
+# - hooks: qué hooks ejecuta
+# - actions: handler al que apunta
 ```
 
 ### Listar endpoints existentes

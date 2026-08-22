@@ -28,6 +28,8 @@
     "spec:generate-migration": "ts-node -r tsconfig-paths/register ./src/core/spec-engine/migration-generator.ts",
     "spec:generate-tests": "ts-node -r tsconfig-paths/register ./src/core/spec-engine/test-generator.ts",
     "spec:list": "ts-node -r tsconfig-paths/register ./src/core/spec-engine/spec-list.ts",
+    "spec:list-endpoints": "node ./src/core/spec-engine/spec-list-endpoints.ts",
+    "spec:validate": "node ./src/core/spec-engine/spec-validate.ts",
     "spec:trace": "ts-node -r tsconfig-paths/register ./src/core/spec-engine/spec-trace-cli.ts",
     "spec:snapshot-save": "ts-node -r tsconfig-paths/register ./src/core/spec-engine/spec-snapshot-save.ts",
     "spec:migrate": "node scripts/spec-migrate.js",
