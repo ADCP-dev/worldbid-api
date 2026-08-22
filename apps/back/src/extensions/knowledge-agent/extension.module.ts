@@ -11,6 +11,9 @@ import { ModelController } from './model.controller';
 import { McpServerController } from './mcp-server.controller';
 import { NotePersistenceModule } from './infrastructure/persistence.module';
 import { EmbeddingProcessor } from './infrastructure/embeddings/embedding.processor';
+import { EmbeddingsService } from './infrastructure/embeddings/embeddings.service';
+import { VectorStoreService } from './infrastructure/vector-store.service';
+import { RagService } from './infrastructure/rag.service';
 import { AgentFactoryService } from './infrastructure/agent/agent-factory.service';
 import { ToolRegistryService } from './infrastructure/agent/tool-registry.service';
 import { McpLoaderService } from './infrastructure/agent/mcp-loader.service';
@@ -36,6 +39,9 @@ import { KnowledgeAgentSeedModule } from './seeds/knowledge-agent-seed.module';
   providers: [
     NoteService,
     GraphService,
+    EmbeddingsService,
+    VectorStoreService,
+    RagService,
     EmbeddingProcessor,
     AgentFactoryService,
     ToolRegistryService,
@@ -45,6 +51,9 @@ import { KnowledgeAgentSeedModule } from './seeds/knowledge-agent-seed.module';
   exports: [
     NoteService,
     GraphService,
+    EmbeddingsService,
+    VectorStoreService,
+    RagService,
     AgentFactoryService,
     ToolRegistryService,
     McpLoaderService,

@@ -1,35 +1,43 @@
-import { tool } from '@langchain/core/tools';
-import { z } from 'zod';
+import type { StructuredTool } from '@langchain/core/tools';
+import { createSearchNotesTreeTool } from './tools/search-notes-tree.tool';
+import { createSearchNotesSemanticTool } from './tools/search-notes-semantic.tool';
+import { createCreateNoteTool } from './tools/create-note.tool';
+import { createUpdateNoteTool } from './tools/update-note.tool';
+import { createDeleteNoteTool } from './tools/delete-note.tool';
+import type { NoteService } from './note.service';
+import type { VectorStoreService } from './infrastructure/vector-store.service';
 
 /**
- * Native tools exported by the knowledge-agent extension.
+ * Knowledge-agent tool factories.
  *
- * The ToolRegistryService auto-discovers this file and merges `tools` into the
- * agent's toolset at build time. Tools that require runtime injection (e.g.
- * the VfsBackend for `execute`) are constructed by the AgentFactoryService and
- * merged separately — see tools/execute.tool.ts.
+ * The KB tools need runtime injection (NoteService, VectorStoreService,
+ * userId), so they cannot be exported as a static `tools` array. Instead this
+ * file exports `createKnowledgeAgentTools(ctx)` which the
+ * AgentFactoryService calls at build time, merging the returned tools with
+ * the native tools (ToolRegistry), MCP tools (McpLoader), and the execute
+ * tool (sandbox backend).
+ *
+ * The ToolRegistryService auto-discovery still imports this file, but since
+ * there is no `tools` array export it returns null — KB tools are intentionally
+ * wired by the factory, not the registry.
  */
 
-const echo_tool = tool(
-  async ({ message }) => ({ message }),
-  {
-    name: 'echo',
-    description: 'Echo back the provided message. Useful for debugging agent tool wiring.',
-    schema: z.object({
-      message: z.string().describe('The message to echo back'),
-    }),
-  },
-);
+export interface ToolContext {
+  noteService: NoteService;
+  vectorStoreService: VectorStoreService;
+  userId: number;
+}
 
-const list_notes_tool = tool(
-  async () => ({
-    note: 'Use the search_notes_semantic or search_notes_tree tools (available in Phase 4) to query the knowledge base.',
-  }),
-  {
-    name: 'list_notes',
-    description: 'List available notes tools. Phase 3 stub — real note tools arrive in Phase 4.',
-    schema: z.object({}),
-  },
-);
-
-export const tools = [echo_tool, list_notes_tool];
+/**
+ * Build the five KB tools scoped to `ctx.userId`. The userId closure enforces
+ * user scoping — the agent cannot read or mutate another user's notes.
+ */
+export function createKnowledgeAgentTools(ctx: ToolContext): StructuredTool[] {
+  return [
+    createSearchNotesTreeTool(ctx.noteService, ctx.userId),
+    createSearchNotesSemanticTool(ctx.vectorStoreService),
+    createCreateNoteTool(ctx.noteService, ctx.userId),
+    createUpdateNoteTool(ctx.noteService, ctx.userId),
+    createDeleteNoteTool(ctx.noteService, ctx.userId),
+  ];
+}

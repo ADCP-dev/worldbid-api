@@ -2,7 +2,8 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job, Queue } from 'bullmq';
 import { Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
-import { NoteRepository } from '../infrastructure/note.repository';
+import { NoteRepository } from '../note.repository';
+import { EmbeddingsService } from './embeddings.service';
 
 export interface EmbeddingJobData {
   noteId: string;
@@ -10,12 +11,13 @@ export interface EmbeddingJobData {
 }
 
 /**
- * Embedding processor (Phase 1 stub).
+ * Embedding processor (Phase 4 — real OllamaEmbeddings).
  *
- * In Phase 1 this logs "embedding queued" and sets embedding=NULL.
- * The real OllamaEmbeddings integration is deferred to Phase 3
- * (DeepAgent runtime). This stub ensures the queue plumbing works
- * end-to-end and the save→embed async contract is verifiable.
+ * Consumes `embed` jobs from the `ka-embedding` Bull queue. Generates the
+ * embedding vector via `EmbeddingsService.embed()` (OllamaEmbeddings) and
+ * persists it back into `ext_ka_notes.embedding`. On failure the embedding
+ * stays NULL and the note is excluded from semantic search (Q-13: always
+ * async, non-blocking).
  */
 @Processor('ka-embedding')
 export class EmbeddingProcessor extends WorkerHost {
@@ -25,6 +27,7 @@ export class EmbeddingProcessor extends WorkerHost {
     @InjectQueue('ka-embedding')
     private readonly embeddingQueue: Queue,
     private readonly noteRepository: NoteRepository,
+    private readonly embeddingsService: EmbeddingsService,
   ) {
     super();
   }
@@ -36,11 +39,19 @@ export class EmbeddingProcessor extends WorkerHost {
     }
 
     const { noteId, contentMd } = job.data;
-    this.logger.log(`Embedding queued for note ${noteId} (${contentMd.length} chars)`);
+    this.logger.log(`Embedding job for note ${noteId} (${contentMd.length} chars)`);
 
-    // Phase 1 stub: no real embedding generation.
-    // embedding stays NULL until Phase 3 (DeepAgent + OllamaEmbeddings).
-    await this.noteRepository.updateEmbedding(noteId, null);
-    this.logger.debug(`Embedding stub completed for note ${noteId} (set to NULL — Phase 3 will implement real embeddings)`);
+    try {
+      const vector = await this.embeddingsService.embed(contentMd);
+      await this.noteRepository.updateEmbedding(noteId, vector);
+      this.logger.debug(`Embedding stored for note ${noteId} (dim=${vector.length})`);
+    } catch (err) {
+      // Non-blocking: leave embedding NULL so the note is excluded from
+      // semantic search but remains accessible via tree search / CRUD.
+      this.logger.warn(
+        `Embedding failed for note ${noteId}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      await this.noteRepository.updateEmbedding(noteId, null);
+    }
   }
 }
