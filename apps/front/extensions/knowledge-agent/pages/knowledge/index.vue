@@ -49,10 +49,17 @@ async function createNew() {
           @keyup.enter="onSearch"
         />
       </div>
-      <div class="p-2 border-b">
-        <button class="btn btn-sm btn-primary w-full" @click="createNew">
+      <div class="p-2 border-b flex gap-2">
+        <button class="btn btn-sm btn-primary flex-1" @click="createNew">
           + New Note
         </button>
+        <NuxtLink
+          to="/knowledge/graph"
+          class="btn btn-sm btn-ghost flex-1 border"
+          title="Open graph view"
+        >
+          Graph
+        </NuxtLink>
       </div>
       <div class="flex-1 overflow-auto">
         <KnowledgeTree

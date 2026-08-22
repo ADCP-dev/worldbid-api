@@ -17,6 +17,7 @@ const manifest: ExtensionManifest = {
       { method: 'GET', path: 'ka/notes/:id' },
       { method: 'PATCH', path: 'ka/notes/:id' },
       { method: 'DELETE', path: 'ka/notes/:id' },
+      { method: 'GET', path: 'ka/graph' },
     ],
     entities: [
       { name: 'Note', table: 'ext_ka_notes' },

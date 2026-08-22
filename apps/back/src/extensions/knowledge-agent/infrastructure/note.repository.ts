@@ -141,6 +141,99 @@ export class NoteRepository {
     return rows.map((r: Record<string, unknown>) => this.rowToDomain(r));
   }
 
+  /**
+   * Graph query: notes belonging to the user, optionally filtered by
+   * category_path (ltree prefix) or a single tag (jsonb contains).
+   * Returns the minimal columns needed by the graph viewer.
+   *
+   * Uses raw SQL when category_path filter is present because TypeORM's
+   * query builder does not handle the ltree `<@` operator + `::ltree` cast.
+   */
+  async findNotesForGraph(
+    userId: number,
+    filters?: { categoryPath?: string; tag?: string },
+  ): Promise<
+    Array<{
+      id: string;
+      title: string;
+      tags: string[];
+      category_path: string | null;
+    }>
+  > {
+    if (filters?.categoryPath) {
+      const sanitized = filters.categoryPath.replace(/[^a-zA-Z0-9_.]/g, '');
+      if (!sanitized) return [];
+
+      const params: unknown[] = [userId, sanitized];
+      let sql = `
+        SELECT id, title, tags, category_path
+        FROM ext_ka_notes
+        WHERE user_id = $1
+          AND deleted_at IS NULL
+          AND category_path <@ $2::ltree
+      `;
+      if (filters.tag) {
+        params.push(JSON.stringify([filters.tag]));
+        sql += ` AND tags @> $3::jsonb`;
+      }
+      return this.dataSource.query(sql, params).then((rows: Array<Record<string, unknown>>) =>
+        rows.map((r) => ({
+          id: r['id'] as string,
+          title: r['title'] as string,
+          tags: (r['tags'] as string[]) ?? [],
+          category_path: (r['category_path'] as string) ?? null,
+        })),
+      );
+    }
+
+    // No category_path filter — safe to use the query builder.
+    const qb = this.noteRepository
+      .createQueryBuilder('note')
+      .select(['note.id', 'note.title', 'note.tags', 'note.categoryPath'])
+      .where('note.userId = :userId', { userId })
+      .andWhere('note.deletedAt IS NULL');
+
+    if (filters?.tag) {
+      qb.andWhere('note.tags @> CAST(:tag AS jsonb)', {
+        tag: JSON.stringify([filters.tag]),
+      });
+    }
+
+    return qb.getMany().then((rows) =>
+      rows.map((r) => ({
+        id: r.id,
+        title: r.title,
+        tags: r.tags ?? [],
+        category_path: r.categoryPath,
+      })),
+    );
+  }
+
+  /**
+   * Graph query: edges (note links) where BOTH source and target belong to
+   * the given set of note ids. Avoids leaking links that point to other users'
+   * notes or to deleted notes outside the visible set.
+   */
+  async findLinksForNotes(
+    userId: number,
+    noteIds: string[],
+  ): Promise<Array<{ source_note_id: string; target_note_id: string }>> {
+    if (noteIds.length === 0) return [];
+    const sql = `
+      SELECT l.source_note_id, l.target_note_id
+      FROM ext_ka_note_links l
+      JOIN ext_ka_notes s ON s.id = l.source_note_id
+      JOIN ext_ka_notes t ON t.id = l.target_note_id
+      WHERE s.user_id = $1
+        AND t.user_id = $1
+        AND s.deleted_at IS NULL
+        AND t.deleted_at IS NULL
+        AND l.source_note_id = ANY($2::uuid[])
+        AND l.target_note_id = ANY($2::uuid[])
+    `;
+    return this.dataSource.query(sql, [userId, noteIds]);
+  }
+
   async updateEmbedding(id: string, embedding: number[] | null): Promise<void> {
     const vectorLiteral = embedding
       ? `[${embedding.join(',')}]`

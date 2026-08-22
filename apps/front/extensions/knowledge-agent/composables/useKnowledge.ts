@@ -40,6 +40,29 @@ export interface QueryNotesParams {
   tags?: string[];
 }
 
+export interface GraphNode {
+  id: string;
+  label: string;
+  tags: string[];
+  categoryPath: string | null;
+  degree: number;
+}
+
+export interface GraphEdge {
+  source: string;
+  target: string;
+}
+
+export interface GraphData {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+}
+
+export interface QueryGraphParams {
+  categoryPath?: string;
+  tag?: string;
+}
+
 function useApi() {
   const config = useRuntimeConfig();
   const authStore = useAuthStore();
@@ -88,6 +111,13 @@ export function useKnowledge() {
     return apiFetch<Note[]>(`/ka/notes/${id}/backlinks`);
   }
 
+  async function getGraph(params: QueryGraphParams = {}): Promise<GraphData> {
+    const query: Record<string, string | undefined> = {};
+    if (params.categoryPath) query.categoryPath = params.categoryPath;
+    if (params.tag) query.tag = params.tag;
+    return apiFetch<GraphData>('/ka/graph', { query });
+  }
+
   async function createNote(payload: CreateNotePayload): Promise<Note> {
     return apiFetch<Note>('/ka/notes', { method: 'POST', body: payload });
   }
@@ -110,6 +140,7 @@ export function useKnowledge() {
     getNotes,
     getNote,
     getBacklinks,
+    getGraph,
     createNote,
     updateNote,
     deleteNote,
