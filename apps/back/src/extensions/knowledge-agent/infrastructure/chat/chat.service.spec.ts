@@ -54,7 +54,7 @@ describe('ChatService', () => {
     };
     const agentConfigRepoMock = {
       findById: jest.fn(),
-      findByUserId: jest.fn(),
+      findAll: jest.fn(),
     };
     const agentFactoryMock = {
       buildAgent: jest.fn(),
@@ -325,7 +325,7 @@ describe('ChatService', () => {
       });
       sessionRepo.findById.mockResolvedValue(session);
       const defaultConfig = makeConfig({ id: 'cfg-default', userId: 1 });
-      agentConfigRepo.findByUserId.mockResolvedValue([defaultConfig]);
+      agentConfigRepo.findAll.mockResolvedValue([defaultConfig]);
       const agent = makeAgent(makeStreamRun(['ok']));
       agentFactory.buildAgent.mockResolvedValue(agent);
       ragService.search.mockResolvedValue([]);
@@ -335,19 +335,19 @@ describe('ChatService', () => {
         chunks.push(c);
       }
 
-      expect(agentConfigRepo.findByUserId).toHaveBeenCalledWith(1);
+      expect(agentConfigRepo.findAll).toHaveBeenCalledWith();
       expect(agentFactory.buildAgent).toHaveBeenCalledWith('cfg-default', 1);
       expect(chunks).toEqual(['ok']);
     });
 
-    it('should throw NotFoundException when agentConfigId is null and no default config exists', async () => {
+    it('should throw NotFoundException when agentConfigId is null and no config exists', async () => {
       const session = makeSession({
         id: 'sess-1',
         userId: 1,
         agentConfigId: null,
       });
       sessionRepo.findById.mockResolvedValue(session);
-      agentConfigRepo.findByUserId.mockResolvedValue([]);
+      agentConfigRepo.findAll.mockResolvedValue([]);
 
       await expect(
         (async () => {

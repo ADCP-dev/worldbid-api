@@ -14,7 +14,7 @@ describe('NoteService', () => {
   const mockRepository = {
     create: jest.fn(),
     findById: jest.fn(),
-    findByUserId: jest.fn(),
+    findAll: jest.fn(),
     findByCategoryPath: jest.fn(),
     update: jest.fn(),
     softDelete: jest.fn(),
@@ -100,6 +100,28 @@ describe('NoteService', () => {
         ['Other Note', 'Second Note'],
       );
     });
+
+    it('should store created_by userId as provenance (metadata only)', async () => {
+      const dto = { title: 'My Note', contentMd: 'content', userId: 7 } as any;
+      repository.create.mockResolvedValue(makeNote({ userId: 7 }));
+
+      await service.create(dto);
+
+      expect(repository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: 7 }),
+      );
+    });
+
+    it('should create a note without userId (global, null provenance)', async () => {
+      const dto = { title: 'My Note', contentMd: 'content' } as any;
+      repository.create.mockResolvedValue(makeNote({ userId: null }));
+
+      await service.create(dto);
+
+      expect(repository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: null }),
+      );
+    });
   });
 
   describe('update', () => {
@@ -127,20 +149,21 @@ describe('NoteService', () => {
       expect(embeddingQueue.add).not.toHaveBeenCalled();
     });
 
-    it('should throw NotFoundException when userId does not own the note', async () => {
-      repository.findById.mockResolvedValue(makeNote({ userId: 99 }));
+    it('should throw NotFoundException when note does not exist', async () => {
+      repository.findById.mockResolvedValue(null);
 
       await expect(
-        service.update('note-1', { title: 'X' } as any, 1),
+        service.update('note-1', { title: 'X' } as any),
       ).rejects.toThrow(NotFoundException);
       expect(repository.update).not.toHaveBeenCalled();
     });
 
-    it('should allow update when userId matches owner', async () => {
-      repository.findById.mockResolvedValue(makeNote({ userId: 1 }));
-      repository.update.mockResolvedValue(makeNote({ userId: 1 }));
+    it('should allow ANY authenticated user to update ANY note (global access)', async () => {
+      // Note created by user 99 — user 1 may still update it.
+      repository.findById.mockResolvedValue(makeNote({ userId: 99 }));
+      repository.update.mockResolvedValue(makeNote({ userId: 99, title: 'X' }));
 
-      await service.update('note-1', { title: 'X' } as any, 1);
+      await service.update('note-1', { title: 'X' } as any);
 
       expect(repository.update).toHaveBeenCalledWith('note-1', { title: 'X' });
     });
@@ -162,17 +185,11 @@ describe('NoteService', () => {
       expect(repository.softDelete).not.toHaveBeenCalled();
     });
 
-    it('should throw NotFoundException when userId does not own the note', async () => {
+    it('should allow ANY user to delete ANY note (global access)', async () => {
+      // Note created by user 99 — user 1 may still delete it.
       repository.findById.mockResolvedValue(makeNote({ userId: 99 }));
 
-      await expect(service.softDelete('note-1', 1)).rejects.toThrow(NotFoundException);
-      expect(repository.softDelete).not.toHaveBeenCalled();
-    });
-
-    it('should soft delete when userId matches owner', async () => {
-      repository.findById.mockResolvedValue(makeNote({ userId: 1 }));
-
-      await service.softDelete('note-1', 1);
+      await service.softDelete('note-1');
 
       expect(repository.softDelete).toHaveBeenCalledWith('note-1');
     });
@@ -195,38 +212,50 @@ describe('NoteService', () => {
 
       expect(result).toBeNull();
     });
+
+    it('should return any note regardless of creator (global access)', async () => {
+      repository.findById.mockResolvedValue(makeNote({ userId: 999 }));
+
+      const result = await service.findById('note-1');
+
+      expect(result).not.toBeNull();
+      expect(result?.userId).toBe(999);
+    });
   });
 
   describe('findByCategoryPath', () => {
-    it('should perform tree search by category_path', async () => {
+    it('should perform tree search by category_path (no user scoping)', async () => {
       repository.findByCategoryPath.mockResolvedValue([
         makeNote({ id: 'n1', categoryPath: 'tech' }),
         makeNote({ id: 'n2', categoryPath: 'tech.notes' }),
       ]);
 
-      const result = await service.findByCategoryPath(1, 'tech', 2);
+      const result = await service.findByCategoryPath('tech', 2);
 
-      expect(repository.findByCategoryPath).toHaveBeenCalledWith(1, 'tech', 2);
+      expect(repository.findByCategoryPath).toHaveBeenCalledWith('tech', 2);
       expect(result).toHaveLength(2);
     });
   });
 
-  describe('findByUserId', () => {
-    it('should return only notes belonging to the user', async () => {
-      repository.findByUserId.mockResolvedValue([makeNote({ userId: 5 })]);
+  describe('findAll', () => {
+    it('should return all notes (global, no user scoping)', async () => {
+      repository.findAll.mockResolvedValue([
+        makeNote({ id: 'n1', userId: 1 }),
+        makeNote({ id: 'n2', userId: 99 }),
+      ]);
 
-      const result = await service.findByUserId(5);
+      const result = await service.findAll();
 
-      expect(repository.findByUserId).toHaveBeenCalledWith(5, undefined);
-      expect(result.every((n) => n.userId === 5)).toBe(true);
+      expect(repository.findAll).toHaveBeenCalledWith(undefined);
+      expect(result).toHaveLength(2);
     });
 
     it('should pass search filter to repository', async () => {
-      repository.findByUserId.mockResolvedValue([]);
+      repository.findAll.mockResolvedValue([]);
 
-      await service.findByUserId(5, { search: 'keyword' });
+      await service.findAll({ search: 'keyword' });
 
-      expect(repository.findByUserId).toHaveBeenCalledWith(5, { search: 'keyword' });
+      expect(repository.findAll).toHaveBeenCalledWith({ search: 'keyword' });
     });
   });
 });

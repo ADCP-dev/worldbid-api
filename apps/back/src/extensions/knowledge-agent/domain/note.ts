@@ -30,9 +30,9 @@ export class Note {
   @Expose()
   embedding: number[] | null;
 
-  @ApiProperty({ type: Number })
+  @ApiProperty({ type: Number, nullable: true, description: 'Creator provenance — metadata only, NOT scoping' })
   @Expose()
-  userId: number;
+  userId: number | null;
 
   @ApiProperty()
   @Expose()

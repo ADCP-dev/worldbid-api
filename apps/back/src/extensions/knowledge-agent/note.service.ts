@@ -24,7 +24,7 @@ export class NoteService {
     private readonly embeddingQueue: Queue,
   ) {}
 
-  async create(dto: CreateNoteDto & { userId: number }): Promise<Note> {
+  async create(dto: CreateNoteDto & { userId?: number | null }): Promise<Note> {
     const data = {
       ...dto,
       frontmatter: dto.frontmatter ?? { ...DEFAULT_OKF_FRONTMATTER },
@@ -49,27 +49,21 @@ export class NoteService {
     return this.repository.findById(id);
   }
 
-  async findByUserId(
-    userId: number,
-    filters?: { search?: string },
-  ): Promise<Note[]> {
-    return this.repository.findByUserId(userId, filters);
+  /**
+   * List all notes (global knowledge base). Optional `search` filters by
+   * title or content.
+   */
+  async findAll(filters?: { search?: string }): Promise<Note[]> {
+    return this.repository.findAll(filters);
   }
 
-  async findByCategoryPath(
-    userId: number,
-    categoryPath: string,
-    depth = 0,
-  ): Promise<Note[]> {
-    return this.repository.findByCategoryPath(userId, categoryPath, depth);
+  async findByCategoryPath(categoryPath: string, depth = 0): Promise<Note[]> {
+    return this.repository.findByCategoryPath(categoryPath, depth);
   }
 
-  async update(id: string, dto: UpdateNoteDto, userId?: number): Promise<Note> {
+  async update(id: string, dto: UpdateNoteDto): Promise<Note> {
     const existing = await this.repository.findById(id);
     if (!existing) {
-      throw new NotFoundException(`Note ${id} not found`);
-    }
-    if (userId !== undefined && existing.userId !== userId) {
       throw new NotFoundException(`Note ${id} not found`);
     }
 
@@ -88,12 +82,9 @@ export class NoteService {
     return note;
   }
 
-  async softDelete(id: string, userId?: number): Promise<void> {
+  async softDelete(id: string): Promise<void> {
     const note = await this.repository.findById(id);
     if (!note) {
-      throw new NotFoundException(`Note ${id} not found`);
-    }
-    if (userId !== undefined && note.userId !== userId) {
       throw new NotFoundException(`Note ${id} not found`);
     }
     await this.repository.softDelete(id);

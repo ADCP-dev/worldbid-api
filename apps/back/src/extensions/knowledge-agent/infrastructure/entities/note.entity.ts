@@ -15,6 +15,10 @@ import { UserEntity } from '@users/infrastructure/entities/user.entity';
 /**
  * ext_ka_notes — knowledge base note.
  *
+ * Notes are a GLOBAL shared knowledge base: every authenticated user sees
+ * every note. `user_id` is kept as nullable metadata of who CREATED the
+ * note (provenance only); it is NOT used for scoping queries.
+ *
  * Special column types (defined in migration, not by TypeORM sync):
  * - `category_path` is `ltree` in Postgres. Declared as text here for
  *   TypeORM mapping; raw SQL is used for tree queries.
@@ -44,11 +48,16 @@ export class NoteEntity extends EntityRelationalHelper {
   @Column({ type: 'text', name: 'embedding', nullable: true })
   embedding: string | null;
 
+  /**
+   * Creator provenance — nullable metadata only. NOT used for scoping.
+   * The FK is kept (ON DELETE SET NULL) so deleting a user keeps their
+   * notes in the shared knowledge base.
+   */
   @Index('idx_ka_notes_user_id')
-  @Column({ type: 'int', name: 'user_id' })
-  userId: number;
+  @Column({ type: 'int', name: 'user_id', nullable: true })
+  userId: number | null;
 
-  @ManyToOne(() => UserEntity, { eager: false, onDelete: 'CASCADE' })
+  @ManyToOne(() => UserEntity, { eager: false, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'user_id' })
   user: UserEntity;
 

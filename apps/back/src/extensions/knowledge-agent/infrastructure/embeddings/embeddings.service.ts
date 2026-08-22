@@ -26,7 +26,18 @@ export class EmbeddingsService implements OnModuleInit {
 
   /** NestJS lifecycle hook — builds the OllamaEmbeddings instance on boot. */
   async onModuleInit(): Promise<void> {
-    this.init();
+    try {
+      this.init();
+    } catch (err) {
+      // @langchain/ollama is optional — if the package or its
+      // @langchain/core compat subpath is unavailable (version mismatch),
+      // degrade gracefully instead of crashing the bootstrap. The extension
+      // will surface a runtime error only when embed() is actually called.
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[EmbeddingsService] OllamaEmbeddings unavailable — embedding features disabled: ${(err as Error).message}`,
+      );
+    }
   }
 
   /** Build the OllamaEmbeddings instance. Kept separate so tests can stub it. */

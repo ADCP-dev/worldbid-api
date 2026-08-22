@@ -11,7 +11,8 @@ export interface Note {
   tags: string[];
   frontmatter: Record<string, unknown>;
   embedding: number[] | null;
-  userId: number;
+  /** Creator provenance — metadata only, NOT scoping. Notes are global. */
+  userId: number | null;
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;

@@ -23,10 +23,8 @@ const makeNote = (overrides: Partial<Note> = {}): Note => ({
 });
 
 describe('KB tools (LangChain tool factories)', () => {
-  const userId = 42;
-
   describe('search_notes_tree', () => {
-    it('should call NoteService.findByCategoryPath and return mapped notes', async () => {
+    it('should call NoteService.findByCategoryPath (global, no userId) and return mapped notes', async () => {
       const noteService = {
         findByCategoryPath: jest.fn().mockResolvedValue([
           makeNote({ id: 'n1', title: 'A', categoryPath: 'tech', tags: ['a'] }),
@@ -34,10 +32,10 @@ describe('KB tools (LangChain tool factories)', () => {
         ]),
       } as unknown as jest.Mocked<NoteService>;
 
-      const tool = createSearchNotesTreeTool(noteService, userId);
+      const tool = createSearchNotesTreeTool(noteService);
       const result = await tool.invoke({ categoryPath: 'tech', depth: 2 });
 
-      expect(noteService.findByCategoryPath).toHaveBeenCalledWith(userId, 'tech', 2);
+      expect(noteService.findByCategoryPath).toHaveBeenCalledWith('tech', 2);
       const parsed = JSON.parse(result as string);
       expect(parsed).toHaveLength(2);
       expect(parsed[0]).toEqual({ id: 'n1', title: 'A', categoryPath: 'tech', tags: ['a'] });
@@ -49,15 +47,15 @@ describe('KB tools (LangChain tool factories)', () => {
         findByCategoryPath: jest.fn().mockResolvedValue([]),
       } as unknown as jest.Mocked<NoteService>;
 
-      const tool = createSearchNotesTreeTool(noteService, userId);
+      const tool = createSearchNotesTreeTool(noteService);
       await tool.invoke({ categoryPath: 'tech' });
 
-      expect(noteService.findByCategoryPath).toHaveBeenCalledWith(userId, 'tech', 2);
+      expect(noteService.findByCategoryPath).toHaveBeenCalledWith('tech', 2);
     });
 
     it('should have name search_notes_tree and a description', () => {
       const noteService = {} as unknown as jest.Mocked<NoteService>;
-      const tool = createSearchNotesTreeTool(noteService, userId);
+      const tool = createSearchNotesTreeTool(noteService);
       expect(tool.name).toBe('search_notes_tree');
       expect(tool.description.length).toBeGreaterThan(10);
     });
@@ -100,13 +98,13 @@ describe('KB tools (LangChain tool factories)', () => {
   });
 
   describe('create_note', () => {
-    it('should call NoteService.create with userId and return the note id', async () => {
+    it('should call NoteService.create and return the note id (no userId scoping)', async () => {
       const created = makeNote({ id: 'new-1' });
       const noteService = {
         create: jest.fn().mockResolvedValue(created),
       } as unknown as jest.Mocked<NoteService>;
 
-      const tool = createCreateNoteTool(noteService, userId);
+      const tool = createCreateNoteTool(noteService);
       const result = await tool.invoke({
         title: 'My Note',
         contentMd: 'content',
@@ -115,7 +113,10 @@ describe('KB tools (LangChain tool factories)', () => {
       });
 
       expect(noteService.create).toHaveBeenCalledWith(
-        expect.objectContaining({ title: 'My Note', contentMd: 'content', userId }),
+        expect.objectContaining({ title: 'My Note', contentMd: 'content' }),
+      );
+      expect(noteService.create).toHaveBeenCalledWith(
+        expect.not.objectContaining({ userId: expect.any(Number) }),
       );
       const parsed = JSON.parse(result as string);
       expect(parsed).toEqual({ id: 'new-1', success: true });
@@ -125,7 +126,7 @@ describe('KB tools (LangChain tool factories)', () => {
       const noteService = {
         create: jest.fn(),
       } as unknown as jest.Mocked<NoteService>;
-      const tool = createCreateNoteTool(noteService, userId);
+      const tool = createCreateNoteTool(noteService);
 
       await expect(tool.invoke({ title: '', contentMd: 'x' })).rejects.toThrow();
       expect(noteService.create).not.toHaveBeenCalled();
@@ -135,14 +136,14 @@ describe('KB tools (LangChain tool factories)', () => {
       const noteService = {
         create: jest.fn(),
       } as unknown as jest.Mocked<NoteService>;
-      const tool = createCreateNoteTool(noteService, userId);
+      const tool = createCreateNoteTool(noteService);
 
       await expect(tool.invoke({ title: 'X', contentMd: '' })).rejects.toThrow();
     });
 
     it('should have name create_note and a description', () => {
       const noteService = {} as unknown as jest.Mocked<NoteService>;
-      const tool = createCreateNoteTool(noteService, userId);
+      const tool = createCreateNoteTool(noteService);
       expect(tool.name).toBe('create_note');
       expect(tool.description.length).toBeGreaterThan(10);
     });
@@ -179,12 +180,12 @@ describe('KB tools (LangChain tool factories)', () => {
   });
 
   describe('delete_note', () => {
-    it('should call NoteService.softDelete and return success', async () => {
+    it('should call NoteService.softDelete and return success (no userId)', async () => {
       const noteService = {
         softDelete: jest.fn().mockResolvedValue(undefined),
       } as unknown as jest.Mocked<NoteService>;
 
-      const tool = createDeleteNoteTool(noteService, userId);
+      const tool = createDeleteNoteTool(noteService);
       const result = await tool.invoke({ id: 'n1' });
 
       expect(noteService.softDelete).toHaveBeenCalledWith('n1');
@@ -198,21 +199,21 @@ describe('KB tools (LangChain tool factories)', () => {
         softDelete: jest.fn().mockRejectedValue(notFound),
       } as unknown as jest.Mocked<NoteService>;
 
-      const tool = createDeleteNoteTool(noteService, userId);
+      const tool = createDeleteNoteTool(noteService);
 
       await expect(tool.invoke({ id: 'missing' })).rejects.toThrow();
     });
 
     it('should error if id is empty', async () => {
       const noteService = {} as unknown as jest.Mocked<NoteService>;
-      const tool = createDeleteNoteTool(noteService, userId);
+      const tool = createDeleteNoteTool(noteService);
 
       await expect(tool.invoke({ id: '' })).rejects.toThrow();
     });
 
     it('should have name delete_note and a description', () => {
       const noteService = {} as unknown as jest.Mocked<NoteService>;
-      const tool = createDeleteNoteTool(noteService, userId);
+      const tool = createDeleteNoteTool(noteService);
       expect(tool.name).toBe('delete_note');
       expect(tool.description.length).toBeGreaterThan(10);
     });

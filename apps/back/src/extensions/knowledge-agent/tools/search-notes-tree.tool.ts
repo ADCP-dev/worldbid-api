@@ -5,17 +5,14 @@ import type { NoteService } from '../note.service';
 /**
  * search_notes_tree — search notes by category_path hierarchy.
  *
- * Factory: receives the NoteService + userId (scoped to the requesting user)
- * and returns a LangChain Tool the DeepAgent can invoke. The userId closure
- * enforces user scoping — the agent cannot read another user's notes.
+ * Factory: receives the NoteService and returns a LangChain Tool the
+ * DeepAgent can invoke. Notes are GLOBAL (shared knowledge base) — the tool
+ * searches across ALL notes regardless of the requesting user.
  */
-export function createSearchNotesTreeTool(
-  noteService: NoteService,
-  userId: number,
-) {
+export function createSearchNotesTreeTool(noteService: NoteService) {
   return tool(
     async ({ categoryPath, depth }) => {
-      const notes = await noteService.findByCategoryPath(userId, categoryPath, depth);
+      const notes = await noteService.findByCategoryPath(categoryPath, depth);
       return JSON.stringify(
         notes.map((n) => ({
           id: n.id,
@@ -28,7 +25,7 @@ export function createSearchNotesTreeTool(
     {
       name: 'search_notes_tree',
       description:
-        'Search notes by category path hierarchy. Returns notes organized by tree level, scoped to the current user.',
+        'Search notes by category path hierarchy. Returns notes organized by tree level. The knowledge base is shared across all users.',
       schema: z.object({
         categoryPath: z
           .string()

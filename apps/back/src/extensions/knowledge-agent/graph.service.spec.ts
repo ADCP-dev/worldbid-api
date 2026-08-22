@@ -37,7 +37,7 @@ describe('GraphService', () => {
       { source_note_id: 'b', target_note_id: 'c' },
     ]);
 
-    const result = await service.getGraph(1);
+    const result = await service.getGraph();
 
     const degreeOf = (id: string) =>
       result.nodes.find((n) => n.id === id)?.degree;
@@ -52,34 +52,34 @@ describe('GraphService', () => {
     ]);
     repository.findLinksForNotes.mockResolvedValue([]);
 
-    const result = await service.getGraph(5);
+    const result = await service.getGraph();
 
     expect(result.nodes).toHaveLength(1);
     expect(result.nodes[0].degree).toBe(0);
     expect(result.edges).toHaveLength(0);
   });
 
-  it('should only return links between notes in the visible set (user-scoped)', async () => {
+  it('should only return links between notes in the visible set (global, no user filter)', async () => {
     repository.findNotesForGraph.mockResolvedValue([
       { id: 'a', title: 'A', tags: [], category_path: null },
     ]);
-    // Repo already filters by noteIds + user_id, so a link to a note outside
+    // Repo already filters by noteIds, so a link to a note outside
     // the set should not appear here.
     repository.findLinksForNotes.mockResolvedValue([]);
 
-    const result = await service.getGraph(1);
+    const result = await service.getGraph();
 
-    expect(repository.findLinksForNotes).toHaveBeenCalledWith(1, ['a']);
+    expect(repository.findLinksForNotes).toHaveBeenCalledWith(['a']);
     expect(result.edges).toHaveLength(0);
   });
 
-  it('should pass categoryPath and tag filters to the repository', async () => {
+  it('should pass categoryPath and tag filters to the repository (no userId)', async () => {
     repository.findNotesForGraph.mockResolvedValue([]);
     repository.findLinksForNotes.mockResolvedValue([]);
 
-    await service.getGraph(1, { categoryPath: 'tech', tag: 'ai' });
+    await service.getGraph({ categoryPath: 'tech', tag: 'ai' });
 
-    expect(repository.findNotesForGraph).toHaveBeenCalledWith(1, {
+    expect(repository.findNotesForGraph).toHaveBeenCalledWith({
       categoryPath: 'tech',
       tag: 'ai',
     });
@@ -91,17 +91,17 @@ describe('GraphService', () => {
     ]);
     repository.findLinksForNotes.mockResolvedValue([]);
 
-    const result = await service.getGraph(1);
+    const result = await service.getGraph();
 
     expect(result.nodes[0].tags).toEqual(['alpha', 'beta']);
     expect(result.nodes[0].categoryPath).toBe('tech.notes');
   });
 
-  it('should return empty graph when user has no notes', async () => {
+  it('should return empty graph when there are no notes', async () => {
     repository.findNotesForGraph.mockResolvedValue([]);
     repository.findLinksForNotes.mockResolvedValue([]);
 
-    const result = await service.getGraph(42);
+    const result = await service.getGraph();
 
     expect(result.nodes).toHaveLength(0);
     expect(result.edges).toHaveLength(0);

@@ -51,7 +51,7 @@ describe('RagService', () => {
   afterEach(() => jest.clearAllMocks());
 
   describe('tree strategy', () => {
-    it('should call NoteService.findByCategoryPath and return mapped RagHits', async () => {
+    it('should call NoteService.findByCategoryPath (no userId) and return mapped RagHits', async () => {
       const notes = [
         makeNote({ id: 'n1', title: 'A', categoryPath: 'tech', tags: ['a'] }),
         makeNote({ id: 'n2', title: 'B', categoryPath: 'tech.notes', tags: ['b'] }),
@@ -59,12 +59,11 @@ describe('RagService', () => {
       noteService.findByCategoryPath.mockResolvedValue(notes);
 
       const result = await service.search('', 'tree', {
-        userId: 7,
         categoryPath: 'tech',
         depth: 2,
       });
 
-      expect(noteService.findByCategoryPath).toHaveBeenCalledWith(7, 'tech', 2);
+      expect(noteService.findByCategoryPath).toHaveBeenCalledWith('tech', 2);
       expect(result).toHaveLength(2);
       expect(result[0]).toEqual({
         id: 'n1',
@@ -81,20 +80,14 @@ describe('RagService', () => {
     it('should default depth to 0 when not specified', async () => {
       noteService.findByCategoryPath.mockResolvedValue([]);
 
-      await service.search('', 'tree', { userId: 1, categoryPath: 'tech' });
+      await service.search('', 'tree', { categoryPath: 'tech' });
 
-      expect(noteService.findByCategoryPath).toHaveBeenCalledWith(1, 'tech', 0);
-    });
-
-    it('should throw if userId is missing', async () => {
-      await expect(
-        service.search('', 'tree', { categoryPath: 'tech' }),
-      ).rejects.toThrow('requires userId');
+      expect(noteService.findByCategoryPath).toHaveBeenCalledWith('tech', 0);
     });
 
     it('should throw if categoryPath is missing', async () => {
       await expect(
-        service.search('', 'tree', { userId: 1 }),
+        service.search('', 'tree', {}),
       ).rejects.toThrow('requires categoryPath');
     });
   });
@@ -144,7 +137,7 @@ describe('RagService', () => {
   });
 
   describe('hybrid strategy', () => {
-    it('should run tree + semantic in parallel and merge', async () => {
+    it('should run tree + semantic in parallel and merge (no userId needed)', async () => {
       noteService.findByCategoryPath.mockResolvedValue([
         makeNote({ id: 'n1', title: 'Tree A', categoryPath: 'tech' }),
         makeNote({ id: 'n2', title: 'Tree B', categoryPath: 'tech.notes' }),
@@ -155,13 +148,12 @@ describe('RagService', () => {
       vectorStoreService.similaritySearch.mockResolvedValue(semanticHits);
 
       const result = await service.search('concept', 'hybrid', {
-        userId: 5,
         categoryPath: 'tech',
         depth: 1,
         topK: 5,
       });
 
-      expect(noteService.findByCategoryPath).toHaveBeenCalledWith(5, 'tech', 1);
+      expect(noteService.findByCategoryPath).toHaveBeenCalledWith('tech', 1);
       expect(vectorStoreService.similaritySearch).toHaveBeenCalledWith('concept', 5);
       expect(result).toHaveLength(3);
       // Tree hits first, semantic appended after.
@@ -181,7 +173,6 @@ describe('RagService', () => {
       vectorStoreService.similaritySearch.mockResolvedValue(semanticHits);
 
       const result = await service.search('concept', 'hybrid', {
-        userId: 1,
         categoryPath: 'tech',
       });
 
@@ -200,7 +191,6 @@ describe('RagService', () => {
       vectorStoreService.similaritySearch.mockResolvedValue([]);
 
       const result = await service.search('concept', 'hybrid', {
-        userId: 1,
         categoryPath: 'tech',
       });
 
@@ -217,19 +207,12 @@ describe('RagService', () => {
       vectorStoreService.similaritySearch.mockResolvedValue(semanticHits);
 
       const result = await service.search('concept', 'hybrid', {
-        userId: 1,
         categoryPath: 'tech',
       });
 
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('n3');
       expect(result[0].source).toBe('semantic');
-    });
-
-    it('should throw if userId is missing on hybrid', async () => {
-      await expect(
-        service.search('q', 'hybrid', { categoryPath: 'tech' }),
-      ).rejects.toThrow('requires userId');
     });
   });
 });

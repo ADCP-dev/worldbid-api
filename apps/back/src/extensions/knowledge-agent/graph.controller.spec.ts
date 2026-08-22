@@ -39,12 +39,12 @@ describe('GraphController', () => {
     expect(controller).toBeDefined();
   });
 
-  it('should return graph (nodes + edges) scoped to the user id', async () => {
+  it('should return the global graph (nodes + edges, no user scoping)', async () => {
     graphService.getGraph.mockResolvedValue(makeGraph());
 
-    const result = await controller.getGraph(42, {} as any);
+    const result = await controller.getGraph({} as any);
 
-    expect(graphService.getGraph).toHaveBeenCalledWith(42, {
+    expect(graphService.getGraph).toHaveBeenCalledWith({
       categoryPath: undefined,
       tag: undefined,
     });
@@ -56,27 +56,30 @@ describe('GraphController', () => {
   it('should pass categoryPath and tag filters to the service', async () => {
     graphService.getGraph.mockResolvedValue({ nodes: [], edges: [] });
 
-    await controller.getGraph(7, { categoryPath: 'tech', tag: 'ai' } as any);
+    await controller.getGraph({ categoryPath: 'tech', tag: 'ai' } as any);
 
-    expect(graphService.getGraph).toHaveBeenCalledWith(7, {
+    expect(graphService.getGraph).toHaveBeenCalledWith({
       categoryPath: 'tech',
       tag: 'ai',
     });
   });
 
-  it('should forward the user id from the @UserId() decorator (no cross-user leak)', async () => {
+  it('should not require a user id (global knowledge base)', async () => {
     graphService.getGraph.mockResolvedValue({ nodes: [], edges: [] });
 
-    await controller.getGraph(99, {} as any);
+    await controller.getGraph({} as any);
 
     expect(graphService.getGraph).toHaveBeenCalledTimes(1);
-    expect(graphService.getGraph.mock.calls[0][0]).toBe(99);
+    expect(graphService.getGraph.mock.calls[0][0]).toEqual({
+      categoryPath: undefined,
+      tag: undefined,
+    });
   });
 
   it('should include degree on every node', async () => {
     graphService.getGraph.mockResolvedValue(makeGraph());
 
-    const result = await controller.getGraph(1, {} as any);
+    const result = await controller.getGraph({} as any);
 
     for (const node of result.nodes) {
       expect(node).toHaveProperty('degree');
@@ -84,10 +87,10 @@ describe('GraphController', () => {
     }
   });
 
-  it('should return empty graph when user has no notes', async () => {
+  it('should return empty graph when there are no notes', async () => {
     graphService.getGraph.mockResolvedValue({ nodes: [], edges: [] });
 
-    const result = await controller.getGraph(0, {} as any);
+    const result = await controller.getGraph({} as any);
 
     expect(result.nodes).toHaveLength(0);
     expect(result.edges).toHaveLength(0);

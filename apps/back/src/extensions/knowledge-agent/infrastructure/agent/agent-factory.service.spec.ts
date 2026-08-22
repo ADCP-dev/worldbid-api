@@ -49,6 +49,7 @@ describe('AgentFactoryService', () => {
 
     const repoMock = {
       findById: jest.fn(),
+      findAll: jest.fn(),
     };
     const toolRegistryMock = {
       collect: jest.fn(),
@@ -115,12 +116,15 @@ describe('AgentFactoryService', () => {
     );
   });
 
-  it('should throw NotFoundException if config belongs to another user', async () => {
+  it('should NOT throw if config belongs to another user (configs are global)', async () => {
+    // Configs are global — any user can build an agent from any config.
+    // userId stays in the cache key only for per-user sandbox isolation.
     agentConfigRepo.findById.mockResolvedValue(makeConfig({ userId: 999 }));
+    toolRegistry.collect.mockResolvedValue([]);
+    mcpLoader.load.mockResolvedValue([]);
+    sandbox.createSandbox.mockResolvedValue({ stop: jest.fn() });
 
-    await expect(service.buildAgent('cfg-1', 1)).rejects.toThrow(
-      NotFoundException,
-    );
+    await expect(service.buildAgent('cfg-1', 1)).resolves.not.toThrow();
   });
 
   it('should construct createDeepAgent with the correct model string', async () => {
@@ -176,7 +180,7 @@ describe('AgentFactoryService', () => {
     );
   });
 
-  it('should scope KB tools to the requesting userId', async () => {
+  it('should build KB tools globally (no userId scoping — notes + configs shared)', async () => {
     agentConfigRepo.findById.mockResolvedValue(makeConfig({ userId: 7 }));
     toolRegistry.collect.mockResolvedValue([]);
     mcpLoader.load.mockResolvedValue([]);
@@ -184,9 +188,8 @@ describe('AgentFactoryService', () => {
 
     await service.buildAgent('cfg-1', 7);
 
-    // KB tools are constructed with userId closure — verify the tree tool
-    // (which calls findByCategoryPath) and create tool use userId=7 when
-    // invoked. We exercise one to prove the closure.
+    // KB tools are constructed without userId closure — verify the tree tool
+    // (search_notes_tree) is present. userId stays in the agent cache key only.
     const tools = captured.tools as Array<{ name: string }>;
     const tree = tools.find((t) => t.name === 'search_notes_tree');
     expect(tree).toBeDefined();

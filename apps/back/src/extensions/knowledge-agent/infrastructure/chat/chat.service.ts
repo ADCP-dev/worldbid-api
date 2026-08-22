@@ -13,18 +13,19 @@ import type { RagHit } from '../rag.service';
  * ChatService — per-user chat sessions over a DeepAgent config.
  *
  * Responsibilities:
- *   - Session CRUD scoped to the requesting user (403 cross-user, 404 missing)
+ *   - Session CRUD scoped to the requesting user (403 cross-user, 404 missing).
+ *     ChatSession stays per-user; Notes + AgentConfigs are GLOBAL.
  *   - Resolve the agent config: explicit `session.agentConfigId` or the
- *     user's first config as the default when null
- *   - Inject RAG context (semantic search) before the user message so the
- *     agent can ground its answer in the user's knowledge base
+ *     first config in the global registry as the default when null
+ *   - Inject RAG context (semantic search over the GLOBAL knowledge base)
+ *     before the user message so the agent can ground its answer
  *   - Stream the agent response token-by-token via `agent.streamEvents`
  *     (Context7-verified deepagents v3 API). Each `run.messages` entry
  *     exposes an async-iterable `.text` that yields incremental text deltas
  *
  * Flow (AD-10):
  *   1. Load session → verify ownership (null/403 cross-user)
- *   2. Resolve agent config (explicit or default)
+ *   2. Resolve agent config (explicit or global default)
  *   3. AgentFactoryService.buildAgent(configId, userId)
  *   4. RAG: similaritySearch the message → prepend context block
  *   5. agent.streamEvents({ messages }, { version: 'v3', configurable: { thread_id } })
@@ -61,6 +62,8 @@ export class ChatService {
    * Returns the session if it belongs to `userId`, otherwise null (403 path).
    * Callers should treat null as "not found OR forbidden" — the controller
    * maps both to the same response to avoid leaking session existence.
+   *
+   * ChatSession stays per-user (403 cross-user); notes + configs are global.
    */
   async getSession(sessionId: string, userId: number): Promise<ChatSession | null> {
     const session = await this.sessionRepo.findById(sessionId);
@@ -148,7 +151,7 @@ export class ChatService {
     const configId = await this.resolveConfigId(session, userId);
     const agent = await this.agentFactory.buildAgent(configId, userId);
 
-    const ragContext = await this.injectRag(message, userId);
+    const ragContext = await this.injectRag(message);
     const content = ragContext ? `${ragContext}\n\nUser: ${message}` : message;
 
     return {
@@ -159,29 +162,31 @@ export class ChatService {
   }
 
   /**
-   * Resolve the agent config id: explicit on the session, or the user's
-   * first config as default when null. Throws NotFoundException when no
-   * default config exists for the user.
+   * Resolve the agent config id: explicit on the session, or the first
+   * config in the global registry as the default when null. Throws
+   * NotFoundException when no config exists at all.
+   *
+   * Configs are GLOBAL (no user scoping); ChatSession keeps per-user scoping.
+   * userId stays in the buildAgent call for the per-user ChatSession cache key.
    */
   private async resolveConfigId(
     session: ChatSession,
-    userId: number,
+    _userId: number,
   ): Promise<string> {
     if (session.agentConfigId) return session.agentConfigId;
-    const configs = await this.agentConfigRepo.findByUserId(userId);
+    const configs = await this.agentConfigRepo.findAll();
     if (configs.length === 0) {
       throw new NotFoundException(
-        `No agent config found for user ${userId}. Create one in settings.`,
+        'No agent config found. Create one in settings.',
       );
     }
     return configs[0].id;
   }
 
-  /** Build the RAG context block from semantic search results. */
-  private async injectRag(message: string, userId: number): Promise<string | null> {
+  /** Build the RAG context block from semantic search results (global KB). */
+  private async injectRag(message: string): Promise<string | null> {
     try {
       const hits = await this.ragService.search(message, 'semantic', { topK: 5 });
-      void userId; // scoped by the KB tools via agent-factory, not here
       if (hits.length === 0) return null;
       return this.formatRagContext(hits);
     } catch (err) {

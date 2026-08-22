@@ -16,7 +16,7 @@ export class AgentConfigRepository {
   ) {}
 
   async create(
-    data: CreateAgentConfigDto & { userId: number },
+    data: CreateAgentConfigDto & { userId?: number | null },
   ): Promise<AgentConfig> {
     const entity = this.repo.create({
       name: data.name,
@@ -25,7 +25,7 @@ export class AgentConfigRepository {
       provider: data.provider,
       permissions: data.permissions ?? { allow: [], deny: [] },
       mcpServerIds: data.mcpServerIds ?? [],
-      userId: data.userId,
+      userId: data.userId ?? null,
     });
     const saved = await this.repo.save(entity);
     return this.toDomain(saved);
@@ -36,9 +36,11 @@ export class AgentConfigRepository {
     return entity ? this.toDomain(entity) : null;
   }
 
-  async findByUserId(userId: number): Promise<AgentConfig[]> {
+  /**
+   * List all configs (global). Never scoped by user — configs are shared.
+   */
+  async findAll(): Promise<AgentConfig[]> {
     const entities = await this.repo.find({
-      where: { userId },
       order: { updatedAt: 'DESC' },
     });
     return entities.map((e) => this.toDomain(e));

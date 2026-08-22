@@ -20,18 +20,19 @@ interface CachedAgent {
  * AgentFactoryService — builds a compiled DeepAgent from an AgentConfig row.
  *
  * Flow (Context7-verified deepagents API):
- *   1. Load AgentConfig from DB by id (scoped to userId).
+ *   1. Load AgentConfig from DB by id (global — no ownership check).
  *   2. Hash the mutable config fields → cache key.
  *   3. Cache hit with matching hash → return cached agent (<1s).
- *   4. Cache miss → collect KB tools (scoped to userId) + native tools
+ *   4. Cache miss → collect KB tools (global, no user scoping) + native tools
  *      (ToolRegistry) + MCP tools (McpLoader) + execute tool (sandbox
  *      backend), create a VfsBackend, call
  *      `createDeepAgent({ model, systemPrompt, tools, backend, permissions })`,
  *      cache and return.
  *
  * Cache invalidation: any change to systemPrompt, model, permissions, or
- * mcpServerIds produces a new hash → rebuild on next call. The KB tools are
- * userId-scoped so the cache key includes the userId passed at build time.
+ * mcpServerIds produces a new hash → rebuild on next call. The userId stays
+ * in the cache key so per-user ChatSession isolation is preserved even
+ * though notes + configs are now global.
  */
 @Injectable()
 export class AgentFactoryService {
@@ -48,13 +49,15 @@ export class AgentFactoryService {
   ) {}
 
   /**
-   * Build (or return cached) DeepAgent for `configId` owned by `userId`.
-   * Throws `NotFoundException` if the config is missing or belongs to another
-   * user — never leaks cross-user configs.
+   * Build (or return cached) DeepAgent for `configId`. Configs are GLOBAL —
+   * no ownership check. `userId` is kept in the cache key so each user gets
+   * their own agent instance + sandbox (ChatSession isolation).
+   *
+   * Throws `NotFoundException` if the config is missing.
    */
   async buildAgent(configId: string, userId: number): Promise<unknown> {
     const config = await this.agentConfigRepo.findById(configId);
-    if (!config || config.userId !== userId) {
+    if (!config) {
       throw new NotFoundException(`AgentConfig ${configId} not found`);
     }
 
@@ -79,11 +82,10 @@ export class AgentFactoryService {
     const sessionId = `${config.id}:${userId}:${Date.now()}`;
     const backend = await this.sandbox.createSandbox(sessionId);
 
-    // KB tools — userId-scoped (search/create/update/delete notes).
+    // KB tools — global (notes + configs shared across users).
     const kbTools = createKnowledgeAgentTools({
       noteService: this.noteService,
       vectorStoreService: this.vectorStoreService,
-      userId,
     });
 
     // Native tools (auto-discovered from agent.tools.ts across extensions)

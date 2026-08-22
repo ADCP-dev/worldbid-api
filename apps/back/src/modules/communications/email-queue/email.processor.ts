@@ -6,6 +6,7 @@ import nodemailer from 'nodemailer';
 import { ErrorTrackerService } from '@src/modules/error-tracker/error-tracker.service';
 import { TemplateRenderer } from '@comms/mail/services/template-renderer.service';
 import { EmailDiscoveryService } from '@comms/mail/services/email-discovery.service';
+import { MailerService } from '@infra/mailer/mailer.service';
 
 /**
  * Email job data shape (T-019).
@@ -34,7 +35,7 @@ export class EmailProcessor extends WorkerHost {
   private readonly transporter: nodemailer.Transporter;
 
   constructor(
-    private readonly mailerService: { sendMail: (data: Record<string, unknown>) => Promise<void> },
+    private readonly mailerService: MailerService,
     private readonly configService: ConfigService,
     private readonly errorTrackerService: ErrorTrackerService,
     private readonly templateRenderer: TemplateRenderer,

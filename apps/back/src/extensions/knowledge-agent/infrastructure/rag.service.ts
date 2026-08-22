@@ -16,6 +16,9 @@ import type { Note } from '../domain/note';
  * tree hits are deterministic by path). This keeps the caller (agent tool,
  * future RAG orchestrator) free from merge/dedup logic.
  *
+ * The knowledge base is GLOBAL (shared across users) — no userId scoping is
+ * applied to any retrieval strategy.
+ *
  * NOTE: the semantic results come back as `[document, score][]` tuples from
  * PGVectorStore. We normalize them to a `RagHit` shape so the caller has a
  * single contract regardless of strategy.
@@ -34,8 +37,7 @@ export class RagService {
    *
    * @param query          Natural-language query (ignored by `tree`).
    * @param strategy       `tree` | `semantic` | `hybrid`.
-   * @param options        `categoryPath` + `depth` for tree; `topK` for semantic;
-   *                       `userId` is REQUIRED for tree + hybrid (scoping).
+   * @param options        `categoryPath` + `depth` for tree; `topK` for semantic.
    */
   async search(
     query: string,
@@ -44,7 +46,6 @@ export class RagService {
       categoryPath?: string;
       depth?: number;
       topK?: number;
-      userId?: number;
     } = {},
   ): Promise<RagHit[]> {
     this.logger.debug(
@@ -58,9 +59,6 @@ export class RagService {
       return this.searchSemantic(query, options);
     }
     // hybrid
-    if (options.userId === undefined) {
-      throw new Error('RagService hybrid search requires userId');
-    }
     const [treeResults, semanticResults] = await Promise.all([
       this.searchTree(options),
       this.searchSemantic(query, options),
@@ -71,16 +69,11 @@ export class RagService {
   private async searchTree(options: {
     categoryPath?: string;
     depth?: number;
-    userId?: number;
   }): Promise<RagHit[]> {
-    if (options.userId === undefined) {
-      throw new Error('RagService tree search requires userId');
-    }
     if (!options.categoryPath) {
       throw new Error('RagService tree search requires categoryPath');
     }
     const notes = await this.noteService.findByCategoryPath(
-      options.userId,
       options.categoryPath,
       options.depth ?? 0,
     );

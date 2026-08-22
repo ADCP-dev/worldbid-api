@@ -5,7 +5,6 @@ import { APP_GUARD } from '@nestjs/core';
 import { InfrastructureModule } from '@core/infrastructure.module';
 import { FoundationModule } from '@core/foundation.module';
 import { UserOrIpThrottlerGuard } from '@core/user-or-ip-throttler.guard';
-import { McpModule } from '@src/mcp/mcp.module';
 
 @Module({
   imports: [
@@ -16,7 +15,6 @@ import { McpModule } from '@src/mcp/mcp.module';
     FoundationModule,
 
     // MCP introspection server (HTTP transport for agent tools)
-    McpModule,
 
     // Global rate limit keyed on user.id (or IP for anonymous traffic).
     // The default of 1000 req/min per user is generous for SPA clients

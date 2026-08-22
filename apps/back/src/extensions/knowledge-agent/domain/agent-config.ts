@@ -40,9 +40,9 @@ export class AgentConfig {
   @Expose()
   mcpServerIds: string[];
 
-  @ApiProperty({ type: Number })
+  @ApiProperty({ type: Number, nullable: true, description: 'Creator provenance — metadata only, NOT scoping' })
   @Expose()
-  userId: number;
+  userId: number | null;
 
   @ApiProperty()
   @Expose()

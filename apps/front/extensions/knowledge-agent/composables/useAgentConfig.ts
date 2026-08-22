@@ -11,7 +11,8 @@ export interface AgentConfig {
   provider: string;
   permissions: { allow: string[]; deny: string[] };
   mcpServerIds: string[];
-  userId: number;
+  /** Creator provenance — metadata only, NOT scoping. Configs are global. */
+  userId: number | null;
   createdAt: string;
   updatedAt: string;
 }

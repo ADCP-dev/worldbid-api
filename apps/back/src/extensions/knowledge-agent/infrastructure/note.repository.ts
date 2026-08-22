@@ -17,7 +17,7 @@ export class NoteRepository {
     private readonly dataSource: DataSource,
   ) {}
 
-  async create(data: CreateNoteDto & { userId: number }): Promise<Note> {
+  async create(data: CreateNoteDto & { userId?: number | null }): Promise<Note> {
     const entity = this.noteRepository.create({
       title: data.title,
       contentMd: data.contentMd,
@@ -25,7 +25,7 @@ export class NoteRepository {
       tags: data.tags ?? [],
       frontmatter: data.frontmatter ?? {},
       embedding: null,
-      userId: data.userId,
+      userId: data.userId ?? null,
     });
     const saved = await this.noteRepository.save(entity);
     return this.toDomain(saved);
@@ -39,14 +39,14 @@ export class NoteRepository {
     return entity ? this.toDomain(entity) : null;
   }
 
-  async findByUserId(
-    userId: number,
-    filters?: { search?: string },
-  ): Promise<Note[]> {
+  /**
+   * List all notes (global knowledge base). Optional `search` filters by
+   * title or content. Never scoped by user — notes are shared.
+   */
+  async findAll(filters?: { search?: string }): Promise<Note[]> {
     const qb = this.noteRepository
       .createQueryBuilder('note')
-      .where('note.userId = :userId', { userId })
-      .andWhere('note.deletedAt IS NULL');
+      .where('note.deletedAt IS NULL');
 
     if (filters?.search) {
       qb.andWhere('(note.title ILIKE :q OR note.contentMd ILIKE :q)', {
@@ -63,9 +63,10 @@ export class NoteRepository {
    * Tree search by category_path (ltree).
    * Uses `category_path <@ 'prefix.*'` via raw SQL.
    * `depth` limits the number of sublevel segments matched (0 = exact).
+   *
+   * Global: no user_id filter — notes are shared.
    */
   async findByCategoryPath(
-    userId: number,
     categoryPath: string,
     depth = 0,
   ): Promise<Note[]> {
@@ -75,12 +76,11 @@ export class NoteRepository {
     const prefix = depth > 0 ? `${sanitized}.*{0,${depth}}` : sanitized;
     const sql = `
       SELECT * FROM ext_ka_notes
-      WHERE user_id = $1
-        AND deleted_at IS NULL
-        AND category_path <@ $2::ltree
+      WHERE deleted_at IS NULL
+        AND category_path <@ $1::ltree
       ORDER BY created_at DESC
     `;
-    const rows = await this.dataSource.query(sql, [userId, prefix]);
+    const rows = await this.dataSource.query(sql, [prefix]);
     return rows.map((r: Record<string, unknown>) => this.rowToDomain(r));
   }
 
@@ -142,15 +142,16 @@ export class NoteRepository {
   }
 
   /**
-   * Graph query: notes belonging to the user, optionally filtered by
-   * category_path (ltree prefix) or a single tag (jsonb contains).
-   * Returns the minimal columns needed by the graph viewer.
+   * Graph query: ALL notes, optionally filtered by category_path (ltree
+   * prefix) or a single tag (jsonb contains). Returns the minimal columns
+   * needed by the graph viewer.
    *
    * Uses raw SQL when category_path filter is present because TypeORM's
    * query builder does not handle the ltree `<@` operator + `::ltree` cast.
+   *
+   * Global: no user_id filter — notes are shared.
    */
   async findNotesForGraph(
-    userId: number,
     filters?: { categoryPath?: string; tag?: string },
   ): Promise<
     Array<{
@@ -164,17 +165,16 @@ export class NoteRepository {
       const sanitized = filters.categoryPath.replace(/[^a-zA-Z0-9_.]/g, '');
       if (!sanitized) return [];
 
-      const params: unknown[] = [userId, sanitized];
+      const params: unknown[] = [sanitized];
       let sql = `
         SELECT id, title, tags, category_path
         FROM ext_ka_notes
-        WHERE user_id = $1
-          AND deleted_at IS NULL
-          AND category_path <@ $2::ltree
+        WHERE deleted_at IS NULL
+          AND category_path <@ $1::ltree
       `;
       if (filters.tag) {
         params.push(JSON.stringify([filters.tag]));
-        sql += ` AND tags @> $3::jsonb`;
+        sql += ` AND tags @> $2::jsonb`;
       }
       return this.dataSource.query(sql, params).then((rows: Array<Record<string, unknown>>) =>
         rows.map((r) => ({
@@ -190,8 +190,7 @@ export class NoteRepository {
     const qb = this.noteRepository
       .createQueryBuilder('note')
       .select(['note.id', 'note.title', 'note.tags', 'note.categoryPath'])
-      .where('note.userId = :userId', { userId })
-      .andWhere('note.deletedAt IS NULL');
+      .where('note.deletedAt IS NULL');
 
     if (filters?.tag) {
       qb.andWhere('note.tags @> CAST(:tag AS jsonb)', {
@@ -211,11 +210,12 @@ export class NoteRepository {
 
   /**
    * Graph query: edges (note links) where BOTH source and target belong to
-   * the given set of note ids. Avoids leaking links that point to other users'
-   * notes or to deleted notes outside the visible set.
+   * the given set of note ids. Avoids links to deleted notes outside the
+   * visible set.
+   *
+   * Global: no user_id filter — links are shared.
    */
   async findLinksForNotes(
-    userId: number,
     noteIds: string[],
   ): Promise<Array<{ source_note_id: string; target_note_id: string }>> {
     if (noteIds.length === 0) return [];
@@ -224,14 +224,12 @@ export class NoteRepository {
       FROM ext_ka_note_links l
       JOIN ext_ka_notes s ON s.id = l.source_note_id
       JOIN ext_ka_notes t ON t.id = l.target_note_id
-      WHERE s.user_id = $1
-        AND t.user_id = $1
-        AND s.deleted_at IS NULL
+      WHERE s.deleted_at IS NULL
         AND t.deleted_at IS NULL
-        AND l.source_note_id = ANY($2::uuid[])
-        AND l.target_note_id = ANY($2::uuid[])
+        AND l.source_note_id = ANY($1::uuid[])
+        AND l.target_note_id = ANY($1::uuid[])
     `;
-    return this.dataSource.query(sql, [userId, noteIds]);
+    return this.dataSource.query(sql, [noteIds]);
   }
 
   async updateEmbedding(id: string, embedding: number[] | null): Promise<void> {
@@ -258,7 +256,7 @@ export class NoteRepository {
     note.frontmatter =
       (row['frontmatter'] as Record<string, unknown>) ?? {};
     note.embedding = null;
-    note.userId = Number(row['user_id']);
+    note.userId = row['user_id'] != null ? Number(row['user_id']) : null;
     note.createdAt = new Date(row['created_at'] as string);
     note.updatedAt = new Date(row['updated_at'] as string);
     note.deletedAt = row['deleted_at']

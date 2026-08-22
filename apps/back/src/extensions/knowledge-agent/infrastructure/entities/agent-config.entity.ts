@@ -15,7 +15,11 @@ import { UserEntity } from '@users/infrastructure/entities/user.entity';
  * ext_ka_agent_configs — DeepAgent configuration.
  *
  * Stores the system_prompt, model reference, sandbox permissions, and the
- * set of MCP servers the agent should connect to. Owned by a user.
+ * set of MCP servers the agent should connect to.
+ *
+ * AgentConfigs are GLOBAL: every authenticated user can see and manage
+ * every config. `user_id` is kept as nullable metadata of who created the
+ * config (provenance only); it is NOT used for scoping.
  */
 @Entity('ext_ka_agent_configs')
 export class AgentConfigEntity extends EntityRelationalHelper {
@@ -55,11 +59,14 @@ export class AgentConfigEntity extends EntityRelationalHelper {
   @Column({ type: 'jsonb', name: 'mcp_server_ids', default: [] })
   mcpServerIds: string[];
 
+  /**
+   * Creator provenance — nullable metadata only. NOT used for scoping.
+   */
   @Index('idx_ka_agent_configs_user_id')
-  @Column({ type: 'int', name: 'user_id' })
-  userId: number;
+  @Column({ type: 'int', name: 'user_id', nullable: true })
+  userId: number | null;
 
-  @ManyToOne(() => UserEntity, { eager: false, onDelete: 'CASCADE' })
+  @ManyToOne(() => UserEntity, { eager: false, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'user_id' })
   user: UserEntity;
 

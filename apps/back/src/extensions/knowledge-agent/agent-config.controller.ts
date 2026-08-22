@@ -39,25 +39,21 @@ export class AgentConfigController {
     @Body() dto: CreateAgentConfigDto,
     @UserId() userId: number,
   ): Promise<AgentConfig> {
+    // Configs are global; userId is stored as creator provenance only.
     return this.repository.create({ ...dto, userId });
   }
 
   @Get()
   @ApiOkResponse({ type: [AgentConfig] })
-  findAll(@UserId() userId: number): Promise<AgentConfig[]> {
-    return this.repository.findByUserId(userId);
+  findAll(): Promise<AgentConfig[]> {
+    return this.repository.findAll();
   }
 
   @Get(':id')
   @ApiParam({ name: 'id', type: String })
   @ApiOkResponse({ type: AgentConfig })
-  async findById(
-    @Param('id') id: string,
-    @UserId() userId: number,
-  ): Promise<AgentConfig | null> {
-    const cfg = await this.repository.findById(id);
-    if (!cfg || cfg.userId !== userId) return null;
-    return cfg;
+  async findById(@Param('id') id: string): Promise<AgentConfig | null> {
+    return this.repository.findById(id);
   }
 
   @Patch(':id')
@@ -66,10 +62,7 @@ export class AgentConfigController {
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateAgentConfigDto,
-    @UserId() userId: number,
   ): Promise<AgentConfig | null> {
-    const cfg = await this.repository.findById(id);
-    if (!cfg || cfg.userId !== userId) return null;
     return this.repository.update(id, dto);
   }
 
@@ -77,12 +70,7 @@ export class AgentConfigController {
   @ApiParam({ name: 'id', type: String })
   @ApiNoContentResponse()
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(
-    @Param('id') id: string,
-    @UserId() userId: number,
-  ): Promise<void> {
-    const cfg = await this.repository.findById(id);
-    if (!cfg || cfg.userId !== userId) return;
+  async remove(@Param('id') id: string): Promise<void> {
     await this.repository.remove(id);
   }
 }

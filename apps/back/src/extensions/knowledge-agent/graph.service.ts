@@ -8,19 +8,18 @@ export class GraphService {
   constructor(private readonly repository: NoteRepository) {}
 
   /**
-   * Build the knowledge graph for a user, scoped to their own notes.
+   * Build the GLOBAL knowledge graph (all notes shared across users).
    *
    * degree = number of edges touching the node (in + out). Nodes with no
    * links have degree 0 (isolated).
    */
   async getGraph(
-    userId: number,
     filters?: { categoryPath?: string; tag?: string },
   ): Promise<GraphData> {
-    const notes = await this.repository.findNotesForGraph(userId, filters);
+    const notes = await this.repository.findNotesForGraph(filters);
 
     const noteIds = notes.map((n) => n.id);
-    const linkRows = await this.repository.findLinksForNotes(userId, noteIds);
+    const linkRows = await this.repository.findLinksForNotes(noteIds);
 
     const degree = new Map<string, number>();
     for (const id of noteIds) degree.set(id, 0);

@@ -4,7 +4,6 @@ import { GraphService } from './graph.service';
 import { QueryGraphDto } from './dto/query-graph.dto';
 import { GraphData } from './domain/graph';
 import { JwtAuth } from '@iam/auth/decorators/auth.decorator';
-import { UserId } from '@iam/auth/decorators/current-user.decorator';
 
 @ApiTags('Knowledge Graph')
 @JwtAuth()
@@ -17,11 +16,8 @@ export class GraphController {
 
   @Get()
   @ApiOkResponse({ type: GraphData })
-  getGraph(
-    @UserId() userId: number,
-    @Query() query: QueryGraphDto,
-  ): Promise<GraphData> {
-    return this.graphService.getGraph(userId, {
+  getGraph(@Query() query: QueryGraphDto): Promise<GraphData> {
+    return this.graphService.getGraph({
       categoryPath: query.categoryPath,
       tag: query.tag,
     });

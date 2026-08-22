@@ -278,8 +278,10 @@ export class SpecEngineModule {
       },
       inject: [TemplateRenderer],
     });
-    // Also export the dispatcher for injection into controllers.
-    exports.push(NotificationDispatcher);
+    // NotificationDispatcher is already listed in the module's `exports:`
+    // array below — no need to push it onto a local array (the previous
+    // `exports.push(...)` line referenced the CommonJS module `exports`
+    // object, which has no `.push` and crashed at boot under CJS).
     providers.push({
       provide: SpecErrorReporter,
       useValue: specErrorReporter,

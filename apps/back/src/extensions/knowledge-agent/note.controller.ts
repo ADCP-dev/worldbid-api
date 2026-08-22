@@ -35,47 +35,33 @@ export class NoteController {
     @Body() dto: CreateNoteDto,
     @UserId() userId: number,
   ): Promise<Note> {
+    // Notes are global; userId is stored as creator provenance only.
     return this.noteService.create({ ...dto, userId });
   }
 
   @Get()
   @ApiOkResponse({ type: [Note] })
-  findAll(
-    @UserId() userId: number,
-    @Query() query: QueryNoteDto,
-  ): Promise<Note[]> {
+  findAll(@Query() query: QueryNoteDto): Promise<Note[]> {
     if (query.categoryPath) {
       return this.noteService.findByCategoryPath(
-        userId,
         query.categoryPath,
         query.depth ?? 0,
       );
     }
-    return this.noteService.findByUserId(userId, { search: query.search });
+    return this.noteService.findAll({ search: query.search });
   }
 
   @Get(':id')
   @ApiParam({ name: 'id', type: String })
   @ApiOkResponse({ type: Note })
-  async findById(
-    @Param('id') id: string,
-    @UserId() userId: number,
-  ): Promise<Note | null> {
-    const note = await this.noteService.findById(id);
-    if (!note || note.userId !== userId) return null;
-    return note;
+  async findById(@Param('id') id: string): Promise<Note | null> {
+    return this.noteService.findById(id);
   }
 
   @Get(':id/backlinks')
   @ApiParam({ name: 'id', type: String })
   @ApiOkResponse({ type: [Note] })
-  async findBacklinks(
-    @Param('id') id: string,
-    @UserId() userId: number,
-  ): Promise<Note[]> {
-    // Ownership check: only return backlinks if the note belongs to the user.
-    const note = await this.noteService.findById(id);
-    if (!note || note.userId !== userId) return [];
+  async findBacklinks(@Param('id') id: string): Promise<Note[]> {
     return this.noteService.findBacklinks(id);
   }
 
@@ -85,18 +71,14 @@ export class NoteController {
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateNoteDto,
-    @UserId() userId: number,
   ): Promise<Note> {
-    return this.noteService.update(id, dto, userId);
+    return this.noteService.update(id, dto);
   }
 
   @Delete(':id')
   @ApiParam({ name: 'id', type: String })
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(
-    @Param('id') id: string,
-    @UserId() userId: number,
-  ): Promise<void> {
-    return this.noteService.softDelete(id, userId);
+  async remove(@Param('id') id: string): Promise<void> {
+    return this.noteService.softDelete(id);
   }
 }
