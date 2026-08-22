@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "assets:sync": "node scripts/sync-assets.js",
+    "sync:assets": "node scripts/sync-assets.mjs",
     "email:test": "node scripts/test-email.js",
     "email:test-reset": "node scripts/test-email.js reset-password",
     "email:test-confirm": "node scripts/test-email.js confirm-new-email",

@@ -1,3 +1,40 @@
 @import 'tailwindcss';
 @plugin 'daisyui';
 @plugin '@tailwindcss/typography';
+
+/* ─── Industrial Dark with Construction Orange ──────────────────────── */
+@plugin "daisyui/theme" {
+  name: "luxury-dark";
+  default: true;
+  prefersdark: true;
+  color-scheme: "dark";
+  --color-base-100: #161616;        /* surface (cards): charcoal */
+  --color-base-200: #1e1e1e;        /* surface hover */
+  --color-base-300: #262626;        /* borders / fine lines */
+  --color-base-content: #F5F5F5;    /* text primary: off-white */
+  --color-primary: #F97316;         /* construction orange */
+  --color-primary-content: #0A0A0A; /* near-black */
+  --color-secondary: #262626;       /* border gray */
+  --color-secondary-content: #F5F5F5;
+  --color-accent: #F97316;          /* accent mirrors primary */
+  --color-accent-content: #0A0A0A;
+  --color-neutral: #161616;         /* neutral: charcoal */
+  --color-neutral-content: #F5F5F5;
+  --color-info: #737373;            /* medium gray */
+  --color-info-content: #F5F5F5;
+  --color-success: #22C55E;
+  --color-success-content: #0A0A0A;
+  --color-warning: #F59E0B;
+  --color-warning-content: #0A0A0A;
+  --color-error: #EF4444;
+  --color-error-content: #F5F5F5;
+  --border-color: #262626;
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 1rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 0.5px;
+  --depth: 1;
+  --noise: 0;
+}

@@ -1,11 +1,23 @@
 ---
 import '../styles/global.css';
-import { t } from '../i18n/ui';
+import { t, DEFAULT_LOCALE } from '../i18n/ui';
+import { getLocales } from '../lib/locales';
 
-const locale = Astro.locals.locale;
-const homeHref = locale === 'es' ? '/' : '/en';
-const blogHref = locale === 'es' ? '/blog' : '/en/blog';
-const contactHref = locale === 'es' ? '/#contact' : '/en/#contact';
+const locale = Astro.locals.locale ?? DEFAULT_LOCALE;
+const activeLocales = getLocales();
+const nonDefaultLocales = activeLocales.filter((l) => l !== DEFAULT_LOCALE);
+// The "other" locale for the switcher — first non-default if we're on default,
+// or back to default if we're on a non-default.
+const otherLocale = locale === DEFAULT_LOCALE
+  ? (nonDefaultLocales[0] ?? DEFAULT_LOCALE)
+  : DEFAULT_LOCALE;
+const otherHref = otherLocale === DEFAULT_LOCALE ? '/' : `/${otherLocale}`;
+
+// Build href with locale prefix: default = no prefix, others = /<code>
+const prefix = locale === DEFAULT_LOCALE ? '' : `/${locale}`;
+const homeHref = `${prefix}/`;
+const blogHref = `${prefix}/blog`;
+const contactHref = `${prefix}/#contact`;
 ---
 
 <!doctype html>
@@ -16,10 +28,13 @@ const contactHref = locale === 'es' ? '/#contact' : '/en/#contact';
     <meta name="generator" content={Astro.generator} />
     <slot name="head" />
   </head>
-  <body data-theme="light">
+  <body data-theme="luxury-dark">
     <nav class="navbar bg-base-100 border-b border-base-200">
       <div class="navbar-start">
-        <a href={homeHref} class="btn btn-ghost text-xl">Foundation</a>
+        <a href={homeHref} class="btn btn-ghost gap-2 text-xl">
+          <img src="/logo.svg" alt="Foundation" class="h-8 w-auto" />
+          Foundation
+        </a>
       </div>
       <div class="navbar-center hidden md:flex gap-2">
         <a href={homeHref} class="btn btn-ghost btn-sm">{t(locale, 'nav.home')}</a>
@@ -27,10 +42,8 @@ const contactHref = locale === 'es' ? '/#contact' : '/en/#contact';
         <a href={contactHref} class="btn btn-ghost btn-sm">{t(locale, 'nav.contact')}</a>
       </div>
       <div class="navbar-end gap-2">
-        {locale === 'es' ? (
-          <a href="/en" class="btn btn-ghost btn-sm">EN</a>
-        ) : (
-          <a href="/" class="btn btn-ghost btn-sm">ES</a>
+        {nonDefaultLocales.length > 0 && (
+          <a href={otherHref} class="btn btn-ghost btn-sm">{otherLocale.toUpperCase()}</a>
         )}
       </div>
     </nav>

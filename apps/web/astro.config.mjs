@@ -8,6 +8,38 @@ const SITE_URL = (process.env.PUBLIC_SITE_URL || 'http://localhost:4321').replac
 const API_URL = (process.env.API_URL || 'http://localhost:3000').replace(/\/$/, '');
 const API_PREFIX = '/api/v1';
 
+// ─── Dynamic locales from backend ─────────────────────────────────────────
+// Fetched at BUILD time so Astro's static i18n routing config reflects
+// whatever langs are active in the DB. Adding a NEW language requires a
+// rebuild. At runtime, the middleware re-fetches and handles any locale
+// prefix dynamically (see src/lib/locales.ts + src/middleware.ts).
+const DEFAULT_LOCALES = ['es', 'en'];
+
+async function fetchLocales() {
+  try {
+    const res = await fetch(`${API_URL}${API_PREFIX}/translations/langs`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const langs = await res.json();
+    const active = langs
+      .filter((l) => l.isActive)
+      .map((l) => l.code)
+      .filter((c) => c.length > 0);
+    if (active.length > 0) {
+      console.log(`[astro] Locales from API: ${active.join(', ')}`);
+      return active;
+    }
+  } catch (e) {
+    console.warn(
+      `[astro] Failed to fetch locales, using default: ${DEFAULT_LOCALES.join(', ')}`,
+      e.message,
+    );
+  }
+  return DEFAULT_LOCALES;
+}
+
+const locales = await fetchLocales();
+const defaultLocale = locales.includes('es') ? 'es' : locales[0];
+
 async function fetchJson(url) {
   try {
     const res = await fetch(url);
@@ -25,7 +57,13 @@ function toArray(body) {
 }
 
 async function fetchDynamicPageUrls() {
-  const paths = ['/en', '/en/blog/'];
+  // Generate paths for the default locale (no prefix) + all non-default locales
+  const nonDefault = locales.filter((l) => l !== defaultLocale);
+  const paths = [];
+  for (const l of nonDefault) {
+    paths.push(`/${l}`, `/${l}/blog/`);
+  }
+
   const [postsBody, catsBody, tagsBody, pagesBody] = await Promise.all([
     fetchJson(`${API_URL}${API_PREFIX}/cms/blog/posts/public?limit=100`),
     fetchJson(`${API_URL}${API_PREFIX}/cms/blog/categories/public`),
@@ -35,22 +73,26 @@ async function fetchDynamicPageUrls() {
 
   for (const post of toArray(postsBody)) {
     if (post.slug) {
-      paths.push(`/blog/${post.slug}`, `/en/blog/${post.slug}`);
+      paths.push(`/blog/${post.slug}`);
+      for (const l of nonDefault) paths.push(`/${l}/blog/${post.slug}`);
     }
   }
   for (const cat of toArray(catsBody)) {
     if (cat.slug) {
-      paths.push(`/blog/c/${cat.slug}`, `/en/blog/c/${cat.slug}`);
+      paths.push(`/blog/c/${cat.slug}`);
+      for (const l of nonDefault) paths.push(`/${l}/blog/c/${cat.slug}`);
     }
   }
   for (const tag of toArray(tagsBody)) {
     if (tag.slug) {
-      paths.push(`/blog/t/${tag.slug}`, `/en/blog/t/${tag.slug}`);
+      paths.push(`/blog/t/${tag.slug}`);
+      for (const l of nonDefault) paths.push(`/${l}/blog/t/${tag.slug}`);
     }
   }
   for (const page of toArray(pagesBody)) {
     if (page.slug) {
-      paths.push(`/${page.slug}`, `/en/${page.slug}`);
+      paths.push(`/${page.slug}`);
+      for (const l of nonDefault) paths.push(`/${l}/${page.slug}`);
     }
   }
   return paths.map((p) => `${SITE_URL}${p}`);
@@ -64,8 +106,8 @@ export default defineConfig({
   site: SITE_URL,
 
   i18n: {
-    defaultLocale: 'es',
-    locales: ['es', 'en'],
+    defaultLocale,
+    locales,
     routing: {
       prefixExceptDefault: true,
     },
@@ -77,11 +119,10 @@ export default defineConfig({
       // tag 'sitemap' used by /api/revalidate for on-demand purge
       filter: (page) => !page.includes('/app/') && !page.includes('/admin/'),
       i18n: {
-        defaultLocale: 'es',
-        locales: {
-          es: 'es-ES',
-          en: 'en-US',
-        },
+        defaultLocale,
+        locales: Object.fromEntries(
+          locales.map((l) => [l, l === 'es' ? 'es-ES' : l === 'en' ? 'en-US' : l]),
+        ),
       },
       customPages: await fetchDynamicPageUrls(),
     }),
