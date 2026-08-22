@@ -42,6 +42,9 @@ const contactHref = locale === 'es' ? '/#contact' : '/en/#contact';
     <footer class="footer footer-center p-8 bg-base-200 text-base-content mt-16">
       <aside>
         <p>&copy; {new Date().getFullYear()} Foundation. {t(locale, 'footer.rights')}.</p>
+        <div class="flex gap-4 text-sm">
+          <a href="/sitemap-index.xml" class="link link-hover">Sitemap</a>
+        </div>
       </aside>
     </footer>
   </body>
