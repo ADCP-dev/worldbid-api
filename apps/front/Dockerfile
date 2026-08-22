@@ -12,7 +12,8 @@ RUN corepack enable
 COPY . ./
 
 # Install deps (postinstall runs `nuxt prepare`, needs source → COPY first)
-RUN pnpm install --no-frozen-lockfile
+# pnpm 11+ requires approving build scripts — allow all for build env
+RUN pnpm install --no-frozen-lockfile --config.dangerouslyAllowAllBuilds=true
 
 # Build the Nuxt app → outputs .output/
 RUN pnpm run build

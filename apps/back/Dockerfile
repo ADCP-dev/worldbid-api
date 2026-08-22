@@ -7,6 +7,9 @@ FROM node:22.16.0-alpine AS deps
 
 WORKDIR /usr/src/app
 
+# git needed by some npm packages that resolve from git repos
+RUN apk add --no-cache git
+
 # Copy only manifests first → this layer is cached unless package*.json change.
 COPY package.json package-lock.json ./
 
