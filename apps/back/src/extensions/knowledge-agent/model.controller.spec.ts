@@ -29,6 +29,7 @@ describe('ModelController', () => {
       findById: jest.fn(),
       update: jest.fn(),
       remove: jest.fn(),
+      deactivateByProvider: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -67,6 +68,52 @@ describe('ModelController', () => {
         active: true,
       });
       expect(result).toBe(model);
+    });
+
+    it('should deactivate other models of the same provider when active=true', async () => {
+      const model = makeModel();
+      repository.create.mockResolvedValue(model);
+
+      await controller.create({
+        providerId: 'prov-1',
+        modelId: 'z-ai/glm-5.2',
+        displayName: 'GLM 5.2',
+        contextWindow: 128000,
+        active: true,
+      });
+
+      expect(repository.deactivateByProvider).toHaveBeenCalledWith('prov-1');
+    });
+
+    it('should NOT deactivate other models when active=false', async () => {
+      const model = makeModel({ active: false });
+      repository.create.mockResolvedValue(model);
+
+      await controller.create({
+        providerId: 'prov-1',
+        modelId: 'z-ai/glm-5.2',
+        displayName: 'GLM 5.2',
+        contextWindow: 128000,
+        active: false,
+      });
+
+      expect(repository.deactivateByProvider).not.toHaveBeenCalled();
+    });
+
+    it('should NOT deactivate other models when active is omitted', async () => {
+      const model = makeModel();
+      repository.create.mockResolvedValue(model);
+
+      await controller.create({
+        providerId: 'prov-1',
+        modelId: 'z-ai/glm-5.2',
+        displayName: 'GLM 5.2',
+        contextWindow: 128000,
+      });
+
+      // active defaults to true in the repo, but the controller should only
+      // trigger deactivation when the DTO explicitly says active=true.
+      expect(repository.deactivateByProvider).not.toHaveBeenCalled();
     });
   });
 
@@ -135,6 +182,39 @@ describe('ModelController', () => {
 
       expect(repository.update).toHaveBeenCalledWith('model-1', { displayName: 'Renamed' });
       expect(result.displayName).toBe('Renamed');
+    });
+
+    it('should deactivate other models of the same provider when active=true', async () => {
+      const model = makeModel({ id: 'model-1', providerId: 'prov-1' });
+      repository.findById.mockResolvedValue(model);
+      const updated = makeModel({ id: 'model-1', active: true });
+      repository.update.mockResolvedValue(updated);
+
+      await controller.update('model-1', { active: true });
+
+      expect(repository.findById).toHaveBeenCalledWith('model-1');
+      expect(repository.deactivateByProvider).toHaveBeenCalledWith('prov-1', 'model-1');
+    });
+
+    it('should NOT deactivate other models when active is not set to true', async () => {
+      const updated = makeModel({ displayName: 'Renamed' });
+      repository.update.mockResolvedValue(updated);
+
+      await controller.update('model-1', { displayName: 'Renamed' } as any);
+
+      expect(repository.deactivateByProvider).not.toHaveBeenCalled();
+    });
+
+    it('should still update when active=true even if the model has no siblings', async () => {
+      const model = makeModel({ id: 'model-1', providerId: 'prov-1' });
+      repository.findById.mockResolvedValue(model);
+      const updated = makeModel({ id: 'model-1', active: true });
+      repository.update.mockResolvedValue(updated);
+
+      const result = await controller.update('model-1', { active: true });
+
+      expect(repository.deactivateByProvider).toHaveBeenCalledWith('prov-1', 'model-1');
+      expect(result.active).toBe(true);
     });
   });
 

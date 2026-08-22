@@ -145,6 +145,38 @@ export function useChatStream() {
     }
   }
 
+  /**
+   * Load the persisted conversation history for a session from the backend
+   * (`GET /ka/chat/sessions/:id/messages`, sourced from the PostgresSaver
+   * checkpointer). Populates the `messages` array so reopening a session
+   * shows the prior conversation. Call this on session open before sending.
+   *
+   * Entries arrive as `{ role: 'user' | 'assistant', content }`; we assign
+   * synthetic ids so the v-for `:key` stays stable.
+   */
+  async function loadSessionHistory(sessionId: string): Promise<void> {
+    error.value = null;
+    try {
+      const history = await $fetch<
+        Array<{ role: 'user' | 'assistant'; content: string }> | null
+      >(`${baseUrl}${apiPrefix}/ka/chat/sessions/${sessionId}/messages`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!history) {
+        // null = session missing or cross-user (no leak); leave messages empty.
+        messages.value = [];
+        return;
+      }
+      messages.value = history.map((m, i) => ({
+        id: `h-${sessionId}-${i}`,
+        role: m.role,
+        content: m.content,
+      }));
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : String(e);
+    }
+  }
+
   function resetMessages(): void {
     messages.value = [];
     currentStream.value = '';
@@ -158,6 +190,7 @@ export function useChatStream() {
     error,
     sendMessage,
     stopStreaming,
+    loadSessionHistory,
     resetMessages,
   };
 }

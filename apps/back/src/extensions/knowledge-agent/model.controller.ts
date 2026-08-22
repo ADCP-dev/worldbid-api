@@ -51,7 +51,12 @@ export class ModelController {
   @Roles(RoleEnum.admin)
   @ApiCreatedResponse({ type: Model })
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() dto: CreateModelDto): Promise<Model> {
+  async create(@Body() dto: CreateModelDto): Promise<Model> {
+    // Exclusive active: activating a model deactivates every other model in
+    // the same provider so only one active model exists per provider.
+    if (dto.active === true) {
+      await this.repository.deactivateByProvider(dto.providerId);
+    }
     return this.repository.create(dto);
   }
 
@@ -80,10 +85,18 @@ export class ModelController {
   @Roles(RoleEnum.admin)
   @ApiParam({ name: 'id', type: String })
   @ApiOkResponse({ type: Model })
-  update(
+  async update(
     @Param('id') id: string,
     @Body() dto: UpdateModelDto,
   ): Promise<Model> {
+    // Exclusive active: activating a model deactivates every other model in
+    // the same provider so only one active model exists per provider.
+    if (dto.active === true) {
+      const model = await this.repository.findById(id);
+      if (model) {
+        await this.repository.deactivateByProvider(model.providerId, id);
+      }
+    }
     return this.repository.update(id, dto);
   }
 

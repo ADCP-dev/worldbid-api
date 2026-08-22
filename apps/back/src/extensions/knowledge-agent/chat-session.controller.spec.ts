@@ -27,6 +27,7 @@ describe('ChatSessionController', () => {
       updateSession: jest.fn(),
       deleteSession: jest.fn(),
       streamMessage: jest.fn(),
+      getSessionHistory: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -206,6 +207,37 @@ describe('ChatSessionController', () => {
       await drain(controller.sendMessage('sess-1', 42, { message: 'Hi' }));
 
       expect(chatService.streamMessage).toHaveBeenCalledWith('sess-1', 42, 'Hi');
+    });
+  });
+
+  describe('getMessages', () => {
+    it('should return the session history for the owner', async () => {
+      const history = [
+        { role: 'user', content: 'Hello' },
+        { role: 'assistant', content: 'Hi there!' },
+      ];
+      chatService.getSessionHistory.mockResolvedValue(history);
+
+      const result = await controller.getMessages('sess-1', 1);
+
+      expect(chatService.getSessionHistory).toHaveBeenCalledWith('sess-1', 1);
+      expect(result).toEqual(history);
+    });
+
+    it('should return null when the session belongs to another user', async () => {
+      chatService.getSessionHistory.mockResolvedValue(null);
+
+      const result = await controller.getMessages('sess-1', 1);
+
+      expect(result).toBeNull();
+    });
+
+    it('should return an empty array for a new session', async () => {
+      chatService.getSessionHistory.mockResolvedValue([]);
+
+      const result = await controller.getMessages('sess-new', 1);
+
+      expect(result).toEqual([]);
     });
   });
 });

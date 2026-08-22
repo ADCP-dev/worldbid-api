@@ -42,8 +42,10 @@ describe('ChatService', () => {
   let agentFactory: jest.Mocked<AgentFactoryService>;
   let ragService: jest.Mocked<RagService>;
   let checkpointer: jest.Mocked<CheckpointerService>;
+  let getTupleMock: jest.Mock;
 
   beforeEach(async () => {
+    getTupleMock = jest.fn();
     const sessionRepoMock = {
       create: jest.fn(),
       findById: jest.fn(),
@@ -63,7 +65,7 @@ describe('ChatService', () => {
       search: jest.fn(),
     };
     const checkpointerMock = {
-      getCheckpointer: jest.fn().mockReturnValue({}),
+      getCheckpointer: jest.fn().mockReturnValue({ getTuple: getTupleMock }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -442,6 +444,76 @@ describe('ChatService', () => {
       }
 
       expect(chunks).toEqual(['A', 'B', 'C']);
+    });
+  });
+
+  describe('getSessionHistory', () => {
+    /**
+     * Minimal checkpointer tuple mock. LangGraph `getTuple` returns
+     * `{ checkpoint, metadata, config }` with the latest channel values.
+     * Messages live at `checkpoint.channel_values.messages` as an array of
+     * BaseMessage-like objects exposing `getType()` and `.content`.
+     */
+    function makeMsg(type: string, content: string) {
+      return {
+        getType: () => type,
+        content,
+      };
+    }
+
+    it('should return the persisted messages for an owned session', async () => {
+      const session = makeSession({ id: 'sess-1', userId: 1 });
+      sessionRepo.findById.mockResolvedValue(session);
+      getTupleMock.mockResolvedValue({
+        checkpoint: {
+          channel_values: {
+            messages: [
+              makeMsg('human', 'Hello'),
+              makeMsg('ai', 'Hi there!'),
+            ],
+          },
+        },
+      });
+
+      const result = await service.getSessionHistory('sess-1', 1);
+
+      expect(sessionRepo.findById).toHaveBeenCalledWith('sess-1');
+      expect(getTupleMock).toHaveBeenCalledWith({
+        configurable: { thread_id: 'sess-1' },
+      });
+      expect(result).toEqual([
+        { role: 'user', content: 'Hello' },
+        { role: 'assistant', content: 'Hi there!' },
+      ]);
+    });
+
+    it('should return an empty array for a new session (no checkpoint)', async () => {
+      const session = makeSession({ id: 'sess-new', userId: 1 });
+      sessionRepo.findById.mockResolvedValue(session);
+      getTupleMock.mockResolvedValue(undefined);
+
+      const result = await service.getSessionHistory('sess-new', 1);
+
+      expect(result).toEqual([]);
+    });
+
+    it('should return null when the session belongs to another user', async () => {
+      const session = makeSession({ id: 'sess-1', userId: 999 });
+      sessionRepo.findById.mockResolvedValue(session);
+
+      const result = await service.getSessionHistory('sess-1', 1);
+
+      expect(result).toBeNull();
+      expect(getTupleMock).not.toHaveBeenCalled();
+    });
+
+    it('should return null when the session does not exist', async () => {
+      sessionRepo.findById.mockResolvedValue(null);
+
+      const result = await service.getSessionHistory('missing', 1);
+
+      expect(result).toBeNull();
+      expect(getTupleMock).not.toHaveBeenCalled();
     });
   });
 });

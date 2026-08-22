@@ -91,6 +91,90 @@ export class ChatService {
   }
 
   /**
+   * Retrieve the persisted conversation history for a session from the
+   * LangGraph checkpointer (PostgresSaver). Returns null when the session is
+   * missing or belongs to another user (no leak), and an empty array when the
+   * session exists but has no checkpoint yet (new session).
+   *
+   * The checkpointer `getTuple({ configurable: { thread_id } })` returns the
+   * latest CheckpointTuple whose `checkpoint.channel_values.messages` holds
+   * the BaseMessage array. Each message exposes `getType()` (`human`/`ai`) and
+   * `.content` (string).
+   */
+  async getSessionHistory(
+    sessionId: string,
+    userId: number,
+  ): Promise<Array<{ role: 'user' | 'assistant'; content: string; timestamp?: string }> | null> {
+    const session = await this.sessionRepo.findById(sessionId);
+    if (!session) return null;
+    if (session.userId !== userId) return null;
+
+    const checkpointer = this.checkpointerService.getCheckpointer() as {
+      getTuple: (config: {
+        configurable: { thread_id: string };
+      }) => Promise<
+        | {
+            checkpoint: {
+              channel_values: {
+                messages?: Array<{
+                  getType: () => string;
+                  content: unknown;
+                }>;
+              };
+            };
+          }
+        | undefined
+      >;
+    };
+
+    const tuple = await checkpointer.getTuple({
+      configurable: { thread_id: sessionId },
+    });
+    if (!tuple) return [];
+
+    const messages = tuple.checkpoint?.channel_values?.messages ?? [];
+    return messages
+      .map((m) => this.toHistoryEntry(m))
+      .filter((e): e is { role: 'user' | 'assistant'; content: string } => e !== null);
+  }
+
+  /**
+   * Map a LangGraph BaseMessage to a history entry. Only `human` (user) and
+   * `ai` (assistant) messages are surfaced; tool calls and system messages
+   * are dropped (they are internal to the agent run, not chat UI content).
+   * Content may be a string or a complex content block array; non-string
+   * content is stringified defensively.
+   */
+  private toHistoryEntry(
+    msg: { getType: () => string; content: unknown },
+  ): { role: 'user' | 'assistant'; content: string } | null {
+    const type = msg.getType();
+    if (type === 'human') {
+      return { role: 'user', content: this.contentToString(msg.content) };
+    }
+    if (type === 'ai') {
+      return { role: 'assistant', content: this.contentToString(msg.content) };
+    }
+    return null;
+  }
+
+  private contentToString(content: unknown): string {
+    if (typeof content === 'string') return content;
+    if (Array.isArray(content)) {
+      return content
+        .map((block) => {
+          if (typeof block === 'string') return block;
+          if (block && typeof block === 'object' && 'text' in block) {
+            return String((block as { text: unknown }).text);
+          }
+          return '';
+        })
+        .join('');
+    }
+    return content != null ? String(content) : '';
+  }
+
+  /**
    * Send a message and stream the agent's response tokens.
    *
    * Yields nothing when the session is missing or cross-user (the caller's

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue';
+import { ref, watch, nextTick, onMounted } from 'vue';
 import { useChatStream } from '../composables/useChatStream';
 import ChatMessage from './ChatMessage.vue';
 import ChatInput from './ChatInput.vue';
@@ -15,6 +15,7 @@ const {
   sendMessage,
   stopStreaming,
   resetMessages,
+  loadSessionHistory,
 } = useChatStream();
 
 const scrollContainer = ref<HTMLElement | null>(null);
@@ -25,6 +26,12 @@ function scrollToBottom() {
     if (el) el.scrollTop = el.scrollHeight;
   });
 }
+
+// Load persisted conversation history when the chat opens so reopening a
+// session shows the prior messages (PostgresSaver-backed).
+onMounted(() => {
+  void loadSessionHistory(props.sessionId);
+});
 
 watch(() => messages.value.length, scrollToBottom, { immediate: true });
 watch(

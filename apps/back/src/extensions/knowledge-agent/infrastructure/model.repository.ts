@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 import { plainToInstance } from 'class-transformer';
 import { ModelEntity } from './entities/model.entity';
 import { Model } from '../domain/model';
@@ -52,6 +52,27 @@ export class ModelRepository {
       where: { active: true },
     });
     return entities.map((e) => this.toDomain(e));
+  }
+
+  /**
+   * Deactivate all models of the given provider except (optionally) one.
+   * Used to enforce the "only one active model per provider" invariant:
+   * when a model is set active, every other model in the same provider must
+   * become inactive. `exceptId` is the model being activated/created so it
+   * is not deactivated by its own activation.
+   */
+  async deactivateByProvider(
+    providerId: string,
+    exceptId?: string,
+  ): Promise<void> {
+    const where: { providerId: string; active: boolean; id?: ReturnType<typeof Not> } = {
+      providerId,
+      active: true,
+    };
+    if (exceptId) {
+      where.id = Not(exceptId);
+    }
+    await this.repo.update(where, { active: false });
   }
 
   async update(id: string, data: UpdateModelDto): Promise<Model> {

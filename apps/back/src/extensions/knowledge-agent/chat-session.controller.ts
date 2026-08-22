@@ -73,6 +73,36 @@ export class ChatSessionController {
     return this.chatService.getSession(id, userId);
   }
 
+  /**
+   * Return the persisted conversation history for a session, sourced from the
+   * PostgresSaver checkpointer. Only the session owner can read it; cross-user
+   * access returns null (no leak of session existence).
+   *
+   * Each entry is `{ role: 'user' | 'assistant', content }` in chronological
+   * order. A new session (no checkpoint yet) returns an empty array.
+   */
+  @Get(':id/messages')
+  @ApiParam({ name: 'id', type: String })
+  @ApiOkResponse({
+    description: 'Persisted conversation messages in chronological order.',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          role: { type: 'string', enum: ['user', 'assistant'] },
+          content: { type: 'string' },
+        },
+      },
+    },
+  })
+  getMessages(
+    @Param('id') id: string,
+    @UserId() userId: number,
+  ): Promise<Array<{ role: 'user' | 'assistant'; content: string }> | null> {
+    return this.chatService.getSessionHistory(id, userId);
+  }
+
   @Patch(':id')
   @ApiParam({ name: 'id', type: String })
   @ApiOkResponse({ type: ChatSession })
