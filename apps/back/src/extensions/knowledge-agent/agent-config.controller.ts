@@ -16,10 +16,10 @@ import {
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
-import { AgentConfigRepository } from '../infrastructure/agent-config.repository';
-import { CreateAgentConfigDto } from '../dto/create-agent-config.dto';
-import { UpdateAgentConfigDto } from '../dto/update-agent-config.dto';
-import { AgentConfig } from '../domain/agent-config';
+import { AgentConfigRepository } from './infrastructure/agent-config.repository';
+import { CreateAgentConfigDto } from './dto/create-agent-config.dto';
+import { UpdateAgentConfigDto } from './dto/update-agent-config.dto';
+import { AgentConfig } from './domain/agent-config';
 import { JwtAuth } from '@iam/auth/decorators/auth.decorator';
 import { UserId } from '@iam/auth/decorators/current-user.decorator';
 
@@ -63,10 +63,13 @@ export class AgentConfigController {
   @Patch(':id')
   @ApiParam({ name: 'id', type: String })
   @ApiOkResponse({ type: AgentConfig })
-  update(
+  async update(
     @Param('id') id: string,
     @Body() dto: UpdateAgentConfigDto,
-  ): Promise<AgentConfig> {
+    @UserId() userId: number,
+  ): Promise<AgentConfig | null> {
+    const cfg = await this.repository.findById(id);
+    if (!cfg || cfg.userId !== userId) return null;
     return this.repository.update(id, dto);
   }
 
@@ -74,7 +77,12 @@ export class AgentConfigController {
   @ApiParam({ name: 'id', type: String })
   @ApiNoContentResponse()
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('id') id: string): Promise<void> {
-    return this.repository.remove(id);
+  async remove(
+    @Param('id') id: string,
+    @UserId() userId: number,
+  ): Promise<void> {
+    const cfg = await this.repository.findById(id);
+    if (!cfg || cfg.userId !== userId) return;
+    await this.repository.remove(id);
   }
 }

@@ -398,6 +398,7 @@ Docs en `docs/`. Docs pa contexto y teoría. Skills pa acción.
 | `docs/extensions/cms-audit.md` | CMS Audit & Gap Analysis |
 | `docs/extensions/cms.md` | CMS |
 | `docs/extensions/crm.md` | CRM |
+| `docs/extensions/knowledge-agent.md` | Knowledge Agent |
 | `docs/extensions/spec-engine.md` | Spec Engine |
 | `docs/extensions/stripe.md` | Stripe Billing |
 | `docs/extensions/upload-post.md` | Upload Post |
@@ -468,6 +469,15 @@ Docs en `docs/`. Docs pa contexto y teoría. Skills pa acción.
 | `docs/prds/email-system-v2/06-migration-phases.md` | 06-migration-phases |
 | `docs/prds/email-system-v2/07-open-questions.md` | 07-open-questions |
 | `docs/prds/email-system-v2/08-definition-of-done.md` | 08-definition-of-done |
+| `docs/prds/knowledge-agent/00-index.md` | 00-index |
+| `docs/prds/knowledge-agent/01-overview.md` | 01-overview |
+| `docs/prds/knowledge-agent/02-architecture.md` | 02-architecture |
+| `docs/prds/knowledge-agent/03-requirements.md` | 03-requirements |
+| `docs/prds/knowledge-agent/04-context.md` | 04-context |
+| `docs/prds/knowledge-agent/05-risks-and-tradeoffs.md` | 05-risks-and-tradeoffs |
+| `docs/prds/knowledge-agent/06-migration-phases.md` | 06-migration-phases |
+| `docs/prds/knowledge-agent/07-open-questions.md` | 07-open-questions |
+| `docs/prds/knowledge-agent/08-definition-of-done.md` | 08-definition-of-done |
 | `docs/prds/RESOLVED-OPEN-QUESTIONS.md` | RESOLVED-OPEN-QUESTIONS |
 | `docs/prds/stripe/00-index.md` | 00-index |
 | `docs/prds/stripe/01-overview.md` | 01-overview |

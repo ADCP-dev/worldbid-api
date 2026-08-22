@@ -17,10 +17,10 @@ import {
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
-import { McpServerRepository } from '../infrastructure/mcp-server.repository';
-import { CreateMcpServerDto } from '../dto/create-mcp-server.dto';
-import { UpdateMcpServerDto } from '../dto/update-mcp-server.dto';
-import { McpServer } from '../domain/mcp-server';
+import { McpServerRepository } from './infrastructure/mcp-server.repository';
+import { CreateMcpServerDto } from './dto/create-mcp-server.dto';
+import { UpdateMcpServerDto } from './dto/update-mcp-server.dto';
+import { McpServer } from './domain/mcp-server';
 import { JwtAuth } from '@iam/auth/decorators/auth.decorator';
 
 /**

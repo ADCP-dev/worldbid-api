@@ -126,6 +126,24 @@ describe('NoteService', () => {
       expect(repository.update).toHaveBeenCalled();
       expect(embeddingQueue.add).not.toHaveBeenCalled();
     });
+
+    it('should throw NotFoundException when userId does not own the note', async () => {
+      repository.findById.mockResolvedValue(makeNote({ userId: 99 }));
+
+      await expect(
+        service.update('note-1', { title: 'X' } as any, 1),
+      ).rejects.toThrow(NotFoundException);
+      expect(repository.update).not.toHaveBeenCalled();
+    });
+
+    it('should allow update when userId matches owner', async () => {
+      repository.findById.mockResolvedValue(makeNote({ userId: 1 }));
+      repository.update.mockResolvedValue(makeNote({ userId: 1 }));
+
+      await service.update('note-1', { title: 'X' } as any, 1);
+
+      expect(repository.update).toHaveBeenCalledWith('note-1', { title: 'X' });
+    });
   });
 
   describe('softDelete', () => {
@@ -142,6 +160,21 @@ describe('NoteService', () => {
 
       await expect(service.softDelete('missing')).rejects.toThrow(NotFoundException);
       expect(repository.softDelete).not.toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException when userId does not own the note', async () => {
+      repository.findById.mockResolvedValue(makeNote({ userId: 99 }));
+
+      await expect(service.softDelete('note-1', 1)).rejects.toThrow(NotFoundException);
+      expect(repository.softDelete).not.toHaveBeenCalled();
+    });
+
+    it('should soft delete when userId matches owner', async () => {
+      repository.findById.mockResolvedValue(makeNote({ userId: 1 }));
+
+      await service.softDelete('note-1', 1);
+
+      expect(repository.softDelete).toHaveBeenCalledWith('note-1');
     });
   });
 

@@ -8,7 +8,9 @@ import {
   Patch,
   Post,
   Body,
+  UseGuards,
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import {
   ApiCreatedResponse,
   ApiNoContentResponse,
@@ -16,17 +18,23 @@ import {
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
-import { ModelProviderRepository } from '../infrastructure/model-provider.repository';
-import { CreateModelProviderDto } from '../dto/create-model-provider.dto';
-import { UpdateModelProviderDto } from '../dto/update-model-provider.dto';
-import { ModelProvider } from '../domain/model-provider';
+import { ModelProviderRepository } from './infrastructure/model-provider.repository';
+import { CreateModelProviderDto } from './dto/create-model-provider.dto';
+import { UpdateModelProviderDto } from './dto/update-model-provider.dto';
+import { ModelProvider } from './domain/model-provider';
 import { JwtAuth } from '@iam/auth/decorators/auth.decorator';
-import { UserId } from '@iam/auth/decorators/current-user.decorator';
+import { Roles } from '@iam/roles/roles.decorator';
+import { RoleEnum } from '@iam/roles/roles.enum';
+import { RolesGuard } from '@iam/roles/roles.guard';
 
 /**
- * Model providers are an admin-managed registry. RBAC is enforced at the
- * service layer (only admin users may create/update). All authenticated
- * users may list providers (needed to populate the agent-config model select).
+ * Model providers are an admin-managed registry.
+ *
+ * - GET (list/inspect): any authenticated user (needed to populate the
+ *   agent-config model select and to display provider names in the UI).
+ * - POST/PATCH/DELETE (mutations): admin only. RBAC enforced via
+ *   `@Roles(RoleEnum.admin)` + `RolesGuard`, matching the Foundation pattern
+ *   used by the Stripe extension (e.g. ProductsController).
  */
 @ApiTags('Knowledge Model Providers')
 @JwtAuth()
@@ -38,6 +46,8 @@ export class ModelProviderController {
   constructor(private readonly repository: ModelProviderRepository) {}
 
   @Post()
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RoleEnum.admin)
   @ApiCreatedResponse({ type: ModelProvider })
   @HttpCode(HttpStatus.CREATED)
   create(@Body() dto: CreateModelProviderDto): Promise<ModelProvider> {
@@ -58,6 +68,8 @@ export class ModelProviderController {
   }
 
   @Patch(':id')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RoleEnum.admin)
   @ApiParam({ name: 'id', type: String })
   @ApiOkResponse({ type: ModelProvider })
   update(
@@ -68,6 +80,8 @@ export class ModelProviderController {
   }
 
   @Delete(':id')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RoleEnum.admin)
   @ApiParam({ name: 'id', type: String })
   @ApiNoContentResponse()
   @HttpCode(HttpStatus.NO_CONTENT)

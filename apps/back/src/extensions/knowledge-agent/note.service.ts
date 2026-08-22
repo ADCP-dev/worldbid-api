@@ -64,9 +64,12 @@ export class NoteService {
     return this.repository.findByCategoryPath(userId, categoryPath, depth);
   }
 
-  async update(id: string, dto: UpdateNoteDto): Promise<Note> {
+  async update(id: string, dto: UpdateNoteDto, userId?: number): Promise<Note> {
     const existing = await this.repository.findById(id);
     if (!existing) {
+      throw new NotFoundException(`Note ${id} not found`);
+    }
+    if (userId !== undefined && existing.userId !== userId) {
       throw new NotFoundException(`Note ${id} not found`);
     }
 
@@ -85,9 +88,12 @@ export class NoteService {
     return note;
   }
 
-  async softDelete(id: string): Promise<void> {
+  async softDelete(id: string, userId?: number): Promise<void> {
     const note = await this.repository.findById(id);
     if (!note) {
+      throw new NotFoundException(`Note ${id} not found`);
+    }
+    if (userId !== undefined && note.userId !== userId) {
       throw new NotFoundException(`Note ${id} not found`);
     }
     await this.repository.softDelete(id);

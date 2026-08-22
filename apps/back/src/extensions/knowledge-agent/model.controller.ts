@@ -9,7 +9,9 @@ import {
   Post,
   Body,
   Query,
+  UseGuards,
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import {
   ApiCreatedResponse,
   ApiNoContentResponse,
@@ -17,16 +19,23 @@ import {
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
-import { ModelRepository } from '../infrastructure/model.repository';
-import { CreateModelDto } from '../dto/create-model.dto';
-import { UpdateModelDto } from '../dto/update-model.dto';
-import { Model } from '../domain/model';
+import { ModelRepository } from './infrastructure/model.repository';
+import { CreateModelDto } from './dto/create-model.dto';
+import { UpdateModelDto } from './dto/update-model.dto';
+import { Model } from './domain/model';
 import { JwtAuth } from '@iam/auth/decorators/auth.decorator';
+import { Roles } from '@iam/roles/roles.decorator';
+import { RoleEnum } from '@iam/roles/roles.enum';
+import { RolesGuard } from '@iam/roles/roles.guard';
 
 /**
- * Models are admin-managed. All authenticated users may list/inspect models
- * (needed to populate the agent-config model select). Create/update is RBAC
- * admin at the service layer.
+ * Models are admin-managed.
+ *
+ * - GET (list/inspect/active): any authenticated user (needed to populate
+ *   the agent-config model select and to show available models in the UI).
+ * - POST/PATCH/DELETE (mutations): admin only. RBAC enforced via
+ *   `@Roles(RoleEnum.admin)` + `RolesGuard`, matching the Foundation pattern
+ *   used by the Stripe extension (e.g. ProductsController).
  */
 @ApiTags('Knowledge Models')
 @JwtAuth()
@@ -38,6 +47,8 @@ export class ModelController {
   constructor(private readonly repository: ModelRepository) {}
 
   @Post()
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RoleEnum.admin)
   @ApiCreatedResponse({ type: Model })
   @HttpCode(HttpStatus.CREATED)
   create(@Body() dto: CreateModelDto): Promise<Model> {
@@ -65,6 +76,8 @@ export class ModelController {
   }
 
   @Patch(':id')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RoleEnum.admin)
   @ApiParam({ name: 'id', type: String })
   @ApiOkResponse({ type: Model })
   update(
@@ -75,6 +88,8 @@ export class ModelController {
   }
 
   @Delete(':id')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RoleEnum.admin)
   @ApiParam({ name: 'id', type: String })
   @ApiNoContentResponse()
   @HttpCode(HttpStatus.NO_CONTENT)

@@ -57,31 +57,46 @@ export class NoteController {
   @Get(':id')
   @ApiParam({ name: 'id', type: String })
   @ApiOkResponse({ type: Note })
-  findById(@Param('id') id: string): Promise<Note | null> {
-    return this.noteService.findById(id);
+  async findById(
+    @Param('id') id: string,
+    @UserId() userId: number,
+  ): Promise<Note | null> {
+    const note = await this.noteService.findById(id);
+    if (!note || note.userId !== userId) return null;
+    return note;
   }
 
   @Get(':id/backlinks')
   @ApiParam({ name: 'id', type: String })
   @ApiOkResponse({ type: [Note] })
-  findBacklinks(@Param('id') id: string): Promise<Note[]> {
+  async findBacklinks(
+    @Param('id') id: string,
+    @UserId() userId: number,
+  ): Promise<Note[]> {
+    // Ownership check: only return backlinks if the note belongs to the user.
+    const note = await this.noteService.findById(id);
+    if (!note || note.userId !== userId) return [];
     return this.noteService.findBacklinks(id);
   }
 
   @Patch(':id')
   @ApiParam({ name: 'id', type: String })
   @ApiOkResponse({ type: Note })
-  update(
+  async update(
     @Param('id') id: string,
     @Body() dto: UpdateNoteDto,
+    @UserId() userId: number,
   ): Promise<Note> {
-    return this.noteService.update(id, dto);
+    return this.noteService.update(id, dto, userId);
   }
 
   @Delete(':id')
   @ApiParam({ name: 'id', type: String })
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('id') id: string): Promise<void> {
-    return this.noteService.softDelete(id);
+  async remove(
+    @Param('id') id: string,
+    @UserId() userId: number,
+  ): Promise<void> {
+    return this.noteService.softDelete(id, userId);
   }
 }
