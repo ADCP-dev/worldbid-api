@@ -28,7 +28,7 @@ const isCreating = ref(false);
 const showPreviewModal = ref(false);
 const validationErrors = ref<Record<string, string>>({});
 const createdPostId = ref<string>('');
-const slugManuallyEdited = false;
+let slugManuallyEdited = false;
 
 const form = ref({
   title: "",

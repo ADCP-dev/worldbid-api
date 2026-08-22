@@ -17,7 +17,7 @@ const { createPage, loading, error, updateSeo, saveTranslation } = useCmsPages()
 const isCreating = ref(false);
 const formError = ref<string | null>(null);
 const validationErrors = ref<Record<string, string>>({});
-const slugManuallyEdited = false;
+let slugManuallyEdited = false;
 
 const form = ref({
   name: "",

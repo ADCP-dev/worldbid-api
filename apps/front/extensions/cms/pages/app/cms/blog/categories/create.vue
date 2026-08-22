@@ -29,7 +29,7 @@ const translations = ref<Record<string, { name: string; slug: string; descriptio
 });
 
 // Auto-generate slug from Spanish name
-const slugManuallyEdited = false;
+let slugManuallyEdited = false;
 watch(
   () => translations.value.es.name,
   (newVal) => {
