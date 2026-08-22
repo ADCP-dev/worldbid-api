@@ -25,6 +25,9 @@ export class EmailDiscoveryService {
   /**
    * Scan all three roots and return a Map<name, absolutePath>.
    * Results are cached; pass force=true to re-scan.
+   *
+   * Patterns are relative to the backend cwd (apps/back/), NOT the repo
+   * root. The shared packages dir is resolved via ../../ from cwd.
    */
   async findAll(force = false): Promise<Map<string, string>> {
     if (this.cache && !force) return this.cache;
@@ -32,13 +35,14 @@ export class EmailDiscoveryService {
     const found = new Map<string, string>();
     const cwd = process.cwd();
 
-    // Root paths relative to cwd. Extension-level first (most specific).
+    // Root paths relative to the backend cwd (apps/back/).
+    // Extension-level first (most specific).
     // Module glob uses ** to handle nested module paths (e.g.
     // modules/communications/mail/emails/).
     const roots = [
-      'apps/back/src/extensions/*/emails/*.vue',
-      'apps/back/src/modules/**/emails/*.vue',
-      'packages/emails/emails/*.vue',
+      'src/extensions/*/emails/*.vue',
+      'src/modules/**/emails/*.vue',
+      '../../packages/emails/emails/*.vue',
     ];
 
     for (const pattern of roots) {

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 /**
@@ -11,6 +11,14 @@ import { tmpdir } from 'node:os';
  * emails. No templates subfolder required. Extension-level paths take
  * precedence over packages-level (most specific wins). Duplicate names log
  * a warning.
+ *
+ * Patterns are relative to the backend cwd (apps/back/):
+ *   src/extensions/*/emails/*.vue
+ *   src/modules/**/emails/*.vue
+ *   ../../packages/emails/emails/*.vue
+ *
+ * Tests simulate the backend cwd by chdir-ing into a tmp dir and creating
+ * the structure relative to that cwd.
  */
 describe('T-016 — EmailDiscoveryService', () => {
   let tmpRoot: string;
@@ -28,25 +36,29 @@ describe('T-016 — EmailDiscoveryService', () => {
   });
 
   it('should discover .vue templates across all three roots', async () => {
-    // Create the three root structures.
-    mkdirSync(join(tmpRoot, 'apps/back/src/extensions/tasks/emails'), {
+    // Create the three root structures relative to the backend cwd.
+    // Extension and module patterns are relative to cwd.
+    // Packages pattern uses ../../packages/ relative to cwd.
+    mkdirSync(join(tmpRoot, 'src/extensions/tasks/emails'), {
       recursive: true,
     });
-    mkdirSync(join(tmpRoot, 'apps/back/src/modules/communications/mail/emails'), {
+    mkdirSync(join(tmpRoot, 'src/modules/communications/mail/emails'), {
       recursive: true,
     });
-    mkdirSync(join(tmpRoot, 'packages/emails/emails'), { recursive: true });
+    mkdirSync(join(tmpRoot, '../../packages/emails/emails'), {
+      recursive: true,
+    });
 
     writeFileSync(
-      join(tmpRoot, 'apps/back/src/extensions/tasks/emails/task-assigned.vue'),
+      join(tmpRoot, 'src/extensions/tasks/emails/task-assigned.vue'),
       '<template>task</template>',
     );
     writeFileSync(
-      join(tmpRoot, 'apps/back/src/modules/communications/mail/emails/contact.vue'),
+      join(tmpRoot, 'src/modules/communications/mail/emails/contact.vue'),
       '<template>contact</template>',
     );
     writeFileSync(
-      join(tmpRoot, 'packages/emails/emails/activation.vue'),
+      join(tmpRoot, '../../packages/emails/emails/activation.vue'),
       '<template>activation</template>',
     );
 
@@ -67,17 +79,19 @@ describe('T-016 — EmailDiscoveryService', () => {
   });
 
   it('should give extension-level precedence over packages-level on name collision', async () => {
-    mkdirSync(join(tmpRoot, 'apps/back/src/extensions/foo/emails'), {
+    mkdirSync(join(tmpRoot, 'src/extensions/foo/emails'), {
       recursive: true,
     });
-    mkdirSync(join(tmpRoot, 'packages/emails/emails'), { recursive: true });
+    mkdirSync(join(tmpRoot, '../../packages/emails/emails'), {
+      recursive: true,
+    });
 
     writeFileSync(
-      join(tmpRoot, 'apps/back/src/extensions/foo/emails/reset-password.vue'),
+      join(tmpRoot, 'src/extensions/foo/emails/reset-password.vue'),
       '<template>ext</template>',
     );
     writeFileSync(
-      join(tmpRoot, 'packages/emails/emails/reset-password.vue'),
+      join(tmpRoot, '../../packages/emails/emails/reset-password.vue'),
       '<template>pkg</template>',
     );
 
@@ -95,9 +109,11 @@ describe('T-016 — EmailDiscoveryService', () => {
   });
 
   it('should resolve a template by name via resolveByName()', async () => {
-    mkdirSync(join(tmpRoot, 'packages/emails/emails'), { recursive: true });
+    mkdirSync(join(tmpRoot, '../../packages/emails/emails'), {
+      recursive: true,
+    });
     writeFileSync(
-      join(tmpRoot, 'packages/emails/emails/activation.vue'),
+      join(tmpRoot, '../../packages/emails/emails/activation.vue'),
       '<template>a</template>',
     );
 
@@ -113,7 +129,9 @@ describe('T-016 — EmailDiscoveryService', () => {
   });
 
   it('should return null for unknown template name', async () => {
-    mkdirSync(join(tmpRoot, 'packages/emails/emails'), { recursive: true });
+    mkdirSync(join(tmpRoot, '../../packages/emails/emails'), {
+      recursive: true,
+    });
 
     vi.resetModules();
     const { EmailDiscoveryService } = await import(
@@ -126,9 +144,11 @@ describe('T-016 — EmailDiscoveryService', () => {
   });
 
   it('should cache results and re-scan on force=true', async () => {
-    mkdirSync(join(tmpRoot, 'packages/emails/emails'), { recursive: true });
+    mkdirSync(join(tmpRoot, '../../packages/emails/emails'), {
+      recursive: true,
+    });
     writeFileSync(
-      join(tmpRoot, 'packages/emails/emails/activation.vue'),
+      join(tmpRoot, '../../packages/emails/emails/activation.vue'),
       '<template>a</template>',
     );
 
@@ -143,7 +163,7 @@ describe('T-016 — EmailDiscoveryService', () => {
 
     // Add a new template after the first scan.
     writeFileSync(
-      join(tmpRoot, 'packages/emails/emails/reset-password.vue'),
+      join(tmpRoot, '../../packages/emails/emails/reset-password.vue'),
       '<template>r</template>',
     );
 
@@ -157,9 +177,11 @@ describe('T-016 — EmailDiscoveryService', () => {
   });
 
   it('should clear cache via clear()', async () => {
-    mkdirSync(join(tmpRoot, 'packages/emails/emails'), { recursive: true });
+    mkdirSync(join(tmpRoot, '../../packages/emails/emails'), {
+      recursive: true,
+    });
     writeFileSync(
-      join(tmpRoot, 'packages/emails/emails/activation.vue'),
+      join(tmpRoot, '../../packages/emails/emails/activation.vue'),
       '<template>a</template>',
     );
 
@@ -174,7 +196,7 @@ describe('T-016 — EmailDiscoveryService', () => {
 
     // After clear, next findAll re-scans.
     writeFileSync(
-      join(tmpRoot, 'packages/emails/emails/reset-password.vue'),
+      join(tmpRoot, '../../packages/emails/emails/reset-password.vue'),
       '<template>r</template>',
     );
     const reloaded = await service.findAll();

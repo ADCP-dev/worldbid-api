@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { createHash } from 'node:crypto';
+import { resolve } from 'node:path';
 
 /**
  * Render result returned by TemplateRenderer.render().
@@ -43,6 +44,7 @@ export class TemplateRenderer implements OnModuleDestroy {
     ReturnType<typeof import('@maizzle/framework')['createRenderer']>
   > | null = null;
   private createPlaintextFn: ((html: string) => string) | null = null;
+  private inlineCssFn: ((html: string) => string) | null = null;
 
   private readonly MAX_ENTRIES = 500;
 
@@ -73,11 +75,25 @@ export class TemplateRenderer implements OnModuleDestroy {
       throw err;
     }
 
+    // DEVIATION 4 (CSS inlining): createRenderer().render() only does SSR —
+    // it does NOT run the transformer pipeline (CSS inlining, purging, etc).
+    // We call inlineCss() to inline Tailwind classes into style attributes.
+    let html = result.html;
+    if (this.inlineCssFn) {
+      try {
+        html = this.inlineCssFn(html);
+      } catch (err) {
+        this.logger.warn(
+          `inlineCss failed (using raw SSR HTML): ${(err as Error).message}`,
+        );
+      }
+    }
+
     // DEVIATION 1: plaintext is generated via createPlaintext(html), NOT
     // from result.plaintext (which is a config object, not the string).
-    const plaintext = this.generatePlaintext(result.html);
+    const plaintext = this.generatePlaintext(html);
 
-    const entry: CacheEntry = { html: result.html, plaintext, ts: Date.now() };
+    const entry: CacheEntry = { html, plaintext, ts: Date.now() };
     this.evictIfNeeded();
     this.cache.set(key, entry);
 
@@ -119,13 +135,36 @@ export class TemplateRenderer implements OnModuleDestroy {
 
   private async getRenderer() {
     if (!this.renderer) {
-      // DEVIATION 3: dynamic import from CJS apps/back into ESM
-      // @maizzle/framework. Node reads the exports field; tsc uses the shim.
-      const { createRenderer, createPlaintext } = await import(
-        '@maizzle/framework'
+      // DEVIATION 3: @maizzle/framework v6 is ESM-only ("type": "module",
+      // exports has no "require" entry). The backend compiles to CJS via SWC,
+      // which transforms `await import()` into `require()` — that fails with
+      // ERR_PACKAGE_PATH_NOT_EXPORTED. We bypass SWC's static analysis with
+      // new Function() so Node's native dynamic import() is used at runtime.
+      const nativeImport = new Function(
+        'specifier',
+        'return import(specifier)',
+      ) as (s: string) => Promise<typeof import('@maizzle/framework')>;
+      const { createRenderer, createPlaintext, inlineCss } = await nativeImport(
+        '@maizzle/framework',
       );
-      this.renderer = await createRenderer({ root: process.cwd() });
+
+      // Resolve @emails/* alias used by extension templates to the shared
+      // packages/emails/emails/ directory. Maizzle's Vite SSR server needs
+      // this alias to resolve `import Layout from '@emails/Layout.vue'`.
+      const cwd = process.cwd();
+      const emailsPkgDir = resolve(cwd, '../../packages/emails/emails');
+      this.renderer = await createRenderer({
+        root: cwd,
+        vite: {
+          resolve: {
+            alias: {
+              '@emails': emailsPkgDir,
+            },
+          },
+        },
+      });
       this.createPlaintextFn = createPlaintext;
+      this.inlineCssFn = inlineCss;
       this.logger.log('Maizzle renderer created (createRenderer)');
     }
     return this.renderer;
