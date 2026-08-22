@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540.02 519.61" role="img" aria-label="Foundation">
+  <!-- Foundation logo — geometric isometric block. Colors from DaisyUI theme "luxury-dark"
+       (Industrial Dark with Construction Orange):
+       primary #F97316 (orange), base-content #F5F5F5 (off-white), base-300 #262626 (border), base-100 #161616 (charcoal). -->
+  <defs>
+    <style>
+      .cls-1{fill:#F97316;}
+      .cls-2{fill:#F5F5F5;}
+      .cls-3{fill:#262626;}
+      .cls-4{fill:#161616;}
+    </style>
+  </defs>
+  <g id="Layer_2" data-name="Layer 2">
+    <g id="Layer_1-2" data-name="Layer 1">
+      <polygon class="cls-1" points="540.02 103.92 540.02 109.58 424.46 238.69 360.02 207.83 180.02 103.92 360.02 0 539.98 103.92 540.02 103.92"/>
+      <polygon class="cls-2" points="540.02 103.92 540.02 311.75 360.02 415.67 360.02 207.83 539.98 103.92 540.02 103.92"/>
+      <rect class="cls-3" x="360" y="207.84" width="0.02" height="207.85"/>
+      <polygon class="cls-1" points="180 103.92 180 311.75 0.01 207.84 180 103.92"/>
+      <polygon class="cls-4" points="360 207.84 360 415.67 180 311.75 180 103.92 360 207.84"/>
+      <polygon class="cls-2" points="360 415.67 360 415.69 180 519.61 180 311.75 360 415.67"/>
+      <polygon class="cls-4" points="180.01 311.76 180.01 519.61 0 415.69 0 207.84 180.01 311.76"/>
+    </g>
+  </g>
+</svg>
