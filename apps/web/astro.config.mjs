@@ -4,12 +4,64 @@ import vue from '@astrojs/vue';
 import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
 
+const SITE_URL = (process.env.PUBLIC_SITE_URL || 'http://localhost:4321').replace(/\/$/, '');
+const API_URL = (process.env.API_URL || 'http://localhost:3000').replace(/\/$/, '');
+const API_PREFIX = '/api/v1';
+
+async function fetchJson(url) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+function toArray(body) {
+  if (Array.isArray(body)) return body;
+  if (body && Array.isArray(body.data)) return body.data;
+  return [];
+}
+
+async function fetchDynamicPageUrls() {
+  const paths = ['/en', '/en/blog/'];
+  const [postsBody, catsBody, tagsBody, pagesBody] = await Promise.all([
+    fetchJson(`${API_URL}${API_PREFIX}/cms/blog/posts/public?limit=100`),
+    fetchJson(`${API_URL}${API_PREFIX}/cms/blog/categories/public`),
+    fetchJson(`${API_URL}${API_PREFIX}/cms/blog/tags/public`),
+    fetchJson(`${API_URL}${API_PREFIX}/cms/pages/public`),
+  ]);
+
+  for (const post of toArray(postsBody)) {
+    if (post.slug) {
+      paths.push(`/blog/${post.slug}`, `/en/blog/${post.slug}`);
+    }
+  }
+  for (const cat of toArray(catsBody)) {
+    if (cat.slug) {
+      paths.push(`/blog/c/${cat.slug}`, `/en/blog/c/${cat.slug}`);
+    }
+  }
+  for (const tag of toArray(tagsBody)) {
+    if (tag.slug) {
+      paths.push(`/blog/t/${tag.slug}`, `/en/blog/t/${tag.slug}`);
+    }
+  }
+  for (const page of toArray(pagesBody)) {
+    if (page.slug) {
+      paths.push(`/${page.slug}`, `/en/${page.slug}`);
+    }
+  }
+  return paths.map((p) => `${SITE_URL}${p}`);
+}
+
 // Astro 7 SSR public web app. Standalone Node server (Coolify).
 // ISR DIY: routeRules declare cache + tags; /api/revalidate purges by tag.
 export default defineConfig({
   output: 'server',
   adapter: node({ mode: 'standalone' }),
-  site: process.env.PUBLIC_SITE_URL || 'http://localhost:4321',
+  site: SITE_URL,
 
   i18n: {
     defaultLocale: 'es',
@@ -24,6 +76,14 @@ export default defineConfig({
     sitemap({
       // tag 'sitemap' used by /api/revalidate for on-demand purge
       filter: (page) => !page.includes('/app/') && !page.includes('/admin/'),
+      i18n: {
+        defaultLocale: 'es',
+        locales: {
+          es: 'es-ES',
+          en: 'en-US',
+        },
+      },
+      customPages: await fetchDynamicPageUrls(),
     }),
   ],
 
