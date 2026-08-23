@@ -5,7 +5,7 @@ import { SUPPORTED_LOCALES, DEFAULT_LOCALE, localizedRoutes } from './config/i18
 export default defineNuxtConfig(
   {
     compatibilityDate: '2024-11-01',
-    extends: ['./modules/landing', './modules/base', './extensions/cms', './extensions/analytics', './extensions/upload-post', './extensions/crm', './extensions/affiliate', './extensions/stripe', './extensions/tokens', './extensions/tasks', './extensions/knowledge-agent'],
+    extends: ['./modules/base', './extensions/cms', './extensions/analytics', './extensions/upload-post', './extensions/crm', './extensions/affiliate', './extensions/stripe', './extensions/tokens', './extensions/tasks', './extensions/knowledge-agent'],
     devtools: { enabled: true },
     ssr: false,
 
@@ -19,7 +19,6 @@ export default defineNuxtConfig(
       '@ka': '~/extensions/knowledge-agent',
       '@affiliate': '~/extensions/affiliate',
       '@stripe': '~/extensions/stripe',
-      '@landing': '~/modules/landing',
     },
 
     // Configure error handling
@@ -53,7 +52,6 @@ export default defineNuxtConfig(
 
     modules: [
       '@nuxt/image',
-      'nuxt-og-image',
       '@nuxt/eslint',
       '@pinia/nuxt',
       'pinia-plugin-persistedstate',
@@ -127,12 +125,6 @@ export default defineNuxtConfig(
             'es/mod/translations.json',
             'es/mod/ui.json',
             'es/mod/ui/automation.json',
-            'es/mod/landing.json',
-            'es/mod/pages/common.json',
-            'es/mod/pages/blog.json',
-            'es/mod/pages/pages.json',
-            'es/mod/pages/seo.json',
-            'es/mod/pages/tags.json',
             'es/ext/cms.json',
             'es/ext/ka.json',
           ],
@@ -153,12 +145,6 @@ export default defineNuxtConfig(
             'en/mod/translations.json',
             'en/mod/ui.json',
             'en/mod/ui/automation.json',
-            'en/mod/landing.json',
-            'en/mod/pages/common.json',
-            'en/mod/pages/blog.json',
-            'en/mod/pages/pages.json',
-            'en/mod/pages/seo.json',
-            'en/mod/pages/tags.json',
             'en/ext/cms.json',
             'en/ext/ka.json',
           ],
@@ -172,40 +158,9 @@ export default defineNuxtConfig(
       },
     },
 
-    ogImage: {
-      // SPA (ssr: false) doesn't serve OG images at runtime — disable build-time generation.
-      // Module stays in `modules` so defineOgImage() calls in CMS pages don't break.
-      enabled: false,
-    },
-
-    site: {
-      url: process.env.COOLIFY_URL || process.env.NUXT_PUBLIC_APP_URL || process.env.FRONTEND_URL || 'http://localhost:3000',
-      name: process.env.APP_NAME || 'Foundation',
-    },
-
     routeRules: {
       // Admin/app routes - client-side only (auth uses localStorage, not available in SSR)
       '/app/**': { ssr: false },
-      // Redirect old category URLs to new slug-based routes
-      '/blog/category/**': { redirect: { to: '/blog/c/**', statusCode: 301 } },
-      '/en/blog/category/**': {
-        redirect: { to: '/en/blog/c/**', statusCode: 301 },
-      },
-      // Public CMS routes - NOT prerendered (require backend API, not available at build time)
-      // Pages render client-side with empty/loading state when backend is unreachable
-      '/blog/**': { prerender: false },
-      '/page/**': { prerender: false },
-      '/en/blog/**': { prerender: false },
-      '/en/page/**': { prerender: false },
-      '/en': { prerender: true },
-
-      '/': { prerender: true },
-      // ...Object.fromEntries(
-      //   localizedRoutes(['/calculadoras', '/calculadoras/**']).map((path) => [
-      //     path,
-      //     { prerender: true },
-      //   ]),
-      // ),
 
       // Long-lived cache for static assets (fonts, images, logos)
       '/fonts/**': {
@@ -224,15 +179,9 @@ export default defineNuxtConfig(
         headers: { 'Cache-Control': 'public, max-age=31536000, immutable' },
       },
 
-
-
       // Fallback: generate on demand if not prerendered
       '/**': { prerender: false },
     },
-
-    // @nuxtjs/sitemap removed — sitemap now centralized in Astro apps/web
-    // via @astrojs/sitemap (R-CMS-R-01). The server/api/sitemap/* sources
-    // and the sitemap config block were removed.
 
     // SSG Prerender configuration
     preset: 'static',
@@ -244,7 +193,4 @@ export default defineNuxtConfig(
       failOnError: false,
     },
   },
-
-  // Robots now served by Astro apps/web (robots.txt endpoint).
-  // @nuxtjs/sitemap removed; sitemap centralized in Astro.
 );
