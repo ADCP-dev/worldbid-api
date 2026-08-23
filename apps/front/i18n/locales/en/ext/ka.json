@@ -50,6 +50,14 @@
         "newAgent": "New Agent Config",
         "newMcpServer": "New MCP Server",
         "adminRequired": "Admin access required to manage models and providers."
+      },
+      "nav": {
+        "notes": "Notes",
+        "graph": "Graph",
+        "chat": "Chat",
+        "agents": "Agents",
+        "models": "Models",
+        "mcpServers": "MCP Servers"
       }
     }
   }

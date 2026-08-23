@@ -50,6 +50,14 @@
         "newAgent": "Nueva Config de Agente",
         "newMcpServer": "Nuevo Servidor MCP",
         "adminRequired": "Se requiere acceso admin para gestionar modelos y proveedores."
+      },
+      "nav": {
+        "notes": "Notas",
+        "graph": "Grafo",
+        "chat": "Chat",
+        "agents": "Agentes",
+        "models": "Modelos",
+        "mcpServers": "MCP Servers"
       }
     }
   }

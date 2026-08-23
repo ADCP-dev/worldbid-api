@@ -91,6 +91,16 @@ bash .agents/skills/i18n-audit/scripts/audit.sh --unused
 Shows: keys in JSON files that are NOT referenced in any .vue or .ts file.
 Note: dynamic keys (like `$t('mod.' + variable)`) may show as false positives.
 
+### Find keys used in code but missing from JSON
+
+```bash
+bash .agents/skills/i18n-audit/scripts/audit.sh --check-code
+```
+
+Shows: keys referenced via `$t()`, `t()`, or `$i18n.t()` in .vue/.ts/.astro files
+that do NOT exist in the JSON locale files. These are bugs — the user will see
+the raw key string instead of a translation.
+
 ### JSON output (for agents)
 
 ```bash

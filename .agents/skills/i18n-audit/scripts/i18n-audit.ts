@@ -26,6 +26,8 @@ const keyArg = (args.find((a) => a.startsWith('--key=')) || '').replace('--key='
 const sectionArg = (args.find((a) => a.startsWith('--section=')) || '').replace('--section=', '');
 const onlyMissing = args.includes('--missing');
 const onlyUnused = args.includes('--unused');
+const checkCode = args.includes('--check-code');
+const fixMissing = args.includes('--fix');
 
 const repoRoot = path.resolve(__dirname, '../../../..');
 const localesDir = path.join(repoRoot, 'apps/front/i18n/locales');
@@ -220,7 +222,78 @@ function findUnusedKeys() {
   return unused.sort();
 }
 
+// ─── 3b. Check code keys exist in JSON ───────────────────────────────────
+
+function findCodeKeysNotInJson() {
+  // Collect all $t('key'), t('key'), $i18n.t('key') calls from code
+  let allCode = '';
+  try {
+    allCode = execSync(
+      `find "${frontSrcDir}" -type f \\( -name "*.vue" -o -name "*.ts" -o -name "*.tsx" \\) ` +
+        `-not -path "*/node_modules/*" -not -path "*/.nuxt/*" -not -path "*/.output/*" ` +
+        `| head -500 | xargs cat 2>/dev/null`,
+      { encoding: 'utf-8', maxBuffer: 100 * 1024 * 1024 },
+    );
+  } catch {}
+
+  const webDir = path.join(repoRoot, 'apps/web');
+  if (fs.existsSync(webDir)) {
+    try {
+      const webCode = execSync(
+        `find "${webDir}" -type f \\( -name "*.astro" -o -name "*.ts" -o -name "*.tsx" \\) ` +
+          `-not -path "*/node_modules/*" -not -path "*/dist/*" ` +
+          `| head -200 | xargs cat 2>/dev/null`,
+        { encoding: 'utf-8', maxBuffer: 50 * 1024 * 1024 },
+      );
+      allCode += '\n' + webCode;
+    } catch {}
+  }
+
+  const codeKeys = new Set();
+  let m;
+
+  // $t('key') or $t("key")
+  const tRegex = /\$t\s*\(\s*['"`]([^'"`]+)['"`]\s*\)/g;
+  while ((m = tRegex.exec(allCode)) !== null) codeKeys.add(m[1]);
+
+  // t('key') standalone (from useI18n)
+  const t2Regex = /(?<![\w$])t\s*\(\s*['"`]([^'"`]+)['"`]\s*\)/g;
+  while ((m = t2Regex.exec(allCode)) !== null) codeKeys.add(m[1]);
+
+  // $i18n.t('key')
+  const i18nRegex = /\$?i18n\.t\s*\(\s*['"`]([^'"`]+)['"`]\s*\)/g;
+  while ((m = i18nRegex.exec(allCode)) !== null) codeKeys.add(m[1]);
+
+  // Check which code keys are NOT in JSON
+  const missingFromJson = [];
+  const enKeys = new Set(Object.keys(langData[langs[0]] || {}));
+
+  for (const key of codeKeys) {
+    // Skip dynamic keys (containing ${ or +)
+    if (key.includes('${') || key.includes('${') || key.includes(' + ')) continue;
+    if (!enKeys.has(key)) {
+      missingFromJson.push(key);
+    }
+  }
+
+  return missingFromJson.sort();
+}
+
 // ─── 4. Output ───────────────────────────────────────────────────────────
+
+if (checkCode) {
+  const missingFromJson = findCodeKeysNotInJson();
+  console.log(`\n🔍 Code keys not found in JSON\n`);
+  if (missingFromJson.length === 0) {
+    console.log('  ✅ All $t() keys in code exist in JSON files.');
+  } else {
+    console.log(`  ${missingFromJson.length} keys used in code but missing from JSON:\n`);
+    for (const key of missingFromJson) {
+      console.log(`  ❌ ${key}`);
+    }
+  }
+  process.exit(0);
+}
 
 if (asJson) {
   const output = {
