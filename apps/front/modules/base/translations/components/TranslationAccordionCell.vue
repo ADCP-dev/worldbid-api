@@ -35,10 +35,10 @@ const translateRow = async () => {
 
         // Tell parent to refresh
         emit('update', 'Translated via AI');
-        toast.success(`${t('base.translations.accordion.toast.success')}: ${response.message}`);
+        toast.success(`${t('mod.translations.accordion.toast.success')}: ${response.message}`);
     } catch (error: any) {
         console.error('Failed to translate row', error);
-        toast.error(`${t('base.translations.accordion.toast.error')}: ${error.message || 'Unknown error'}`);
+        toast.error(`${t('mod.translations.accordion.toast.error')}: ${error.message || 'Unknown error'}`);
     } finally {
         isTranslating.value = false;
     }
@@ -83,7 +83,7 @@ const handleBlur = async (row: any, event: Event) => {
     emit('update', newContent);
   } catch (err) {
     console.error('Failed to update translation', err);
-    toast.error(t('base.translations.accordion.toast.saveError'));
+    toast.error(t('mod.translations.accordion.toast.saveError'));
   }
 };
 
@@ -101,13 +101,13 @@ const summaryRows = computed(() => languageRows.value.filter(r => r.translation)
          </div>
       </template>
       <template v-else>
-          <span class="italic opacity-50">{{ $t('base.translations.accordion.noTranslations') }}</span>
+          <span class="italic opacity-50">{{ $t('mod.translations.accordion.noTranslations') }}</span>
       </template>
     </div>
     <div class="collapse-content bg-base-200/20 px-4">
       <div class="flex flex-col sm:flex-row gap-4">
         <div class="flex items-center justify-center">
-          <div class="tooltip tooltip-right" :data-tip="$t('base.translations.accordion.tooltip')">
+          <div class="tooltip tooltip-right" :data-tip="$t('mod.translations.accordion.tooltip')">
             <button
               class="btn btn-outline btn-square btn-sm"
               :disabled="isTranslating"
@@ -131,7 +131,7 @@ const summaryRows = computed(() => languageRows.value.filter(r => r.translation)
               :key="`${row.lang.id}-${row.content}`"
               class="textarea textarea-bordered textarea-sm w-full min-h-[60px]"
               :value="row.content"
-              :placeholder="$t('base.translations.accordion.placeholder', { lang: row.lang.name })"
+              :placeholder="$t('mod.translations.accordion.placeholder', { lang: row.lang.name })"
               @blur="handleBlur(row, $event)"
             />
           </div>

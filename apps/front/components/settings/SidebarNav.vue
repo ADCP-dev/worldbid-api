@@ -13,7 +13,7 @@ const { t } = useI18n()
 // Base items (always present)
 const baseItems = computed<Item[]>(() => [
   {
-    title: t('base.settings.profile.title'),
+    title: t('mod.settings.profile.title'),
     href: '/app/settings/profile',
   },
 ])

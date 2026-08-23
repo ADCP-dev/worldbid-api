@@ -75,7 +75,7 @@ const handleEditSubmit = async () => {
 };
 
 const handleDelete = async (id: number) => {
-  if (confirm(t("base.languages.confirmDelete"))) {
+  if (confirm(t("mod.languages.confirmDelete"))) {
     try {
       await deleteLang(id);
       fetchLangs();
@@ -91,48 +91,48 @@ onMounted(fetchLangs);
 <template>
   <div class="p-1 md:p-6">
     <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold">{{ $t("base.languages.title") }}</h1>
+      <h1 class="text-2xl font-bold">{{ $t("mod.languages.title") }}</h1>
       <button class="btn btn-primary" @click="isDialogOpen = true">
-        {{ $t("base.languages.addLanguageBtn") }}
+        {{ $t("mod.languages.addLanguageBtn") }}
       </button>
 
       <!-- Add Dialog -->
       <dialog class="modal" :class="{ 'modal-open': isDialogOpen }">
         <div class="modal-box">
           <h3 class="font-bold text-lg mb-4">
-            {{ $t("base.languages.addLanguageDialogTitle") }}
+            {{ $t("mod.languages.addLanguageDialogTitle") }}
           </h3>
           <div class="flex flex-col gap-4 py-4">
             <FormInput
               v-model="newLang.code"
-              :label="$t('base.languages.code')"
+              :label="$t('mod.languages.code')"
               placeholder="en"
               required
             />
             <FormInput
               v-model="newLang.flagCode"
-              :label="$t('base.languages.flagCode')"
+              :label="$t('mod.languages.flagCode')"
               placeholder="gb"
               required
             />
             <FormInput
               v-model="newLang.name"
-              :label="$t('base.languages.name')"
+              :label="$t('mod.languages.name')"
               placeholder="English"
               required
             />
 
             <FormSwitch
               v-model="newLang.isActive"
-              :label="$t('base.languages.active')"
+              :label="$t('mod.languages.active')"
             />
           </div>
           <div class="modal-action">
             <button class="btn btn-ghost" @click="isDialogOpen = false">
-              {{ $t("base.languages.cancelBtn") }}
+              {{ $t("mod.languages.cancelBtn") }}
             </button>
             <button class="btn btn-primary" @click="handleCreate">
-              {{ $t("base.languages.saveBtn") }}
+              {{ $t("mod.languages.saveBtn") }}
             </button>
           </div>
         </div>
@@ -150,11 +150,11 @@ onMounted(fetchLangs);
       <table class="table table-zebra w-full">
         <thead>
           <tr class="bg-base-200">
-            <th>{{ $t("base.languages.tableFlag") }}</th>
-            <th>{{ $t("base.languages.tableCode") }}</th>
-            <th>{{ $t("base.languages.tableName") }}</th>
-            <th>{{ $t("base.languages.tableActive") }}</th>
-            <th class="w-[100px]">{{ $t("base.languages.tableActions") }}</th>
+            <th>{{ $t("mod.languages.tableFlag") }}</th>
+            <th>{{ $t("mod.languages.tableCode") }}</th>
+            <th>{{ $t("mod.languages.tableName") }}</th>
+            <th>{{ $t("mod.languages.tableActive") }}</th>
+            <th class="w-[100px]">{{ $t("mod.languages.tableActions") }}</th>
           </tr>
         </thead>
         <tbody>
@@ -232,10 +232,10 @@ onMounted(fetchLangs);
               editingLang = null;
             "
           >
-            {{ $t("base.languages.cancelBtn") }}
+            {{ $t("mod.languages.cancelBtn") }}
           </button>
           <button class="btn btn-primary" @click="handleEditSubmit">
-            {{ $t("base.languages.updateBtn") }}
+            {{ $t("mod.languages.updateBtn") }}
           </button>
         </div>
       </div>

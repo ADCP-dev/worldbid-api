@@ -122,7 +122,7 @@ function removeImage() {
 // --- JSON-LD ---
 
 const jsonLdTypeOptions = computed(() => [
-  { value: "", label: t("pages.seo.selectJsonLdType") || "None" },
+  { value: "", label: t("mod.pages.seo.selectJsonLdType") || "None" },
   { value: "WebPage", label: "WebPage" },
   { value: "Article", label: "Article" },
   { value: "WebSite", label: "WebSite" },
@@ -193,26 +193,26 @@ function cancelJsonLdEdit() {
   <div class="card bg-base-100 shadow-sm border">
     <div class="card-body">
       <h3 class="card-title text-lg border-b pb-2 mb-4">
-        {{ t("pages.seo.title") }}
+        {{ t("mod.pages.seo.title") }}
       </h3>
 
       <div class="space-y-4">
         <FormInput
           v-model="local.metaTitle"
-          :label="t('pages.seo.metaTitle')"
+          :label="t('mod.pages.seo.metaTitle')"
         />
 
         <FormTextArea
           v-model="local.metaDescription"
-          :label="t('pages.seo.metaDescription')"
+          :label="t('mod.pages.seo.metaDescription')"
           :rows="2"
         />
 
         <FormMultipleSelect
           v-model="local.metaKeywords"
-          :label="t('pages.seo.metaKeywords')"
+          :label="t('mod.pages.seo.metaKeywords')"
           :options="allKeywords"
-          :placeholder="t('pages.seo.selectKeywords') || 'Selecciona palabras clave...'"
+          :placeholder="t('mod.pages.seo.selectKeywords') || 'Selecciona palabras clave...'"
         />
 
         <div class="flex gap-2">
@@ -220,7 +220,7 @@ function cancelJsonLdEdit() {
             v-model="newKeyword"
             type="text"
             class="input input-sm input-bordered flex-1"
-            :placeholder="t('pages.seo.newKeyword') || 'Nueva palabra clave...'"
+            :placeholder="t('mod.pages.seo.newKeyword') || 'Nueva palabra clave...'"
             @keyup.enter.prevent="addKeyword"
           >
           <button
@@ -228,14 +228,14 @@ function cancelJsonLdEdit() {
             class="btn btn-sm btn-outline"
             @click="addKeyword"
           >
-            {{ t("pages.common.add") || "Agregar" }}
+            {{ t("mod.pages.common.add") || "Agregar" }}
           </button>
         </div>
 
         <div class="form-control">
           <label class="label">
             <span class="label-text font-semibold">
-              {{ t("pages.seo.ogImage") }}
+              {{ t("mod.pages.seo.ogImage") }}
             </span>
           </label>
 
@@ -276,7 +276,7 @@ function cancelJsonLdEdit() {
           >
 
           <span v-if="isUploading" class="text-sm text-base-content/60 mt-1">
-            {{ t("pages.common.uploading") || "Subiendo..." }}
+            {{ t("mod.pages.common.uploading") || "Subiendo..." }}
           </span>
           <span v-if="uploadError" class="text-sm text-error mt-1">
             {{ uploadError }}
@@ -285,13 +285,13 @@ function cancelJsonLdEdit() {
 
         <FormInput
           v-model="local.canonicalUrl"
-          :label="t('pages.seo.canonicalUrl')"
+          :label="t('mod.pages.seo.canonicalUrl')"
           placeholder="https://example.com/page"
         />
 
         <FormSelect
           v-model="local.type"
-          :label="t('pages.seo.jsonLdType') || 'JSON-LD Type'"
+          :label="t('mod.pages.seo.jsonLdType') || 'JSON-LD Type'"
           :options="jsonLdTypeOptions"
         />
 

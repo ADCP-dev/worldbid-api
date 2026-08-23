@@ -267,7 +267,7 @@ defineExpose({
   <div>
     <div class="flex flex-wrap items-center py-4 gap-2">
       <input
-        type="text" class="input input-bordered input-sm max-w-sm" :placeholder="$t('base.app.dataTable.search')"
+        type="text" class="input input-bordered input-sm max-w-sm" :placeholder="$t('mod.app.dataTable.search')"
         :value="table.getState().globalFilter ?? ''"
         @input="(e) => table.setGlobalFilter((e.target as HTMLInputElement).value)" >
       <button
@@ -275,12 +275,12 @@ defineExpose({
         :class="hasActiveFilters ? 'btn-primary' : 'btn-outline'"
         @click="clearAllFilters"
       >
-        {{ $t('base.app.dataTable.clearFilters') }}
+        {{ $t('mod.app.dataTable.clearFilters') }}
       </button>
 
       <div class="dropdown dropdown-end ml-auto">
         <label tabindex="0" class="btn btn-outline btn-sm">
-          {{ $t('base.app.dataTable.columns') }}
+          {{ $t('mod.app.dataTable.columns') }}
           <ChevronDown class="w-4 h-4 ml-2" />
         </label>
         <ul tabindex="0" class="dropdown-content z-[2] menu p-2 shadow bg-base-100 rounded-box w-52 mt-1">
@@ -325,7 +325,7 @@ defineExpose({
                   v-if="(column.columnDef as MyColumnDef<TData, TValue>)?.filterType === 'number'"
                   type="number"
                   class="input input-sm input-bordered w-full max-w-xs font-normal"
-                  :placeholder="`${$t('base.app.dataTable.filterBy')} ${(column.columnDef as MyColumnDef<TData, TValue>)?.headerName || column.columnDef?.header}`"
+                  :placeholder="`${$t('mod.app.dataTable.filterBy')} ${(column.columnDef as MyColumnDef<TData, TValue>)?.headerName || column.columnDef?.header}`"
                   :value="(column.getFilterValue() as number | string) ?? ''" @input="(e) => {
                     const val = (e.target as HTMLInputElement).value;
                     const parsed = val === '' ? null : Number(val);
@@ -335,14 +335,14 @@ defineExpose({
                   v-else-if="(column.columnDef as MyColumnDef<TData, TValue>)?.filterType === 'date'"
                   type="date"
                   class="input input-sm input-bordered w-full max-w-xs font-normal"
-                  :placeholder="`${$t('base.app.dataTable.filterBy')} ${(column.columnDef as MyColumnDef<TData, TValue>)?.headerName || column.columnDef?.header}`"
+                  :placeholder="`${$t('mod.app.dataTable.filterBy')} ${(column.columnDef as MyColumnDef<TData, TValue>)?.headerName || column.columnDef?.header}`"
                   :value="(column.getFilterValue() as string) ?? ''"
                   @input="(e) => column.setFilterValue && column.setFilterValue((e.target as HTMLInputElement).value as string)" >
                 <DataTableComboboxFilter
                   v-else-if="(column.columnDef as MyColumnDef<TData, TValue>)?.filterType === 'combobox'"
                   :model-value="(column.getFilterValue() as number | string) ?? ''"
                   :options="(column.columnDef as MyColumnDef<TData, TValue>)?.options || []"
-                  :placeholder="`${$t('base.app.dataTable.filterBy')} ${(column.columnDef as MyColumnDef<TData, TValue>)?.headerName || ''}`"
+                  :placeholder="`${$t('mod.app.dataTable.filterBy')} ${(column.columnDef as MyColumnDef<TData, TValue>)?.headerName || ''}`"
                   @update:model-value="(val) => column.setFilterValue && column.setFilterValue(val || null)"
                 />
                 <select
@@ -372,13 +372,13 @@ defineExpose({
                     else if (val === 'false') column.setFilterValue(false);
                   }"
                   >
-                  <option value="">{{ $t('base.app.dataTable.all') }}</option>
-                  <option value="true">{{ $t('base.app.dataTable.yes') }}</option>
-                  <option value="false">{{ $t('base.app.dataTable.no') }}</option>
+                  <option value="">{{ $t('mod.app.dataTable.all') }}</option>
+                  <option value="true">{{ $t('mod.app.dataTable.yes') }}</option>
+                  <option value="false">{{ $t('mod.app.dataTable.no') }}</option>
                 </select>
                 <input
                   v-else class="input input-sm input-bordered w-full max-w-xs font-normal"
-                  :placeholder="`${$t('base.app.dataTable.filterBy')} ${(column.columnDef as MyColumnDef<TData, TValue>)?.headerName ?? column.columnDef?.header?.toString()
+                  :placeholder="`${$t('mod.app.dataTable.filterBy')} ${(column.columnDef as MyColumnDef<TData, TValue>)?.headerName ?? column.columnDef?.header?.toString()
                   }`"
                   :value="(column.getFilterValue() as string) ?? ''" @input="
                     (e) => column.setFilterValue && column.setFilterValue && column.setFilterValue((e.target as HTMLInputElement).value as string)
@@ -402,7 +402,7 @@ defineExpose({
           <template v-else>
             <tr>
               <td :colspan="props.columns.length" class="h-24 text-center">
-                {{ $t('base.app.dataTable.noResults') }}
+                {{ $t('mod.app.dataTable.noResults') }}
               </td>
             </tr>
           </template>
@@ -411,7 +411,7 @@ defineExpose({
     </div>
     <div class="flex flex-wrap items-center justify-between py-4">
       <div class="text-sm opacity-70">
-        {{ $t('base.app.dataTable.showing') }}
+        {{ $t('mod.app.dataTable.showing') }}
         {{
           totalCount === 0 ? 0 : state.pageIndex * state.pageSize + 1
         }}
@@ -423,17 +423,17 @@ defineExpose({
             totalCount
           )
         }}
-        {{ $t('base.app.dataTable.of') }} {{ totalCount }}
+        {{ $t('mod.app.dataTable.of') }} {{ totalCount }}
       </div>
       <div class="flex flex-wrap items-center gap-2 mt-4 sm:mt-0">
         <button
           class="btn btn-outline btn-sm"
           :disabled="!table.getCanPreviousPage()"
-          @click="table.setPageIndex(0)">{{ $t('base.app.dataTable.first') }}</button>
+          @click="table.setPageIndex(0)">{{ $t('mod.app.dataTable.first') }}</button>
         <button
           class="btn btn-outline btn-sm"
           :disabled="!table.getCanPreviousPage()"
-          @click="table.previousPage()">{{ $t('base.app.dataTable.previous') }}</button>
+          @click="table.previousPage()">{{ $t('mod.app.dataTable.previous') }}</button>
         <template v-for="page in visiblePages" :key="page">
           <button
             class="btn btn-sm"
@@ -444,17 +444,17 @@ defineExpose({
         <button
           class="btn btn-outline btn-sm"
           :disabled="!table.getCanNextPage()"
-          @click="table.nextPage()">{{ $t('base.app.dataTable.next') }}</button>
+          @click="table.nextPage()">{{ $t('mod.app.dataTable.next') }}</button>
         <button
           class="btn btn-outline btn-sm"
           :disabled="!table.getCanNextPage()"
-          @click="table.setPageIndex(table.getPageCount() - 1)">{{ $t('base.app.dataTable.last') }}</button>
+          @click="table.setPageIndex(table.getPageCount() - 1)">{{ $t('mod.app.dataTable.last') }}</button>
         <select
           :value="table.getState().pagination.pageSize"
           class="select select-bordered select-sm w-[120px] font-normal"
           @change="(e) => table.setPageSize(Number((e.target as HTMLSelectElement).value))">
           <option v-for="size in [10, 20, 30, 40, 50]" :key="size" :value="size">
-            {{ $t('base.app.dataTable.show') }} {{ size }}
+            {{ $t('mod.app.dataTable.show') }} {{ size }}
           </option>
         </select>
       </div>

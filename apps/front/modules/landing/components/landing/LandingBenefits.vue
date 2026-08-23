@@ -38,9 +38,9 @@ const benefitList: BenefitsProps[] = [
   },
   {
     icon: "chartLine",
-    title: t('landing.features.list.layers.title'),
+    title: t('mod.landing.features.list.layers.title'),
     description:
-      t('landing.features.list.layers.description'),
+      t('mod.landing.features.list.layers.description'),
   },
   {
     icon: "panel",

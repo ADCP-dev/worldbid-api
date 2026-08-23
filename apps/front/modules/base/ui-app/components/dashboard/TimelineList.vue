@@ -73,8 +73,8 @@ const visibleEvents = computed(() => {
     <EmptyState
       v-else-if="visibleEvents.length === 0"
       :icon="emptyIcon"
-      :title="t('base-ui.dashboard.timelineEmpty')"
-      :description="t('base-ui.dashboard.timelineEmptyDesc')"
+      :title="t('mod.ui.dashboard.timelineEmpty')"
+      :description="t('mod.ui.dashboard.timelineEmptyDesc')"
       size="sm"
     />
 

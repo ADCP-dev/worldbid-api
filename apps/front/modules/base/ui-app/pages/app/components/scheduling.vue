@@ -67,7 +67,7 @@ const propDocs = [
     <div class="max-w-3xl mx-auto flex flex-col gap-8">
       <div>
         <h1 class="text-3xl font-bold tracking-tight mb-2">
-          {{ t('base.app.scheduling.cron.preview') }} — Scheduling
+          {{ t('mod.app.scheduling.cron.preview') }} — Scheduling
         </h1>
         <p class="text-base-content/60">
           Componentes de programación: CronScheduleEditor, WeekdayPicker,

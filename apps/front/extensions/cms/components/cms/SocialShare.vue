@@ -49,7 +49,7 @@ async function copyLink() {
 
 <template>
   <div class="flex items-center gap-2">
-    <span class="text-sm font-medium text-base-content/60 mr-1">{{ t('cms.share.title') }}</span>
+    <span class="text-sm font-medium text-base-content/60 mr-1">{{ t('ext.cms.share.title') }}</span>
     <a
       v-for="s in shares"
       :key="s.label"
@@ -64,7 +64,7 @@ async function copyLink() {
     <button
       type="button"
       class="btn btn-xs btn-outline btn-square"
-      :title="t('cms.share.copyLink')"
+      :title="t('ext.cms.share.copyLink')"
       @click="copyLink"
     >
       <svg v-if="!copied" xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">

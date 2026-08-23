@@ -26,13 +26,13 @@ const profileFormSchema = computed(() =>
         .string()
         .optional()
         .refine((val) => !val || val.length >= 8, {
-          message: t("base.settings.profile.validation.passwordMin"),
+          message: t("mod.settings.profile.validation.passwordMin"),
         }),
       oldPassword: z
         .string()
         .optional()
         .refine((val) => !val || val.length >= 1, {
-          message: t("base.settings.profile.validation.oldPasswordRequired"),
+          message: t("mod.settings.profile.validation.oldPasswordRequired"),
         }),
       photo: z.any().optional(),
     }),
@@ -109,7 +109,7 @@ const uploadProfilePhoto = async (): Promise<void> => {
     await authStore.getMe();
   } catch (err) {
     console.error("Profile photo upload failed:", err);
-    toast.error(t("base.settings.profile.uploadFailed"));
+    toast.error(t("mod.settings.profile.uploadFailed"));
   }
 };
 
@@ -132,19 +132,19 @@ const onSubmit = handleSubmit(async (values) => {
     const result = await authStore.updateProfile(updateData);
 
     if (result.success) {
-      toast.success(t("base.settings.profile.successTitle"), {
-        description: t("base.settings.profile.successDescription"),
+      toast.success(t("mod.settings.profile.successTitle"), {
+        description: t("mod.settings.profile.successDescription"),
       });
       await authStore.getMe();
       removeSelectedPhoto();
     } else {
-      toast.error(t("base.settings.profile.errorTitle"), {
+      toast.error(t("mod.settings.profile.errorTitle"), {
         description:
-          result.error || t("base.settings.profile.errorDescription"),
+          result.error || t("mod.settings.profile.errorDescription"),
       });
     }
   } catch (error) {
-    toast.error(t("base.settings.profile.errorTitle"), {
+    toast.error(t("mod.settings.profile.errorTitle"), {
       description: t("settings.profile.errorDescription"),
     });
     console.error("Profile update error:", error);
@@ -156,7 +156,7 @@ const onSubmit = handleSubmit(async (values) => {
   <div class="max-w-xl space-y-6">
     <div>
       <h3 class="text-lg font-medium">
-        {{ $t("base.settings.profile.title") }}
+        {{ $t("mod.settings.profile.title") }}
       </h3>
     </div>
 
@@ -167,7 +167,7 @@ const onSubmit = handleSubmit(async (values) => {
       <div class="form-control w-full">
         <label class="label">
           <span class="label-text font-semibold">{{
-            $t("base.settings.profile.photoLabel")
+            $t("mod.settings.profile.photoLabel")
           }}</span>
         </label>
         <div class="flex items-center gap-6">
@@ -181,7 +181,7 @@ const onSubmit = handleSubmit(async (values) => {
               >
               <div v-else class="flex items-center justify-center p-4">
                 <span class="text-xs text-base-content/70">{{
-                  $t("base.settings.profile.noPhoto")
+                  $t("mod.settings.profile.noPhoto")
                 }}</span>
               </div>
             </div>
@@ -201,12 +201,12 @@ const onSubmit = handleSubmit(async (values) => {
                 class="btn btn-sm btn-outline border-base-content/20"
                 @click="triggerFileSelect"
               >
-                {{ $t("base.settings.profile.uploadPhoto") }}
+                {{ $t("mod.settings.profile.uploadPhoto") }}
               </button>
               <span class="text-xs text-base-content/60 truncate max-w-[150px]">
                 {{
                   selectedPhotoFile?.name ||
-                  $t("base.settings.profile.noFileSelected")
+                  $t("mod.settings.profile.noFileSelected")
                 }}
               </span>
               <button
@@ -215,11 +215,11 @@ const onSubmit = handleSubmit(async (values) => {
                 class="btn btn-sm btn-ghost text-error"
                 @click="removeSelectedPhoto"
               >
-                {{ $t("base.settings.profile.removePhoto") }}
+                {{ $t("mod.settings.profile.removePhoto") }}
               </button>
             </div>
             <p class="text-xs text-base-content/60">
-              {{ $t("base.settings.profile.photoDescription") }}
+              {{ $t("mod.settings.profile.photoDescription") }}
             </p>
           </div>
         </div>
@@ -228,18 +228,18 @@ const onSubmit = handleSubmit(async (values) => {
       <div class="space-y-4">
         <FormInput
           v-model="firstName"
-          :label="$t('base.settings.profile.firstNameLabel')"
-          :placeholder="$t('base.settings.profile.firstNamePlaceholder')"
-          :description="$t('base.settings.profile.firstNameDescription')"
+          :label="$t('mod.settings.profile.firstNameLabel')"
+          :placeholder="$t('mod.settings.profile.firstNamePlaceholder')"
+          :description="$t('mod.settings.profile.firstNameDescription')"
           :error="errors.firstName"
           required
         />
 
         <FormInput
           v-model="lastName"
-          :label="$t('base.settings.profile.lastNameLabel')"
-          :placeholder="$t('base.settings.profile.lastNamePlaceholder')"
-          :description="$t('base.settings.profile.lastNameDescription')"
+          :label="$t('mod.settings.profile.lastNameLabel')"
+          :placeholder="$t('mod.settings.profile.lastNamePlaceholder')"
+          :description="$t('mod.settings.profile.lastNameDescription')"
           :error="errors.lastName"
           required
         />
@@ -247,30 +247,30 @@ const onSubmit = handleSubmit(async (values) => {
         <FormInput
           v-model="email"
           type="email"
-          :label="$t('base.settings.profile.emailLabel')"
-          :placeholder="$t('base.settings.profile.emailPlaceholder')"
-          :description="$t('base.settings.profile.emailDescription')"
+          :label="$t('mod.settings.profile.emailLabel')"
+          :placeholder="$t('mod.settings.profile.emailPlaceholder')"
+          :description="$t('mod.settings.profile.emailDescription')"
           :error="errors.email"
           required
         />
 
         <div class="divider">
-          {{ $t("base.settings.profile.changePassword") }}
+          {{ $t("mod.settings.profile.changePassword") }}
         </div>
 
         <FormPassword
           v-model="password"
-          :label="$t('base.settings.profile.newPassword')"
+          :label="$t('mod.settings.profile.newPassword')"
           placeholder="••••••••"
-          :description="$t('base.settings.profile.newPasswordDescription')"
+          :description="$t('mod.settings.profile.newPasswordDescription')"
           :error="errors.password"
         />
 
         <FormPassword
           v-model="oldPassword"
-          :label="$t('base.settings.profile.currentPassword')"
+          :label="$t('mod.settings.profile.currentPassword')"
           placeholder="••••••••"
-          :description="$t('base.settings.profile.currentPasswordDescription')"
+          :description="$t('mod.settings.profile.currentPasswordDescription')"
           :error="errors.oldPassword"
         />
 
@@ -280,7 +280,7 @@ const onSubmit = handleSubmit(async (values) => {
             class="btn btn-primary"
             :disabled="Object.keys(errors).length > 0"
           >
-            {{ $t("base.settings.profile.updateProfile") }}
+            {{ $t("mod.settings.profile.updateProfile") }}
           </button>
         </div>
       </div>

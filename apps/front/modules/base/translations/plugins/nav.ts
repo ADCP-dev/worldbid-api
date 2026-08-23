@@ -10,21 +10,21 @@ export default defineNuxtPlugin(() => {
     if (
       authStore.isAdmin &&
       !menuItems.value.find(
-        (item) => item.heading === "base.nav.translations_heading",
+        (item) => item.heading === "mod.nav.translations_heading",
       )
     ) {
       menuItems.value.push({
-        heading: "base.nav.translations_heading",
+        heading: "mod.nav.translations_heading",
         order: 96,
         items: [
           {
-            title: "base.nav.languages",
+            title: "mod.nav.languages",
             icon: "Globe",
             link: localePath("/admin/translations/langs"),
             order: 0,
           },
           {
-            title: "base.nav.all_translations",
+            title: "mod.nav.all_translations",
             icon: "FileText",
             link: localePath("/admin/translations"),
             order: 10,

@@ -144,7 +144,7 @@ function onContentClick(e: MouseEvent) {
               {{ new Date(post.publishedAt).toLocaleDateString(lang, { year: 'numeric', month: 'long', day: 'numeric' })
               }}
             </span>
-            <span v-if="content">· {{ useReadingTime(content) }} {{ t('cms.blog.readingTime') }}</span>
+            <span v-if="content">· {{ useReadingTime(content) }} {{ t('ext.cms.blog.readingTime') }}</span>
             <span v-if="post.author"> por {{ post.author }}</span>
           </div>
           <div v-if="post.tags?.length" class="flex gap-2 mt-3">
@@ -174,7 +174,7 @@ function onContentClick(e: MouseEvent) {
 
       <!-- Related Posts -->
       <section v-if="related?.length" class="mt-16 border-t pt-8">
-        <h2 class="text-2xl font-bold mb-6">{{ t('cms.blog.relatedArticles') }}</h2>
+        <h2 class="text-2xl font-bold mb-6">{{ t('ext.cms.blog.relatedArticles') }}</h2>
         <div class="grid md:grid-cols-3 gap-6">
           <BlogPostCard v-for="r in related" :key="r.id" :post="r" :lang="lang" />
         </div>

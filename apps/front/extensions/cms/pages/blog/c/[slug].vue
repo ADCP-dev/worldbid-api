@@ -93,7 +93,7 @@ const pending = computed(() => catPending.value || postsPending.value)
     />
 
     <div class="mb-8">
-      <h1 class="text-4xl font-bold mb-2">{{ category?.name || t('cms.blog.title') }}</h1>
+      <h1 class="text-4xl font-bold mb-2">{{ category?.name || t('ext.cms.blog.title') }}</h1>
       <p v-if="category?.description" class="text-base-content/70">{{ category.description }}</p>
     </div>
 
@@ -117,7 +117,7 @@ const pending = computed(() => catPending.value || postsPending.value)
 
     <!-- Empty state -->
     <div v-else class="text-center py-12">
-      <p class="text-lg text-base-content/70">{{ t('cms.blog.noResults') }}</p>
+      <p class="text-lg text-base-content/70">{{ t('ext.cms.blog.noResults') }}</p>
     </div>
   </div>
 </template>

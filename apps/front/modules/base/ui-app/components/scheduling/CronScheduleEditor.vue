@@ -98,7 +98,7 @@ function buildMonthlyOn(): string {
 const rawError = computed(() => {
   if (!advancedMode.value) return '';
   if (!CRON_REGEX.test(rawCron.value)) {
-    return t('base.app.scheduling.cron.errors.invalid');
+    return t('mod.app.scheduling.cron.errors.invalid');
   }
   return '';
 });
@@ -143,7 +143,7 @@ const timezoneNote = computed(() => {
   const abs = Math.abs(offsetMin);
   const hh = pad(Math.floor(abs / 60));
   const mm = pad(abs % 60);
-  return t('base.app.scheduling.cron.timezoneNote', { tz, offset: `${sign}${hh}:${mm}` });
+  return t('mod.app.scheduling.cron.timezoneNote', { tz, offset: `${sign}${hh}:${mm}` });
 });
 
 function toggleAdvanced(): void {
@@ -176,7 +176,7 @@ function toggleAdvanced(): void {
         :disabled="disabled"
         @click="activeMode = mode"
       >
-        {{ t(`base.app.scheduling.cron.modes.${mode}`) }}
+        {{ t(`mod.app.scheduling.cron.modes.${mode}`) }}
       </button>
     </div>
 
@@ -187,7 +187,7 @@ function toggleAdvanced(): void {
         v-model="intervalMinutes"
         :min="1"
         :max="59"
-        :label="t('base.app.scheduling.cron.fields.intervalMinutes')"
+        :label="t('mod.app.scheduling.cron.fields.intervalMinutes')"
         :disabled="disabled"
         unit="minutos"
       />
@@ -195,27 +195,27 @@ function toggleAdvanced(): void {
       <FormTime
         v-if="activeMode === 'daily-at' || activeMode === 'weekly-on'"
         v-model="dailyTime"
-        :label="t('base.app.scheduling.cron.fields.time')"
+        :label="t('mod.app.scheduling.cron.fields.time')"
         :disabled="disabled"
       />
 
       <WeekdayPicker
         v-if="activeMode === 'weekly-on'"
         v-model="weeklyDays"
-        :label="t('base.app.scheduling.cron.fields.weekdays')"
+        :label="t('mod.app.scheduling.cron.fields.weekdays')"
         :disabled="disabled"
       />
 
       <template v-if="activeMode === 'monthly-on'">
         <FormInput
           v-model="monthlyDay"
-          :label="t('base.app.scheduling.cron.fields.dayOfMonth')"
-          :description="t('base.app.scheduling.cron.fields.dayOfMonthHint')"
+          :label="t('mod.app.scheduling.cron.fields.dayOfMonth')"
+          :description="t('mod.app.scheduling.cron.fields.dayOfMonthHint')"
           :disabled="disabled"
         />
         <FormTime
           v-model="monthlyTime"
-          :label="t('base.app.scheduling.cron.fields.time')"
+          :label="t('mod.app.scheduling.cron.fields.time')"
           :disabled="disabled"
         />
       </template>
@@ -225,12 +225,12 @@ function toggleAdvanced(): void {
     <div v-else class="space-y-1">
       <FormInput
         v-model="rawCron"
-        :label="t('base.app.scheduling.cron.advancedLabel')"
+        :label="t('mod.app.scheduling.cron.advancedLabel')"
         :error="rawError"
         :disabled="disabled"
       />
       <p class="text-xs text-base-content/50">
-        {{ t('base.app.scheduling.cron.advancedHint') }}
+        {{ t('mod.app.scheduling.cron.advancedHint') }}
       </p>
     </div>
 
@@ -239,7 +239,7 @@ function toggleAdvanced(): void {
       <CalendarClock class="h-4 w-4 mt-0.5 shrink-0 text-base-content/60" />
       <div class="min-w-0">
         <p class="text-xs uppercase tracking-wide text-base-content/50">
-          {{ t('base.app.scheduling.cron.preview') }}
+          {{ t('mod.app.scheduling.cron.preview') }}
         </p>
         <p class="font-medium break-words">{{ preview }}</p>
         <slot name="hint" />
@@ -261,8 +261,8 @@ function toggleAdvanced(): void {
       >
         <Settings2 class="h-3.5 w-3.5" />
         {{ advancedMode
-          ? t('base.app.scheduling.cron.simpleMode')
-          : t('base.app.scheduling.cron.advancedMode') }}
+          ? t('mod.app.scheduling.cron.simpleMode')
+          : t('mod.app.scheduling.cron.advancedMode') }}
       </button>
     </div>
 

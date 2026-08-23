@@ -50,9 +50,9 @@ async function fetchAndEmit(value: string | number) {
   } catch (err) {
     const status = (err as { status?: number }).status
     if (status === 404) {
-      toast.error($t('base-ui.automation.relationNotFound'))
+      toast.error($t('mod.ui.automation.relationNotFound'))
     } else {
-      toast.error($t('base-ui.automation.relationError'))
+      toast.error($t('mod.ui.automation.relationError'))
     }
   } finally {
     loading.value = false

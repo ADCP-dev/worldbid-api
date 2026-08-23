@@ -124,9 +124,9 @@ watch(
       <!-- Title -->
       <FormInput
         :model-value="ensureLang(lang.code).title"
-        :label="t('pages.common.title') || 'Título'"
+        :label="t('mod.pages.common.title') || 'Título'"
         required
-        :placeholder="t('pages.blog.posts.titlePlaceholder') || 'Título en ' + lang.label"
+        :placeholder="t('mod.pages.blog.posts.titlePlaceholder') || 'Título en ' + lang.label"
         :error="validationErrors[lang.code]?.title"
         @update:model-value="updateField(lang.code, 'title', $event)"
       />
@@ -134,7 +134,7 @@ watch(
       <!-- Slug -->
       <FormInput
         :model-value="ensureLang(lang.code).slug"
-        :label="t('pages.blog.posts.slug') || 'Slug'"
+        :label="t('mod.pages.blog.posts.slug') || 'Slug'"
         required
         :description="`URL: /blog/${ensureLang(lang.code).slug || 'slug'}`"
         :error="validationErrors[lang.code]?.slug"
@@ -145,8 +145,8 @@ watch(
       <FormTextArea
         v-if="showDescription"
         :model-value="ensureLang(lang.code).description"
-        :label="t('pages.common.description') || 'Descripción'"
-        :placeholder="t('pages.blog.posts.descriptionPlaceholder') || 'Descripción en ' + lang.label"
+        :label="t('mod.pages.common.description') || 'Descripción'"
+        :placeholder="t('mod.pages.blog.posts.descriptionPlaceholder') || 'Descripción en ' + lang.label"
         :error="validationErrors[lang.code]?.description"
         @update:model-value="updateField(lang.code, 'description', $event)"
       />
@@ -154,7 +154,7 @@ watch(
       <!-- Content -->
       <div v-if="showContent">
         <label class="label-text font-semibold mb-2 block">
-          {{ t("pages.blog.posts.content") || "Contenido" }}
+          {{ t("mod.pages.blog.posts.content") || "Contenido" }}
         </label>
         <RichEditorAdvanced
           :model-value="ensureLang(lang.code).content"
@@ -169,21 +169,21 @@ watch(
       <!-- Meta fields -->
       <div v-if="showMeta" class="card bg-base-100 border p-4 space-y-4">
         <h4 class="font-semibold text-sm text-base-content/70">
-          {{ t("pages.common.seoMeta") || "SEO Meta" }}
+          {{ t("mod.pages.common.seoMeta") || "SEO Meta" }}
         </h4>
 
         <FormInput
           :model-value="ensureLang(lang.code).metaTitle"
-          :label="t('pages.seo.metaTitle') || 'Meta Título'"
-          :placeholder="t('pages.seo.metaTitlePlaceholder') || 'Meta título en ' + lang.label"
+          :label="t('mod.pages.seo.metaTitle') || 'Meta Título'"
+          :placeholder="t('mod.pages.seo.metaTitlePlaceholder') || 'Meta título en ' + lang.label"
           :error="validationErrors[lang.code]?.metaTitle"
           @update:model-value="updateField(lang.code, 'metaTitle', $event)"
         />
 
         <FormTextArea
           :model-value="ensureLang(lang.code).metaDescription"
-          :label="t('pages.seo.metaDescription') || 'Meta Descripción'"
-          :placeholder="t('pages.seo.metaDescriptionPlaceholder') || 'Meta descripción en ' + lang.label"
+          :label="t('mod.pages.seo.metaDescription') || 'Meta Descripción'"
+          :placeholder="t('mod.pages.seo.metaDescriptionPlaceholder') || 'Meta descripción en ' + lang.label"
           :error="validationErrors[lang.code]?.metaDescription"
           @update:model-value="updateField(lang.code, 'metaDescription', $event)"
         />

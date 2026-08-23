@@ -115,21 +115,21 @@ const codeKeyValueEditor = `<KeyValueEditor
       <!-- Header -->
       <div>
         <h1 class="text-3xl font-bold tracking-tight mb-2">
-          {{ $t('base-ui.automation.title') }}
+          {{ $t('mod.ui.automation.title') }}
         </h1>
-        <p class="text-base-content/60">{{ $t('base-ui.automation.subtitle') }}</p>
+        <p class="text-base-content/60">{{ $t('mod.ui.automation.subtitle') }}</p>
       </div>
 
       <!-- Zod subset note (Q-008) -->
       <div class="alert alert-info">
-        <span class="text-sm">{{ $t('base-ui.automation.zodSubsetNote') }}</span>
+        <span class="text-sm">{{ $t('mod.ui.automation.zodSubsetNote') }}</span>
       </div>
 
       <!-- RadioCards -->
       <section class="card bg-base-100 shadow-xl border border-base-content/5">
         <div class="card-body p-8 space-y-4">
-          <h2 class="text-xl font-semibold">{{ $t('base-ui.automation.radioCards.title') }}</h2>
-          <p class="text-sm text-base-content/60">{{ $t('base-ui.automation.radioCards.description') }}</p>
+          <h2 class="text-xl font-semibold">{{ $t('mod.ui.automation.radioCards.title') }}</h2>
+          <p class="text-sm text-base-content/60">{{ $t('mod.ui.automation.radioCards.description') }}</p>
           <BaseAutomationRadioCards
             v-model="plan"
             :options="planOptions"
@@ -137,7 +137,7 @@ const codeKeyValueEditor = `<KeyValueEditor
             label="Plan"
           />
           <div class="text-sm opacity-70">
-            {{ $t('base-ui.automation.radioCards.selected') }}: <code class="font-mono">{{ plan }}</code>
+            {{ $t('mod.ui.automation.radioCards.selected') }}: <code class="font-mono">{{ plan }}</code>
           </div>
           <pre class="bg-base-200 p-3 rounded-box text-xs overflow-x-auto"><code>{{ codeRadioCards }}</code></pre>
         </div>
@@ -146,10 +146,10 @@ const codeKeyValueEditor = `<KeyValueEditor
       <!-- ToggleGroup multi + single -->
       <section class="card bg-base-100 shadow-xl border border-base-content/5">
         <div class="card-body p-8 space-y-6">
-          <h2 class="text-xl font-semibold">{{ $t('base-ui.automation.toggleGroup.title') }}</h2>
+          <h2 class="text-xl font-semibold">{{ $t('mod.ui.automation.toggleGroup.title') }}</h2>
 
           <div class="space-y-2">
-            <p class="text-sm text-base-content/60">{{ $t('base-ui.automation.toggleGroup.multiDesc') }}</p>
+            <p class="text-sm text-base-content/60">{{ $t('mod.ui.automation.toggleGroup.multiDesc') }}</p>
             <ToggleGroup
               v-model="platforms"
               :options="platformOptions"
@@ -160,7 +160,7 @@ const codeKeyValueEditor = `<KeyValueEditor
           </div>
 
           <div class="space-y-2">
-            <p class="text-sm text-base-content/60">{{ $t('base-ui.automation.toggleGroup.singleDesc') }}</p>
+            <p class="text-sm text-base-content/60">{{ $t('mod.ui.automation.toggleGroup.singleDesc') }}</p>
             <ToggleGroup
               v-model="channel"
               :options="channelOptions"
@@ -177,8 +177,8 @@ const codeKeyValueEditor = `<KeyValueEditor
       <!-- JsonSchemaEditor -->
       <section class="card bg-base-100 shadow-xl border border-base-content/5">
         <div class="card-body p-8 space-y-4">
-          <h2 class="text-xl font-semibold">{{ $t('base-ui.automation.jsonSchemaEditor.title') }}</h2>
-          <p class="text-sm text-base-content/60">{{ $t('base-ui.automation.jsonSchemaEditor.description') }}</p>
+          <h2 class="text-xl font-semibold">{{ $t('mod.ui.automation.jsonSchemaEditor.title') }}</h2>
+          <p class="text-sm text-base-content/60">{{ $t('mod.ui.automation.jsonSchemaEditor.description') }}</p>
           <BaseAutomationJsonSchemaEditor
             v-model="automationConfig"
             :schema="automationSchema"
@@ -192,18 +192,18 @@ const codeKeyValueEditor = `<KeyValueEditor
       <!-- FieldRelation -->
       <section class="card bg-base-100 shadow-xl border border-base-content/5">
         <div class="card-body p-8 space-y-4">
-          <h2 class="text-xl font-semibold">{{ $t('base-ui.automation.fieldRelation.title') }}</h2>
-          <p class="text-sm text-base-content/60">{{ $t('base-ui.automation.fieldRelation.description') }}</p>
+          <h2 class="text-xl font-semibold">{{ $t('mod.ui.automation.fieldRelation.title') }}</h2>
+          <p class="text-sm text-base-content/60">{{ $t('mod.ui.automation.fieldRelation.description') }}</p>
           <BaseAutomationFieldRelation
             v-model="clientId"
             label="Cliente"
             endpoint="/clients"
             :options="clientOptions"
-            :placeholder="$t('base-ui.automation.fieldRelation.placeholder')"
+            :placeholder="$t('mod.ui.automation.fieldRelation.placeholder')"
             @select="onClientSelect"
           />
           <div class="text-sm opacity-70">
-            {{ $t('base-ui.automation.fieldRelation.selectedItem') }}:
+            {{ $t('mod.ui.automation.fieldRelation.selectedItem') }}:
             <code class="font-mono text-xs">{{ JSON.stringify(selectedClient) }}</code>
           </div>
           <pre class="bg-base-200 p-3 rounded-box text-xs overflow-x-auto"><code>{{ codeFieldRelation }}</code></pre>
@@ -213,10 +213,10 @@ const codeKeyValueEditor = `<KeyValueEditor
       <!-- KeyValueEditor string + boolean -->
       <section class="card bg-base-100 shadow-xl border border-base-content/5">
         <div class="card-body p-8 space-y-6">
-          <h2 class="text-xl font-semibold">{{ $t('base-ui.automation.keyValueEditor.title') }}</h2>
+          <h2 class="text-xl font-semibold">{{ $t('mod.ui.automation.keyValueEditor.title') }}</h2>
 
           <div class="space-y-2">
-            <p class="text-sm text-base-content/60">{{ $t('base-ui.automation.keyValueEditor.stringDesc') }}</p>
+            <p class="text-sm text-base-content/60">{{ $t('mod.ui.automation.keyValueEditor.stringDesc') }}</p>
             <KeyValueEditor
               v-model="metadata"
               label="Metadata"
@@ -226,7 +226,7 @@ const codeKeyValueEditor = `<KeyValueEditor
           </div>
 
           <div class="space-y-2">
-            <p class="text-sm text-base-content/60">{{ $t('base-ui.automation.keyValueEditor.booleanDesc') }}</p>
+            <p class="text-sm text-base-content/60">{{ $t('mod.ui.automation.keyValueEditor.booleanDesc') }}</p>
             <KeyValueEditor
               v-model="featureFlags"
               label="Feature flags"

@@ -17,19 +17,19 @@ definePageMeta({
         <div class="card-body gap-6">
           <div class="text-center space-y-2">
             <h2 class="card-title text-2xl font-bold justify-center">
-              {{ $t('base.auth.resetPassword.title') }}
+              {{ $t('mod.auth.resetPassword.title') }}
             </h2>
             <p class="text-sm text-base-content/60">
-              {{ $t('base.auth.resetPassword.description') }}
+              {{ $t('mod.auth.resetPassword.description') }}
             </p>
           </div>
 
           <AuthResetPassword />
 
           <p class="text-center text-sm text-base-content/60">
-            {{ $t('base.auth.rememberPassword') }}
+            {{ $t('mod.auth.rememberPassword') }}
             <NuxtLink :to="localePath('/login')" class="link link-primary no-underline font-medium">
-              {{ $t('base.auth.signIn') }}
+              {{ $t('mod.auth.signIn') }}
             </NuxtLink>
           </p>
         </div>

@@ -26,29 +26,29 @@ async function onSubmit(event: Event) {
   event.preventDefault()
 
   if (!hash.value) {
-    toast.error(t('base.auth.resetPassword.errorInvalidLinkTitle'), {
-      description: t('base.auth.resetPassword.errorInvalidLinkDesc'),
+    toast.error(t('mod.auth.resetPassword.errorInvalidLinkTitle'), {
+      description: t('mod.auth.resetPassword.errorInvalidLinkDesc'),
     })
     return
   }
 
   if (isExpired.value) {
-    toast.error(t('base.auth.resetPassword.errorExpiredLinkTitle'), {
-      description: t('base.auth.resetPassword.errorExpiredLinkDesc'),
+    toast.error(t('mod.auth.resetPassword.errorExpiredLinkTitle'), {
+      description: t('mod.auth.resetPassword.errorExpiredLinkDesc'),
     })
     return
   }
 
   if (!password.value || password.value.length < 6) {
-    toast.error(t('base.auth.resetPassword.errorInvalidPasswordTitle'), {
-      description: t('base.auth.resetPassword.errorInvalidPasswordDesc'),
+    toast.error(t('mod.auth.resetPassword.errorInvalidPasswordTitle'), {
+      description: t('mod.auth.resetPassword.errorInvalidPasswordDesc'),
     })
     return
   }
 
   if (password.value !== confirmPassword.value) {
-    toast.error(t('base.auth.resetPassword.errorPasswordMismatchTitle'), {
-      description: t('base.auth.resetPassword.errorPasswordMismatchDesc'),
+    toast.error(t('mod.auth.resetPassword.errorPasswordMismatchTitle'), {
+      description: t('mod.auth.resetPassword.errorPasswordMismatchDesc'),
     })
     return
   }
@@ -59,20 +59,20 @@ async function onSubmit(event: Event) {
     const result = await authStore.resetPassword(hash.value, password.value)
 
     if (result.success) {
-      toast.success(t('base.auth.resetPassword.successResetTitle'), {
-        description: t('base.auth.resetPassword.successResetDesc'),
+      toast.success(t('mod.auth.resetPassword.successResetTitle'), {
+        description: t('mod.auth.resetPassword.successResetDesc'),
       })
       setTimeout(() => {
         router.push(localePath('/login'))
       }, 2000)
     } else {
-      toast.error(t('base.auth.resetPassword.errorGeneric'), {
-        description: result.error || t('base.auth.resetPassword.errorResetFailed'),
+      toast.error(t('mod.auth.resetPassword.errorGeneric'), {
+        description: result.error || t('mod.auth.resetPassword.errorResetFailed'),
       })
     }
   } catch (error: any) {
-    toast.error(t('base.auth.resetPassword.errorGeneric'), {
-      description: error?.message || t('base.auth.resetPassword.errorResetCatch'),
+    toast.error(t('mod.auth.resetPassword.errorGeneric'), {
+      description: error?.message || t('mod.auth.resetPassword.errorResetCatch'),
     })
   } finally {
     isLoading.value = false
@@ -85,9 +85,9 @@ async function onSubmit(event: Event) {
     <!-- Expired link warning -->
     <div v-if="isExpired" class="alert alert-error mb-4 text-sm">
       <span>
-        {{ $t('base.auth.resetPassword.expiredWarningText') }}
+        {{ $t('mod.auth.resetPassword.expiredWarningText') }}
         <NuxtLink :to="localePath('/forgot-password')" class="link font-medium">
-          {{ $t('base.auth.resetPassword.requestNewLink') }}
+          {{ $t('mod.auth.resetPassword.requestNewLink') }}
         </NuxtLink>.
       </span>
     </div>
@@ -97,12 +97,12 @@ async function onSubmit(event: Event) {
         <!-- New password -->
         <div class="form-control w-full">
           <label class="label" for="password">
-            <span class="label-text font-semibold">{{ $t('base.auth.resetPassword.newPasswordLabel') }}</span>
+            <span class="label-text font-semibold">{{ $t('mod.auth.resetPassword.newPasswordLabel') }}</span>
           </label>
           <PasswordInput
             id="password"
             v-model="password"
-            :placeholder="$t('base.auth.resetPassword.newPasswordPlaceholder')"
+            :placeholder="$t('mod.auth.resetPassword.newPasswordPlaceholder')"
             auto-complete="new-password"
             :disabled="isLoading"
           />
@@ -111,12 +111,12 @@ async function onSubmit(event: Event) {
         <!-- Confirm password -->
         <div class="form-control w-full">
           <label class="label" for="confirm-password">
-            <span class="label-text font-semibold">{{ $t('base.auth.resetPassword.confirmPasswordLabel') }}</span>
+            <span class="label-text font-semibold">{{ $t('mod.auth.resetPassword.confirmPasswordLabel') }}</span>
           </label>
           <PasswordInput
             id="confirm-password"
             v-model="confirmPassword"
-            :placeholder="$t('base.auth.resetPassword.confirmPasswordPlaceholder')"
+            :placeholder="$t('mod.auth.resetPassword.confirmPasswordPlaceholder')"
             auto-complete="new-password"
             :disabled="isLoading"
           />
@@ -124,7 +124,7 @@ async function onSubmit(event: Event) {
 
         <button type="submit" class="btn btn-primary w-full" :disabled="isLoading">
           <span v-if="isLoading" class="loading loading-spinner loading-sm" />
-          {{ $t('base.auth.resetPassword.submitButton') }}
+          {{ $t('mod.auth.resetPassword.submitButton') }}
         </button>
       </div>
     </form>

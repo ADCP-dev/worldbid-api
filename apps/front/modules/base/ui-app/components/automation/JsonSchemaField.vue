@@ -122,7 +122,7 @@ const kind = computed<string>(() => unwrappedInfo.value?.type ?? 'unknown')
             :disabled="disabled"
             @click="model = (model as unknown[]).filter((_, i) => i !== idx)"
           >
-            {{ $t('base-ui.automation.remove') }}
+            {{ $t('mod.ui.automation.remove') }}
           </button>
         </div>
         <JsonSchemaEditor
@@ -138,7 +138,7 @@ const kind = computed<string>(() => unwrappedInfo.value?.type ?? 'unknown')
         :disabled="disabled"
         @click="model = [...(Array.isArray(model) ? model : []), {}]"
       >
-        {{ $t('base-ui.automation.addRow') }}
+        {{ $t('mod.ui.automation.addRow') }}
       </button>
     </div>
   </div>
@@ -149,6 +149,6 @@ const kind = computed<string>(() => unwrappedInfo.value?.type ?? 'unknown')
     v-model="model"
     :label="label ?? ''"
     :disabled="disabled"
-    :error="error ?? $t('base-ui.automation.unsupportedType')"
+    :error="error ?? $t('mod.ui.automation.unsupportedType')"
   />
 </template>

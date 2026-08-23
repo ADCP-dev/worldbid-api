@@ -34,7 +34,7 @@ const { t } = useI18n()
 // Line chart mock: visitors last 7 days
 const lineSeries = computed<LineSeries[]>(() => [
   {
-    name: t('base-ui.dashboard.demoVisitors'),
+    name: t('mod.ui.dashboard.demoVisitors'),
     data: [
       { x: 1, y: 120 },
       { x: 2, y: 200 },
@@ -46,7 +46,7 @@ const lineSeries = computed<LineSeries[]>(() => [
     ],
   },
   {
-    name: t('base-ui.dashboard.demoConversions'),
+    name: t('mod.ui.dashboard.demoConversions'),
     data: [
       { x: 1, y: 30 },
       { x: 2, y: 45 },
@@ -61,19 +61,19 @@ const lineSeries = computed<LineSeries[]>(() => [
 
 // Bar chart mock: clients by status
 const barCategories = computed(() => [
-  t('base-ui.dashboard.demoActive'),
-  t('base-ui.dashboard.demoPending'),
-  t('base-ui.dashboard.demoInactive'),
-  t('base-ui.dashboard.demoChurned'),
+  t('mod.ui.dashboard.demoActive'),
+  t('mod.ui.dashboard.demoPending'),
+  t('mod.ui.dashboard.demoInactive'),
+  t('mod.ui.dashboard.demoChurned'),
 ])
 
 const barSeries = computed<BarSeries[]>(() => [
   {
-    name: t('base-ui.dashboard.demoQ1'),
+    name: t('mod.ui.dashboard.demoQ1'),
     data: [120, 45, 30, 12],
   },
   {
-    name: t('base-ui.dashboard.demoQ2'),
+    name: t('mod.ui.dashboard.demoQ2'),
     data: [150, 38, 25, 8],
   },
 ])
@@ -81,8 +81,8 @@ const barSeries = computed<BarSeries[]>(() => [
 // Stacked bar chart mock: platform breakdown
 const stackedCategories = computed(() => ['Instagram', 'TikTok', 'X', 'LinkedIn'])
 const stackedSeries = computed<BarSeries[]>(() => [
-  { name: t('base-ui.dashboard.demoPosts'), data: [320, 280, 150, 90] },
-  { name: t('base-ui.dashboard.demoStories'), data: [180, 220, 80, 40] },
+  { name: t('mod.ui.dashboard.demoPosts'), data: [320, 280, 150, 90] },
+  { name: t('mod.ui.dashboard.demoStories'), data: [180, 220, 80, 40] },
 ])
 
 // Donut chart mock: plan distribution
@@ -99,29 +99,29 @@ const emptyDonut: DonutSlice[] = []
 const timelineEvents = computed<TimelineEvent[]>(() => [
   {
     time: '2026-07-07T14:30:00',
-    title: t('base-ui.dashboard.demoEvent1Title'),
-    description: t('base-ui.dashboard.demoEvent1Desc'),
+    title: t('mod.ui.dashboard.demoEvent1Title'),
+    description: t('mod.ui.dashboard.demoEvent1Desc'),
     icon: CheckCircle,
     color: 'success',
   },
   {
     time: '2026-07-07T11:15:00',
-    title: t('base-ui.dashboard.demoEvent2Title'),
-    description: t('base-ui.dashboard.demoEvent2Desc'),
+    title: t('mod.ui.dashboard.demoEvent2Title'),
+    description: t('mod.ui.dashboard.demoEvent2Desc'),
     icon: AlertCircle,
     color: 'warning',
   },
   {
     time: '2026-07-06T18:00:00',
-    title: t('base-ui.dashboard.demoEvent3Title'),
-    description: t('base-ui.dashboard.demoEvent3Desc'),
+    title: t('mod.ui.dashboard.demoEvent3Title'),
+    description: t('mod.ui.dashboard.demoEvent3Desc'),
     icon: Bell,
     color: 'info',
   },
   {
     time: '2026-07-06T09:45:00',
-    title: t('base-ui.dashboard.demoEvent4Title'),
-    description: t('base-ui.dashboard.demoEvent4Desc'),
+    title: t('mod.ui.dashboard.demoEvent4Title'),
+    description: t('mod.ui.dashboard.demoEvent4Desc'),
     icon: FileText,
     color: 'primary',
   },
@@ -166,40 +166,40 @@ const propsTable = computed(() => [
 <template>
   <div class="h-full flex flex-col">
     <div class="flex items-center justify-between px-4 py-3 border-b border-base-300">
-      <h1 class="text-xl font-bold">{{ t('base-ui.dashboard.demoTitle') }}</h1>
+      <h1 class="text-xl font-bold">{{ t('mod.ui.dashboard.demoTitle') }}</h1>
     </div>
 
     <div class="flex-1 overflow-y-auto p-6 space-y-10">
       <!-- StatCards -->
       <section>
-        <h2 class="text-lg font-semibold mb-4">{{ t('base-ui.dashboard.demoStatCards') }}</h2>
+        <h2 class="text-lg font-semibold mb-4">{{ t('mod.ui.dashboard.demoStatCards') }}</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
-            :label="t('base-ui.dashboard.demoUsers')"
+            :label="t('mod.ui.dashboard.demoUsers')"
             :value="1284"
             :icon="Users"
             :trend="12.5"
             color="primary"
           >
             <template #footer>
-              <p class="text-xs text-base-content/50">{{ t('base-ui.dashboard.demoVsLastMonth') }}</p>
+              <p class="text-xs text-base-content/50">{{ t('mod.ui.dashboard.demoVsLastMonth') }}</p>
             </template>
           </StatCard>
 
           <StatCard
-            :label="t('base-ui.dashboard.demoRevenue')"
+            :label="t('mod.ui.dashboard.demoRevenue')"
             :value="45230"
             :icon="DollarSign"
             :trend="8.3"
             color="success"
           >
             <template #footer>
-              <p class="text-xs text-base-content/50">{{ t('base-ui.dashboard.demoVsLastMonth') }}</p>
+              <p class="text-xs text-base-content/50">{{ t('mod.ui.dashboard.demoVsLastMonth') }}</p>
             </template>
           </StatCard>
 
           <StatCard
-            :label="t('base-ui.dashboard.demoActivity')"
+            :label="t('mod.ui.dashboard.demoActivity')"
             value="892"
             :icon="Activity"
             :trend="-3.2"
@@ -207,8 +207,8 @@ const propsTable = computed(() => [
           />
 
           <StatCard
-            :label="t('base-ui.dashboard.demoOrders')"
-            :value="t('base-ui.dashboard.demoLoading')"
+            :label="t('mod.ui.dashboard.demoOrders')"
+            :value="t('mod.ui.dashboard.demoLoading')"
             :icon="ShoppingCart"
             :loading="true"
             color="info"
@@ -218,14 +218,14 @@ const propsTable = computed(() => [
 
       <!-- LineChart -->
       <section>
-        <h2 class="text-lg font-semibold mb-4">{{ t('base-ui.dashboard.demoLineChart') }}</h2>
+        <h2 class="text-lg font-semibold mb-4">{{ t('mod.ui.dashboard.demoLineChart') }}</h2>
         <div class="card bg-base-100 shadow-sm border border-base-300">
           <div class="card-body p-4">
             <LineChart
               :series="lineSeries"
               :smooth="true"
               :area="true"
-              :alt-text="t('base-ui.dashboard.demoLineChart')"
+              :alt-text="t('mod.ui.dashboard.demoLineChart')"
               height="320px"
             />
           </div>
@@ -234,27 +234,27 @@ const propsTable = computed(() => [
 
       <!-- BarChart -->
       <section>
-        <h2 class="text-lg font-semibold mb-4">{{ t('base-ui.dashboard.demoBarChart') }}</h2>
+        <h2 class="text-lg font-semibold mb-4">{{ t('mod.ui.dashboard.demoBarChart') }}</h2>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div class="card bg-base-100 shadow-sm border border-base-300">
             <div class="card-body p-4">
-              <p class="text-sm font-medium mb-2">{{ t('base-ui.dashboard.demoUnstacked') }}</p>
+              <p class="text-sm font-medium mb-2">{{ t('mod.ui.dashboard.demoUnstacked') }}</p>
               <BarChart
                 :categories="barCategories"
                 :series="barSeries"
-                :alt-text="t('base-ui.dashboard.demoBarChart')"
+                :alt-text="t('mod.ui.dashboard.demoBarChart')"
                 height="300px"
               />
             </div>
           </div>
           <div class="card bg-base-100 shadow-sm border border-base-300">
             <div class="card-body p-4">
-              <p class="text-sm font-medium mb-2">{{ t('base-ui.dashboard.demoStacked') }}</p>
+              <p class="text-sm font-medium mb-2">{{ t('mod.ui.dashboard.demoStacked') }}</p>
               <BarChart
                 :categories="stackedCategories"
                 :series="stackedSeries"
                 :stacked="true"
-                :alt-text="t('base-ui.dashboard.demoStackedBarChart')"
+                :alt-text="t('mod.ui.dashboard.demoStackedBarChart')"
                 height="300px"
               />
             </div>
@@ -264,26 +264,26 @@ const propsTable = computed(() => [
 
       <!-- DonutChart -->
       <section>
-        <h2 class="text-lg font-semibold mb-4">{{ t('base-ui.dashboard.demoDonutChart') }}</h2>
+        <h2 class="text-lg font-semibold mb-4">{{ t('mod.ui.dashboard.demoDonutChart') }}</h2>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div class="card bg-base-100 shadow-sm border border-base-300">
             <div class="card-body p-4">
-              <p class="text-sm font-medium mb-2">{{ t('base-ui.dashboard.demoWithLegend') }}</p>
+              <p class="text-sm font-medium mb-2">{{ t('mod.ui.dashboard.demoWithLegend') }}</p>
               <DonutChart
                 :data="donutData"
                 :show-legend="true"
                 center-label="900"
-                :alt-text="t('base-ui.dashboard.demoDonutChart')"
+                :alt-text="t('mod.ui.dashboard.demoDonutChart')"
                 height="300px"
               />
             </div>
           </div>
           <div class="card bg-base-100 shadow-sm border border-base-300">
             <div class="card-body p-4">
-              <p class="text-sm font-medium mb-2">{{ t('base-ui.dashboard.demoEmptyState') }}</p>
+              <p class="text-sm font-medium mb-2">{{ t('mod.ui.dashboard.demoEmptyState') }}</p>
               <DonutChart
                 :data="emptyDonut"
-                :alt-text="t('base-ui.dashboard.demoEmptyDonut')"
+                :alt-text="t('mod.ui.dashboard.demoEmptyDonut')"
                 height="300px"
               />
             </div>
@@ -293,7 +293,7 @@ const propsTable = computed(() => [
 
       <!-- TimelineList -->
       <section>
-        <h2 class="text-lg font-semibold mb-4">{{ t('base-ui.dashboard.demoTimeline') }}</h2>
+        <h2 class="text-lg font-semibold mb-4">{{ t('mod.ui.dashboard.demoTimeline') }}</h2>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div class="card bg-base-100 shadow-sm border border-base-300">
             <div class="card-body p-4">
@@ -302,7 +302,7 @@ const propsTable = computed(() => [
           </div>
           <div class="card bg-base-100 shadow-sm border border-base-300">
             <div class="card-body p-4">
-              <p class="text-sm font-medium mb-2">{{ t('base-ui.dashboard.demoEmptyTimeline') }}</p>
+              <p class="text-sm font-medium mb-2">{{ t('mod.ui.dashboard.demoEmptyTimeline') }}</p>
               <TimelineList :events="emptyTimeline" />
             </div>
           </div>
@@ -311,20 +311,20 @@ const propsTable = computed(() => [
 
       <!-- EmptyState -->
       <section>
-        <h2 class="text-lg font-semibold mb-4">{{ t('base-ui.dashboard.demoEmptyStates') }}</h2>
+        <h2 class="text-lg font-semibold mb-4">{{ t('mod.ui.dashboard.demoEmptyStates') }}</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div class="card bg-base-100 shadow-sm border border-base-300">
             <div class="card-body">
               <EmptyState
                 :icon="Users"
-                :title="t('base-ui.dashboard.demoNoUsers')"
-                :description="t('base-ui.dashboard.demoNoUsersDesc')"
+                :title="t('mod.ui.dashboard.demoNoUsers')"
+                :description="t('mod.ui.dashboard.demoNoUsersDesc')"
                 size="sm"
               >
                 <template #action>
                   <button class="btn btn-sm btn-primary mt-2">
                     <Plus class="h-4 w-4" />
-                    {{ t('base-ui.dashboard.demoAddUser') }}
+                    {{ t('mod.ui.dashboard.demoAddUser') }}
                   </button>
                 </template>
               </EmptyState>
@@ -335,7 +335,7 @@ const propsTable = computed(() => [
             <div class="card-body">
               <EmptyState
                 :icon="FileText"
-                :title="t('base-ui.dashboard.demoNoDocs')"
+                :title="t('mod.ui.dashboard.demoNoDocs')"
                 size="md"
               />
             </div>
@@ -345,8 +345,8 @@ const propsTable = computed(() => [
             <div class="card-body">
               <EmptyState
                 :icon="ShoppingCart"
-                :title="t('base-ui.dashboard.demoNoOrders')"
-                :description="t('base-ui.dashboard.demoNoOrdersDesc')"
+                :title="t('mod.ui.dashboard.demoNoOrders')"
+                :description="t('mod.ui.dashboard.demoNoOrdersDesc')"
                 size="lg"
               />
             </div>
@@ -356,14 +356,14 @@ const propsTable = computed(() => [
 
       <!-- Props table -->
       <section>
-        <h2 class="text-lg font-semibold mb-4">{{ t('base-ui.dashboard.demoPropsTable') }}</h2>
+        <h2 class="text-lg font-semibold mb-4">{{ t('mod.ui.dashboard.demoPropsTable') }}</h2>
         <div class="overflow-x-auto">
           <table class="table table-zebra">
             <thead>
               <tr>
-                <th>{{ t('base-ui.dashboard.demoComponent') }}</th>
-                <th>{{ t('base-ui.dashboard.demoProps') }}</th>
-                <th>{{ t('base-ui.dashboard.demoSlots') }}</th>
+                <th>{{ t('mod.ui.dashboard.demoComponent') }}</th>
+                <th>{{ t('mod.ui.dashboard.demoProps') }}</th>
+                <th>{{ t('mod.ui.dashboard.demoSlots') }}</th>
               </tr>
             </thead>
             <tbody>

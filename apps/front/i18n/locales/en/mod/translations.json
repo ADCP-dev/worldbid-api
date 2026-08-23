@@ -1,0 +1,69 @@
+{
+  "mod": {
+    "translations": {
+      "title": "Translations",
+      "section": "Section",
+      "key": "Key",
+      "translations": "Translations",
+      "actions": "Actions",
+      "autoTranslateBtn": "Auto Translate",
+      "bulkTranslatingMsg": "Translating...",
+      "generateJsonBtn": "Generate JSON",
+      "generatingMsg": "Generating...",
+      "frontAppTab": "Frontend",
+      "backAppTab": "Backend",
+      "confirmDelete": "Are you sure you want to delete this translation group?",
+      "toast": {
+        "deleted": "Translation deleted successfully.",
+        "deleteFailed": "Failed to delete translation.",
+        "generated": "JSON files generated successfully.",
+        "generateFailed": "Failed to generate JSON files.",
+        "bulkComplete": "Bulk translation completed.",
+        "bulkFailed": "Bulk translation failed"
+      },
+      "add": {
+        "btn": "New Translation",
+        "title": "Add Translation",
+        "description": "Create a new translation key for the \"<strong>{app}</strong>\" application.",
+        "sectionLabel": "Section",
+        "sectionPlaceholder": "ex: common",
+        "keyLabel": "Key",
+        "keyPlaceholder": "ex: welcome_message",
+        "langLabel": "Base Language",
+        "langPlaceholder": "Select a language",
+        "contentLabel": "Content",
+        "contentPlaceholder": "Translated text...",
+        "cancelBtn": "Cancel",
+        "saveBtn": "Save",
+        "savingBtn": "Saving...",
+        "toast": {
+          "error": "Failure creating the translation"
+        }
+      },
+      "editor": {
+        "bulkTranslating": "Translating All...",
+        "autoTranslateAll": "Auto-Translate All Missing (AI)",
+        "saving": "Saving...",
+        "saveSync": "Save and Sync",
+        "editTitle": "Edit Translation:",
+        "placeholder": "Enter translation...",
+        "toast": {
+          "bulkSuccess": "Bulk translation completed",
+          "bulkError": "Bulk translation failed",
+          "saveSuccess": "Translations saved successfully",
+          "saveError": "Error saving translations"
+        }
+      },
+      "accordion": {
+        "noTranslations": "No translations",
+        "tooltip": "Auto-Translate missing (AI)",
+        "placeholder": "Translation in {lang}...",
+        "toast": {
+          "success": "Translation successful",
+          "error": "Translation failed",
+          "saveError": "Failed to save translation"
+        }
+      }
+    }
+  }
+}

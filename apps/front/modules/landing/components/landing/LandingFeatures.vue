@@ -19,33 +19,33 @@ interface FeaturesProps {
 const featureList: FeaturesProps[] = [
   {
     icon: "shield",
-    title: "landing.features.list.shield.title",
-    description: "landing.features.list.shield.description",
+    title: "mod.landing.features.list.shield.title",
+    description: "mod.landing.features.list.shield.description",
   },
   {
     icon: "zap",
-    title: "landing.features.list.zap.title",
-    description: "landing.features.list.zap.description",
+    title: "mod.landing.features.list.zap.title",
+    description: "mod.landing.features.list.zap.description",
   },
   {
     icon: "layers",
-    title: "landing.features.list.layers.title",
-    description: "landing.features.list.layers.description",
+    title: "mod.landing.features.list.layers.title",
+    description: "mod.landing.features.list.layers.description",
   },
   {
     icon: "database",
-    title: "landing.features.list.database.title",
-    description: "landing.features.list.database.description",
+    title: "mod.landing.features.list.database.title",
+    description: "mod.landing.features.list.database.description",
   },
   {
     icon: "workflow",
-    title: "landing.features.list.workflow.title",
-    description: "landing.features.list.workflow.description",
+    title: "mod.landing.features.list.workflow.title",
+    description: "mod.landing.features.list.workflow.description",
   },
   {
     icon: "barChart3",
-    title: "landing.features.list.barChart3.title",
-    description: "landing.features.list.barChart3.description",
+    title: "mod.landing.features.list.barChart3.title",
+    description: "mod.landing.features.list.barChart3.description",
   },
 ];
 
@@ -76,15 +76,15 @@ const iconMap: Record<
     <div class="max-w-7xl mx-auto">
       <div class="text-center mb-8" data-aos="fade-up">
         <h2 class="text-lg text-primary mb-2 tracking-wider">
-          {{ $t('landing.features.title.badge') }}
+          {{ $t('mod.landing.features.title.badge') }}
         </h2>
 
         <h2 class="text-3xl md:text-4xl font-bold mb-4">
-          {{ $t('landing.features.title.main') }}
+          {{ $t('mod.landing.features.title.main') }}
         </h2>
 
         <p class="max-w-2xl mx-auto text-xl text-muted-foreground">
-          {{ $t('landing.features.title.description') }}
+          {{ $t('mod.landing.features.title.description') }}
         </p>
       </div>
 

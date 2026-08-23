@@ -10,17 +10,17 @@ export function useNavMenu() {
 
   const navMenu = computed<NavMenu[]>(() => {
     const baseGeneral: NavMenu = {
-      heading: t('base.nav.general'),
+      heading: t('mod.nav.general'),
       order: 0,
       items: [
         {
-          title: t('base.nav.home'),
+          title: t('mod.nav.home'),
           icon: 'House',
           link: localePath('/app'),
           order: 0,
         },
         {
-          title: t('base.nav.settings'),
+          title: t('mod.nav.settings'),
           icon: 'Settings',
           link: localePath('/app/settings/profile'),
           order: 10,
@@ -32,11 +32,11 @@ export function useNavMenu() {
 
     if (authStore.isAdmin) {
       menu.push({
-        heading: t('base.nav.admin'),
+        heading: t('mod.nav.admin'),
         order: 200,
         items: [
           {
-            title: t('base.nav.users'),
+            title: t('mod.nav.users'),
             icon: 'Users',
             link: localePath('/app/users'),
             order: 0,

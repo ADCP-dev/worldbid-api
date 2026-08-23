@@ -1,0 +1,73 @@
+{
+  "mod": {
+    "app": {
+      "dataTable": {
+        "search": "Buscar...",
+        "clearFilters": "Limpiar filtros",
+        "columns": "Columnas",
+        "filterBy": "Filtrar",
+        "all": "Todos",
+        "yes": "Sí",
+        "no": "No",
+        "noResults": "No hay resultados.",
+        "showing": "Mostrando",
+        "of": "de",
+        "first": "Primera",
+        "previous": "Anterior",
+        "next": "Siguiente",
+        "last": "Última",
+        "show": "Mostrar"
+      },
+      "scheduling": {
+        "cron": {
+          "modes": {
+            "every-n-minutes": "Cada N minutos",
+            "daily-at": "Diario a las",
+            "weekly-on": "Semanal",
+            "monthly-on": "Mensual"
+          },
+          "fields": {
+            "intervalMinutes": "Intervalo (minutos)",
+            "time": "Hora",
+            "weekdays": "Días de la semana",
+            "dayOfMonth": "Día del mes",
+            "dayOfMonthHint": "Un número (1-31) o rango (ej. 28-31)"
+          },
+          "advancedLabel": "Expresión cron",
+          "advancedHint": "Formato de 5 campos: min hora dia-mes mes dia-semana",
+          "advancedMode": "Modo avanzado",
+          "simpleMode": "Modo simple",
+          "preview": "Vista previa",
+          "timezoneNote": "Horario de tu navegador ({tz}, UTC{offset}). El cron se emite sin convertir a UTC.",
+          "errors": {
+            "invalid": "Expresión cron inválida. Debe tener 5 campos separados por espacios."
+          }
+        },
+        "weekdayPicker": {
+          "presets": {
+            "weekdays": "Lunes a viernes",
+            "weekends": "Fines de semana",
+            "none": "Ninguno"
+          }
+        },
+        "timeWindow": {
+          "start": "Inicio",
+          "end": "Fin",
+          "timezone": "Zona horaria",
+          "local": "local",
+          "errors": {
+            "endBeforeStart": "La hora de fin debe ser posterior a la de inicio."
+          }
+        },
+        "numericStepper": {
+          "increment": "Incrementar",
+          "decrement": "Decrementar",
+          "errors": {
+            "invalid": "Introduce un número válido.",
+            "range": "El valor debe estar entre {min} y {max}."
+          }
+        }
+      }
+    }
+  }
+}

@@ -29,46 +29,46 @@ const loadPlans = async () => {
   // Static Spanish pricing plans for Foundation
   plans.value = [
     {
-      title: "landing.pricing.plans.developer.title",
+      title: "mod.landing.pricing.plans.developer.title",
       popular: false,
       price: 0,
-      description: "landing.pricing.plans.developer.description",
-      buttonText: "landing.pricing.plans.developer.button",
+      description: "mod.landing.pricing.plans.developer.description",
+      buttonText: "mod.landing.pricing.plans.developer.button",
       benefitList: [
-        "landing.pricing.plans.developer.benefits[0]",
-        "landing.pricing.plans.developer.benefits[1]",
-        "landing.pricing.plans.developer.benefits[2]",
-        "landing.pricing.plans.developer.benefits[3]",
+        "mod.landing.pricing.plans.developer.benefits[0]",
+        "mod.landing.pricing.plans.developer.benefits[1]",
+        "mod.landing.pricing.plans.developer.benefits[2]",
+        "mod.landing.pricing.plans.developer.benefits[3]",
       ],
       currencySymbol: '€'
     },
     {
-      title: "landing.pricing.plans.startup.title",
+      title: "mod.landing.pricing.plans.startup.title",
       popular: true,
       price: 49.99,
-      description: "landing.pricing.plans.startup.description",
-      buttonText: "landing.pricing.plans.startup.button",
+      description: "mod.landing.pricing.plans.startup.description",
+      buttonText: "mod.landing.pricing.plans.startup.button",
       benefitList: [
-        "landing.pricing.plans.startup.benefits[0]",
-        "landing.pricing.plans.startup.benefits[1]",
-        "landing.pricing.plans.startup.benefits[2]",
-        "landing.pricing.plans.startup.benefits[3]",
-        "landing.pricing.plans.startup.benefits[4]",
+        "mod.landing.pricing.plans.startup.benefits[0]",
+        "mod.landing.pricing.plans.startup.benefits[1]",
+        "mod.landing.pricing.plans.startup.benefits[2]",
+        "mod.landing.pricing.plans.startup.benefits[3]",
+        "mod.landing.pricing.plans.startup.benefits[4]",
       ],
       currencySymbol: '€'
     },
     {
-      title: "landing.pricing.plans.enterprise.title",
+      title: "mod.landing.pricing.plans.enterprise.title",
       popular: false,
       price: 199,
-      description: "landing.pricing.plans.enterprise.description",
-      buttonText: "landing.pricing.plans.enterprise.button",
+      description: "mod.landing.pricing.plans.enterprise.description",
+      buttonText: "mod.landing.pricing.plans.enterprise.button",
       benefitList: [
-        "landing.pricing.plans.enterprise.benefits[0]",
-        "landing.pricing.plans.enterprise.benefits[1]",
-        "landing.pricing.plans.enterprise.benefits[2]",
-        "landing.pricing.plans.enterprise.benefits[3]",
-        "landing.pricing.plans.enterprise.benefits[4]",
+        "mod.landing.pricing.plans.enterprise.benefits[0]",
+        "mod.landing.pricing.plans.enterprise.benefits[1]",
+        "mod.landing.pricing.plans.enterprise.benefits[2]",
+        "mod.landing.pricing.plans.enterprise.benefits[3]",
+        "mod.landing.pricing.plans.enterprise.benefits[4]",
       ],
       currencySymbol: '€'
     }
@@ -85,21 +85,21 @@ onMounted(() => {
     <div class="max-w-7xl mx-auto">
       <div class="text-center mb-12" data-aos="fade-up">
         <h2 class="text-2xl text-primary font-bold mb-8 tracking-wider">
-          {{ $t('landing.pricing.title.badge') }}
+          {{ $t('mod.landing.pricing.title.badge') }}
         </h2>
 
         <h2 class="text-3xl md:text-4xl font-bold mb-4">
-          {{ $t('landing.pricing.title.main') }}
+          {{ $t('mod.landing.pricing.title.main') }}
         </h2>
 
         <p class="max-w-2xl mx-auto text-xl text-muted-foreground">
-          {{ $t('landing.pricing.title.description') }}
+          {{ $t('mod.landing.pricing.title.description') }}
         </p>
       </div>
 
       <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
         <div v-if="plans.length === 0" class="col-span-full text-center py-8">
-          <p class="text-base-content/60">{{ $t('landing.pricing.loading') }}</p>
+          <p class="text-base-content/60">{{ $t('mod.landing.pricing.loading') }}</p>
         </div>
         <div
 v-for="{
@@ -129,7 +129,7 @@ v-for="{
             <div class="my-4">
               <span class="text-4xl font-extrabold">{{ currencySymbol }}{{ price }}</span>
               <span class="text-base-content/60 ml-1">
-                {{ interval ? `/${interval}` : $t('landing.pricing.month') }}
+                {{ interval ? `/${interval}` : $t('mod.landing.pricing.month') }}
               </span>
             </div>
 
@@ -159,22 +159,22 @@ v-for="{
             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-12">
               <div class="flex-1">
                 <div class="badge badge-secondary mb-4 font-bold tracking-wider uppercase">
-                  {{ $t('landing.pricing.custom.badge') }}
+                  {{ $t('mod.landing.pricing.custom.badge') }}
                 </div>
                 <h2 class="text-4xl font-black mb-4 tracking-tight">
-                  {{ $t('landing.pricing.custom.title') }}
+                  {{ $t('mod.landing.pricing.custom.title') }}
                 </h2>
                 <p class="text-xl opacity-90 leading-relaxed max-w-2xl">
-                  {{ $t('landing.pricing.custom.description') }}
+                  {{ $t('mod.landing.pricing.custom.description') }}
                 </p>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-10">
                   <div
 v-for="feature in [
-                    { title: 'landing.pricing.custom.features.integration.title', desc: 'landing.pricing.custom.features.integration.description' },
-                    { title: 'landing.pricing.custom.features.ai.title', desc: 'landing.pricing.custom.features.ai.description' },
-                    { title: 'landing.pricing.custom.features.support.title', desc: 'landing.pricing.custom.features.support.description' },
-                    { title: 'landing.pricing.custom.features.config.title', desc: 'landing.pricing.custom.features.config.description' }
+                    { title: 'mod.landing.pricing.custom.features.integration.title', desc: 'mod.landing.pricing.custom.features.integration.description' },
+                    { title: 'mod.landing.pricing.custom.features.ai.title', desc: 'mod.landing.pricing.custom.features.ai.description' },
+                    { title: 'mod.landing.pricing.custom.features.support.title', desc: 'mod.landing.pricing.custom.features.support.description' },
+                    { title: 'mod.landing.pricing.custom.features.config.title', desc: 'mod.landing.pricing.custom.features.config.description' }
                   ]" :key="feature.title" class="flex items-start gap-3">
                     <div class="bg-primary-content/20 rounded-lg p-1">
                       <Check class="h-4 w-4" />
@@ -189,11 +189,11 @@ v-for="feature in [
 
               <div class="flex flex-col items-center lg:items-end gap-6 lg:min-w-[300px]">
                 <div class="text-center lg:text-right">
-                  <div class="text-4xl font-black mb-2">{{ $t('landing.pricing.custom.contact.title') }}</div>
-                  <div class="text-lg opacity-90">{{ $t('landing.pricing.custom.contact.description') }}</div>
+                  <div class="text-4xl font-black mb-2">{{ $t('mod.landing.pricing.custom.contact.title') }}</div>
+                  <div class="text-lg opacity-90">{{ $t('mod.landing.pricing.custom.contact.description') }}</div>
                 </div>
                 <button class="btn btn-secondary btn-lg px-12 text-lg shadow-xl hover:scale-105 transition-transform active:scale-95 border-none">
-                  {{ $t('landing.pricing.custom.contact.button') }}
+                  {{ $t('mod.landing.pricing.custom.contact.button') }}
                 </button>
               </div>
             </div>

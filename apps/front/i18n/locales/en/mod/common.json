@@ -1,0 +1,79 @@
+{
+  "mod": {
+    "common": {
+      "actions": {
+        "save": "Save",
+        "edit": "Edit",
+        "delete": "Delete",
+        "cancel": "Cancel",
+        "confirm": "Confirm",
+        "update": "Update",
+        "create": "Create",
+        "add": "Add",
+        "remove": "Remove",
+        "close": "Close",
+        "open": "Open",
+        "send": "Send",
+        "submit": "Submit",
+        "apply": "Apply",
+        "search": "Search",
+        "filter": "Filter",
+        "back": "Back",
+        "next": "Next",
+        "upload": "Upload file",
+        "download": "Download",
+        "refresh": "Refresh",
+        "export": "Export",
+        "import": "Import",
+        "view": "View",
+        "reset": "Reset",
+        "clear": "Clear"
+      },
+      "status": {
+        "active": "Active",
+        "inactive": "Inactive",
+        "pending": "Pending",
+        "completed": "Completed",
+        "processing": "Processing",
+        "success": "Success",
+        "error": "Error",
+        "warning": "Warning",
+        "info": "Info",
+        "loading": "Loading...",
+        "empty": "No data available"
+      },
+      "pagination": {
+        "previous": "Previous",
+        "next": "Next",
+        "page": "Page",
+        "of": "of",
+        "items": "items",
+        "showing": "Showing",
+        "noResults": "No results found"
+      },
+      "dialogs": {
+        "confirmDeletion": "Are you sure you want to delete this?",
+        "confirmAction": "Are you sure you want to proceed?",
+        "unsavedChanges": "You have unsaved changes. Are you sure you want to leave?",
+        "successMessage": "Action completed successfully.",
+        "errorMessage": "An error occurred. Please try again."
+      },
+      "fields": {
+        "name": "Name",
+        "title": "Title",
+        "description": "Description",
+        "date": "Date",
+        "time": "Time",
+        "status": "Status",
+        "type": "Type",
+        "options": "Options",
+        "required": "Required",
+        "optional": "Optional",
+        "select": "Select...",
+        "all": "All",
+        "none": "None",
+        "actions": "Actions"
+      }
+    }
+  }
+}

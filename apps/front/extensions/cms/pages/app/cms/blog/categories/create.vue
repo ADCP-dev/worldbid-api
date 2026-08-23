@@ -95,13 +95,13 @@ const handleSubmit = async () => {
   <div class="container mx-auto py-8 max-w-3xl">
     <!-- Header -->
     <div class="flex justify-between items-center mb-8">
-      <h1 class="text-3xl font-bold">{{ t("pages.blog.categories.create") }}</h1>
+      <h1 class="text-3xl font-bold">{{ t("mod.pages.blog.categories.create") }}</h1>
       <div class="flex items-center gap-4">
         <button type="button" class="btn btn-sm btn-outline" @click="toggleAll">
           {{ allOpen ? 'Colapsar todo' : 'Expandir todo' }}
         </button>
         <NuxtLink to="/app/cms/blog/categories" class="btn btn-ghost">
-          {{ t("pages.common.cancel") }}
+          {{ t("mod.pages.common.cancel") }}
         </NuxtLink>
       </div>
     </div>
@@ -125,7 +125,7 @@ const handleSubmit = async () => {
               <!-- Name -->
               <FormInput
                 v-model="translations[lang.code].name"
-                :label="t('pages.blog.categories.name')"
+                :label="t('mod.pages.blog.categories.name')"
                 required
                 placeholder="en minúsculas, ej: mi-categoria"
                 :error="lang.code === 'es' ? validationErrors.name : undefined"
@@ -145,7 +145,7 @@ const handleSubmit = async () => {
               <!-- Description -->
               <FormTextArea
                 v-model="translations[lang.code].description"
-                :label="t('pages.blog.categories.description')"
+                :label="t('mod.pages.blog.categories.description')"
                 :rows="3"
               />
             </div>
@@ -159,10 +159,10 @@ const handleSubmit = async () => {
 
       <div class="flex gap-4 pt-4">
         <button type="submit" class="btn btn-primary" :disabled="loading">
-          {{ loading ? t("pages.common.save") + "..." : t("pages.common.save") }}
+          {{ loading ? t("mod.pages.common.save") + "..." : t("mod.pages.common.save") }}
         </button>
         <NuxtLink to="/app/cms/blog/categories" class="btn btn-ghost">
-          {{ t("pages.common.cancel") }}
+          {{ t("mod.pages.common.cancel") }}
         </NuxtLink>
       </div>
     </form>

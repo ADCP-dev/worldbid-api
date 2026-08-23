@@ -122,7 +122,7 @@ const handleSubmit = async () => {
 
 const handleDelete = async () => {
   if (isDeleting.value) return;
-  const confirmed = confirm(t("pages.common.confirmDelete"));
+  const confirmed = confirm(t("mod.pages.common.confirmDelete"));
   if (!confirmed) return;
 
   isDeleting.value = true;
@@ -157,17 +157,17 @@ const availableParents = computed(() => {
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
         </NuxtLink>
-        <h1 class="text-3xl font-bold">{{ t("pages.blog.categories.edit") }}</h1>
+        <h1 class="text-3xl font-bold">{{ t("mod.pages.blog.categories.edit") }}</h1>
       </div>
       <div class="flex items-center gap-4">
         <button type="button" class="btn btn-sm btn-outline" @click="toggleAll">
           {{ allOpen ? 'Colapsar todo' : 'Expandir todo' }}
         </button>
         <button class="btn btn-ghost text-error" :disabled="isDeleting" @click="handleDelete">
-          {{ isDeleting ? t("pages.common.deleting") + "..." : t("pages.common.delete") }}
+          {{ isDeleting ? t("mod.pages.common.deleting") + "..." : t("mod.pages.common.delete") }}
         </button>
         <NuxtLink to="/app/cms/blog/categories" class="btn btn-ghost">
-          {{ t("pages.common.cancel") }}
+          {{ t("mod.pages.common.cancel") }}
         </NuxtLink>
       </div>
     </div>
@@ -191,7 +191,7 @@ const availableParents = computed(() => {
               <!-- Name -->
               <FormInput
                 v-model="translations[lang.code].name"
-                :label="t('pages.blog.categories.name')"
+                :label="t('mod.pages.blog.categories.name')"
                 required
                 placeholder="en minúsculas, ej: mi-categoria"
                 :error="lang.code === 'es' ? validationErrors.name : undefined"
@@ -210,15 +210,15 @@ const availableParents = computed(() => {
               <!-- Description -->
               <FormTextArea
                 v-model="translations[lang.code].description"
-                :label="t('pages.blog.categories.description')"
+                :label="t('mod.pages.blog.categories.description')"
                 :rows="3"
               />
 
               <!-- Parent (only on default lang) -->
               <div v-if="lang.code === 'es'">
-                <label class="label-text font-semibold mb-1 block">{{ t("pages.blog.categories.parent") }}</label>
+                <label class="label-text font-semibold mb-1 block">{{ t("mod.pages.blog.categories.parent") }}</label>
                 <select v-model="parentId" class="select select-bordered w-full">
-                  <option :value="null">-- {{ t("pages.blog.categories.noParent") }} --</option>
+                  <option :value="null">-- {{ t("mod.pages.blog.categories.noParent") }} --</option>
                   <option v-for="cat in availableParents" :key="cat.id" :value="cat.id">
                     {{ cat.name }}
                   </option>
@@ -235,10 +235,10 @@ const availableParents = computed(() => {
 
       <div class="flex gap-4 pt-4">
         <button type="submit" class="btn btn-primary" :disabled="loading">
-          {{ loading ? t("pages.common.save") + "..." : t("pages.common.save") }}
+          {{ loading ? t("mod.pages.common.save") + "..." : t("mod.pages.common.save") }}
         </button>
         <NuxtLink to="/app/cms/blog/categories" class="btn btn-ghost">
-          {{ t("pages.common.cancel") }}
+          {{ t("mod.pages.common.cancel") }}
         </NuxtLink>
       </div>
     </form>

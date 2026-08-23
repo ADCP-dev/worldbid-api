@@ -98,8 +98,8 @@ const option = computed(() => {
     <EmptyState
       v-else-if="isEmpty"
       :icon="PieIcon"
-      :title="t('base-ui.dashboard.donutEmpty')"
-      :description="t('base-ui.dashboard.donutEmptyDesc')"
+      :title="t('mod.ui.dashboard.donutEmpty')"
+      :description="t('mod.ui.dashboard.donutEmptyDesc')"
       size="sm"
     />
     <div v-else :aria-label="altText" role="img" class="h-full w-full">

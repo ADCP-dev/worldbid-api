@@ -59,14 +59,14 @@ const handleChangeRole = (user: any) => {
 };
 
 const handleDelete = async (user: any) => {
-  if (confirm(t("base.users.messages.deleteConfirm", { email: user.email }))) {
+  if (confirm(t("mod.users.messages.deleteConfirm", { email: user.email }))) {
     try {
       await deleteUserMutation.mutateAsync(user.id);
-      toast.success(t("base.users.messages.deleteSuccess"));
+      toast.success(t("mod.users.messages.deleteSuccess"));
       refreshTable();
     } catch (error: any) {
       if (import.meta.dev) console.error(error);
-      toast.error(t("base.users.messages.deleteError"));
+      toast.error(t("mod.users.messages.deleteError"));
     }
   }
 };
@@ -74,39 +74,39 @@ const handleDelete = async (user: any) => {
 const columns = computed(() => [
   {
     accessorKey: "id",
-    headerName: t("base.users.table.ID"),
-    header: t("base.users.table.ID"),
+    headerName: t("mod.users.table.ID"),
+    header: t("mod.users.table.ID"),
     filterType: "number" as const,
   },
   {
     accessorKey: "firstName",
-    headerName: t("base.users.table.firstName"),
-    header: t("base.users.table.firstName"),
+    headerName: t("mod.users.table.firstName"),
+    header: t("mod.users.table.firstName"),
     filterType: "string" as const,
   },
   {
     accessorKey: "lastName",
-    headerName: t("base.users.table.lastName"),
-    header: t("base.users.table.lastName"),
+    headerName: t("mod.users.table.lastName"),
+    header: t("mod.users.table.lastName"),
     filterType: "string" as const,
   },
   {
     accessorKey: "email",
-    headerName: t("base.users.table.email"),
-    header: t("base.users.table.email"),
+    headerName: t("mod.users.table.email"),
+    header: t("mod.users.table.email"),
     filterType: "string" as const,
   },
   {
     accessorKey: "role.id",
     id: "role.id",
-    headerName: t("base.users.table.role"),
-    header: t("base.users.table.role"),
+    headerName: t("mod.users.table.role"),
+    header: t("mod.users.table.role"),
     enableSorting: false,
     filterType: "select" as const,
     options: [
-      { value: "", label: t("base.users.table.roles.all") },
-      { value: "1", label: t("base.users.table.roles.admin") },
-      { value: "2", label: t("base.users.table.roles.user") },
+      { value: "", label: t("mod.users.table.roles.all") },
+      { value: "1", label: t("mod.users.table.roles.admin") },
+      { value: "2", label: t("mod.users.table.roles.user") },
     ],
     cell: ({ row }: any) => {
       const user = row.original;
@@ -120,14 +120,14 @@ const columns = computed(() => [
   {
     accessorKey: "status.id",
     id: "status.id",
-    headerName: t("base.users.table.status"),
-    header: t("base.users.table.status"),
+    headerName: t("mod.users.table.status"),
+    header: t("mod.users.table.status"),
     enableSorting: false,
     filterType: "select" as const,
     options: [
-      { value: "", label: t("base.users.table.statuses.all") },
-      { value: "1", label: t("base.users.table.statuses.active") },
-      { value: "2", label: t("base.users.table.statuses.inactive") },
+      { value: "", label: t("mod.users.table.statuses.all") },
+      { value: "1", label: t("mod.users.table.statuses.active") },
+      { value: "2", label: t("mod.users.table.statuses.inactive") },
     ],
     cell: ({ row }: any) => {
       const user = row.original;
@@ -139,8 +139,8 @@ const columns = computed(() => [
   },
   {
     id: "actions",
-    headerName: t("base.users.table.actions"),
-    header: t("base.users.table.actions"),
+    headerName: t("mod.users.table.actions"),
+    header: t("mod.users.table.actions"),
     enableSorting: false,
     cell: ({ row }: any) => {
       const user = row.original;
@@ -164,7 +164,7 @@ const columns = computed(() => [
                 },
                 [
                   h(EditIcon, { class: "w-4 h-4" }),
-                  t("base.users.actions.edit"),
+                  t("mod.users.actions.edit"),
                 ],
               ),
             ]),
@@ -179,7 +179,7 @@ const columns = computed(() => [
                 },
                 [
                   h(ShieldIcon, { class: "w-4 h-4" }),
-                  t("base.users.actions.changeRole"),
+                  t("mod.users.actions.changeRole"),
                 ],
               ),
             ]),
@@ -194,7 +194,7 @@ const columns = computed(() => [
                 },
                 [
                   h(KeyIcon, { class: "w-4 h-4" }),
-                  t("base.users.actions.changePassword"),
+                  t("mod.users.actions.changePassword"),
                 ],
               ),
             ]),
@@ -210,7 +210,7 @@ const columns = computed(() => [
                 },
                 [
                   h(Trash2Icon, { class: "w-4 h-4" }),
-                  t("base.users.actions.delete"),
+                  t("mod.users.actions.delete"),
                 ],
               ),
             ]),
@@ -230,17 +230,17 @@ const columns = computed(() => [
       <div>
         <h1 class="text-2xl font-bold flex items-center gap-2">
           <UserIcon class="w-6 h-6 text-primary" />
-          {{ $t("base.users.title") }}
+          {{ $t("mod.users.title") }}
         </h1>
         <p class="text-base-content/70 mt-1">
-          {{ $t("base.users.description") }}
+          {{ $t("mod.users.description") }}
         </p>
       </div>
 
       <div class="flex gap-2">
         <button class="btn btn-primary" @click="handleCreate">
           <PlusIcon class="w-4 h-4 mr-2" />
-          {{ $t("base.users.actions.create") }}
+          {{ $t("mod.users.actions.create") }}
         </button>
       </div>
     </div>

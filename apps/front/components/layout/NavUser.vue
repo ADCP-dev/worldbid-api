@@ -66,12 +66,12 @@ const initials = computed(() => {
       <div class="divider my-0"/>
       <li>
         <NuxtLink :to="localePath('/app/settings/profile')">
-          <User class="w-4 h-4" /> {{ $t('base.nav.account') }}
+          <User class="w-4 h-4" /> {{ $t('mod.nav.account') }}
         </NuxtLink>
       </li>
       <div class="divider my-0"/>
       <li>
-        <a @click="logout"><LogOut class="w-4 h-4" /> {{ $t('base.nav.logout') }}</a>
+        <a @click="logout"><LogOut class="w-4 h-4" /> {{ $t('mod.nav.logout') }}</a>
       </li>
     </ul>
   </div>

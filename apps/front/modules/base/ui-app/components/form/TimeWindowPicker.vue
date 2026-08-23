@@ -42,7 +42,7 @@ const start = computed({
   set: (v: string) => {
     const next = { ...model.value, start: v };
     if (compare(next.end, next.start) <= 0) {
-      innerError.value = t('base.app.scheduling.timeWindow.errors.endBeforeStart');
+      innerError.value = t('mod.app.scheduling.timeWindow.errors.endBeforeStart');
       return;
     }
     innerError.value = '';
@@ -55,7 +55,7 @@ const end = computed({
   set: (v: string) => {
     const next = { ...model.value, end: v };
     if (compare(next.end, next.start) <= 0) {
-      innerError.value = t('base.app.scheduling.timeWindow.errors.endBeforeStart');
+      innerError.value = t('mod.app.scheduling.timeWindow.errors.endBeforeStart');
       return;
     }
     innerError.value = '';
@@ -74,7 +74,7 @@ const hasError = computed(() => Boolean(props.error || innerError.value));
 
 function tzLabel(tz: string): string {
   if (tz === localTz) {
-    return `${tz} (${t('base.app.scheduling.timeWindow.local')})`;
+    return `${tz} (${t('mod.app.scheduling.timeWindow.local')})`;
   }
   return tz;
 }
@@ -89,12 +89,12 @@ function tzLabel(tz: string): string {
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <FormTime
         v-model="start"
-        :label="t('base.app.scheduling.timeWindow.start')"
+        :label="t('mod.app.scheduling.timeWindow.start')"
         :disabled="disabled"
       />
       <FormTime
         v-model="end"
-        :label="t('base.app.scheduling.timeWindow.end')"
+        :label="t('mod.app.scheduling.timeWindow.end')"
         :disabled="disabled"
       />
     </div>
@@ -102,7 +102,7 @@ function tzLabel(tz: string): string {
     <div class="mt-3">
       <label class="label">
         <span class="label-text font-semibold">
-          {{ t('base.app.scheduling.timeWindow.timezone') }}
+          {{ t('mod.app.scheduling.timeWindow.timezone') }}
         </span>
       </label>
       <select

@@ -1,0 +1,45 @@
+{
+  "mod": {
+    "settings": {
+      "title": "Settings",
+      "description": "Manage your account settings and notification preferences.",
+      "profile": {
+        "title": "Profile",
+        "firstNameLabel": "First name",
+        "firstNamePlaceholder": "Your first name",
+        "firstNameDescription": "This is your public display name. It can be your real name or a pseudonym.",
+        "lastNameLabel": "Last name",
+        "lastNamePlaceholder": "Your last name",
+        "lastNameDescription": "This is your public last name.",
+        "emailLabel": "Email",
+        "emailPlaceholder": "Your email",
+        "emailDescription": "Your login email address.",
+        "photoLabel": "Profile photo",
+        "photoDescription": "JPG, GIF or PNG. Max 3 MB.",
+        "noPhoto": "No photo",
+        "chooseImage": "Choose image",
+        "noFileSelected": "No file selected",
+        "currentPassword": "Current password",
+        "currentPasswordDescription": "Required only if you want to change your password.",
+        "newPassword": "New password",
+        "newPasswordDescription": "Minimum 8 characters. Leave blank if you don't want to change it.",
+        "confirmPassword": "Confirm password",
+        "updateProfile": "Update profile",
+        "uploadPhoto": "Upload photo",
+        "removePhoto": "Remove selected photo",
+        "changePassword": "Change password",
+        "successTitle": "Profile updated",
+        "successDescription": "Your profile has been updated successfully.",
+        "errorTitle": "Error",
+        "errorDescription": "Could not update profile. Please try again.",
+        "uploadFailed": "Failed to upload profile photo.",
+        "passwordSuccessTitle": "Password updated",
+        "passwordSuccessDescription": "Your password has been updated successfully.",
+        "validation": {
+          "passwordsMatch": "Passwords do not match",
+          "oldPasswordRequired": "Current password is required"
+        }
+      }
+    }
+  }
+}

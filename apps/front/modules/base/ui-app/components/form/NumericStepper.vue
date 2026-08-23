@@ -65,11 +65,11 @@ function onInput(event: Event): void {
   const raw = (event.target as HTMLInputElement).value;
   const num = Number(raw);
   if (raw === '' || !Number.isFinite(num)) {
-    innerError.value = t('base.app.scheduling.numericStepper.errors.invalid');
+    innerError.value = t('mod.app.scheduling.numericStepper.errors.invalid');
     return;
   }
   if (!validateRange(num)) {
-    innerError.value = t('base.app.scheduling.numericStepper.errors.range', {
+    innerError.value = t('mod.app.scheduling.numericStepper.errors.range', {
       min: props.min ?? '−∞',
       max: props.max ?? '∞',
     });
@@ -100,7 +100,7 @@ function onBlur(): void {
         type="button"
         class="btn btn-outline join-item"
         :disabled="disabled || (min !== undefined && model <= min)"
-        :aria-label="$t('base.app.scheduling.numericStepper.decrement')"
+        :aria-label="$t('mod.app.scheduling.numericStepper.decrement')"
         @click="decrement"
       >
         <Minus class="h-4 w-4" />
@@ -123,7 +123,7 @@ function onBlur(): void {
         type="button"
         class="btn btn-outline join-item"
         :disabled="disabled || (max !== undefined && model >= max)"
-        :aria-label="$t('base.app.scheduling.numericStepper.increment')"
+        :aria-label="$t('mod.app.scheduling.numericStepper.increment')"
         @click="increment"
       >
         <Plus class="h-4 w-4" />

@@ -68,7 +68,7 @@ const readingTime = computed(() => {
           {{ new Date(post.publishedAt).toLocaleDateString(lang, { year: 'numeric', month: 'long', day: 'numeric' }) }}
         </span>
         <span v-if="readingTime > 0" class="text-base-content/50">
-          · {{ readingTime }} {{ t('cms.blog.readingTime') }}
+          · {{ readingTime }} {{ t('ext.cms.blog.readingTime') }}
         </span>
       </p>
 
@@ -89,7 +89,7 @@ const readingTime = computed(() => {
 
       <div class="card-actions justify-end mt-4">
         <NuxtLink :to="localePath(`/blog/${post.slug}`)" class="btn btn-primary btn-sm">
-          {{ t('cms.blog.readMore') }}
+          {{ t('ext.cms.blog.readMore') }}
         </NuxtLink>
       </div>
     </div>

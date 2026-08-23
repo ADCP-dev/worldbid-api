@@ -29,7 +29,7 @@ const bulkTranslate = async () => {
       },
     });
     toast.success(
-      nuxtApp.$i18n.t("base.translations.editor.toast.bulkSuccess"),
+      nuxtApp.$i18n.t("mod.translations.editor.toast.bulkSuccess"),
     );
     await generateJson();
     setTimeout(() => {
@@ -38,7 +38,7 @@ const bulkTranslate = async () => {
   } catch (error: any) {
     console.error(error);
     toast.error(
-      `${nuxtApp.$i18n.t("base.translations.editor.toast.bulkError")}: ${error.message || "Error desconocido"}`,
+      `${nuxtApp.$i18n.t("mod.translations.editor.toast.bulkError")}: ${error.message || "Error desconocido"}`,
     );
   } finally {
     isBulkTranslating.value = false;
@@ -134,14 +134,14 @@ const handleSaveAll = async () => {
 
     await generateJson();
     toast.success(
-      nuxtApp.$i18n.t("base.translations.editor.toast.saveSuccess"),
+      nuxtApp.$i18n.t("mod.translations.editor.toast.saveSuccess"),
     );
     setTimeout(() => {
       window.location.reload();
     }, 500);
   } catch (e) {
     console.error(e);
-    toast.error(nuxtApp.$i18n.t("base.translations.editor.toast.saveError"));
+    toast.error(nuxtApp.$i18n.t("mod.translations.editor.toast.saveError"));
   } finally {
     isSaving.value = false;
   }
@@ -257,7 +257,7 @@ onUnmounted(() => {
       <div class="modal-box max-w-xl max-h-[80vh] flex flex-col p-6">
         <div class="flex items-center justify-between mb-4">
           <h3 class="font-bold text-lg">
-            {{ $t("base.translations.editor.editTitle") }}
+            {{ $t("mod.translations.editor.editTitle") }}
             <span class="text-primary font-mono text-sm ml-2">{{
               editingKey
             }}</span>
@@ -285,7 +285,7 @@ onUnmounted(() => {
                 v-if="translationsData[lang.id]"
                 v-model="translationsData[lang.id].content"
                 class="textarea textarea-bordered w-full"
-                :placeholder="$t('base.translations.editor.placeholder')"
+                :placeholder="$t('mod.translations.editor.placeholder')"
                 rows="3"
               />
             </div>
@@ -305,8 +305,8 @@ onUnmounted(() => {
             />
             {{
               isBulkTranslating
-                ? $t("base.translations.editor.bulkTranslating")
-                : $t("base.translations.editor.autoTranslateAll")
+                ? $t("mod.translations.editor.bulkTranslating")
+                : $t("mod.translations.editor.autoTranslateAll")
             }}
           </button>
           <button
@@ -321,8 +321,8 @@ onUnmounted(() => {
             />
             {{
               isSaving
-                ? $t("base.translations.editor.saving")
-                : $t("base.translations.editor.saveSync")
+                ? $t("mod.translations.editor.saving")
+                : $t("mod.translations.editor.saveSync")
             }}
           </button>
         </div>

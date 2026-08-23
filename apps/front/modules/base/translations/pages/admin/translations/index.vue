@@ -49,20 +49,20 @@ const refreshTables = () => {
 const columns = computed(() => [
   {
     accessorKey: "section",
-    headerName: t("base.translations.section"),
-    header: t("base.translations.section"),
+    headerName: t("mod.translations.section"),
+    header: t("mod.translations.section"),
     filterType: "string",
   },
   {
     accessorKey: "key",
-    headerName: t("base.translations.key"),
-    header: t("base.translations.key"),
+    headerName: t("mod.translations.key"),
+    header: t("mod.translations.key"),
     filterType: "string",
   },
   {
     id: "content",
-    headerName: t("base.translations.translations"),
-    header: t("base.translations.translations"),
+    headerName: t("mod.translations.translations"),
+    header: t("mod.translations.translations"),
     enableSorting: false,
     cell: ({ row }: any) => {
       const group = row.original;
@@ -79,23 +79,23 @@ const columns = computed(() => [
   },
   {
     id: "actions",
-    headerName: t("base.translations.actions"),
-    header: t("base.translations.actions"),
+    headerName: t("mod.translations.actions"),
+    header: t("mod.translations.actions"),
     enableSorting: false,
     cell: ({ row }: any) => {
       const group = row.original;
       return h(DeleteButton, {
         onClick: async () => {
-          if (confirm(t("base.translations.confirmDelete"))) {
+          if (confirm(t("mod.translations.confirmDelete"))) {
             try {
               await Promise.all(
                 group.translations.map((t: any) => deleteTranslation(t.id)),
               );
               refreshTables();
-              toast.success(t("base.translations.toast.deleted"));
+              toast.success(t("mod.translations.toast.deleted"));
             } catch (error) {
               console.error(error);
-              toast.error(t("base.translations.toast.deleteFailed"));
+              toast.error(t("mod.translations.toast.deleteFailed"));
             }
           }
         },
@@ -108,10 +108,10 @@ const handleGenerate = async () => {
   isGenerating.value = true;
   try {
     await generateJson();
-    toast.success(t("base.translations.toast.generated"));
+    toast.success(t("mod.translations.toast.generated"));
   } catch (error) {
     console.error(error);
-    toast.error(t("base.translations.toast.generateFailed"));
+    toast.error(t("mod.translations.toast.generateFailed"));
   } finally {
     isGenerating.value = false;
   }
@@ -121,12 +121,12 @@ const handleBulkTranslate = async () => {
   isBulkTranslating.value = true;
   try {
     const result = await bulkTranslate(currentAppTab.value);
-    toast.success(result.message || t("base.translations.toast.bulkComplete"));
+    toast.success(result.message || t("mod.translations.toast.bulkComplete"));
     refreshTables();
   } catch (error: any) {
     console.error(error);
     toast.error(
-      t("base.translations.toast.bulkFailed") +
+      t("mod.translations.toast.bulkFailed") +
         `: ${error.message || "Unknown error"}`,
     );
   } finally {
@@ -156,7 +156,7 @@ onMounted(async () => {
     <div
       class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4"
     >
-      <h1 class="text-2xl font-bold">{{ $t("base.translations.title") }}</h1>
+      <h1 class="text-2xl font-bold">{{ $t("mod.translations.title") }}</h1>
       <div class="flex flex-wrap gap-2">
         <button
           class="btn btn-outline"
@@ -166,8 +166,8 @@ onMounted(async () => {
           <BotIcon class="w-4 h-4 mr-2" />
           {{
             isBulkTranslating
-              ? $t("base.translations.bulkTranslatingMsg")
-              : $t("base.translations.autoTranslateBtn")
+              ? $t("mod.translations.bulkTranslatingMsg")
+              : $t("mod.translations.autoTranslateBtn")
           }}
         </button>
         <AddTranslationDialog
@@ -182,8 +182,8 @@ onMounted(async () => {
         >
           {{
             isGenerating
-              ? $t("base.translations.generatingMsg")
-              : $t("base.translations.generateJsonBtn")
+              ? $t("mod.translations.generatingMsg")
+              : $t("mod.translations.generateJsonBtn")
           }}
         </button>
         <button
@@ -205,7 +205,7 @@ onMounted(async () => {
         @click="currentAppTab = 'front'"
       >
         <PanelTopIcon class="w-4 h-4 mr-2" />
-        {{ $t("base.translations.frontAppTab") }}
+        {{ $t("mod.translations.frontAppTab") }}
       </a>
       <a
         role="tab"
@@ -214,7 +214,7 @@ onMounted(async () => {
         @click="currentAppTab = 'back'"
       >
         <LayersIcon class="w-4 h-4 mr-2" />
-        {{ $t("base.translations.backAppTab") }}
+        {{ $t("mod.translations.backAppTab") }}
       </a>
     </div>
 

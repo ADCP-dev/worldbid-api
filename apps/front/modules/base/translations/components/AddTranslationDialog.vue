@@ -56,7 +56,7 @@ const handleCreate = async () => {
     selectedLangId.value = undefined;
   } catch (error) {
     console.error("Error creating translation:", error);
-    toast.error(t("base.translations.add.toast.error"));
+    toast.error(t("mod.translations.add.toast.error"));
   } finally {
     isSubmitting.value = false;
   }
@@ -71,38 +71,38 @@ const langOptions = computed(() =>
   <div>
     <button class="btn btn-primary" @click="open = true">
       <Plus class="w-4 h-4 mr-2" />
-      {{ $t("base.translations.add.btn") }}
+      {{ $t("mod.translations.add.btn") }}
     </button>
 
     <dialog class="modal" :class="{ 'modal-open': open }">
       <div class="modal-box sm:max-w-[425px]">
         <h3 class="font-bold text-lg">
-          {{ $t("base.translations.add.title") }}
+          {{ $t("mod.translations.add.title") }}
         </h3>
         <p
           class="py-4 text-sm text-base-content/70"
-          v-html="$t('base.translations.add.description', { app: appContext })"
+          v-html="$t('mod.translations.add.description', { app: appContext })"
         />
 
         <div class="flex flex-col gap-4 py-4">
           <FormInput
             v-model="section"
-            :label="$t('base.translations.add.sectionLabel')"
-            :placeholder="$t('base.translations.add.sectionPlaceholder')"
+            :label="$t('mod.translations.add.sectionLabel')"
+            :placeholder="$t('mod.translations.add.sectionPlaceholder')"
             required
           />
 
           <FormInput
             v-model="key"
-            :label="$t('base.translations.add.keyLabel')"
-            :placeholder="$t('base.translations.add.keyPlaceholder')"
+            :label="$t('mod.translations.add.keyLabel')"
+            :placeholder="$t('mod.translations.add.keyPlaceholder')"
             required
           />
 
           <FormSelect
             v-model="selectedLangId"
-            :label="$t('base.translations.add.langLabel')"
-            :placeholder="$t('base.translations.add.langPlaceholder')"
+            :label="$t('mod.translations.add.langLabel')"
+            :placeholder="$t('mod.translations.add.langPlaceholder')"
             :options="langOptions"
             required
           />
@@ -110,12 +110,12 @@ const langOptions = computed(() =>
           <div class="form-control w-full">
             <label class="label">
               <span class="label-text font-semibold">{{
-                $t("base.translations.add.contentLabel")
+                $t("mod.translations.add.contentLabel")
               }}</span>
             </label>
             <textarea
               v-model="content"
-              :placeholder="$t('base.translations.add.contentPlaceholder')"
+              :placeholder="$t('mod.translations.add.contentPlaceholder')"
               class="textarea textarea-bordered h-24"
             />
           </div>
@@ -123,7 +123,7 @@ const langOptions = computed(() =>
 
         <div class="modal-action">
           <button class="btn btn-ghost" @click="open = false">
-            {{ $t("base.translations.add.cancelBtn") }}
+            {{ $t("mod.translations.add.cancelBtn") }}
           </button>
           <button
             class="btn btn-primary"
@@ -133,8 +133,8 @@ const langOptions = computed(() =>
           >
             {{
               isSubmitting
-                ? $t("base.translations.add.savingBtn")
-                : $t("base.translations.add.saveBtn")
+                ? $t("mod.translations.add.savingBtn")
+                : $t("mod.translations.add.saveBtn")
             }}
           </button>
         </div>

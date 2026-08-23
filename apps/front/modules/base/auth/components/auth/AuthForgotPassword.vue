@@ -14,8 +14,8 @@ async function onSubmit(event: Event) {
   event.preventDefault()
 
   if (!email.value) {
-    toast.error(t('base.auth.forgotPassword.errorGeneric'), {
-      description: t('base.auth.forgotPassword.errorEmptyFields'),
+    toast.error(t('mod.auth.forgotPassword.errorGeneric'), {
+      description: t('mod.auth.forgotPassword.errorEmptyFields'),
     })
     return
   }
@@ -27,8 +27,8 @@ async function onSubmit(event: Event) {
 
     if (result.success) {
       isSuccess.value = true
-      toast.success(t('base.auth.forgotPassword.successForgotTitle'), {
-        description: t('base.auth.forgotPassword.successForgotDesc'),
+      toast.success(t('mod.auth.forgotPassword.successForgotTitle'), {
+        description: t('mod.auth.forgotPassword.successForgotDesc'),
       })
 
       // Optionally redirect after a delay
@@ -36,13 +36,13 @@ async function onSubmit(event: Event) {
         navigateTo(localePath('/login'))
       }, 3000)
     } else {
-      toast.error(t('base.auth.forgotPassword.errorGeneric'), {
-        description: result.error || t('base.auth.forgotPassword.errorForgotFailed'),
+      toast.error(t('mod.auth.forgotPassword.errorGeneric'), {
+        description: result.error || t('mod.auth.forgotPassword.errorForgotFailed'),
       })
     }
   } catch (error: any) {
-    toast.error(t('base.auth.forgotPassword.errorGeneric'), {
-      description: error?.message || t('base.auth.forgotPassword.errorForgotCatch'),
+    toast.error(t('mod.auth.forgotPassword.errorGeneric'), {
+      description: error?.message || t('mod.auth.forgotPassword.errorForgotCatch'),
     })
   } finally {
     isLoading.value = false
@@ -55,15 +55,15 @@ async function onSubmit(event: Event) {
     <div class="grid gap-4">
       <FormInput
         v-model="email"
-        :label="$t('base.auth.forgotPassword.emailLabel')"
-        :placeholder="$t('base.auth.forgotPassword.emailPlaceholder')"
+        :label="$t('mod.auth.forgotPassword.emailLabel')"
+        :placeholder="$t('mod.auth.forgotPassword.emailPlaceholder')"
         type="email"
         :disabled="isLoading"
         required
       />
       <button type="submit" class="btn btn-primary w-full" :disabled="isLoading">
         <span v-if="isLoading" class="loading loading-spinner loading-sm" />
-        {{ $t('base.auth.forgotPassword.submitButton') }}
+        {{ $t('mod.auth.forgotPassword.submitButton') }}
       </button>
     </div>
   </form>

@@ -1,0 +1,39 @@
+{
+  "mod": {
+    "users": {
+      "title": "Gestión de Usuarios",
+      "description": "Administra los usuarios de la plataforma",
+      "actions": {
+        "create": "Nuevo Usuario",
+        "edit": "Editar",
+        "changeRole": "Cambiar Rol / Estado",
+        "changePassword": "Cambiar Contraseña",
+        "delete": "Eliminar"
+      },
+      "messages": {
+        "deleteConfirm": "¿Estás seguro de que deseas eliminar al usuario {email}?",
+        "deleteSuccess": "Usuario eliminado correctamente",
+        "deleteError": "Error al eliminar usuario"
+      },
+      "table": {
+        "ID": "ID",
+        "firstName": "Nombre",
+        "lastName": "Apellidos",
+        "email": "Email",
+        "role": "Rol",
+        "status": "Estado",
+        "actions": "Acciones",
+        "roles": {
+          "all": "Todos",
+          "admin": "Admin",
+          "user": "User"
+        },
+        "statuses": {
+          "all": "Todos",
+          "active": "Activo",
+          "inactive": "Inactivo"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "ext": {
+    "ka": {
+      "notes": {
+        "title": "Base de Conocimiento",
+        "create": "Nueva Nota",
+        "edit": "Editar Nota",
+        "delete": "Eliminar Nota",
+        "deleteConfirm": "¿Seguro que querés eliminar esta nota?",
+        "empty": "Sin notas aún",
+        "search": "Buscar notas...",
+        "backlinks": "Backlinks",
+        "frontmatter": "Frontmatter (OKF)",
+        "tags": "Tags",
+        "categoryPath": "Ruta de Categoría"
+      },
+      "graph": {
+        "title": "Grafo de Conocimiento",
+        "zoomIn": "Acercar",
+        "zoomOut": "Alejar",
+        "reset": "Resetear Vista",
+        "search": "Buscar nodos...",
+        "filterByCategory": "Filtrar por categoría",
+        "filterByTag": "Filtrar por tag",
+        "empty": "Sin notas para mostrar. Creá notas para verlas en el grafo."
+      },
+      "chat": {
+        "title": "Chat",
+        "new": "Nuevo Chat",
+        "send": "Enviar",
+        "sending": "Enviando...",
+        "stop": "Detener",
+        "placeholder": "Escribí un mensaje... (Enter para enviar, Shift+Enter para nueva línea)",
+        "deleteSession": "Eliminar sesión",
+        "deleteConfirm": "¿Eliminar esta sesión de chat?",
+        "emptySessions": "Sin sesiones de chat aún. Iniciá una nueva conversación.",
+        "streaming": "El agente está escribiendo...",
+        "copyCode": "Copiar código",
+        "copied": "¡Copiado!"
+      },
+      "settings": {
+        "agents": "Configs de Agente",
+        "agentsDescription": "Configurá el system prompt, modelo y permisos de tu agente IA.",
+        "models": "Modelos y Proveedores",
+        "modelsDescription": "Gestioná proveedores LLM (Ollama, OpenRouter) y los modelos que exponen.",
+        "mcp": "Servidores MCP",
+        "mcpDescription": "Configurá servidores Model Context Protocol externos.",
+        "newProvider": "Nuevo Proveedor",
+        "newModel": "Nuevo Modelo",
+        "newAgent": "Nueva Config de Agente",
+        "newMcpServer": "Nuevo Servidor MCP",
+        "adminRequired": "Se requiere acceso admin para gestionar modelos y proveedores."
+      }
+    }
+  }
+}

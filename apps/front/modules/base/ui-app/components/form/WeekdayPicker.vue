@@ -125,19 +125,19 @@ onKeyStroke(['ArrowLeft', 'ArrowRight', 'Enter', 'Escape', ' '], (event) => {
         class="btn btn-ghost btn-xs"
         :disabled="disabled"
         @click="setPreset('weekdays')"
-      >{{ $t('base.app.scheduling.weekdayPicker.presets.weekdays') }}</button>
+      >{{ $t('mod.app.scheduling.weekdayPicker.presets.weekdays') }}</button>
       <button
         type="button"
         class="btn btn-ghost btn-xs"
         :disabled="disabled"
         @click="setPreset('weekends')"
-      >{{ $t('base.app.scheduling.weekdayPicker.presets.weekends') }}</button>
+      >{{ $t('mod.app.scheduling.weekdayPicker.presets.weekends') }}</button>
       <button
         type="button"
         class="btn btn-ghost btn-xs"
         :disabled="disabled"
         @click="setPreset('none')"
-      >{{ $t('base.app.scheduling.weekdayPicker.presets.none') }}</button>
+      >{{ $t('mod.app.scheduling.weekdayPicker.presets.none') }}</button>
     </div>
   </div>
 </template>

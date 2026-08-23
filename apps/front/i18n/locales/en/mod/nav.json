@@ -1,0 +1,30 @@
+{
+  "mod": {
+    "nav": {
+      "home": "Home",
+      "general": "General",
+      "admin": "Administration",
+      "searchPlaceholder": "Search...",
+      "noResults": "No results found",
+      "account": "My Account",
+      "logout": "Logout",
+      "settings": "Settings",
+      "plan": "Subscription",
+      "users": "Users",
+      "CMS": "CMS",
+      "Páginas": "Pages",
+      "Blog": "Blog",
+      "Categorías": "Categories",
+      "Etiquetas": "Tags",
+      "UI App": "UI App",
+      "Components": "Components",
+      "Storage": "Storage",
+      "Archivos": "Files",
+      "System": "System",
+      "translations_heading": "Translations",
+      "languages": "Languages",
+      "all_translations": "Translations",
+      "error_logs": "Error Logs"
+    }
+  }
+}

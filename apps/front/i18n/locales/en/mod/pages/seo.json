@@ -1,0 +1,18 @@
+{
+  "mod": {
+    "pages": {
+      "seo": {
+        "title": "SEO",
+        "metaTitle": "Meta Title",
+        "metaDescription": "Meta Description",
+        "metaKeywords": "Keywords",
+        "ogImage": "OG Image",
+        "canonicalUrl": "Canonical URL",
+        "selectKeywords": "Select keywords...",
+        "newKeyword": "New keyword...",
+        "metaTitlePlaceholder": "Meta title",
+        "metaDescriptionPlaceholder": "Meta description"
+      }
+    }
+  }
+}

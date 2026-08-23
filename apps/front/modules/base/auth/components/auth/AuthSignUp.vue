@@ -17,15 +17,15 @@ async function onSubmit(event: Event) {
 
   // Form validation
   if (!name.value || !email.value || !password.value || !confirmPassword.value) {
-    toast.error(t('base.auth.signUp.errorGeneric'), {
-      description: t('base.auth.signUp.errorEmptyFields'),
+    toast.error(t('mod.auth.signUp.errorGeneric'), {
+      description: t('mod.auth.signUp.errorEmptyFields'),
     });
     return;
   }
 
   if (password.value !== confirmPassword.value) {
-    toast.error(t('base.auth.signUp.errorGeneric'), {
-      description: t('base.auth.signUp.errorPasswordMismatch'),
+    toast.error(t('mod.auth.signUp.errorGeneric'), {
+      description: t('mod.auth.signUp.errorPasswordMismatch'),
     });
     return;
   }
@@ -43,20 +43,20 @@ async function onSubmit(event: Event) {
     });
 
     if (result.success) {
-      toast.success(t('base.auth.signUp.successRegisterTitle'), {
-        description: t('base.auth.signUp.successRegisterDesc'),
+      toast.success(t('mod.auth.signUp.successRegisterTitle'), {
+        description: t('mod.auth.signUp.successRegisterDesc'),
       });
 
       const { navigateHome } = useHomeRoute();
       await navigateHome();
     } else {
-      toast.error(t('base.auth.signUp.errorGeneric'), {
-        description: result.error || t('base.auth.signUp.errorRegisterFailed'),
+      toast.error(t('mod.auth.signUp.errorGeneric'), {
+        description: result.error || t('mod.auth.signUp.errorRegisterFailed'),
       });
     }
   } catch (error: any) {
-    toast.error(t('base.auth.signUp.errorGeneric'), {
-      description: error?.message || t('base.auth.signUp.errorRegisterCatch'),
+    toast.error(t('mod.auth.signUp.errorGeneric'), {
+      description: error?.message || t('mod.auth.signUp.errorRegisterCatch'),
     });
   } finally {
     isLoading.value = false;
@@ -70,16 +70,16 @@ async function onSubmit(event: Event) {
       <div class="grid gap-4">
         <FormInput
           v-model="name"
-          :label="$t('base.auth.signUp.nameLabel')"
-          :placeholder="$t('base.auth.signUp.namePlaceholder')"
+          :label="$t('mod.auth.signUp.nameLabel')"
+          :placeholder="$t('mod.auth.signUp.namePlaceholder')"
           :disabled="isLoading"
           required
         />
 
         <FormInput
           v-model="email"
-          :label="$t('base.auth.signUp.emailLabel')"
-          :placeholder="$t('base.auth.signUp.emailPlaceholder')"
+          :label="$t('mod.auth.signUp.emailLabel')"
+          :placeholder="$t('mod.auth.signUp.emailPlaceholder')"
           type="email"
           :disabled="isLoading"
           required
@@ -87,31 +87,31 @@ async function onSubmit(event: Event) {
 
         <div class="form-control w-full">
           <label class="label">
-            <span class="label-text font-semibold">{{ $t('base.auth.signUp.passwordLabel') }}</span>
+            <span class="label-text font-semibold">{{ $t('mod.auth.signUp.passwordLabel') }}</span>
           </label>
           <PasswordInput
             id="password"
             v-model="password"
-            :placeholder="$t('base.auth.signUp.passwordPlaceholder')"
+            :placeholder="$t('mod.auth.signUp.passwordPlaceholder')"
             :disabled="isLoading"
           />
         </div>
 
         <div class="form-control w-full">
           <label class="label">
-            <span class="label-text font-semibold">{{ $t('base.auth.signUp.confirmPasswordLabel') }}</span>
+            <span class="label-text font-semibold">{{ $t('mod.auth.signUp.confirmPasswordLabel') }}</span>
           </label>
           <PasswordInput
             id="confirm-password"
             v-model="confirmPassword"
-            :placeholder="$t('base.auth.signUp.confirmPasswordPlaceholder')"
+            :placeholder="$t('mod.auth.signUp.confirmPasswordPlaceholder')"
             :disabled="isLoading"
           />
         </div>
 
         <button type="submit" class="btn btn-primary w-full" :disabled="isLoading">
           <span v-if="isLoading" class="loading loading-spinner loading-sm" />
-          {{ $t('base.auth.signUp.submitButton') }}
+          {{ $t('mod.auth.signUp.submitButton') }}
         </button>
       </div>
     </form>

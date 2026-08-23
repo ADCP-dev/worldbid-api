@@ -13,13 +13,13 @@ definePageMeta({
           <AppLogo />
         </h1>
         <p class="text-balance text-sm text-base-content/60">
-          {{ $t('base.auth.loginPage.description') }}
+          {{ $t('mod.auth.loginPage.description') }}
         </p>
       </div>
 
       <AuthSignIn />
 
-      <p class="text-center mt-5 text-xs text-base-content/60" v-html="$t('base.auth.terms.login', { year: new Date().getFullYear() })"/>
+      <p class="text-center mt-5 text-xs text-base-content/60" v-html="$t('mod.auth.terms.login', { year: new Date().getFullYear() })"/>
     </div>
   </AuthLayout>
 </template>

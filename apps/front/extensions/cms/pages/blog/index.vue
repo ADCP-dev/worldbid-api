@@ -126,11 +126,11 @@ const tagItems = computed(() => {
     />
 
     <div class="mb-8">
-      <h1 class="text-4xl font-bold mb-6">{{ t('cms.blog.title') }}</h1>
+      <h1 class="text-4xl font-bold mb-6">{{ t('ext.cms.blog.title') }}</h1>
 
       <div class="flex flex-col md:flex-row gap-4 mb-6">
         <SearchBox
- v-model="searchInput" :placeholder="t('cms.blog.searchPlaceholder')" class="md:max-w-sm"
+ v-model="searchInput" :placeholder="t('ext.cms.blog.searchPlaceholder')" class="md:max-w-sm"
           @update:model-value="onSearch" />
         <div v-if="allCategories.length" class="flex flex-wrap items-center gap-2">
           <NuxtLink
@@ -138,7 +138,7 @@ const tagItems = computed(() => {
             class="badge badge-outline badge-sm hover:badge-primary cursor-pointer"
             :class="{ 'badge-primary': !route.query.categoryId }"
           >
-            {{ t('cms.blog.allCategories') }}
+            {{ t('ext.cms.blog.allCategories') }}
           </NuxtLink>
           <NuxtLink
             v-for="cat in allCategories"
@@ -174,7 +174,7 @@ const tagItems = computed(() => {
 
     <!-- Empty state -->
     <div v-else class="text-center py-12">
-      <p class="text-lg text-base-content/70">{{ t('cms.blog.noResults') }}</p>
+      <p class="text-lg text-base-content/70">{{ t('ext.cms.blog.noResults') }}</p>
     </div>
 
     <!-- Pagination -->

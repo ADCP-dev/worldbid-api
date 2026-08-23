@@ -6,10 +6,10 @@
   <div class="pb-16 space-y-6">
     <div class="space-y-0.5">
       <h2 class="text-2xl font-bold tracking-tight">
-        {{ $t('base.settings.title') }}
+        {{ $t('mod.settings.title') }}
       </h2>
       <p class="text-muted-foreground">
-        {{ $t('base.settings.description') }}
+        {{ $t('mod.settings.description') }}
       </p>
     </div>
     <div class="divider my-6"/>

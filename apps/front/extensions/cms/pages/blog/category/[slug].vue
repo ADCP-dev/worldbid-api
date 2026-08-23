@@ -131,7 +131,7 @@ const tagItems = computed(() => {
     />
 
     <div class="mb-8">
-      <h1 class="text-4xl font-bold mb-2">{{ category?.name || t('cms.blog.title') }}</h1>
+      <h1 class="text-4xl font-bold mb-2">{{ category?.name || t('ext.cms.blog.title') }}</h1>
       <p v-if="category?.description" class="text-base-content/70">{{ category.description }}</p>
 
       <div class="flex flex-col md:flex-row gap-4 mb-6 mt-6">
@@ -170,7 +170,7 @@ const tagItems = computed(() => {
 
     <!-- Empty -->
     <div v-else class="text-center py-12">
-      <p class="text-lg text-base-content/70">{{ t('cms.blog.noResults') }}</p>
+      <p class="text-lg text-base-content/70">{{ t('ext.cms.blog.noResults') }}</p>
     </div>
 
     <div v-if="meta.totalPages > 1" class="flex justify-center mt-12">

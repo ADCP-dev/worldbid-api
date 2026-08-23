@@ -17,8 +17,8 @@ async function onSubmit(event: Event) {
   event.preventDefault()
 
   if (!email.value || !password.value) {
-    toast.error(t('base.auth.signIn.errorGeneric'), {
-      description: t('base.auth.signIn.errorEmptyFields'),
+    toast.error(t('mod.auth.signIn.errorGeneric'), {
+      description: t('mod.auth.signIn.errorEmptyFields'),
     })
     return
   }
@@ -29,8 +29,8 @@ async function onSubmit(event: Event) {
     const result = await authStore.login(email.value, password.value)
 
     if (result.success) {
-      toast.success(t('base.auth.signIn.successLoginTitle'), {
-        description: t('base.auth.signIn.successLoginDesc'),
+      toast.success(t('mod.auth.signIn.successLoginTitle'), {
+        description: t('mod.auth.signIn.successLoginDesc'),
       })
 
       const redirect = sanitizeRedirect(route.query.redirect)
@@ -41,27 +41,27 @@ async function onSubmit(event: Event) {
         await navigateHome()
       }
     } else {
-      let description = result.error || t('base.auth.signIn.errorInvalidCreds');
+      let description = result.error || t('mod.auth.signIn.errorInvalidCreds');
       if (result.errorCode === 'incorrectPassword' || result.errorCode === 'notFound' || result.errorCode === 'incorrectEmail') {
-        description = t('base.auth.signIn.errorIncorrectLogin');
+        description = t('mod.auth.signIn.errorIncorrectLogin');
       }
 
-      toast.error(t('base.auth.signIn.errorGeneric'), {
+      toast.error(t('mod.auth.signIn.errorGeneric'), {
         description,
       })
     }
   } catch (error: unknown) {
-    let description = t('base.auth.signIn.errorLoginFailed');
+    let description = t('mod.auth.signIn.errorLoginFailed');
     if (error instanceof Error) {
       description = error.message || description;
     }
     // Narrow for API error shape (axios errors carry data.errors)
     const apiError = error as { data?: { errors?: Record<string, string> } } | undefined;
     if (apiError?.data?.errors?.password === 'incorrectPassword' || apiError?.data?.errors?.email === 'notFound') {
-      description = t('base.auth.signIn.errorIncorrectLogin');
+      description = t('mod.auth.signIn.errorIncorrectLogin');
     }
 
-    toast.error(t('base.auth.signIn.errorGeneric'), {
+    toast.error(t('mod.auth.signIn.errorGeneric'), {
       description,
     })
   } finally {
@@ -76,18 +76,18 @@ async function onSubmit(event: Event) {
 
     <FormInput
       v-model="email"
-      :label="$t('base.auth.signIn.emailLabel')"
+      :label="$t('mod.auth.signIn.emailLabel')"
       type="email"
-      :placeholder="$t('base.auth.signIn.emailPlaceholder')"
+      :placeholder="$t('mod.auth.signIn.emailPlaceholder')"
       :disabled="isLoading"
       testId="login-email"
     />
 
     <div class="form-control w-full">
       <div class="label justify-between">
-        <span class="label-text font-semibold">{{ $t('base.auth.signIn.passwordLabel') }}</span>
+        <span class="label-text font-semibold">{{ $t('mod.auth.signIn.passwordLabel') }}</span>
         <NuxtLink :to="localePath('/forgot-password')" class="label-text-alt link link-hover">
-          {{ $t('base.auth.signIn.forgotPasswordLink') }}
+          {{ $t('mod.auth.signIn.forgotPasswordLink') }}
         </NuxtLink>
       </div>
       <PasswordInput id="password" v-model="password" testId="login-password" />
@@ -95,13 +95,13 @@ async function onSubmit(event: Event) {
 
     <button type="submit" class="btn btn-primary w-full" :disabled="isLoading" data-testid="login-submit">
       <span v-if="isLoading" class="loading loading-spinner loading-sm" />
-      {{ $t('base.auth.signIn.submitButton') }}
+      {{ $t('mod.auth.signIn.submitButton') }}
     </button>
   </form>
   <div class="mt-4 text-center text-sm opacity-60">
-    {{ $t('base.auth.signIn.noAccountPrompt') }}
+    {{ $t('mod.auth.signIn.noAccountPrompt') }}
     <NuxtLink :to="localePath('/register')" class="link font-medium">
-      {{ $t('base.auth.signIn.registerLink') }}
+      {{ $t('mod.auth.signIn.registerLink') }}
     </NuxtLink>
   </div>
 </template>

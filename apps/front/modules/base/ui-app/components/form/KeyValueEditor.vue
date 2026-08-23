@@ -99,7 +99,7 @@ function removeRow(idx: number) {
             label=""
             placeholder="key"
             :disabled="disabled"
-            :error="invalidKeys.has(idx) ? $t('base-ui.automation.invalidKey') : undefined"
+            :error="invalidKeys.has(idx) ? $t('mod.ui.automation.invalidKey') : undefined"
             @update:model-value="updateRow(idx, { key: $event as string })"
           />
         </div>
@@ -127,7 +127,7 @@ function removeRow(idx: number) {
           type="button"
           class="btn btn-ghost btn-sm text-error"
           :disabled="disabled"
-          :aria-label="$t('base-ui.automation.removeRow')"
+          :aria-label="$t('mod.ui.automation.removeRow')"
           @click="removeRow(idx)"
         >
           <X class="h-4 w-4" />
@@ -141,7 +141,7 @@ function removeRow(idx: number) {
         @click="addRow"
       >
         <Plus class="h-4 w-4" />
-        {{ $t('base-ui.automation.addRow') }}
+        {{ $t('mod.ui.automation.addRow') }}
       </button>
     </div>
   </div>

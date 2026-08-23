@@ -78,7 +78,7 @@ function updateField(key: string, value: unknown) {
         class="btn btn-ghost btn-xs"
         @click="collapsedState = !collapsedState"
       >
-        {{ collapsedState ? $t('base-ui.automation.expand') : $t('base-ui.automation.collapse') }}
+        {{ collapsedState ? $t('mod.ui.automation.expand') : $t('mod.ui.automation.collapse') }}
       </button>
     </div>
 

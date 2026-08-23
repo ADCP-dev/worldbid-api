@@ -1,0 +1,79 @@
+{
+  "mod": {
+    "common": {
+      "status": {
+        "processing": "Procesando",
+        "active": "Activo",
+        "inactive": "Inactivo",
+        "pending": "Pendiente",
+        "completed": "Completado",
+        "success": "Éxito",
+        "error": "Error",
+        "warning": "Advertencia",
+        "info": "Información",
+        "loading": "Cargando...",
+        "empty": "No hay datos disponibles"
+      },
+      "actions": {
+        "save": "Guardar",
+        "edit": "Editar",
+        "delete": "Eliminar",
+        "cancel": "Cancelar",
+        "confirm": "Confirmar",
+        "update": "Actualizar",
+        "create": "Crear",
+        "add": "Añadir",
+        "remove": "Quitar",
+        "close": "Cerrar",
+        "open": "Abrir",
+        "send": "Enviar",
+        "submit": "Enviar",
+        "apply": "Aplicar",
+        "search": "Buscar",
+        "filter": "Filtrar",
+        "back": "Volver",
+        "next": "Siguiente",
+        "upload": "Subir archivo",
+        "download": "Descargar",
+        "refresh": "Actualizar",
+        "export": "Exportar",
+        "import": "Importar",
+        "view": "Ver",
+        "reset": "Restablecer",
+        "clear": "Limpiar"
+      },
+      "pagination": {
+        "previous": "Anterior",
+        "next": "Siguiente",
+        "page": "Página",
+        "of": "de",
+        "items": "elementos",
+        "showing": "Mostrando",
+        "noResults": "No se encontraron resultados"
+      },
+      "dialogs": {
+        "confirmDeletion": "¿Estás seguro de que quieres eliminar esto?",
+        "confirmAction": "¿Estás seguro de que quieres proceder?",
+        "unsavedChanges": "Tienes cambios sin guardar. ¿Estás seguro de que quieres salir?",
+        "successMessage": "Acción completada con éxito.",
+        "errorMessage": "Ha ocurrido un error. Por favor, inténtalo de nuevo."
+      },
+      "fields": {
+        "name": "Nombre",
+        "title": "Título",
+        "description": "Descripción",
+        "date": "Fecha",
+        "time": "Hora",
+        "status": "Estado",
+        "type": "Tipo",
+        "options": "Opciones",
+        "required": "Requerido",
+        "optional": "Opcional",
+        "select": "Seleccionar...",
+        "all": "Todos",
+        "none": "Ninguno",
+        "actions": "Acciones"
+      }
+    }
+  }
+}

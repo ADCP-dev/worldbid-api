@@ -1,0 +1,69 @@
+{
+  "mod": {
+    "translations": {
+      "title": "Traducciones",
+      "section": "Sección",
+      "key": "Clave",
+      "translations": "Traducciones",
+      "actions": "Acciones",
+      "autoTranslateBtn": "Traducir automáticamente",
+      "bulkTranslatingMsg": "Traduciendo...",
+      "generateJsonBtn": "Generar JSON",
+      "generatingMsg": "Generando...",
+      "frontAppTab": "Frontend",
+      "backAppTab": "Backend",
+      "confirmDelete": "¿Estás seguro de que quieres eliminar este grupo de traducción?",
+      "toast": {
+        "deleted": "Traducción eliminada correctamente.",
+        "deleteFailed": "Error al eliminar la traducción.",
+        "generated": "Archivos JSON generados correctamente.",
+        "generateFailed": "Error al generar los archivos JSON.",
+        "bulkComplete": "Traducción masiva completada.",
+        "bulkFailed": "La traducción masiva falló"
+      },
+      "add": {
+        "btn": "Nueva Traducción",
+        "title": "Añadir Traducción",
+        "description": "Crea una nueva clave de traducción para la aplicación \"<strong>{app}</strong>\".",
+        "sectionLabel": "Sección",
+        "sectionPlaceholder": "ej: common",
+        "keyLabel": "Clave",
+        "keyPlaceholder": "ej: welcome_message",
+        "langLabel": "Idioma Base",
+        "langPlaceholder": "Selecciona un idioma",
+        "contentLabel": "Contenido",
+        "contentPlaceholder": "Texto traducido...",
+        "cancelBtn": "Cancelar",
+        "saveBtn": "Guardar",
+        "savingBtn": "Guardando...",
+        "toast": {
+          "error": "Error al crear la traducción"
+        }
+      },
+      "editor": {
+        "bulkTranslating": "Traduciendo Todos...",
+        "autoTranslateAll": "Auto-Traducir Todos los Faltantes (IA)",
+        "saving": "Guardando...",
+        "saveSync": "Guardar y Sincronizar",
+        "editTitle": "Editar Traducción:",
+        "placeholder": "Introducir traducción...",
+        "toast": {
+          "bulkSuccess": "Traducción masiva completada",
+          "bulkError": "Traducción masiva fallida",
+          "saveSuccess": "Traducciones guardadas correctamente",
+          "saveError": "Error al guardar las traducciones"
+        }
+      },
+      "accordion": {
+        "noTranslations": "Sin traducciones",
+        "tooltip": "Auto-Traducir faltantes (IA)",
+        "placeholder": "Traducción en {lang}...",
+        "toast": {
+          "success": "Traducción exitosa",
+          "error": "Traducción fallida",
+          "saveError": "Error al guardar la traducción"
+        }
+      }
+    }
+  }
+}

@@ -127,7 +127,7 @@ function handleOpenModal() {
       @click="handleOpenModal"
     >
       <AppIcon name="Search" class="size-4" />
-      <span class="font-normal flex-1 text-left is-drawer-close:hidden">{{ $t('base.nav.searchPlaceholder') }}</span>
+      <span class="font-normal flex-1 text-left is-drawer-close:hidden">{{ $t('mod.nav.searchPlaceholder') }}</span>
       <div class="ml-auto flex items-center gap-1 opacity-50 is-drawer-close:hidden">
         <kbd class="kbd kbd-sm">{{ metaSymbol }}</kbd>
         <kbd class="kbd kbd-sm">K</kbd>
@@ -143,13 +143,13 @@ function handleOpenModal() {
             ref="inputRef"
             v-model="searchQuery"
             type="text"
-            :placeholder="$t('base.nav.searchPlaceholder')"
+            :placeholder="$t('mod.nav.searchPlaceholder')"
             class="input input-bordered w-full"
           >
         </div>
 
         <div v-if="filteredItems.length === 0" class="p-6 text-center text-sm opacity-60">
-          {{ $t('base.nav.noResults') }}
+          {{ $t('mod.nav.noResults') }}
         </div>
 
         <ul v-else ref="resultsListRef" class="menu flex-1 overflow-y-auto w-full p-2 flex-nowrap">
