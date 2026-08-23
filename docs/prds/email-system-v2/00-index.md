@@ -1,13 +1,14 @@
 ---
 doc: email-system-v2/00-index
 title: "Email System v2 — PRD Índice"
-status: draft
+status: archived
 created: 2026-08-20
+archived: 2026-08-23
 ---
 
 # Email System v2 — PRD Índice
 
-**Estado**: draft
+**Estado**: archived
 **Owner**: Foundation
 **Creado**: 2026-08-20
 **Slug**: `email-system-v2`

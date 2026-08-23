@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { useChatSessions, type ChatSession } from '../composables/useChatStream';
+import { useChatSessions, type ChatSession } from '../../composables/useChatStream';
 
 definePageMeta({
   layout: 'app',

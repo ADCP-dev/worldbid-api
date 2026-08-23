@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { useKnowledgeStore } from '../stores/knowledge.store';
+import { useKnowledgeStore } from '../../stores/knowledge.store';
 
 definePageMeta({
   layout: 'app',
