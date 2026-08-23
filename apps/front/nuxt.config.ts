@@ -2,10 +2,6 @@
 import tailwindcss from '@tailwindcss/vite';
 import { SUPPORTED_LOCALES, DEFAULT_LOCALE, localizedRoutes } from './config/i18n-constants';
 
-function getI18nFiles(_langCode: string) {
-  return ['dynamic-loader.ts'];
-}
-
 export default defineNuxtConfig(
   {
     compatibilityDate: '2024-11-01',
@@ -67,8 +63,38 @@ export default defineNuxtConfig(
 
     css: ['~/assets/css/tailwind.css', 'flag-icons/css/flag-icons.min.css'],
     vite: {
-      // @ts-expect-error - Incompatible vite/rollup plugin types in this environment
-      plugins: [tailwindcss()],
+      plugins: [
+        tailwindcss(),
+        // Workaround for @intlify/unplugin-vue-i18n 11.0.7 + Vite 8 incompatibility
+        // (nuxt-modules/i18n#3953): vite:json parses i18n locale JSON before unplugin-vue-i18n
+        // can transform it, causing "Failed to parse JSON file" build errors.
+        // Skip vite:json for i18n locale files so unplugin-vue-i18n handles them.
+        {
+          name: 'i18n-json-vite8-fix',
+          enforce: 'pre',
+          configResolved(config) {
+            const jsonPlugin = config.plugins.find((p) => p.name === 'vite:json');
+            if (!jsonPlugin?.transform) return;
+
+            const originalTransform =
+              typeof jsonPlugin.transform === 'function'
+                ? jsonPlugin.transform
+                : jsonPlugin.transform?.handler;
+            if (!originalTransform) return;
+
+            const patchedTransform = function (this: unknown, code: string, id: string, ...args: unknown[]) {
+              if (/i18n\/locales\/.*\.json$/.test(id)) return;
+              return (originalTransform as Function).call(this, code, id, ...args);
+            };
+
+            if (typeof jsonPlugin.transform === 'function') {
+              jsonPlugin.transform = patchedTransform as typeof jsonPlugin.transform;
+            } else if (jsonPlugin.transform?.handler) {
+              jsonPlugin.transform.handler = patchedTransform as typeof jsonPlugin.transform.handler;
+            }
+          },
+        },
+      ],
       server: {
         allowedHosts: ['f.vps.som-os.dev'],
       },
@@ -76,75 +102,67 @@ export default defineNuxtConfig(
     colorMode: {
       classSuffix: '',
     },
-    hooks: {
-      // @ts-expect-error - i18n:registerModule hook types not aligned with @nuxtjs/i18n
-      'i18n:registerModule': async function (
-        register: (config: {
-          langDir: string;
-          locales: Array<{
-            code: string;
-            name: string;
-            files: string[];
-            flagCode: string;
-          }>;
-        }) => void,
-      ) {
-        try {
-          // Fetch active languages directly from the backend during Nuxt startup
-          const apiUrl = process.env.API_URL || 'http://localhost:3001';
-          const apiPrefix = process.env.API_PREFIX || '/api/v1';
-
-          // Use native fetch to get the langs from the database
-          const res = await fetch(`${apiUrl}${apiPrefix}/translations/langs`);
-          const langsDb = (await res.json()) as Array<{
-            code: string;
-            name: string;
-            isActive: boolean;
-            flagCode?: string;
-          }>;
-
-          // Map database languages to Nuxt i18n locales format
-          const dynamicLocales = langsDb
-            .filter((lang) => lang.isActive) // Guarantee we only register active ones
-            .map((lang) => ({
-              code: lang.code,
-              name: lang.name,
-              files: getI18nFiles(lang.code),
-              flagCode: lang.flagCode || lang.code,
-            }));
-
-          // Only register locales from backend that are NOT already in static config
-          // to avoid duplicates. Static config already has es, en as fallback.
-          const staticCodes = new Set(['es', 'en']);
-          const newLocales = dynamicLocales.filter(
-            (lang) => !staticCodes.has(lang.code),
-          );
-
-          if (newLocales.length > 0) {
-            register({
-              langDir: 'locales',
-              locales: newLocales,
-            });
-          }
-        } catch (error) {
-          console.warn(
-            '⚠️ Failed to fetch dynamic languages from backend. Using static fallback locales [es, en].',
-            error,
-          );
-          // Static fallback already defined in i18n.locales config
-        }
-      },
-    },
     i18n: {
       lazy: true,
       strategy: 'prefix_except_default',
       defaultLocale: 'es',
+      langDir: 'locales',
       compilation: {
         strictMessage: false,
       },
       locales: [
-        { code: 'es', iso: 'es-ES', name: 'Español', files: ['dynamic-loader.ts'] },
-        { code: 'en', iso: 'en-US', name: 'English', files: ['dynamic-loader.ts'] },
+        {
+          code: 'es',
+          iso: 'es-ES',
+          name: 'Español',
+          files: [
+            'es/base/common.json',
+            'es/base/app.json',
+            'es/base/auth.json',
+            'es/base/error.json',
+            'es/base/nav.json',
+            'es/base/settings.json',
+            'es/base/users.json',
+            'es/base/languages.json',
+            'es/base/translations.json',
+            'es/base-ui.json',
+            'es/base-ui/automation.json',
+            'es/cms.json',
+            'es/ka.json',
+            'es/landing.json',
+            'es/pages/common.json',
+            'es/pages/blog.json',
+            'es/pages/pages.json',
+            'es/pages/seo.json',
+            'es/pages/tags.json',
+          ],
+        },
+        {
+          code: 'en',
+          iso: 'en-US',
+          name: 'English',
+          files: [
+            'en/base/common.json',
+            'en/base/app.json',
+            'en/base/auth.json',
+            'en/base/error.json',
+            'en/base/nav.json',
+            'en/base/settings.json',
+            'en/base/users.json',
+            'en/base/languages.json',
+            'en/base/translations.json',
+            'en/base-ui.json',
+            'en/base-ui/automation.json',
+            'en/cms.json',
+            'en/ka.json',
+            'en/landing.json',
+            'en/pages/common.json',
+            'en/pages/blog.json',
+            'en/pages/pages.json',
+            'en/pages/seo.json',
+            'en/pages/tags.json',
+          ],
+        },
       ].filter((l) => SUPPORTED_LOCALES.includes(l.code as typeof SUPPORTED_LOCALES[number])),
       vueI18n: './i18n.config.ts',
       detectBrowserLanguage: {
