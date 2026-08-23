@@ -173,7 +173,9 @@ export default defineNuxtConfig(
     },
 
     ogImage: {
-      zeroRuntime: true,
+      // SPA (ssr: false) doesn't serve OG images at runtime — disable build-time generation.
+      // Module stays in `modules` so defineOgImage() calls in CMS pages don't break.
+      enabled: false,
     },
 
     site: {
