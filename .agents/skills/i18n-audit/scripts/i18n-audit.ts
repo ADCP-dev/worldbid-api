@@ -136,29 +136,88 @@ for (const key of allKeys) {
 // ─── 3. Find unused keys (heuristic) ─────────────────────────────────────
 
 function findUnusedKeys() {
-  // Get all .vue and .ts files content (grep for $t or t() calls)
   const unused = [];
+
+  // Collect ALL source code from .vue, .ts, .tsx files in the frontend.
+  // Search patterns: $t('key'), $t("key"), t('key'), t("key"),
+  // i18n.t('key'), $i18n.t('key'), useI18n
   let allCode = '';
   try {
     allCode = execSync(
-      `find ${frontSrcDir} -name "*.vue" -o -name "*.ts" | grep -v node_modules | grep -v .nuxt | xargs grep -l "\\$t\\|\\$i18n\\|i18n\\.t" 2>/dev/null | head -200 | xargs cat 2>/dev/null`,
-      { encoding: 'utf-8', maxBuffer: 50 * 1024 * 1024 },
+      `find "${frontSrcDir}" -type f \\( -name "*.vue" -o -name "*.ts" -o -name "*.tsx" \\) ` +
+        `-not -path "*/node_modules/*" -not -path "*/.nuxt/*" -not -path "*/.output/*" ` +
+        `| head -500 | xargs cat 2>/dev/null`,
+      { encoding: 'utf-8', maxBuffer: 100 * 1024 * 1024 },
     );
   } catch {
-    // grep might fail if no matches
+    // cat might fail on binary files
   }
 
-  for (const key of allKeys) {
-    // Check if key appears in code (heuristic: literal string match)
-    if (!allCode.includes(key) && !allCode.includes(`'${key}'`) && !allCode.includes(`"${key}"`)) {
-      // Also check for partial matches (parent key used as prefix)
-      const parentKey = key.split('.').slice(0, -1).join('.');
-      if (parentKey && allCode.includes(parentKey + '.')) continue;
-      unused.push(key);
+  // Also scan the Astro web app if it exists
+  const webDir = path.join(repoRoot, 'apps/web');
+  if (fs.existsSync(webDir)) {
+    try {
+      const webCode = execSync(
+        `find "${webDir}" -type f \\( -name "*.astro" -o -name "*.ts" -o -name "*.tsx" \\) ` +
+          `-not -path "*/node_modules/*" -not -path "*/dist/*" ` +
+          `| head -200 | xargs cat 2>/dev/null`,
+        { encoding: 'utf-8', maxBuffer: 50 * 1024 * 1024 },
+      );
+      allCode += '\n' + webCode;
+    } catch {
+      // skip
     }
   }
 
-  return unused;
+  // Build a set of keys referenced in code
+  const usedKeys = new Set();
+
+  // Pattern 1: $t('key') or $t("key")
+  const tRegex = /\$t\s*\(\s*['"`]([^'"`]+)['"`]\s*\)/g;
+  let m;
+  while ((m = tRegex.exec(allCode)) !== null) {
+    usedKeys.add(m[1]);
+  }
+
+  // Pattern 2: t('key') or t("key") — from useI18n() destructure
+  const t2Regex = /(?<![\w$])t\s*\(\s*['"`]([^'"`]+)['"`]\s*\)/g;
+  while ((m = t2Regex.exec(allCode)) !== null) {
+    usedKeys.add(m[1]);
+  }
+
+  // Pattern 3: i18n.t('key') or $i18n.t('key')
+  const i18nRegex = /\$?i18n\.t\s*\(\s*['"`]([^'"`]+)['"`]\s*\)/g;
+  while ((m = i18nRegex.exec(allCode)) !== null) {
+    usedKeys.add(m[1]);
+  }
+
+  // Pattern 4: Any literal string that matches a full key
+  for (const key of allKeys) {
+    if (allCode.includes(`'${key}'`) || allCode.includes(`"${key}"`)) {
+      usedKeys.add(key);
+    }
+  }
+
+  // Check each key: if not directly used, check if a child key is used
+  // (parent keys like "mod.common.actions" are used via their children)
+  for (const key of allKeys) {
+    if (usedKeys.has(key)) continue;
+
+    // Check if any child key is used (parent is implicitly used)
+    const prefix = key + '.';
+    for (const usedKey of usedKeys) {
+      if (usedKey.startsWith(prefix)) {
+        // Parent key is used via child
+        // But we don't add it to usedKeys — parent without its own value
+        // is still "unused" as a standalone key
+        break;
+      }
+    }
+
+    unused.push(key);
+  }
+
+  return unused.sort();
 }
 
 // ─── 4. Output ───────────────────────────────────────────────────────────
