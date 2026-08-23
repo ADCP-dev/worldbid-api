@@ -126,36 +126,61 @@ function buildEmailThemeBlock(colors) {
 }
 
 /**
- * Replace the `@theme { ... }` block in a .vue email template with the given
- * emailThemeBlock. Preserves the `@import` line before it.
+ * Replace ALL `@theme { ... }` blocks in a .vue email template with the given
+ * emailThemeBlock. Handles two patterns:
+ *   1. <style> block:  `@theme { ... }` lives inside a <style> tag.
+ *   2. <Tailwind #config>:  `@theme { ... }` lives inside a template #config slot.
+ * Both use the same @theme syntax, so we replace every occurrence.
  */
 function injectEmailTheme(vuePath, emailThemeBlock) {
-  const content = readFileSync(vuePath, 'utf-8');
-  // Match the existing @theme block (handles nested braces).
-  const themeIdx = content.indexOf('@theme');
-  if (themeIdx === -1) return false;
-  const braceOpen = content.indexOf('{', themeIdx);
-  if (braceOpen === -1) return false;
-  let depth = 0;
-  let end = -1;
-  for (let i = braceOpen; i < content.length; i++) {
-    if (content[i] === '{') depth++;
-    else if (content[i] === '}') {
-      depth--;
-      if (depth === 0) {
-        end = i + 1;
-        break;
+  let content = readFileSync(vuePath, 'utf-8');
+  let changed = false;
+
+  // Repeatedly find and replace every @theme { ... } block.
+  let searchFrom = 0;
+  while (searchFrom < content.length) {
+    const themeIdx = content.indexOf('@theme', searchFrom);
+    if (themeIdx === -1) break;
+    const braceOpen = content.indexOf('{', themeIdx);
+    if (braceOpen === -1) break;
+    let depth = 0;
+    let end = -1;
+    for (let i = braceOpen; i < content.length; i++) {
+      if (content[i] === '{') depth++;
+      else if (content[i] === '}') {
+        depth--;
+        if (depth === 0) {
+          end = i + 1;
+          break;
+        }
       }
     }
+    if (end === -1) break;
+
+    // Preserve the indentation of the original @theme line so the
+    // replacement fits both <style> (no indent) and #config slot
+    // (typically 10 spaces: "          @theme").
+    let lineStart = themeIdx;
+    while (lineStart > 0 && content[lineStart - 1] !== '\n') lineStart--;
+    const indent = content.slice(lineStart, themeIdx);
+    const indentedBlock = emailThemeBlock
+      .split('\n')
+      .map((line, i) => (i === 0 ? line : indent + line))
+      .join('\n');
+
+    content =
+      content.slice(0, themeIdx) +
+      indentedBlock +
+      content.slice(end);
+    changed = true;
+    // Advance past the replacement to avoid re-matching the newly inserted @theme.
+    searchFrom = themeIdx + indentedBlock.length;
   }
-  if (end === -1) return false;
-  const out =
-    content.slice(0, themeIdx) +
-    emailThemeBlock +
-    content.slice(end) +
-    (content.endsWith('\n') ? '' : '\n');
-  writeFileSync(vuePath, out);
-  return true;
+
+  if (changed) {
+    writeFileSync(vuePath, content.endsWith('\n') ? content : content + '\n');
+  }
+  return changed;
 }
 
 /**
