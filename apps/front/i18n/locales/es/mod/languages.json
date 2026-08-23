@@ -17,7 +17,14 @@
       "tableCode": "Código",
       "tableName": "Nombre",
       "tableActive": "Activo",
-      "tableActions": "Acciones"
+      "tableActions": "Acciones",
+      "app": {
+        "active": "Activo",
+        "code": "Código",
+        "editLanguageDialogTitle": "Editar idioma",
+        "flagCode": "Código de bandera",
+        "name": "Nombre"
+      }
     }
   }
 }

@@ -11,7 +11,9 @@
         "selectKeywords": "Selecciona palabras clave...",
         "newKeyword": "Nueva palabra clave...",
         "metaTitlePlaceholder": "Meta título",
-        "metaDescriptionPlaceholder": "Meta descripción"
+        "metaDescriptionPlaceholder": "Meta descripción",
+        "jsonLdType": "Tipo JSON-LD",
+        "selectJsonLdType": "Selecciona tipo JSON-LD"
       }
     }
   }

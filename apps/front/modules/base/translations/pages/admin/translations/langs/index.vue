@@ -197,31 +197,31 @@ onMounted(fetchLangs);
     <dialog class="modal" :class="{ 'modal-open': isEditDialogOpen }">
       <div class="modal-box">
         <h3 class="font-bold text-lg mb-4">
-          {{ $t("app.languages.editLanguageDialogTitle") }}
+          {{ $t("mod.languages.editLanguageDialogTitle") }}
         </h3>
         <div v-if="editingLang" class="flex flex-col gap-4 py-4">
           <FormInput
             v-model="editingLang.code"
-            :label="$t('app.languages.code')"
+            :label="$t('mod.languages.code')"
             placeholder="en"
             required
           />
           <FormInput
             v-model="editingLang.flagCode"
-            :label="$t('app.languages.flagCode')"
+            :label="$t('mod.languages.flagCode')"
             placeholder="gb"
             required
           />
           <FormInput
             v-model="editingLang.name"
-            :label="$t('app.languages.name')"
+            :label="$t('mod.languages.name')"
             placeholder="English"
             required
           />
 
           <FormSwitch
             v-model="editingLang.isActive"
-            :label="$t('app.languages.active')"
+            :label="$t('mod.languages.active')"
           />
         </div>
         <div class="modal-action">

@@ -37,9 +37,15 @@
         "passwordSuccessDescription": "Tu contraseña ha sido actualizada correctamente.",
         "validation": {
           "passwordsMatch": "Las contraseñas no coinciden",
-          "oldPasswordRequired": "La contraseña actual es requerida"
+          "oldPasswordRequired": "La contraseña actual es requerida",
+          "passwordMin": "La contraseña debe tener al menos 8 caracteres"
         }
       }
+    }
+  },
+  "settings": {
+    "profile": {
+      "errorDescription": "No se pudo actualizar el perfil. Inténtalo de nuevo."
     }
   }
 }

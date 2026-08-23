@@ -17,7 +17,14 @@
       "tableCode": "Code",
       "tableName": "Name",
       "tableActive": "Active",
-      "tableActions": "Actions"
+      "tableActions": "Actions",
+      "app": {
+        "active": "Active",
+        "code": "Code",
+        "editLanguageDialogTitle": "Edit language",
+        "flagCode": "Flag code",
+        "name": "Name"
+      }
     }
   }
 }

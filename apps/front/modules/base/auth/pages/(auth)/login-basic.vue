@@ -18,10 +18,10 @@ definePageMeta({
           <div class="card-body text-center gap-6">
             <div class="space-y-2">
               <h2 class="card-title text-2xl font-bold justify-center">
-                {{ $t('mod.auth.welcomeBack') }}
+                {{ $t('mod.auth.signIn.welcomeBack') }}
               </h2>
               <p class="text-sm text-base-content/60">
-                {{ $t('mod.auth.loginSocial') }}
+                {{ $t('mod.auth.signIn.loginSocial') }}
               </p>
             </div>
 

@@ -27,9 +27,9 @@ definePageMeta({
           <AuthResetPassword />
 
           <p class="text-center text-sm text-base-content/60">
-            {{ $t('mod.auth.rememberPassword') }}
+            {{ $t('mod.auth.resetPassword.rememberPassword') }}
             <NuxtLink :to="localePath('/login')" class="link link-primary no-underline font-medium">
-              {{ $t('mod.auth.signIn') }}
+              {{ $t('mod.auth.resetPassword.signIn') }}
             </NuxtLink>
           </p>
         </div>

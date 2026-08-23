@@ -37,9 +37,15 @@
         "passwordSuccessDescription": "Your password has been updated successfully.",
         "validation": {
           "passwordsMatch": "Passwords do not match",
-          "oldPasswordRequired": "Current password is required"
+          "oldPasswordRequired": "Current password is required",
+          "passwordMin": "Password must be at least 8 characters"
         }
       }
+    }
+  },
+  "settings": {
+    "profile": {
+      "errorDescription": "Could not update profile. Please try again."
     }
   }
 }
