@@ -32,6 +32,7 @@ const prefixFilter = args.find((a) => !a.startsWith('--') && a !== 'all');
 
 const srcDir = path.resolve(process.cwd(), 'src');
 const extensionsDir = path.join(srcDir, 'extensions');
+const customDir = path.join(srcDir, 'custom');
 
 // js-yaml from pnpm store
 let yaml;
@@ -54,11 +55,17 @@ try {
 function collectSpecTables() {
   const tables = [];
 
-  if (!fs.existsSync(extensionsDir)) return tables;
+  // Search both src/extensions/ and src/custom/ for spec YAML files
+  const searchDirs = [extensionsDir, customDir].filter((d) =>
+    fs.existsSync(d),
+  );
 
-  for (const ext of fs.readdirSync(extensionsDir)) {
-    const extDir = path.join(extensionsDir, ext);
-    if (!fs.statSync(extDir).isDirectory()) continue;
+  for (const searchDir of searchDirs) {
+    const isCustom = searchDir === customDir;
+
+    for (const ext of fs.readdirSync(searchDir)) {
+      const extDir = path.join(searchDir, ext);
+      if (!fs.statSync(extDir).isDirectory()) continue;
 
     const specFiles = fs
       .readdirSync(extDir)
@@ -125,7 +132,7 @@ function collectSpecTables() {
           const webhooks = resource.webhooks ? resource.webhooks.map(w => w.name) : [];
 
           tables.push({
-            source: 'spec-engine',
+            source: isCustom ? 'custom' : 'spec-engine',
             extension: extName,
             resource: rName,
             table,
@@ -144,6 +151,7 @@ function collectSpecTables() {
       } catch {
         // skip parse errors
       }
+    }
     }
   }
 

@@ -131,6 +131,11 @@ cd apps/back && pnpm check-types            # tsc --noEmit
 - Path aliases: `@iam/*`, `@users/*`, `@ext/*`, `@src/*`, `@core/*`
 - Migrations via CLI only, never hand-SQL
 - Hooks are fire-and-forget (try/catch, never throw)
+- `src/custom/` — client-specific code. When copying this repo for a custom
+  app, put client resources, hooks, and overrides in `src/custom/`. The spec
+  validator, list-endpoints, and list-tables scripts all scan `src/custom/`
+  alongside `src/extensions/`. Custom resources appear with source `custom`
+  in the output.
 
 ## References
 

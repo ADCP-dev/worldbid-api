@@ -40,37 +40,53 @@ const extensionName = process.argv.slice(2).find((a) => !a.startsWith('--'));
 const verbose = process.argv.includes('--verbose') || process.argv.includes('-v');
 
 const extensionsDir = path.resolve(process.cwd(), 'src/extensions');
-
-if (!fs.existsSync(extensionsDir)) {
-  console.error(`Extensions directory not found: ${extensionsDir}`);
-  process.exit(2);
-}
+const customDir = path.resolve(process.cwd(), 'src/custom');
 
 // ─── Collect spec files ──────────────────────────────────────────────────
 
 let specFiles = [];
 
-if (extensionName) {
-  const extDir = path.join(extensionsDir, extensionName);
-  if (!fs.existsSync(extDir)) {
-    console.error(`Extension not found: ${extensionName}`);
-    process.exit(2);
-  }
-  specFiles = fs
-    .readdirSync(extDir)
-    .filter((f) => f.endsWith('.spec.yaml'))
-    .map((f) => path.join(extDir, f));
-} else {
-  for (const ext of fs.readdirSync(extensionsDir)) {
-    const extDir = path.join(extensionsDir, ext);
+function collectSpecsFromDir(dir) {
+  const files = [];
+  if (!fs.existsSync(dir)) return files;
+  for (const ext of fs.readdirSync(dir)) {
+    const extDir = path.join(dir, ext);
     if (fs.statSync(extDir).isDirectory()) {
-      const files = fs
+      const extFiles = fs
         .readdirSync(extDir)
         .filter((f) => f.endsWith('.spec.yaml'))
         .map((f) => path.join(extDir, f));
-      specFiles = specFiles.concat(files);
+      files.push(...extFiles);
     }
   }
+  return files;
+}
+
+if (extensionName) {
+  const extDir = path.join(extensionsDir, extensionName);
+  const customExtDir = path.join(customDir, extensionName);
+  if (fs.existsSync(extDir)) {
+    specFiles = specFiles.concat(
+      fs
+        .readdirSync(extDir)
+        .filter((f) => f.endsWith('.spec.yaml'))
+        .map((f) => path.join(extDir, f)),
+    );
+  }
+  if (fs.existsSync(customExtDir)) {
+    specFiles = specFiles.concat(
+      fs
+        .readdirSync(customExtDir)
+        .filter((f) => f.endsWith('.spec.yaml'))
+        .map((f) => path.join(customExtDir, f)),
+    );
+  }
+  if (specFiles.length === 0) {
+    console.error(`Extension not found: ${extensionName}`);
+    process.exit(2);
+  }
+} else {
+  specFiles = [...collectSpecsFromDir(extensionsDir), ...collectSpecsFromDir(customDir)];
 }
 
 if (specFiles.length === 0) {

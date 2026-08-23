@@ -42,17 +42,24 @@ const asJson = process.argv.includes('--json');
 
 const srcDir = path.resolve(process.cwd(), 'src');
 const extensionsDir = path.join(srcDir, 'extensions');
+const customDir = path.join(srcDir, 'custom');
 
 // ─── Collect spec-engine endpoints (from YAML) ──────────────────────────
 
 function collectSpecEndpoints() {
   const endpoints = [];
 
-  if (!fs.existsSync(extensionsDir)) return endpoints;
+  // Search both extensions/ and custom/ for spec YAML files
+  const searchDirs = [extensionsDir, customDir].filter((d) =>
+    fs.existsSync(d),
+  );
 
-  for (const ext of fs.readdirSync(extensionsDir)) {
-    const extDir = path.join(extensionsDir, ext);
-    if (!fs.statSync(extDir).isDirectory()) continue;
+  for (const searchDir of searchDirs) {
+    const isCustom = searchDir === customDir;
+
+    for (const ext of fs.readdirSync(searchDir)) {
+      const extDir = path.join(searchDir, ext);
+      if (!fs.statSync(extDir).isDirectory()) continue;
 
     const specFiles = fs
       .readdirSync(extDir)
@@ -116,7 +123,7 @@ function collectSpecEndpoints() {
             }
 
             endpoints.push({
-              source: 'spec-engine',
+              source: isCustom ? 'custom' : 'spec-engine',
               extension: extName,
               resource: rName,
               table,
@@ -139,7 +146,7 @@ function collectSpecEndpoints() {
           // Action endpoints (custom non-CRUD)
           for (const action of resource.actions || []) {
             endpoints.push({
-              source: 'spec-engine',
+              source: isCustom ? 'custom' : 'spec-engine',
               extension: extName,
               resource: rName,
               table,
@@ -162,7 +169,7 @@ function collectSpecEndpoints() {
           // Webhook endpoints (inbound)
           for (const webhook of resource.webhooks || []) {
             endpoints.push({
-              source: 'spec-engine',
+              source: isCustom ? 'custom' : 'spec-engine',
               extension: extName,
               resource: rName,
               specFile: path.basename(file),
@@ -181,6 +188,7 @@ function collectSpecEndpoints() {
       } catch (err) {
         // skip parse errors
       }
+    }
     }
   }
 
