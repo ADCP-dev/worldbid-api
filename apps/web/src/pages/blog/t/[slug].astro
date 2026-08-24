@@ -1,6 +1,5 @@
 ---
 // Tag page — posts filtered by tag slug (FR-009, R-PWA-02).
-// GET /cms/blog/posts/public?tagSlugs=<slug>&lang=<locale>
 import PublicLayout from '../../../layouts/PublicLayout.astro';
 import BlogCard from '../../../components/blog/BlogCard.astro';
 import Pagination from '../../../components/blog/Pagination.astro';
@@ -41,26 +40,32 @@ Astro.cache.set({ tags: ['blog'] });
 ---
 
 <PublicLayout>
-  <section class="container mx-auto px-4 py-12 max-w-6xl">
-    <Breadcrumbs items={crumbs} locale={locale} />
+  <section class="relative bg-base-200 border-b border-base-300 py-16 md:py-24">
+    <div class="container mx-auto px-4 max-w-6xl">
+      <Breadcrumbs items={crumbs} locale={locale} />
+      <div class="mt-6 text-center md:text-left">
+        <span class="badge badge-primary badge-soft mb-3">{locale === 'en' ? 'Tag' : 'Etiqueta'}</span>
+        <h1 class="text-4xl md:text-5xl font-bold tracking-tight">#{slug}</h1>
+        <p class="mt-3 max-w-2xl text-lg text-base-content/70">
+          {locale === 'en' ? 'Posts tagged with this topic.' : 'Artículos etiquetados con este tema.'}
+        </p>
+      </div>
+    </div>
+  </section>
 
-    <header class="mb-8 mt-4">
-      <h1 class="text-4xl font-bold">#{slug}</h1>
-      <p class="text-base-content/60 mt-2">
-        {locale === 'en' ? 'Posts tagged with this topic.' : 'Artículos etiquetados con este tema.'}
-      </p>
-    </header>
-
+  <section class="container mx-auto px-4 py-16 max-w-6xl">
     {posts.length > 0 ? (
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {posts.map((post) => (
           <BlogCard post={post as any} locale={locale} />
         ))}
       </div>
     ) : (
-      <p class="text-base-content/60 py-12 text-center">
-        {locale === 'en' ? 'No posts with this tag yet.' : 'No hay artículos con esta etiqueta.'}
-      </p>
+      <div class="text-center py-20 bg-base-200/50 rounded-2xl border border-base-200">
+        <p class="text-lg text-base-content/60">
+          {locale === 'en' ? 'No posts with this tag yet.' : 'No hay artículos con esta etiqueta.'}
+        </p>
+      </div>
     )}
 
     <Pagination

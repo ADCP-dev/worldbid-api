@@ -1,7 +1,7 @@
 ---
 // CMS dynamic pages — fetch a published page by slug (FR-006, R-PWA-03).
-// Also fetches SEO metadata for the page when available.
 import PublicLayout from '../layouts/PublicLayout.astro';
+import Breadcrumbs from '../components/blog/Breadcrumbs.astro';
 import { fetchApi, PUBLIC_API } from '../lib/api';
 
 interface CmsPage {
@@ -23,7 +23,6 @@ interface SeoMeta {
 const locale = Astro.locals.locale;
 const localePrefix = locale === 'en' ? '/en' : '';
 
-// [...slug] catch-all: join the path segments. Strip the locale prefix if present.
 const rawSlug = Astro.params.slug ?? '';
 const slug = rawSlug.replace(/^en\//, '');
 
@@ -37,17 +36,39 @@ const translations = page.translations?.[locale] ?? {};
 const title = translations.title ?? page.name ?? page.slug;
 const content = translations.content ?? (page as any).content ?? '';
 
-// Optional SEO metadata (R-PWA-09). Non-blocking — falls back to page title.
 const seo = await fetchApi<SeoMeta>(PUBLIC_API.seoByPageId(page.id), { lang: locale });
 const metaTitle = seo?.metaTitle ?? title;
 const metaDescription = seo?.metaDescription ?? translations.excerpt ?? '';
+
+const siteUrl = import.meta.env.PUBLIC_SITE_URL || Astro.site?.origin || '';
+const cdnBase = import.meta.env.PUBLIC_CDN_BASE_URL || '';
+const imageUrl = page.featuredImage?.path
+  ? (cdnBase ? `${cdnBase}/${page.featuredImage.path}` : page.featuredImage.path)
+  : undefined;
+
+const crumbs = [
+  { name: locale === 'en' ? 'Home' : 'Inicio', url: `${siteUrl}${localePrefix}/` },
+  { name: title, url: `${siteUrl}${localePrefix}/${slug}` },
+];
 
 Astro.cache.set({ tags: ['pages'] });
 ---
 
 <PublicLayout>
-  <article class="container mx-auto px-4 py-12 max-w-3xl">
-    <h1 class="text-3xl md:text-4xl font-bold mb-8">{title}</h1>
+  <article class="container mx-auto px-4 py-12 max-w-4xl">
+    <Breadcrumbs items={crumbs} locale={locale} />
+
+    <header class="mb-10 mt-4 text-center">
+      <h1 class="text-3xl md:text-5xl font-bold tracking-tight leading-tight">{title}</h1>
+      {metaDescription && <p class="mt-4 text-lg text-base-content/70 max-w-2xl mx-auto">{metaDescription}</p>}
+    </header>
+
+    {imageUrl && (
+      <figure class="mb-10">
+        <img src={imageUrl} alt={title} class="w-full rounded-box aspect-[21/9] object-cover shadow-lg" />
+      </figure>
+    )}
+
     <div class="prose prose-lg max-w-none" set:html={content} />
   </article>
 

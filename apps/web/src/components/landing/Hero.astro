@@ -5,32 +5,49 @@ interface Props {
   locale: Locale;
 }
 const { locale } = Astro.props;
+
+const headline = locale === 'en'
+  ? 'A comprehensive platform for business integrations'
+  : 'Una plataforma integral para integraciones de negocio';
+
+const ctaPrimary = locale === 'en' ? 'Get started' : 'Comenzar';
+const ctaSecondary = t(locale, 'nav.contact');
 ---
 
-<section class="container mx-auto">
-  <div class="grid place-items-center lg:max-w-screen-xl gap-8 mx-auto py-20 md:py-32">
-    <div class="text-center space-y-8">
-      <div class="max-w-screen-lg mx-auto text-center text-5xl md:text-6xl font-bold">
-        <h1>
-          <span class="text-transparent bg-gradient-to-r to-secondary/90 from-primary bg-clip-text">
+<section class="relative overflow-hidden">
+  <div class="absolute inset-0 bg-gradient-to-b from-base-300/20 to-base-100 pointer-events-none" aria-hidden="true"></div>
+  <div class="container mx-auto px-4 relative">
+    <div class="grid place-items-center gap-12 mx-auto py-24 md:py-36 max-w-4xl text-center">
+      <div class="space-y-8">
+        <div class="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary">
+          <span class="relative flex h-2 w-2">
+            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75"></span>
+            <span class="relative inline-flex h-2 w-2 rounded-full bg-primary"></span>
+          </span>
+          {locale === 'en' ? 'Ready for production' : 'Listo para producción'}
+        </div>
+
+        <h1 class="text-5xl md:text-7xl font-bold tracking-tight leading-[1.1]">
+          <span class="text-transparent bg-gradient-to-r from-primary to-accent bg-clip-text">
             Foundation
           </span>
+          <span class="block text-base-content">{headline}</span>
         </h1>
-      </div>
 
-      <p class="max-w-screen-md mx-auto text-xl text-base-content/70">
-        {locale === 'en'
-          ? 'A comprehensive platform for business integrations. Authentication, payments, content, and more.'
-          : 'Una plataforma integral para integraciones de negocio. Autenticación, pagos, contenido y más.'}
-      </p>
+        <p class="mx-auto max-w-2xl text-xl md:text-2xl text-base-content/70 leading-relaxed">
+          {locale === 'en'
+            ? 'Authentication, payments, content, and storage — all in one modular foundation.'
+            : 'Autenticación, pagos, contenido y almacenamiento — todo en una base modular.'}
+        </p>
 
-      <div class="flex flex-col sm:flex-row gap-6 justify-center items-center">
-        <a href="/login" class="btn btn-primary btn-lg font-bold px-10 shadow-xl hover:scale-105 transition-transform">
-          {locale === 'en' ? 'Get started' : 'Comenzar'}
-        </a>
-        <a href="#contact" class="btn btn-outline btn-lg font-bold px-10 border-2">
-          {t(locale, 'nav.contact')}
-        </a>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center pt-2">
+          <a href="/login" class="btn btn-primary btn-lg px-10 shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-0.5 transition-all">
+            {ctaPrimary}
+          </a>
+          <a href="#contact" class="btn btn-outline btn-lg px-10 border-2 hover:bg-base-200 transition-colors">
+            {ctaSecondary}
+          </a>
+        </div>
       </div>
     </div>
   </div>

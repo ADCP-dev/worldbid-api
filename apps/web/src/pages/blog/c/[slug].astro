@@ -1,7 +1,5 @@
 ---
 // Category page — 2-step slug→id orchestration (R-PWA-05, GAP3).
-// Step 1: GET /cms/blog/categories/public/by-slug/:slug → categoryId
-// Step 2: GET /cms/blog/posts/public?categoryId=<id>&lang=<locale> → posts
 import PublicLayout from '../../../layouts/PublicLayout.astro';
 import BlogCard from '../../../components/blog/BlogCard.astro';
 import Pagination from '../../../components/blog/Pagination.astro';
@@ -29,7 +27,6 @@ const pageParam = Number(searchParams.get('page')) || 1;
 const page = Math.max(1, pageParam);
 const limit = 9;
 
-// Step 1: resolve slug → category (includes id).
 const category = await fetchApi<Category>(PUBLIC_API.blogCategoryBySlug(slug), {
   lang: locale,
 });
@@ -38,7 +35,6 @@ if (!category) {
   return Astro.redirect(`/${localePrefix}/404`);
 }
 
-// Step 2: fetch posts by categoryId.
 const result = await fetchApi<BlogListResponse>(PUBLIC_API.blogPosts, {
   lang: locale,
   searchParams: { page, limit, categoryId: category.id },
@@ -58,26 +54,32 @@ Astro.cache.set({ tags: ['blog'] });
 ---
 
 <PublicLayout>
-  <section class="container mx-auto px-4 py-12 max-w-6xl">
-    <Breadcrumbs items={crumbs} locale={locale} />
+  <section class="relative bg-base-200 border-b border-base-300 py-16 md:py-24">
+    <div class="container mx-auto px-4 max-w-6xl">
+      <Breadcrumbs items={crumbs} locale={locale} />
+      <div class="mt-6 text-center md:text-left">
+        <span class="badge badge-primary badge-soft mb-3">{locale === 'en' ? 'Category' : 'Categoría'}</span>
+        <h1 class="text-4xl md:text-5xl font-bold tracking-tight">{category.name ?? slug}</h1>
+        {category.description && (
+          <p class="mt-3 max-w-2xl text-lg text-base-content/70">{category.description}</p>
+        )}
+      </div>
+    </div>
+  </section>
 
-    <header class="mb-8 mt-4">
-      <h1 class="text-4xl font-bold">{category.name ?? slug}</h1>
-      {category.description && (
-        <p class="text-base-content/60 mt-2">{category.description}</p>
-      )}
-    </header>
-
+  <section class="container mx-auto px-4 py-16 max-w-6xl">
     {posts.length > 0 ? (
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {posts.map((post) => (
           <BlogCard post={post as any} locale={locale} />
         ))}
       </div>
     ) : (
-      <p class="text-base-content/60 py-12 text-center">
-        {locale === 'en' ? 'No posts in this category yet.' : 'No hay artículos en esta categoría.'}
-      </p>
+      <div class="text-center py-20 bg-base-200/50 rounded-2xl border border-base-200">
+        <p class="text-lg text-base-content/60">
+          {locale === 'en' ? 'No posts in this category yet.' : 'No hay artículos en esta categoría.'}
+        </p>
+      </div>
     )}
 
     <Pagination

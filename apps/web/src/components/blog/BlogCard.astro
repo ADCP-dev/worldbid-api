@@ -38,32 +38,48 @@ const dateStr = post.publishedAt
       day: 'numeric',
     })
   : null;
+
+const fallbackImg = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="800" height="450" fill="%231e1e1e"%3E%3Crect width="800" height="450"/%3E%3Ctext x="50%25" y="50%25" fill="%23F97316" font-family="sans-serif" font-size="24" text-anchor="middle" dominant-baseline="middle"%3EFoundation%3C/text%3E%3C/svg%3E';
+const imageUrl = post.featuredImageUrl ?? fallbackImg;
 ---
 
-<article class="card bg-base-100 shadow-sm border border-base-200 hover:shadow-md transition-shadow">
-  {post.featuredImageUrl && (
-    <a href={postHref} class="block aspect-video overflow-hidden rounded-t-[inherit]">
-      <img
-        src={post.featuredImageUrl}
-        alt={title}
-        loading="lazy"
-        class="w-full h-full object-cover hover:scale-105 transition-transform"
-      />
-    </a>
-  )}
-  <div class="card-body p-5 gap-3">
-    <div class="flex items-center gap-2 text-xs text-base-content/60">
+<article class="card bg-base-100 border border-base-200 shadow-sm hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 overflow-hidden group flex flex-col h-full">
+  <a href={postHref} class="block aspect-video overflow-hidden bg-base-300">
+    <img
+      src={imageUrl}
+      alt={title}
+      loading="lazy"
+      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+    />
+  </a>
+  <div class="card-body p-6 gap-4 flex flex-col flex-1">
+    <div class="flex flex-wrap items-center gap-2 text-xs text-base-content/60">
       {categoryName && categoryHref && (
-        <a href={categoryHref} class="badge badge-primary badge-sm">{categoryName}</a>
+        <a href={categoryHref} class="badge badge-primary badge-sm hover:badge-primary-content transition-colors">{categoryName}</a>
       )}
-      {dateStr && <time datetime={post.publishedAt ?? undefined}>{dateStr}</time>}
+      {dateStr && <time datetime={post.publishedAt ?? undefined} class="flex items-center gap-1">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" />
+        </svg>
+        {dateStr}
+      </time>}
     </div>
-    <h2 class="card-title text-lg leading-snug">
+    <h2 class="card-title text-xl leading-snug">
       <a href={postHref} class="hover:text-primary transition-colors">{title}</a>
     </h2>
-    {excerpt && <p class="text-sm text-base-content/70 line-clamp-3">{excerpt}</p>}
-    {post.author?.name && (
-      <p class="text-xs text-base-content/50 mt-auto">{locale === 'en' ? 'By' : 'Por'} {post.author.name}</p>
-    )}
+    {excerpt && <p class="text-sm text-base-content/70 line-clamp-3 flex-1">{excerpt}</p>}
+    <div class="pt-2 flex items-center justify-between mt-auto">
+      {post.author?.name ? (
+        <span class="text-xs text-base-content/50">{locale === 'en' ? 'By' : 'Por'} <span class="text-base-content/80 font-medium">{post.author.name}</span></span>
+      ) : (
+        <span />
+      )}
+      <a href={postHref} class="btn btn-ghost btn-sm gap-1 px-2 text-primary group/link" aria-label={locale === 'en' ? 'Read article' : 'Leer artículo'}>
+        {locale === 'en' ? 'Read' : 'Leer'}
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover/link:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+        </svg>
+      </a>
+    </div>
   </div>
 </article>
