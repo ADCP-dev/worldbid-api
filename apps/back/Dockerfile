@@ -45,7 +45,7 @@ RUN npm run build
 # ============================================================================
 FROM node:22.16.0-alpine AS prod
 
-RUN apk add --no-cache bash \
+RUN apk add --no-cache bash git \
     ffmpeg chromium nss freetype harfbuzz ca-certificates ttf-freefont font-noto
 
 ENV NODE_ENV=production
