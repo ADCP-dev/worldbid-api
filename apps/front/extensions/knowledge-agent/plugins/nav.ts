@@ -1,8 +1,8 @@
 import { watch } from 'vue';
 import type { NavMenu } from '~/types/nav';
 
-export default defineNuxtPlugin(() => {
-  const { t } = useI18n();
+export default defineNuxtPlugin((nuxtApp) => {
+  const { t } = nuxtApp.$i18n;
   const menuItems = useState<NavMenu[]>('nav:menuItems', () => []);
   const authStore = useAuthStore();
 

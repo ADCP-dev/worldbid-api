@@ -7,28 +7,24 @@
       <span class="font-medium">{{ errorTitle }}</span>
       <p class="text-center text-muted-foreground" v-html="errorMessage"/>
       <div class="mt-6 flex gap-4">
-        <Button variant="outline" @click="router.back()"> Volver </Button>
-        <Button @click="navigateTo('/')"> Volver al inicio </Button>
+        <button class="btn btn-outline" @click="handleError"> Volver </button>
+        <button class="btn btn-primary" @click="goHome"> Volver al inicio </button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useRouter } from "vue-router";
+import type { NuxtError } from '#app'
 
-const props = defineProps({
-  error: Object,
-});
+const props = defineProps<{
+  error: NuxtError
+}>()
 
-definePageMeta({
-  layout: "blank",
-});
+const handleError = () => clearError({ redirect: '/' })
+const goHome = () => clearError({ redirect: '/' })
 
-const router = useRouter();
-
-// Map of error status codes to titles and messages from the custom error pages
-const errorMessages = {
+const errorMessages: Record<number, { title: string; message: string }> = {
   401: {
     title: "Acceso no autorizado",
     message: "Por favor, inicia sesión con las credenciales apropiadas <br> para acceder a este recurso."
@@ -51,13 +47,11 @@ const errorMessages = {
   }
 };
 
-// Get the appropriate error title based on status code
 const errorTitle = computed(() => {
   const statusCode = props.error?.statusCode || 500;
   return errorMessages[statusCode]?.title || "Error";
 });
 
-// Get the appropriate error message based on status code
 const errorMessage = computed(() => {
   const statusCode = props.error?.statusCode || 500;
   return errorMessages[statusCode]?.message || props.error?.message || "Ha ocurrido un error inesperado.";
