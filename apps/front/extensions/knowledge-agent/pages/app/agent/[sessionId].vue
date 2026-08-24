@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
-import { useChatSessions, type ChatSession } from '../../composables/useChatStream';
+import { useChatSessions, type ChatSession } from '@ka/composables/useChatStream';
 
 definePageMeta({
   layout: 'app',

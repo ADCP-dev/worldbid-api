@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { useKnowledgeStore } from '../../stores/knowledge.store';
-import type { Note } from '../../composables/useKnowledge';
+import { useKnowledgeStore } from '@ka/stores/knowledge.store';
+import type { Note } from '@ka/composables/useKnowledge';
 
 definePageMeta({
   layout: 'app',

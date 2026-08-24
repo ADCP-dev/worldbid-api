@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query';
 import { useAuthStore } from '@base/auth/stores/auth.store';
 import FormInput from '@base/ui-app/components/form/FormInput.vue';
 import FormSelect from '@base/ui-app/components/form/FormSelect.vue';
-import { useModelProviders } from '../../composables/useAgentConfig';
+import { useModelProviders } from '@ka/composables/useAgentConfig';
 
 definePageMeta({
   layout: 'app',

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query';
-import { useAgentConfig, useModelProviders } from '../../composables/useAgentConfig';
+import { useAgentConfig, useModelProviders } from '@ka/composables/useAgentConfig';
 
 definePageMeta({
   layout: 'app',

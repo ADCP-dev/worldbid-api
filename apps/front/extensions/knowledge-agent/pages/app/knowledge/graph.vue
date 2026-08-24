@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import KnowledgeGraph from '../../components/KnowledgeGraph.vue';
+import KnowledgeGraph from '@ka/components/KnowledgeGraph.vue';
 
 definePageMeta({
   layout: 'default',
