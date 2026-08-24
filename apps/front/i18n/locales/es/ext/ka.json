@@ -22,7 +22,14 @@
         "search": "Buscar nodos...",
         "filterByCategory": "Filtrar por categoría",
         "filterByTag": "Filtrar por tag",
-        "empty": "Sin notas para mostrar. Creá notas para verlas en el grafo."
+        "empty": "Sin notas para mostrar. Creá notas para verlas en el grafo.",
+        "emptyTitle": "Sin notas en el grafo todavía",
+        "emptySubtitle": "Creá una nota para verla acá.",
+        "connections": "conexiones",
+        "backlinks": "Vínculos bidireccionales",
+        "emptyBacklinks": "Esta nota no tiene vínculos.",
+        "focus": "Focalizar",
+        "openNote": "Abrir nota"
       },
       "chat": {
         "title": "Chat",
@@ -55,6 +62,7 @@
         "notes": "Notas",
         "graph": "Grafo",
         "chat": "Chat",
+        "config": "Config",
         "agents": "Agentes",
         "models": "Modelos",
         "mcpServers": "MCP Servers"

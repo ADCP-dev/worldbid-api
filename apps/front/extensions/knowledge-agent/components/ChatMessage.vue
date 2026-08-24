@@ -98,7 +98,7 @@ const isUser = computed(() => props.message.role === 'user');
       />
 
       <div v-if="isStreaming && !isUser" class="flex items-center gap-1 mt-2">
-        <span class="loading loading-dots loading-xs opacity-60"></span>
+        <span class="loading loading-dots loading-xs opacity-60"/>
       </div>
 
       <div v-if="!isUser && codeBlocks.length > 0" class="mt-2 space-y-1">

@@ -28,6 +28,7 @@ import {
   Focus,
   Network,
   Tag,
+  Link,
 } from 'lucide-vue-next';
 import { useKnowledgeGraph, type SimNode } from '../composables/useKnowledgeGraph';
 
@@ -48,7 +49,6 @@ const {
   selectedNode,
   selectedNodeLinks,
   neighborSet,
-  nodeDegreeMap,
   categories,
   tags,
   stats,
@@ -77,12 +77,6 @@ const drag = makeDragHandlers();
 // ---- Highlight helpers ---------------------------------------------------
 
 const focusId = computed(() => hoveredNodeId.value ?? selectedNodeId.value);
-
-function isHighlighted(nodeId: string): boolean {
-  const f = focusId.value;
-  if (!f) return true;
-  return neighborSet.value.has(nodeId);
-}
 
 function edgeOpacity(edgeSource: string, edgeTarget: string): number {
   const f = focusId.value;
@@ -230,11 +224,11 @@ onBeforeUnmount(() => {
 });
 
 function goToAddNote() {
-  router.push('/knowledge/new');
+  router.push('/app/knowledge');
 }
 
 function goToNote(id: string) {
-  router.push(`/knowledge/${id}`);
+  router.push(`/app/knowledge/${id}`);
 }
 
 // Focalize on the selected node: translate the zoom so the node is centered.
@@ -385,11 +379,11 @@ function focalizeSelected() {
       class="absolute inset-0 flex flex-col items-center justify-center z-10 text-gray-400"
     >
       <Network class="w-12 h-12 mb-3 opacity-50" />
-      <p class="text-lg mb-1">No notes in the graph yet</p>
-      <p class="text-sm opacity-60 mb-4">Create a note to see it here.</p>
+      <p class="text-lg mb-1">{{ $t('ext.ka.graph.emptyTitle') }}</p>
+      <p class="text-sm opacity-60 mb-4">{{ $t('ext.ka.graph.emptySubtitle') }}</p>
       <button class="btn btn-sm btn-primary" @click="goToAddNote">
         <FilePlus class="w-4 h-4" />
-        Add note
+        {{ $t('ext.ka.notes.create') }}
       </button>
     </div>
 
@@ -410,7 +404,7 @@ function focalizeSelected() {
         >
           <FilePlus class="w-4 h-4" />
         </button>
-        <div class="divider divider-horizontal mx-1"></div>
+        <div class="divider divider-horizontal mx-1"/>
         <button
           class="btn btn-sm btn-ghost bg-base-100/10 hover:bg-base-100/20 text-gray-200 border border-white/10"
           title="Zoom in"
@@ -443,7 +437,7 @@ function focalizeSelected() {
             type="text"
             placeholder="Search notes..."
             class="input input-sm w-48 pl-8 bg-base-100/10 text-gray-200 border border-white/10 placeholder-gray-500"
-          />
+          >
         </div>
         <select
           v-model="filterCategory"
@@ -491,15 +485,15 @@ function focalizeSelected() {
     <div class="absolute bottom-4 left-4 z-10">
       <div class="bg-base-100/10 border border-white/10 rounded-lg p-3 text-xs text-gray-300 space-y-1.5">
         <div class="flex items-center gap-2">
-          <span class="inline-block w-3 h-3 rounded-full bg-[#c084fc]"></span>
+          <span class="inline-block w-3 h-3 rounded-full bg-[#c084fc]"/>
           <span>Hub central (≥4 conexiones)</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="inline-block w-3 h-3 rounded-full bg-[#a78bfa]"></span>
+          <span class="inline-block w-3 h-3 rounded-full bg-[#a78bfa]"/>
           <span>Nota vinculada (1-3)</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="inline-block w-3 h-3 rounded-full bg-[#6b7280]"></span>
+          <span class="inline-block w-3 h-3 rounded-full bg-[#6b7280]"/>
           <span>Nota aislada (0)</span>
         </div>
       </div>
@@ -554,16 +548,16 @@ function focalizeSelected() {
         <!-- Degree counter -->
         <div class="px-4 py-2 border-b border-white/10 text-xs text-gray-400">
           <span class="text-violet-300 font-semibold">{{ selectedNode.degree }}</span>
-          conexiones
+          {{ $t('ext.ka.graph.connections') }}
         </div>
 
         <!-- Body: backlinks -->
         <div class="flex-1 overflow-auto p-4 space-y-2">
           <h4 class="text-xs uppercase tracking-wider text-gray-500 mb-2">
-            Vínculos bidireccionales
+            {{ $t('ext.ka.graph.backlinks') }}
           </h4>
           <div v-if="selectedNodeLinks.length === 0" class="text-sm text-gray-500 italic">
-            Esta nota no tiene vínculos.
+            {{ $t('ext.ka.graph.emptyBacklinks') }}
           </div>
           <button
             v-for="link in selectedNodeLinks"
@@ -572,7 +566,7 @@ function focalizeSelected() {
             @click="selectNode(link.otherId)"
           >
             <div class="flex items-center gap-2">
-              <link class="w-3 h-3 text-violet-400 shrink-0" />
+              <Link class="w-3 h-3 text-violet-400 shrink-0" />
               <span class="text-sm text-gray-200 truncate">{{ otherNodeLabel(link.otherId) }}</span>
             </div>
           </button>
@@ -585,13 +579,13 @@ function focalizeSelected() {
             @click="focalizeSelected"
           >
             <Focus class="w-4 h-4" />
-            Focalizar
+            {{ $t('ext.ka.graph.focus') }}
           </button>
           <button
             class="btn btn-sm btn-primary flex-1"
             @click="goToNote(selectedNode.id)"
           >
-            Abrir nota
+            {{ $t('ext.ka.graph.openNote') }}
           </button>
         </div>
       </aside>

@@ -145,7 +145,7 @@ export function useAgentConfig() {
   }
 
   async function deleteAgentConfig(id: string): Promise<void> {
-    await apiFetch<void>(`/ka/agent-configs/${id}`, { method: 'DELETE' });
+    await apiFetch(`/ka/agent-configs/${id}`, { method: 'DELETE' });
   }
 
   return {
@@ -244,7 +244,7 @@ export function useMcpServers() {
   }
 
   async function deleteServer(id: string): Promise<void> {
-    await apiFetch<void>(`/ka/mcp-servers/${id}`, { method: 'DELETE' });
+    await apiFetch(`/ka/mcp-servers/${id}`, { method: 'DELETE' });
   }
 
   return {

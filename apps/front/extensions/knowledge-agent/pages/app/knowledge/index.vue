@@ -4,7 +4,8 @@ import { useKnowledgeStore } from '@ka/stores/knowledge.store';
 import type { Note } from '@ka/composables/useKnowledge';
 
 definePageMeta({
-  layout: 'app',
+  layout: 'default',
+  middleware: ['auth', 'admin'],
 });
 
 const store = useKnowledgeStore();
@@ -21,7 +22,7 @@ async function onSearch() {
 
 function selectNote(note: Note) {
   selectedNote.value = note;
-  navigateTo(`/knowledge/${note.id}`);
+  navigateTo(`/app/knowledge/${note.id}`);
 }
 
 async function createNew() {
@@ -29,7 +30,7 @@ async function createNew() {
     title: 'Untitled Note',
     contentMd: '<p></p>',
   });
-  navigateTo(`/knowledge/${note.id}`);
+  navigateTo(`/app/knowledge/${note.id}`);
 }
 </script>
 
@@ -47,14 +48,14 @@ async function createNew() {
           placeholder="Search notes..."
           class="input input-bordered input-sm w-full"
           @keyup.enter="onSearch"
-        />
+        >
       </div>
       <div class="p-2 border-b flex gap-2">
         <button class="btn btn-sm btn-primary flex-1" @click="createNew">
           + New Note
         </button>
         <NuxtLink
-          to="/knowledge/graph"
+          to="/app/knowledge/graph"
           class="btn btn-sm btn-ghost flex-1 border"
           title="Open graph view"
         >
@@ -73,7 +74,7 @@ async function createNew() {
     <!-- Main content -->
     <main class="flex-1 overflow-auto p-6">
       <div v-if="store.loading && store.notes.length === 0" class="flex justify-center py-12">
-        <span class="loading loading-spinner loading-lg"></span>
+        <span class="loading loading-spinner loading-lg"/>
       </div>
       <div v-else-if="store.notes.length === 0" class="text-center py-12 text-base-content/50">
         <p class="text-lg mb-2">No notes found</p>
@@ -85,7 +86,7 @@ async function createNew() {
           <NuxtLink
             v-for="note in store.notes"
             :key="note.id"
-            :to="`/knowledge/${note.id}`"
+            :to="`/app/knowledge/${note.id}`"
             class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow p-4 border"
           >
             <h3 class="font-semibold">{{ note.title }}</h3>

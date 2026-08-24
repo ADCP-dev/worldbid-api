@@ -55,7 +55,7 @@ function onKeydown(e: KeyboardEvent) {
         :disabled="disabled || !text.trim()"
         @click="submit"
       >
-        <svg v-if="disabled" class="loading loading-spinner loading-sm"></svg>
+        <span v-if="disabled" class="loading loading-spinner loading-sm"/>
         <svg v-else class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
           <path d="M3.105 3.105a.75.75 0 01.848-.18l13 6.5a.75.75 0 010 1.35l-13 6.5a.75.75 0 01-1.06-.82L4.56 10 1.893 5.925a.75.75 0 01.212-.82z" />
         </svg>

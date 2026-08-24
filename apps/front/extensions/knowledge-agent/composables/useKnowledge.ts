@@ -134,7 +134,7 @@ export function useKnowledge() {
   }
 
   async function deleteNote(id: string): Promise<void> {
-    await apiFetch<void>(`/ka/notes/${id}`, { method: 'DELETE' });
+    await apiFetch(`/ka/notes/${id}`, { method: 'DELETE' });
   }
 
   return {

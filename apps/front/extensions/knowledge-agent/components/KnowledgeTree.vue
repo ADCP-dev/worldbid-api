@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import type { Note } from '../composables/useKnowledge';
+import TreeNode from './TreeNode.vue';
 
 const props = defineProps<{
   notes: Note[];
@@ -11,17 +12,17 @@ const emit = defineEmits<{
   select: [note: Note];
 }>();
 
-interface TreeNode {
+interface TreeNodeData {
   label: string;
   path: string;
   notes: Note[];
-  children: Map<string, TreeNode>;
+  children: Map<string, TreeNodeData>;
 }
 
 const expanded = ref<Set<string>>(new Set());
 
-const tree = computed<TreeNode>(() => {
-  const root: TreeNode = {
+const tree = computed<TreeNodeData>(() => {
+  const root: TreeNodeData = {
     label: 'root',
     path: '',
     notes: [],
@@ -59,11 +60,7 @@ function toggle(path: string) {
   }
 }
 
-function isExpanded(path: string) {
-  return expanded.value.has(path);
-}
-
-const sortedChildren = (node: TreeNode): TreeNode[] =>
+const sortedChildren = (node: TreeNodeData): TreeNodeData[] =>
   [...node.children.values()].sort((a, b) => a.label.localeCompare(b.label));
 
 // Auto-expand top-level
@@ -86,41 +83,15 @@ watch(
       No notes yet
     </div>
     <ul v-else class="menu menu-xs w-full">
-      <li v-for="node in sortedChildren(tree)" :key="node.path">
-        <details :open="isExpanded(node.path)" @toggle="toggle(node.path)">
-          <summary class="font-medium cursor-pointer">
-            {{ node.label }}
-            <span class="badge badge-xs badge-ghost ml-1">{{ node.notes.length }}</span>
-          </summary>
-          <ul>
-            <li v-for="child in sortedChildren(node)" :key="child.path">
-              <details :open="isExpanded(child.path)" @toggle="toggle(child.path)">
-                <summary class="cursor-pointer">{{ child.label }}</summary>
-                <ul>
-                  <li v-for="n in child.notes" :key="n.id">
-                    <a
-                      :class="{ active: n.id === selectedId }"
-                      class="cursor-pointer truncate"
-                      @click="emit('select', n)"
-                    >
-                      {{ n.title }}
-                    </a>
-                  </li>
-                </ul>
-              </details>
-            </li>
-            <li v-for="n in node.notes" :key="n.id">
-              <a
-                :class="{ active: n.id === selectedId }"
-                class="cursor-pointer truncate"
-                @click="emit('select', n)"
-              >
-                {{ n.title }}
-              </a>
-            </li>
-          </ul>
-        </details>
-      </li>
+      <TreeNode
+        v-for="node in sortedChildren(tree)"
+        :key="node.path"
+        :node="node"
+        :selected-id="selectedId"
+        :expanded="expanded"
+        @select="emit('select', $event)"
+        @toggle="toggle($event)"
+      />
     </ul>
   </div>
 </template>

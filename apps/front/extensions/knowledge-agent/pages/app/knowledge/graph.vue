@@ -3,6 +3,7 @@ import KnowledgeGraph from '@ka/components/KnowledgeGraph.vue';
 
 definePageMeta({
   layout: 'default',
+  middleware: ['auth', 'admin'],
   title: 'Knowledge Graph',
 });
 </script>

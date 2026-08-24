@@ -4,7 +4,8 @@ import { useRoute } from 'vue-router';
 import { useChatSessions, type ChatSession } from '@ka/composables/useChatStream';
 
 definePageMeta({
-  layout: 'app',
+  layout: 'default',
+  middleware: ['auth', 'admin'],
   title: 'Chat',
 });
 
@@ -53,16 +54,18 @@ async function saveTitle() {
 }
 
 async function remove() {
+  const { t } = useI18n();
+  if (!confirm(t('ext.ka.chat.deleteConfirm'))) return;
   try {
     await deleteSession(sessionId);
-    navigateTo('/agent');
+    navigateTo('/app/agent');
   } catch (e) {
     console.error('Failed to delete session:', e);
   }
 }
 
 function goBack() {
-  navigateTo('/agent');
+  navigateTo('/app/agent');
 }
 </script>
 
@@ -80,7 +83,7 @@ function goBack() {
             class="input input-sm input-bordered"
             @keyup.enter="saveTitle"
             @keyup.escape="editing = false"
-          />
+          >
           <button
             class="btn btn-xs btn-primary"
             :disabled="saving"
@@ -108,7 +111,7 @@ function goBack() {
 
     <!-- Chat -->
     <div v-if="loading" class="flex-1 flex items-center justify-center">
-      <span class="loading loading-spinner loading-lg"></span>
+      <span class="loading loading-spinner loading-lg"/>
     </div>
     <div v-else-if="!session" class="flex-1 flex items-center justify-center text-base-content/50">
       <p>Session not found or you don't have access.</p>

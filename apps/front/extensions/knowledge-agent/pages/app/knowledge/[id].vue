@@ -4,11 +4,13 @@ import { useRoute } from 'vue-router';
 import { useKnowledgeStore } from '@ka/stores/knowledge.store';
 
 definePageMeta({
-  layout: 'app',
+  layout: 'default',
+  middleware: ['auth', 'admin'],
 });
 
 const route = useRoute();
 const store = useKnowledgeStore();
+const { t } = useI18n();
 
 const title = ref('');
 const contentMd = ref('');
@@ -38,7 +40,7 @@ async function save() {
       title: title.value,
       contentMd: contentMd.value,
       categoryPath: categoryPath.value || null,
-    } as any);
+    });
     dirty.value = false;
   } finally {
     saving.value = false;
@@ -46,7 +48,14 @@ async function save() {
 }
 
 function goBack() {
-  navigateTo('/knowledge');
+  navigateTo('/app/knowledge');
+}
+
+async function removeNote() {
+  if (!store.currentNote) return;
+  if (!confirm(t('ext.ka.notes.deleteConfirm'))) return;
+  await store.removeNote(store.currentNote.id);
+  navigateTo('/app/knowledge');
 }
 </script>
 
@@ -61,13 +70,20 @@ function goBack() {
       <div class="navbar-center">
         <span v-if="dirty" class="badge badge-warning badge-sm">Unsaved</span>
       </div>
-      <div class="navbar-end">
+      <div class="navbar-end gap-2">
+        <button
+          v-if="store.currentNote"
+          class="btn btn-ghost btn-sm text-error"
+          @click="removeNote"
+        >
+          Delete
+        </button>
         <button
           class="btn btn-primary btn-sm"
           :disabled="!dirty || saving"
           @click="save"
         >
-          <span v-if="saving" class="loading loading-xs"></span>
+          <span v-if="saving" class="loading loading-xs"/>
           Save
         </button>
       </div>
@@ -75,7 +91,7 @@ function goBack() {
 
     <div class="flex-1 overflow-auto p-6">
       <div v-if="store.loading" class="flex justify-center py-12">
-        <span class="loading loading-spinner loading-lg"></span>
+        <span class="loading loading-spinner loading-lg"/>
       </div>
       <div v-else-if="!store.currentNote" class="text-center py-12 text-base-content/50">
         Note not found

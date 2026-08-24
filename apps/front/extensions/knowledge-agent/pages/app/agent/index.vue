@@ -3,7 +3,8 @@ import { onMounted, ref } from 'vue';
 import { useChatSessions, type ChatSession } from '@ka/composables/useChatStream';
 
 definePageMeta({
-  layout: 'app',
+  layout: 'default',
+  middleware: ['auth', 'admin'],
   title: 'Chat Sessions',
 });
 
@@ -30,7 +31,7 @@ async function newSession() {
   creating.value = true;
   try {
     const session = await createSession({ title: 'New Chat' });
-    navigateTo(`/agent/${session.id}`);
+    navigateTo(`/app/agent/${session.id}`);
   } catch (e) {
     console.error('Failed to create session:', e);
   } finally {
@@ -39,6 +40,8 @@ async function newSession() {
 }
 
 async function remove(id: string) {
+  const { t } = useI18n();
+  if (!confirm(t('ext.ka.chat.deleteConfirm'))) return;
   try {
     await deleteSession(id);
     sessions.value = sessions.value.filter((s) => s.id !== id);
@@ -62,14 +65,14 @@ async function remove(id: string) {
         :disabled="creating"
         @click="newSession"
       >
-        <span v-if="creating" class="loading loading-xs"></span>
+        <span v-if="creating" class="loading loading-xs"/>
         + New Chat
       </button>
     </header>
 
     <section>
       <div v-if="loading" class="flex justify-center py-12">
-        <span class="loading loading-spinner loading-lg"></span>
+        <span class="loading loading-spinner loading-lg"/>
       </div>
       <div v-else-if="sessions.length === 0" class="text-center py-12 text-base-content/50">
         <p class="text-lg mb-2">No chat sessions yet</p>
@@ -86,7 +89,7 @@ async function remove(id: string) {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="s in sessions" :key="s.id" class="hover cursor-pointer" @click="navigateTo(`/agent/${s.id}`)">
+            <tr v-for="s in sessions" :key="s.id" class="hover cursor-pointer" @click="navigateTo(`/app/agent/${s.id}`)">
               <td class="font-medium">{{ s.title }}</td>
               <td class="text-xs text-base-content/60">
                 {{ new Date(s.createdAt).toLocaleString() }}
@@ -95,7 +98,7 @@ async function remove(id: string) {
                 {{ new Date(s.updatedAt).toLocaleString() }}
               </td>
               <td class="text-right" @click.stop>
-                <button class="btn btn-xs btn-ghost" @click="navigateTo(`/agent/${s.id}`)">
+                <button class="btn btn-xs btn-ghost" @click="navigateTo(`/app/agent/${s.id}`)">
                   Open
                 </button>
                 <button

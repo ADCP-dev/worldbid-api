@@ -53,8 +53,14 @@ watch(() => props.categoryPath, (v) => { localCategoryPath.value = v ?? ''; });
 watch(localTitle, (v) => emit('update:title', v));
 watch(localCategoryPath, (v) => emit('update:categoryPath', v));
 
-const canUndo = computed(() => editor.value?.canUndo() ?? false);
-const canRedo = computed(() => editor.value?.canRedo() ?? false);
+watch(() => props.modelValue, (v) => {
+  if (editor.value && editor.value.getHTML() !== v) {
+    editor.value.commands.setContent(v, false);
+  }
+});
+
+const canUndo = computed(() => editor.value?.can().chain().focus().undo().run() ?? false);
+const canRedo = computed(() => editor.value?.can().chain().focus().redo().run() ?? false);
 
 function setHeading(level: 1 | 2) {
   editor.value?.chain().focus().toggleHeading({ level }).run();
@@ -78,46 +84,46 @@ function save() { emit('save'); }
         type="text"
         placeholder="Note title"
         class="input input-bordered w-full text-lg font-semibold"
-      />
+      >
       <input
         v-model="localCategoryPath"
         type="text"
         placeholder="Category path (e.g. tech.notes.async)"
         class="input input-bordered input-sm w-full"
-      />
+      >
       <div class="flex flex-wrap gap-1">
-        <button class="btn btn-xs btn-ghost" :class="{ 'btn-active': editor?.isActive('bold') }" @click="toggleBold" title="Bold">
+        <button class="btn btn-xs btn-ghost" :class="{ 'btn-active': editor?.isActive('bold') }" title="Bold" @click="toggleBold">
           <Bold class="w-3 h-3" />
         </button>
-        <button class="btn btn-xs btn-ghost" :class="{ 'btn-active': editor?.isActive('italic') }" @click="toggleItalic" title="Italic">
+        <button class="btn btn-xs btn-ghost" :class="{ 'btn-active': editor?.isActive('italic') }" title="Italic" @click="toggleItalic">
           <Italic class="w-3 h-3" />
         </button>
-        <button class="btn btn-xs btn-ghost" :class="{ 'btn-active': editor?.isActive('heading', { level: 1 }) }" @click="setHeading(1)" title="Heading 1">
+        <button class="btn btn-xs btn-ghost" :class="{ 'btn-active': editor?.isActive('heading', { level: 1 }) }" title="Heading 1" @click="setHeading(1)">
           <Heading1 class="w-3 h-3" />
         </button>
-        <button class="btn btn-xs btn-ghost" :class="{ 'btn-active': editor?.isActive('heading', { level: 2 }) }" @click="setHeading(2)" title="Heading 2">
+        <button class="btn btn-xs btn-ghost" :class="{ 'btn-active': editor?.isActive('heading', { level: 2 }) }" title="Heading 2" @click="setHeading(2)">
           <Heading2 class="w-3 h-3" />
         </button>
-        <button class="btn btn-xs btn-ghost" :class="{ 'btn-active': editor?.isActive('bulletList') }" @click="toggleBulletList" title="Bullet list">
+        <button class="btn btn-xs btn-ghost" :class="{ 'btn-active': editor?.isActive('bulletList') }" title="Bullet list" @click="toggleBulletList">
           <List class="w-3 h-3" />
         </button>
-        <button class="btn btn-xs btn-ghost" :class="{ 'btn-active': editor?.isActive('orderedList') }" @click="toggleOrderedList" title="Ordered list">
+        <button class="btn btn-xs btn-ghost" :class="{ 'btn-active': editor?.isActive('orderedList') }" title="Ordered list" @click="toggleOrderedList">
           <ListOrdered class="w-3 h-3" />
         </button>
-        <button class="btn btn-xs btn-ghost" :class="{ 'btn-active': editor?.isActive('blockquote') }" @click="toggleBlockquote" title="Quote">
+        <button class="btn btn-xs btn-ghost" :class="{ 'btn-active': editor?.isActive('blockquote') }" title="Quote" @click="toggleBlockquote">
           <Quote class="w-3 h-3" />
         </button>
-        <button class="btn btn-xs btn-ghost" :class="{ 'btn-active': editor?.isActive('codeBlock') }" @click="toggleCode" title="Code block">
+        <button class="btn btn-xs btn-ghost" :class="{ 'btn-active': editor?.isActive('codeBlock') }" title="Code block" @click="toggleCode">
           <Code class="w-3 h-3" />
         </button>
-        <div class="divider divider-horizontal mx-1"></div>
-        <button class="btn btn-xs btn-ghost" :disabled="!canUndo" @click="undo" title="Undo">
+        <div class="divider divider-horizontal mx-1"/>
+        <button class="btn btn-xs btn-ghost" :disabled="!canUndo" title="Undo" @click="undo">
           <Undo class="w-3 h-3" />
         </button>
-        <button class="btn btn-xs btn-ghost" :disabled="!canRedo" @click="redo" title="Redo">
+        <button class="btn btn-xs btn-ghost" :disabled="!canRedo" title="Redo" @click="redo">
           <Redo class="w-3 h-3" />
         </button>
-        <div class="flex-1"></div>
+        <div class="flex-1"/>
         <button class="btn btn-xs btn-primary" @click="save">Save</button>
       </div>
     </div>

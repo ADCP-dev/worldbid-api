@@ -7,7 +7,8 @@ import FormSelect from '@base/ui-app/components/form/FormSelect.vue';
 import { useModelProviders } from '@ka/composables/useAgentConfig';
 
 definePageMeta({
-  layout: 'app',
+  layout: 'default',
+  middleware: ['auth', 'admin'],
 });
 
 const authStore = useAuthStore();
@@ -82,6 +83,7 @@ const providerName = (id: string) =>
 </script>
 
 <template>
+  <SettingsLayout>
   <div class="p-6 max-w-4xl mx-auto space-y-6">
     <header>
       <h1 class="text-2xl font-bold">Models</h1>
@@ -177,7 +179,7 @@ const providerName = (id: string) =>
       <section class="space-y-3">
         <h2 class="text-lg font-semibold">Providers</h2>
         <div v-if="loadingProviders" class="flex justify-center py-4">
-          <span class="loading loading-spinner loading-md"></span>
+          <span class="loading loading-spinner loading-md"/>
         </div>
         <div v-else-if="!providers?.length" class="text-base-content/50 text-sm">
           No providers configured.
@@ -211,7 +213,7 @@ const providerName = (id: string) =>
       <section class="space-y-3">
         <h2 class="text-lg font-semibold">Models</h2>
         <div v-if="loadingModels" class="flex justify-center py-4">
-          <span class="loading loading-spinner loading-md"></span>
+          <span class="loading loading-spinner loading-md"/>
         </div>
         <div v-else-if="!models?.length" class="text-base-content/50 text-sm">
           No models configured.
@@ -245,4 +247,5 @@ const providerName = (id: string) =>
       </section>
     </template>
   </div>
+  </SettingsLayout>
 </template>

@@ -242,7 +242,7 @@ export function useChatSessions() {
   }
 
   async function deleteSession(id: string): Promise<void> {
-    await $fetch<void>(`${baseUrl}${apiPrefix}/ka/chat/sessions/${id}`, {
+    await $fetch(`${baseUrl}${apiPrefix}/ka/chat/sessions/${id}`, {
       method: 'DELETE',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });

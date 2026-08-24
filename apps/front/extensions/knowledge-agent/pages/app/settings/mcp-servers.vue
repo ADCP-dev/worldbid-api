@@ -4,11 +4,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query';
 import { useMcpServers, type McpServer } from '@ka/composables/useAgentConfig';
 
 definePageMeta({
-  layout: 'app',
+  layout: 'default',
+  middleware: ['auth', 'admin'],
 });
 
 const { getServers, createServer, updateServer, deleteServer } = useMcpServers();
 const queryClient = useQueryClient();
+const { t } = useI18n();
 
 const { data: servers, isLoading } = useQuery({
   queryKey: ['ka-mcp-servers'],
@@ -76,6 +78,11 @@ const deleteMutation = useMutation({
   },
 });
 
+function confirmDelete(id: string) {
+  if (!confirm(t('ext.ka.chat.deleteConfirm'))) return;
+  deleteMutation.mutate(id);
+}
+
 function onSubmit() {
   saveMutation.mutate();
 }
@@ -88,6 +95,7 @@ function toggleEnabled(s: McpServer) {
 </script>
 
 <template>
+  <SettingsLayout>
   <div class="p-6 max-w-4xl mx-auto space-y-6">
     <header>
       <h1 class="text-2xl font-bold">MCP Servers</h1>
@@ -103,7 +111,7 @@ function toggleEnabled(s: McpServer) {
       <div class="grid gap-3">
         <label class="form-control">
           <span class="label-text mb-1">Name</span>
-          <input v-model="form.name" type="text" class="input input-bordered w-full" placeholder="e.g. GitHub MCP" />
+          <input v-model="form.name" type="text" class="input input-bordered w-full" placeholder="e.g. GitHub MCP" >
         </label>
         <div class="grid grid-cols-2 gap-3">
           <label class="form-control">
@@ -128,11 +136,11 @@ function toggleEnabled(s: McpServer) {
             type="text"
             class="input input-bordered w-full"
             :placeholder="form.transport === 'http' ? 'https://mcp.example.com/api' : 'npx -y @mcp/server'"
-          />
+          >
         </label>
         <label class="form-control">
           <span class="label-text mb-1">API Key Ref (optional — env var name)</span>
-          <input v-model="form.apiKeyRef" type="text" class="input input-bordered w-full" placeholder="MCP_API_KEY" />
+          <input v-model="form.apiKeyRef" type="text" class="input input-bordered w-full" placeholder="MCP_API_KEY" >
         </label>
         <div class="flex gap-2">
           <button
@@ -154,7 +162,7 @@ function toggleEnabled(s: McpServer) {
 
     <section class="space-y-3">
       <div v-if="isLoading" class="flex justify-center py-8">
-        <span class="loading loading-spinner loading-lg"></span>
+        <span class="loading loading-spinner loading-lg"/>
       </div>
       <div v-else-if="!servers?.length" class="text-base-content/50 text-center py-8">
         No MCP servers configured.
@@ -191,7 +199,7 @@ function toggleEnabled(s: McpServer) {
                 <button
                   class="btn btn-xs btn-ghost text-error"
                   :disabled="deleteMutation.isPending.value"
-                  @click="deleteMutation.mutate(s.id)"
+                  @click="confirmDelete(s.id)"
                 >
                   Delete
                 </button>
@@ -202,4 +210,5 @@ function toggleEnabled(s: McpServer) {
       </div>
     </section>
   </div>
+  </SettingsLayout>
 </template>
