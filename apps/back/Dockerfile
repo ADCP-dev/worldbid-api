@@ -52,10 +52,11 @@ ENV NODE_ENV=production
 
 WORKDIR /usr/src/app
 
-# Copy manifests + full node_modules from deps, then prune to prod-only.
-COPY package.json package-lock.json ./
-COPY --from=deps /usr/src/app/node_modules ./node_modules
-RUN npm prune --production --legacy-peer-deps --no-audit --no-fund
+# Install ONLY production dependencies (no devDeps, no prune needed).
+# This avoids the npm prune bug where it removes needed packages
+# (e.g., js-yaml) that have duplicate versions in the lockfile.
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --omit=dev --legacy-peer-deps --no-audit --no-fund
 
 # Copy the compiled output from the build stage.
 COPY --from=build /usr/src/app/dist ./dist
