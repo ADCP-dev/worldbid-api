@@ -159,6 +159,12 @@
       "type": "local",
       "command": ["npx", "playwright", "run-test-mcp-server"],
       "enabled": true
+    },
+    // DaisyUI Docs — component and theme documentation via gitmcp
+    "daisyui-docs": {
+      "type": "remote",
+      "url": "https://gitmcp.io/saadeghi/daisyui",
+      "enabled": true
     }
   },
   // ─── Plugins ────────────────────────────────────────────────────────────────

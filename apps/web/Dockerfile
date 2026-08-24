@@ -9,7 +9,9 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
 COPY package.json pnpm-lock.yaml* ./
-RUN pnpm install --no-frozen-lockfile
+# Force devDependencies: Astro build tools (astro CLI, @astrojs/*) are dev-only.
+# Coolify injects NODE_ENV=production at build time, which skips devDeps.
+RUN NODE_ENV=development pnpm install --no-frozen-lockfile
 
 COPY . .
 RUN pnpm run build

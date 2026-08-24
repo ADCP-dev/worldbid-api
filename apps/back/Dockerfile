@@ -14,7 +14,10 @@ RUN apk add --no-cache git
 COPY package.json package-lock.json ./
 
 # npm install (not ci: lockfile may have drift)
-RUN npm install --legacy-peer-deps --no-audit --no-fund
+# Force devDependencies inclusion: @nestjs/cli (nest) is needed for build.
+# Coolify injects NODE_ENV=production at build time, which makes npm skip
+# devDependencies unless we explicitly request them.
+RUN npm install --legacy-peer-deps --no-audit --no-fund --include=dev
 
 # ============================================================================
 # Stage 2: build — compile TypeScript to dist/
