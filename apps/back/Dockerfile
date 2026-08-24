@@ -17,7 +17,9 @@ COPY package.json package-lock.json ./
 # Force devDependencies inclusion: @nestjs/cli (nest) is needed for build.
 # Coolify injects NODE_ENV=production at build time, which makes npm skip
 # devDependencies unless we explicitly request them.
-RUN npm install --legacy-peer-deps --no-audit --no-fund --include=dev
+# npm cache reused between builds via BuildKit mount.
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --legacy-peer-deps --no-audit --no-fund --include=dev
 
 # ============================================================================
 # Stage 2: build — compile TypeScript to dist/

@@ -8,20 +8,26 @@ WORKDIR /app
 
 RUN corepack enable
 
-# Copy everything (context = apps/front/)
-COPY . ./
+# Copy manifests first to leverage Docker layer caching for deps.
+COPY package.json pnpm-lock.yaml* ./
 
-# Install deps (postinstall runs `nuxt prepare`, needs source → COPY first)
-# pnpm 11+ requires approving build scripts — allow all for build env
+# Install deps with pnpm store cached between builds via BuildKit mount.
 # Force devDependencies: @nuxt/cli and build tools are dev-only.
 # Coolify injects NODE_ENV=production at build time, which skips devDeps.
-RUN NODE_ENV=development pnpm install --no-frozen-lockfile --config.dangerouslyAllowAllBuilds=true
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    NODE_ENV=development pnpm install --no-frozen-lockfile --config.dangerouslyAllowAllBuilds=true
 
-# Build the Nuxt app → outputs .output/
+# Copy the rest of the source (needed for nuxt prepare postinstall + build).
+COPY . ./
+
+# If postinstall didn't run (no lockfile change), run nuxt prepare now.
+RUN pnpm run postinstall || true
+
+# Build the Nuxt SPA → outputs .output/
 RUN pnpm run build
 
-# Production Stage
-FROM node:22-alpine
+# Production Stage — slim static server
+FROM node:22-alpine AS prod
 WORKDIR /app
 
 COPY --from=build /app/.output/ ./

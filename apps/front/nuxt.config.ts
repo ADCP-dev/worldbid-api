@@ -1,6 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import tailwindcss from '@tailwindcss/vite';
-import { SUPPORTED_LOCALES, DEFAULT_LOCALE, localizedRoutes } from './config/i18n-constants';
+import { SUPPORTED_LOCALES } from './config/i18n-constants';
 
 export default defineNuxtConfig(
   {
@@ -51,7 +51,6 @@ export default defineNuxtConfig(
     },
 
     modules: [
-      '@nuxt/image',
       '@nuxt/eslint',
       '@pinia/nuxt',
       'pinia-plugin-persistedstate',
@@ -159,9 +158,6 @@ export default defineNuxtConfig(
     },
 
     routeRules: {
-      // Admin/app routes - client-side only (auth uses localStorage, not available in SSR)
-      '/app/**': { ssr: false },
-
       // Long-lived cache for static assets (fonts, images, logos)
       '/fonts/**': {
         headers: { 'Cache-Control': 'public, max-age=31536000, immutable' },
@@ -178,19 +174,12 @@ export default defineNuxtConfig(
       '/favicon.ico': {
         headers: { 'Cache-Control': 'public, max-age=31536000, immutable' },
       },
-
-      // Fallback: generate on demand if not prerendered
-      '/**': { prerender: false },
     },
 
-    // SSG Prerender configuration
-    preset: 'static',
-    prerender: {
-      crawlLinks: true,
-      // Seeds generated programmatically from SUPPORTED_LOCALES.
-      // crawlLinks discovers all linked sub-pages from these seeds.
-      routes: localizedRoutes(['/']),
-      failOnError: false,
+    // SPA: no SSG/prerender — pure client-side app.
+    // Nitro generates a static .output/ with index.html shell + JS bundles.
+    nitro: {
+      preset: 'static',
     },
   },
 );
