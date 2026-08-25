@@ -23,18 +23,20 @@ COPY . ./
 # If postinstall didn't run (no lockfile change), run nuxt prepare now.
 RUN pnpm run postinstall || true
 
-# Build the Nuxt SPA → outputs .output/
+# Build the Nuxt SPA → outputs .output/public/
 RUN pnpm run build
 
-# Production Stage — slim static server
-FROM node:22-alpine AS prod
-WORKDIR /app
+# Production Stage — nginx serving static SPA
+FROM nginx:alpine AS prod
 
-COPY --from=build /app/.output/ ./
+# Configure nginx to listen on the port Coolify exposes (3000).
+RUN sed -i 's/listen       80;/listen       3000;/' /etc/nginx/conf.d/default.conf \
+    && sed -i 's/listen  \[::\]:80;/listen  [::]:3000;/' /etc/nginx/conf.d/default.conf
 
-ENV PORT=3000
-ENV HOST=0.0.0.0
+# Remove default nginx index files and copy the built static output.
+RUN rm -rf /usr/share/nginx/html/*
+COPY --from=build /app/.output/public/ /usr/share/nginx/html/
 
 EXPOSE 3000
 
-CMD ["node", "/app/server/index.mjs"]
+CMD ["nginx", "-g", "daemon off;"]
