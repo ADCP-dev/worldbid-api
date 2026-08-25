@@ -41,7 +41,7 @@ RUN echo "" > .env
 RUN npm run build
 
 # ============================================================================
-# Stage 3: prod — slim runtime with dist/ + prod-only node_modules
+# Stage 3: prod — runtime with dist/ + node_modules reused from deps stage
 # ============================================================================
 FROM node:22.16.0-alpine AS prod
 
@@ -52,12 +52,14 @@ ENV NODE_ENV=production
 
 WORKDIR /usr/src/app
 
-# Install ONLY production dependencies (no devDeps, no prune needed).
-# This avoids the npm prune bug where it removes needed packages
-# (e.g., js-yaml) that have duplicate versions in the lockfile.
+# Reuse the already-installed node_modules from the deps stage.
+# We intentionally keep devDependencies here to avoid npm ci/prune issues
+# with a lockfile that is out of sync with package.json. The image is
+# larger but stable and deterministic per commit.
+COPY --from=deps /usr/src/app/node_modules ./node_modules
+
+# Copy manifests so npm scripts and package metadata are available.
 COPY package.json package-lock.json ./
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --omit=dev --legacy-peer-deps --no-audit --no-fund
 
 # Copy the compiled output from the build stage.
 COPY --from=build /usr/src/app/dist ./dist
