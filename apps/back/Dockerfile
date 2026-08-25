@@ -55,6 +55,7 @@ WORKDIR /usr/src/app
 # Install ONLY production dependencies (no devDeps, no prune needed).
 # This avoids the npm prune bug where it removes needed packages
 # (e.g., js-yaml) that have duplicate versions in the lockfile.
+COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --omit=dev --legacy-peer-deps --no-audit --no-fund
 
