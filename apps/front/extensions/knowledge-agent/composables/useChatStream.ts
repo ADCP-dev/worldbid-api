@@ -15,6 +15,8 @@
  * chunk, terminated by `event: done\ndata: [DONE]`).
  */
 
+import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query';
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
@@ -197,21 +199,27 @@ export function useChatStream() {
 
 export function useChatSessions() {
   const { baseUrl, apiPrefix, token } = useApiBase();
+  const queryClient = useQueryClient();
+  const queryKey = ['ka-chat-sessions'] as const;
 
-  async function getSessions(): Promise<ChatSession[]> {
+  const authHeaders = computed<Record<string, string>>((): Record<string, string> =>
+    token ? { Authorization: `Bearer ${token}` } : {},
+  );
+
+  async function fetchSessions(): Promise<ChatSession[]> {
     return await $fetch<ChatSession[]>(`${baseUrl}${apiPrefix}/ka/chat/sessions`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: authHeaders.value,
     });
   }
 
   async function getSession(id: string): Promise<ChatSession | null> {
     return await $fetch<ChatSession | null>(
       `${baseUrl}${apiPrefix}/ka/chat/sessions/${id}`,
-      { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+      { headers: authHeaders.value },
     );
   }
 
-  async function createSession(
+  async function createSessionRequest(
     payload: CreateChatSessionPayload,
   ): Promise<ChatSession> {
     return await $fetch<ChatSession>(`${baseUrl}${apiPrefix}/ka/chat/sessions`, {
@@ -219,12 +227,12 @@ export function useChatSessions() {
       body: payload,
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...authHeaders.value,
       },
     });
   }
 
-  async function updateSession(
+  async function updateSessionRequest(
     id: string,
     payload: { title?: string; agentConfigId?: string },
   ): Promise<ChatSession> {
@@ -235,24 +243,54 @@ export function useChatSessions() {
         body: payload,
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...authHeaders.value,
         },
       },
     );
   }
 
-  async function deleteSession(id: string): Promise<void> {
+  async function deleteSessionRequest(id: string): Promise<void> {
     await $fetch(`${baseUrl}${apiPrefix}/ka/chat/sessions/${id}`, {
       method: 'DELETE',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: authHeaders.value,
     });
   }
 
+  const { data: sessions, isLoading: loading } = useQuery({
+    queryKey,
+    queryFn: fetchSessions,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (payload: CreateChatSessionPayload) => createSessionRequest(payload),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (vars: {
+      id: string;
+      payload: { title?: string; agentConfigId?: string };
+    }) => updateSessionRequest(vars.id, vars.payload),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteSessionRequest(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey });
+    },
+  });
+
   return {
-    getSessions,
+    sessions,
+    loading,
     getSession,
-    createSession,
-    updateSession,
-    deleteSession,
+    createMutation,
+    updateMutation,
+    deleteMutation,
   };
 }

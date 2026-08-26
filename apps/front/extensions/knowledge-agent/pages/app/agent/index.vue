@@ -1,117 +1,217 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
-import { useChatSessions, type ChatSession } from '@ka/composables/useChatStream';
+import { computed, ref, watch } from 'vue';
+import {
+  useChatSessions,
+  type ChatSession,
+} from '@ka/composables/useChatStream';
+import ChatSessionList from '@ka/components/ChatSessionList.vue';
+import ChatStream from '@ka/components/ChatStream.vue';
 
 definePageMeta({
   layout: 'default',
   middleware: ['auth', 'admin'],
-  title: 'Chat Sessions',
+  title: 'Chat',
 });
 
-const { getSessions, createSession, deleteSession } = useChatSessions();
+const { t } = useI18n();
+const route = useRoute();
 
-const sessions = ref<ChatSession[]>([]);
-const loading = ref(true);
-const creating = ref(false);
+const {
+  sessions,
+  loading,
+  getSession,
+  createMutation,
+  updateMutation,
+  deleteMutation,
+} = useChatSessions();
 
-async function load() {
-  loading.value = true;
+const activeSessionId = computed<string | null>(() => {
+  const raw = route.params.sessionId;
+  if (Array.isArray(raw)) return raw[0] ?? null;
+  return typeof raw === 'string' ? raw : null;
+});
+
+const activeSession = ref<ChatSession | null>(null);
+const loadingSession = ref(false);
+
+watch(
+  activeSessionId,
+  async (id) => {
+    activeSession.value = null;
+    if (!id) return;
+    loadingSession.value = true;
+    try {
+      activeSession.value = await getSession(id);
+    } catch {
+      activeSession.value = null;
+    } finally {
+      loadingSession.value = false;
+    }
+  },
+  { immediate: true },
+);
+
+const editing = ref(false);
+const titleBuffer = ref('');
+const savingTitle = ref(false);
+
+function startEdit() {
+  if (!activeSession.value) return;
+  titleBuffer.value = activeSession.value.title;
+  editing.value = true;
+}
+
+async function saveTitle() {
+  if (!activeSessionId.value || !activeSession.value) return;
+  savingTitle.value = true;
   try {
-    sessions.value = await getSessions();
-  } catch (e) {
-    console.error('Failed to load sessions:', e);
+    await updateMutation.mutateAsync({
+      id: activeSessionId.value,
+      payload: { title: titleBuffer.value },
+    });
+    activeSession.value = { ...activeSession.value, title: titleBuffer.value };
+    editing.value = false;
   } finally {
-    loading.value = false;
+    savingTitle.value = false;
   }
 }
 
-onMounted(load);
+const creating = ref(false);
 
-async function newSession() {
+async function newChat() {
   creating.value = true;
   try {
-    const session = await createSession({ title: 'New Chat' });
-    navigateTo(`/app/agent/${session.id}`);
-  } catch (e) {
-    console.error('Failed to create session:', e);
+    const session = await createMutation.mutateAsync({ title: 'New Chat' });
+    await navigateTo(`/app/agent/${session.id}`);
   } finally {
     creating.value = false;
   }
 }
 
-async function remove(id: string) {
-  const { t } = useI18n();
+function onSelect(id: string) {
+  void navigateTo(`/app/agent/${id}`);
+}
+
+async function onDelete(id: string) {
   if (!confirm(t('ext.ka.chat.deleteConfirm'))) return;
-  try {
-    await deleteSession(id);
-    sessions.value = sessions.value.filter((s) => s.id !== id);
-  } catch (e) {
-    console.error('Failed to delete session:', e);
+  await deleteMutation.mutateAsync(id);
+  if (activeSessionId.value === id) {
+    await navigateTo('/app/agent');
   }
 }
+
+const sidebarOpen = ref(false);
+
+const sessionsList = computed<ChatSession[]>(() => sessions.value ?? []);
 </script>
 
 <template>
-  <div class="p-6 max-w-4xl mx-auto space-y-6">
-    <header class="flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-bold">Agent Chat</h1>
-        <p class="text-base-content/60 text-sm">
-          Per-user chat sessions with the knowledge agent.
-        </p>
-      </div>
-      <button
-        class="btn btn-primary btn-sm"
-        :disabled="creating"
-        @click="newSession"
-      >
-        <span v-if="creating" class="loading loading-xs"/>
-        + New Chat
-      </button>
-    </header>
+  <div class="-mx-4 -my-6 flex h-[calc(100vh-45px)]">
+    <div class="hidden lg:block w-[260px] shrink-0">
+      <ChatSessionList
+        :sessions="sessionsList"
+        :active-id="activeSessionId"
+        :loading="loading"
+        @select="onSelect"
+        @delete="onDelete"
+        @new="newChat"
+      />
+    </div>
 
-    <section>
-      <div v-if="loading" class="flex justify-center py-12">
-        <span class="loading loading-spinner loading-lg"/>
+    <div class="lg:hidden drawer drawer-end w-full">
+      <input
+        id="ka-chat-drawer"
+        v-model="sidebarOpen"
+        type="checkbox"
+        class="drawer-toggle"
+      >
+      <div class="drawer-content flex flex-col h-full">
+        <div class="flex items-center gap-2 p-2 border-b border-base-300 bg-base-100">
+          <label for="ka-chat-drawer" class="btn btn-ghost btn-sm btn-square">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </label>
+          <span class="font-semibold truncate">
+            {{ activeSession?.title ?? t('ext.ka.chat.title') }}
+          </span>
+        </div>
+        <div v-if="activeSessionId" class="flex-1 overflow-hidden">
+          <ChatStream :session-id="activeSessionId" />
+        </div>
+        <div v-else class="flex-1 flex items-center justify-center text-base-content/50 px-4">
+          <div class="text-center">
+            <p class="text-lg mb-2">{{ t('ext.ka.chat.emptyStateTitle') }}</p>
+            <p class="text-sm">{{ t('ext.ka.chat.emptyStateSubtitle') }}</p>
+          </div>
+        </div>
       </div>
-      <div v-else-if="sessions.length === 0" class="text-center py-12 text-base-content/50">
-        <p class="text-lg mb-2">No chat sessions yet</p>
-        <button class="btn btn-primary btn-sm" @click="newSession">Start your first chat</button>
+      <div class="drawer-side z-50">
+        <label for="ka-chat-drawer" class="drawer-overlay" />
+        <div class="w-[280px] h-full">
+          <ChatSessionList
+            :sessions="sessionsList"
+            :active-id="activeSessionId"
+            :loading="loading"
+            @select="(id) => { onSelect(id); sidebarOpen = false; }"
+            @delete="onDelete"
+            @new="() => { newChat(); sidebarOpen = false; }"
+          />
+        </div>
       </div>
-      <div v-else class="overflow-x-auto">
-        <table class="table table-zebra">
-          <thead>
-            <tr>
-              <th>Title</th>
-              <th>Created</th>
-              <th>Updated</th>
-              <th class="text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="s in sessions" :key="s.id" class="hover cursor-pointer" @click="navigateTo(`/app/agent/${s.id}`)">
-              <td class="font-medium">{{ s.title }}</td>
-              <td class="text-xs text-base-content/60">
-                {{ new Date(s.createdAt).toLocaleString() }}
-              </td>
-              <td class="text-xs text-base-content/60">
-                {{ new Date(s.updatedAt).toLocaleString() }}
-              </td>
-              <td class="text-right" @click.stop>
-                <button class="btn btn-xs btn-ghost" @click="navigateTo(`/app/agent/${s.id}`)">
-                  Open
-                </button>
-                <button
-                  class="btn btn-xs btn-ghost text-error"
-                  @click="remove(s.id)"
-                >
-                  Delete
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+    </div>
+
+    <div class="hidden lg:flex flex-1 flex-col min-w-0">
+      <div
+        v-if="activeSessionId"
+        class="flex items-center justify-between gap-2 px-4 py-2 border-b border-base-300 bg-base-100"
+      >
+        <template v-if="editing">
+          <input
+            v-model="titleBuffer"
+            class="input input-sm input-bordered flex-1 max-w-md"
+            @keyup.enter="saveTitle"
+            @keyup.escape="editing = false"
+          >
+          <button
+            class="btn btn-xs btn-primary"
+            :disabled="savingTitle"
+            @click="saveTitle"
+          >{{ t('ext.ka.chat.save') }}</button>
+          <button class="btn btn-xs btn-ghost" @click="editing = false">{{ t('ext.ka.chat.cancel') }}</button>
+        </template>
+        <template v-else>
+          <span class="font-semibold truncate">
+            {{ activeSession?.title ?? (loadingSession ? t('ext.ka.chat.loading') : t('ext.ka.chat.notFound')) }}
+          </span>
+          <div class="flex items-center gap-1">
+            <button
+              v-if="activeSession"
+              class="btn btn-xs btn-ghost"
+              @click="startEdit"
+            >{{ t('ext.ka.chat.edit') }}</button>
+            <button
+              v-if="activeSession"
+              class="btn btn-xs btn-ghost text-error"
+              @click="onDelete(activeSessionId!)"
+            >{{ t('ext.ka.chat.deleteSession') }}</button>
+          </div>
+        </template>
       </div>
-    </section>
+
+      <div v-if="activeSessionId" class="flex-1 overflow-hidden">
+        <ChatStream :session-id="activeSessionId" />
+      </div>
+      <div v-else class="flex-1 flex items-center justify-center text-base-content/50">
+        <div class="text-center">
+          <p class="text-lg mb-2">{{ t('ext.ka.chat.emptyStateTitle') }}</p>
+          <p class="text-sm">{{ t('ext.ka.chat.emptyStateSubtitle') }}</p>
+          <button class="btn btn-primary btn-sm mt-4" :disabled="creating" @click="newChat">
+            <span v-if="creating" class="loading loading-xs" />
+            {{ t('ext.ka.chat.new') }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

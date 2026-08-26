@@ -1,72 +1,66 @@
-import { defineStore } from 'pinia';
-import { ref } from 'vue';
-import { useKnowledge } from '../composables/useKnowledge';
-import type { Note, QueryNotesParams } from '../composables/useKnowledge';
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
 
+export type KnowledgeView = 'editor' | 'graph'
+
+/**
+ * UI state for the Knowledge Agent notes split-view.
+ *
+ * Data fetching + caching is handled by TanStack Query (useKnowledge.ts).
+ * This store only holds ephemeral UI state: selected note id, active view
+ * (editor vs graph), and the current search query.
+ */
 export const useKnowledgeStore = defineStore('knowledge', () => {
-  const notes = ref<Note[]>([]);
-  const currentNote = ref<Note | null>(null);
-  const loading = ref(false);
-  const error = ref<string | null>(null);
+  const selectedId = ref<string | null>(null)
+  const view = ref<KnowledgeView>('graph')
+  const searchQuery = ref('')
+  const sidebarOpen = ref(false)
 
-  const { getNotes, getNote, createNote, updateNote, deleteNote } =
-    useKnowledge();
-
-  async function loadNotes(params: QueryNotesParams = {}) {
-    loading.value = true;
-    error.value = null;
-    try {
-      notes.value = await getNotes(params);
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : String(e);
-    } finally {
-      loading.value = false;
-    }
+  function selectNote(id: string | null) {
+    selectedId.value = id
+    if (id) view.value = 'editor'
   }
 
-  async function loadNote(id: string) {
-    loading.value = true;
-    error.value = null;
-    try {
-      currentNote.value = await getNote(id);
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : String(e);
-    } finally {
-      loading.value = false;
-    }
+  function openGraph() {
+    view.value = 'graph'
   }
 
-  async function saveNote(
-    payload: { title: string; contentMd: string; categoryPath?: string },
-  ) {
-    const created = await createNote(payload);
-    notes.value.unshift(created);
-    return created;
+  function openEditor() {
+    view.value = 'editor'
   }
 
-  async function patchNote(id: string, payload: Partial<Note>) {
-    const updated = await updateNote(id, payload);
-    const idx = notes.value.findIndex((n) => n.id === id);
-    if (idx >= 0) notes.value[idx] = updated;
-    if (currentNote.value?.id === id) currentNote.value = updated;
-    return updated;
+  function toggleView() {
+    view.value = view.value === 'graph' ? 'editor' : 'graph'
   }
 
-  async function removeNote(id: string) {
-    await deleteNote(id);
-    notes.value = notes.value.filter((n) => n.id !== id);
-    if (currentNote.value?.id === id) currentNote.value = null;
+  function setView(v: KnowledgeView) {
+    view.value = v
+  }
+
+  function setSearch(q: string) {
+    searchQuery.value = q
+  }
+
+  function toggleSidebar() {
+    sidebarOpen.value = !sidebarOpen.value
+  }
+
+  function closeSidebar() {
+    sidebarOpen.value = false
   }
 
   return {
-    notes,
-    currentNote,
-    loading,
-    error,
-    loadNotes,
-    loadNote,
-    saveNote,
-    patchNote,
-    removeNote,
-  };
-});
+    selectedId,
+    view,
+    searchQuery,
+    sidebarOpen,
+    selectNote,
+    openGraph,
+    openEditor,
+    toggleView,
+    setView,
+    setSearch,
+    toggleSidebar,
+    closeSidebar,
+  }
+})

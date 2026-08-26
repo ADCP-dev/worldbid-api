@@ -15,7 +15,6 @@ export default defineNuxtPlugin((nuxtApp) => {
       order: 40,
       items: [
         { title: t('ext.ka.nav.notes'), icon: 'FileText', link: '/app/knowledge', order: 0 },
-        { title: t('ext.ka.nav.graph'), icon: 'Network', link: '/app/knowledge/graph', order: 10 },
         { title: t('ext.ka.nav.chat'), icon: 'MessageSquare', link: '/app/agent', order: 20 },
         {
           title: t('ext.ka.nav.config'),

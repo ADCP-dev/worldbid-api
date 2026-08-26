@@ -2,9 +2,12 @@
 import { ref, watch, computed } from 'vue';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query';
 import { useAgentConfig, useModelProviders } from '@ka/composables/useAgentConfig';
+import type { AgentConfig } from '@ka/composables/useAgentConfig';
 import FormInput from '@base/ui-app/components/form/FormInput.vue';
 import FormTextArea from '@base/ui-app/components/form/FormTextArea.vue';
 import FormSelect from '@base/ui-app/components/form/FormSelect.vue';
+import ConfigLayout from '@ka/components/ConfigLayout.vue';
+import { KA_SETTINGS_SECTIONS, type KaConfigSection } from '@ka/composables/useKaSettingsNav';
 
 definePageMeta({
   layout: 'default',
@@ -12,6 +15,8 @@ definePageMeta({
 });
 
 const { t } = useI18n();
+
+const sections = computed<KaConfigSection[]>(() => KA_SETTINGS_SECTIONS(t));
 
 const {
   getAgentConfigs,
@@ -53,7 +58,6 @@ const modelOptions = computed(() => {
   });
 });
 
-const editing = ref(false);
 const editingId = ref<string | null>(null);
 const form = ref({
   name: '',
@@ -61,6 +65,8 @@ const form = ref({
   model: '',
   provider: 'openrouter',
 });
+
+const isEditing = computed(() => editingId.value !== null);
 
 watch(providers, (ps) => {
   if (ps && ps.length > 0 && !form.value.provider) {
@@ -76,17 +82,9 @@ function resetForm() {
     provider: 'openrouter',
   };
   editingId.value = null;
-  editing.value = false;
 }
 
-function startEdit(agent: {
-  id: string;
-  name: string;
-  systemPrompt: string;
-  model: string;
-  provider: string;
-}) {
-  editing.value = true;
+function startEdit(agent: AgentConfig) {
   editingId.value = agent.id;
   form.value = {
     name: agent.name,
@@ -133,8 +131,12 @@ function onSubmit() {
 </script>
 
 <template>
-  <SettingsLayout>
-    <div class="p-6 max-w-4xl mx-auto space-y-6">
+  <ConfigLayout
+    :sections="sections"
+    active-key="agents"
+    :title="t('ext.ka.nav.config')"
+  >
+    <div class="space-y-6">
       <header>
         <h1 class="text-2xl font-bold">{{ t('ext.ka.settings.agents') }}</h1>
         <p class="text-base-content/60 text-sm">
@@ -144,35 +146,36 @@ function onSubmit() {
 
       <section class="card bg-base-100 shadow-sm border p-5 space-y-4">
         <h2 class="text-lg font-semibold">
-          {{ editingId ? t('ext.ka.settings.newAgent') : t('ext.ka.settings.newAgent') }}
+          {{ isEditing ? t('ext.ka.settings.editAgent') : t('ext.ka.settings.newAgent') }}
         </h2>
         <div class="grid gap-3">
           <FormInput
             v-model="form.name"
-            label="Name"
+            :label="t('ext.ka.settings.fieldName')"
             placeholder="Default Agent"
             required
           />
           <FormTextArea
             v-model="form.systemPrompt"
-            label="System Prompt"
+            :label="t('ext.ka.settings.fieldSystemPrompt')"
             :rows="5"
             placeholder="You are a knowledge manager..."
           />
-          <div class="grid grid-cols-2 gap-3">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <FormSelect
               v-model="form.provider"
-              label="Provider"
+              :label="t('ext.ka.settings.fieldProvider')"
               :options="providerOptions.length ? providerOptions : [
                 { value: 'openrouter', label: 'openrouter' },
                 { value: 'ollama', label: 'ollama' },
+                { value: 'ollama-cloud', label: 'ollama-cloud' },
               ]"
             />
             <FormSelect
               v-model="form.model"
-              label="Model"
+              :label="t('ext.ka.settings.fieldModel')"
               :options="modelOptions"
-              placeholder="Select a model"
+              :placeholder="t('ext.ka.settings.selectModel')"
             />
           </div>
           <div class="flex gap-2">
@@ -181,10 +184,10 @@ function onSubmit() {
               :disabled="saveMutation.isPending.value || !form.name"
               @click="onSubmit"
             >
-              {{ saveMutation.isPending.value ? 'Saving...' : (editingId ? 'Update' : 'Create') }}
+              {{ saveMutation.isPending.value ? t('ext.ka.settings.saving') : (isEditing ? t('ext.ka.settings.update') : t('ext.ka.settings.create')) }}
             </button>
-            <button v-if="editingId" class="btn btn-ghost" @click="resetForm">
-              Cancel
+            <button v-if="isEditing" class="btn btn-ghost" @click="resetForm">
+              {{ t('ext.ka.settings.cancel') }}
             </button>
           </div>
           <p v-if="saveMutation.isError.value" class="text-error text-sm">
@@ -198,44 +201,37 @@ function onSubmit() {
           <span class="loading loading-spinner loading-lg" />
         </div>
         <div v-else-if="!agents?.length" class="text-base-content/50 text-center py-8">
-          No agent configs yet.
+          {{ t('ext.ka.settings.noAgents') }}
         </div>
-        <div v-else class="overflow-x-auto">
-          <table class="table table-zebra">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Model</th>
-                <th>Provider</th>
-                <th>Updated</th>
-                <th class="text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="agent in agents" :key="agent.id">
-                <td class="font-medium">{{ agent.name }}</td>
-                <td><code class="text-xs">{{ agent.model }}</code></td>
-                <td>{{ agent.provider }}</td>
-                <td class="text-xs text-base-content/60">
-                  {{ new Date(agent.updatedAt).toLocaleString() }}
-                </td>
-                <td class="text-right space-x-2">
-                  <button class="btn btn-xs btn-ghost" @click="startEdit(agent)">
-                    Edit
-                  </button>
-                  <button
-                    class="btn btn-xs btn-ghost text-error"
-                    :disabled="deleteMutation.isPending.value"
-                    @click="confirmDelete(agent.id)"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div v-else class="grid gap-3">
+          <article
+            v-for="agent in agents"
+            :key="agent.id"
+            class="card bg-base-100 shadow-sm border p-4 flex flex-col md:flex-row md:items-center gap-3"
+          >
+            <div class="flex-1 min-w-0">
+              <h3 class="font-semibold truncate">{{ agent.name }}</h3>
+              <div class="flex flex-wrap items-center gap-2 text-xs text-base-content/60 mt-1">
+                <code class="bg-base-200 px-1.5 py-0.5 rounded">{{ agent.model }}</code>
+                <span class="badge badge-sm badge-outline">{{ agent.provider }}</span>
+                <span>{{ new Date(agent.updatedAt).toLocaleString() }}</span>
+              </div>
+            </div>
+            <div class="flex gap-2 shrink-0">
+              <button class="btn btn-xs btn-ghost" @click="startEdit(agent)">
+                {{ t('ext.ka.settings.edit') }}
+              </button>
+              <button
+                class="btn btn-xs btn-ghost text-error"
+                :disabled="deleteMutation.isPending.value"
+                @click="confirmDelete(agent.id)"
+              >
+                {{ t('ext.ka.settings.delete') }}
+              </button>
+            </div>
+          </article>
         </div>
       </section>
     </div>
-  </SettingsLayout>
+  </ConfigLayout>
 </template>

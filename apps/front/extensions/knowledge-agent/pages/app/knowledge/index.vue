@@ -1,102 +1,314 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
+import { useDebounceFn } from '@vueuse/core';
+import { storeToRefs } from 'pinia';
+import { toast } from 'vue-sonner';
+import { FileText, Network, PanelLeft, Plus } from 'lucide-vue-next';
 import { useKnowledgeStore } from '@ka/stores/knowledge.store';
+import {
+  useNotesQuery,
+  useNoteQuery,
+  useCreateNoteMutation,
+  useUpdateNoteMutation,
+  useDeleteNoteMutation,
+} from '@ka/composables/useKnowledge';
 import type { Note } from '@ka/composables/useKnowledge';
+import KnowledgeSidebar from '@ka/components/KnowledgeSidebar.vue';
+import KnowledgeGraph from '@ka/components/KnowledgeGraph.vue';
+import NoteEditor from '@ka/components/NoteEditor.vue';
 
 definePageMeta({
   layout: 'default',
   middleware: ['auth', 'admin'],
+  title: 'ext.ka.notes.title',
 });
 
+const { t } = useI18n();
 const store = useKnowledgeStore();
-const searchQuery = ref('');
-const selectedNote = ref<Note | null>(null);
+const { selectedId, view, searchQuery, sidebarOpen } = storeToRefs(store);
 
-onMounted(async () => {
-  await store.loadNotes();
+// ── Data (TanStack Query) ────────────────────────────────────────────────
+const notesParams = computed(() => ({
+  search: searchQuery.value || undefined,
+}));
+const { data: notes, isPending: notesLoading } = useNotesQuery(notesParams);
+const { data: currentNote, isPending: noteLoading } = useNoteQuery(selectedId);
+
+const createMutation = useCreateNoteMutation();
+const updateMutation = useUpdateNoteMutation();
+const deleteMutation = useDeleteNoteMutation();
+
+// ── Editor local state (synced from currentNote) ─────────────────────────
+const title = ref('');
+const contentMd = ref('');
+const categoryPath = ref('');
+const tags = ref<string[]>([]);
+const dirty = ref(false);
+const saveStatus = ref<'idle' | 'saving' | 'saved'>('idle');
+
+watch(currentNote, (note) => {
+  if (note) {
+    title.value = note.title;
+    contentMd.value = note.contentMd;
+    categoryPath.value = note.categoryPath ?? '';
+    tags.value = [...note.tags];
+    dirty.value = false;
+  }
 });
 
-async function onSearch() {
-  await store.loadNotes({ search: searchQuery.value || undefined });
+// ── Auto-save (debounced 1.5s) ───────────────────────────────────────────
+const doSave = useDebounceFn(async () => {
+  if (!selectedId.value || !dirty.value) return;
+  saveStatus.value = 'saving';
+  try {
+    await updateMutation.mutateAsync({
+      id: selectedId.value,
+      data: {
+        title: title.value,
+        contentMd: contentMd.value,
+        categoryPath: categoryPath.value || undefined,
+        tags: tags.value,
+      },
+    });
+    dirty.value = false;
+    saveStatus.value = 'saved';
+    setTimeout(() => {
+      if (saveStatus.value === 'saved') saveStatus.value = 'idle';
+    }, 2000);
+  } catch (e) {
+    saveStatus.value = 'idle';
+    toast.error(t('ext.ka.notes.saveError'));
+    throw e;
+  }
+}, 1500);
+
+watch([title, contentMd, categoryPath, tags], () => {
+  if (currentNote.value) {
+    dirty.value = true;
+    saveStatus.value = 'idle';
+    void doSave();
+  }
+});
+
+// ── Handlers ─────────────────────────────────────────────────────────────
+function onSelectNote(note: Note) {
+  store.selectNote(note.id);
+  store.closeSidebar();
 }
 
-function selectNote(note: Note) {
-  selectedNote.value = note;
-  navigateTo(`/app/knowledge/${note.id}`);
+function onGraphSelect(id: string) {
+  store.selectNote(id);
+}
+
+function onGraphNew() {
+  void createNew();
+}
+
+async function flushSave() {
+  doSave.cancel();
+  if (!selectedId.value || !dirty.value) return;
+  saveStatus.value = 'saving';
+  try {
+    await updateMutation.mutateAsync({
+      id: selectedId.value,
+      data: {
+        title: title.value,
+        contentMd: contentMd.value,
+        categoryPath: categoryPath.value || undefined,
+        tags: tags.value,
+      },
+    });
+    dirty.value = false;
+    saveStatus.value = 'saved';
+    setTimeout(() => {
+      if (saveStatus.value === 'saved') saveStatus.value = 'idle';
+    }, 2000);
+  } catch (e) {
+    saveStatus.value = 'idle';
+    toast.error(t('ext.ka.notes.saveError'));
+    throw e;
+  }
 }
 
 async function createNew() {
-  const note = await store.saveNote({
-    title: 'Untitled Note',
-    contentMd: '<p></p>',
-  });
-  navigateTo(`/app/knowledge/${note.id}`);
+  try {
+    const note = await createMutation.mutateAsync({
+      title: t('ext.ka.notes.untitled'),
+      contentMd: '<p></p>',
+    });
+    store.selectNote(note.id);
+    store.closeSidebar();
+  } catch {
+    toast.error(t('ext.ka.notes.createError'));
+  }
 }
+
+async function removeNote() {
+  if (!selectedId.value) return;
+  if (!confirm(t('ext.ka.notes.deleteConfirm'))) return;
+  try {
+    await deleteMutation.mutateAsync(selectedId.value);
+    store.selectNote(null);
+    store.openGraph();
+    toast.success(t('ext.ka.notes.deleted'));
+  } catch {
+    toast.error(t('ext.ka.notes.deleteError'));
+  }
+}
+
+function onSearch(q: string) {
+  store.setSearch(q);
+}
+
+const saveLabel = computed(() => {
+  if (saveStatus.value === 'saving') return t('ext.ka.notes.saving');
+  if (saveStatus.value === 'saved') return t('ext.ka.notes.saved');
+  if (dirty.value) return t('ext.ka.notes.unsaved');
+  return '';
+});
 </script>
 
 <template>
-  <div class="flex h-full">
-    <!-- Tree sidebar -->
-    <aside class="w-64 border-r bg-base-200 flex flex-col">
-      <div class="p-3 border-b">
-        <h2 class="text-sm font-semibold uppercase text-base-content/60">Knowledge Base</h2>
-      </div>
-      <div class="p-2 border-b">
-        <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="Search notes..."
-          class="input input-bordered input-sm w-full"
-          @keyup.enter="onSearch"
-        >
-      </div>
-      <div class="p-2 border-b flex gap-2">
-        <button class="btn btn-sm btn-primary flex-1" @click="createNew">
-          + New Note
-        </button>
-        <NuxtLink
-          to="/app/knowledge/graph"
-          class="btn btn-sm btn-ghost flex-1 border"
-          title="Open graph view"
-        >
-          Graph
-        </NuxtLink>
-      </div>
-      <div class="flex-1 overflow-auto">
-        <KnowledgeTree
-          :notes="store.notes"
-          :selected-id="selectedNote?.id"
-          @select="selectNote"
-        />
-      </div>
+  <div class="-m-4 flex h-[calc(100vh-45px-3rem)] overflow-hidden bg-base-200">
+    <!-- Mobile sidebar toggle -->
+    <button
+      class="btn btn-sm btn-ghost btn-circle absolute left-2 top-2 z-30 lg:hidden"
+      :class="{ 'opacity-0 pointer-events-none': sidebarOpen }"
+      @click="store.toggleSidebar()"
+    >
+      <PanelLeft class="w-4 h-4" />
+    </button>
+
+    <!-- Mobile overlay -->
+    <div
+      v-if="sidebarOpen"
+      class="fixed inset-0 bg-black/40 z-30 lg:hidden"
+      @click="store.closeSidebar()"
+    />
+
+    <!-- Left sidebar -->
+    <aside
+      class="w-[280px] shrink-0 z-40 transition-transform duration-200 fixed lg:static inset-y-0 left-0 lg:translate-x-0"
+      :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
+    >
+      <KnowledgeSidebar
+        :notes="notes ?? []"
+        :selected-id="selectedId"
+        :search-query="searchQuery"
+        :loading="notesLoading"
+        @select="onSelectNote"
+        @new="createNew"
+        @search="onSearch"
+      />
     </aside>
 
-    <!-- Main content -->
-    <main class="flex-1 overflow-auto p-6">
-      <div v-if="store.loading && store.notes.length === 0" class="flex justify-center py-12">
-        <span class="loading loading-spinner loading-lg"/>
-      </div>
-      <div v-else-if="store.notes.length === 0" class="text-center py-12 text-base-content/50">
-        <p class="text-lg mb-2">No notes found</p>
-        <button class="btn btn-primary btn-sm" @click="createNew">Create your first note</button>
-      </div>
-      <div v-else class="space-y-4">
-        <h1 class="text-2xl font-bold">Notes ({{ store.notes.length }})</h1>
-        <div class="grid gap-3">
-          <NuxtLink
-            v-for="note in store.notes"
-            :key="note.id"
-            :to="`/app/knowledge/${note.id}`"
-            class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow p-4 border"
+    <!-- Right panel -->
+    <main class="flex-1 flex flex-col min-w-0 bg-base-100">
+      <!-- Top bar: view toggle + actions -->
+      <div class="flex items-center justify-between border-b border-base-300 px-4 h-12 shrink-0">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="text-sm font-medium truncate text-base-content/70">
+            {{ currentNote?.title ?? t('ext.ka.graph.title') }}
+          </span>
+          <span
+            v-if="view === 'editor' && saveLabel"
+            class="badge badge-xs badge-ghost gap-1"
           >
-            <h3 class="font-semibold">{{ note.title }}</h3>
-            <p class="text-sm text-base-content/60 truncate">
-              {{ note.contentMd.replace(/<[^>]+>/g, '').slice(0, 100) }}
-            </p>
-            <div v-if="note.categoryPath" class="mt-2">
-              <span class="badge badge-xs badge-ghost">{{ note.categoryPath }}</span>
-            </div>
-          </NuxtLink>
+            <span
+              class="inline-block w-1.5 h-1.5 rounded-full"
+              :class="{
+                'bg-warning': dirty,
+                'bg-info animate-pulse': saveStatus === 'saving',
+                'bg-success': saveStatus === 'saved',
+              }"
+            />
+            {{ saveLabel }}
+          </span>
+        </div>
+
+        <div class="flex items-center gap-2 shrink-0">
+          <!-- View toggle -->
+          <div role="tablist" class="tabs tabs-boxed tabs-sm">
+            <button
+              role="tab"
+              class="tab gap-1"
+              :class="{ 'tab-active': view === 'editor' }"
+              :disabled="!selectedId"
+              @click="store.openEditor()"
+            >
+              <FileText class="w-3.5 h-3.5" />
+              {{ t('ext.ka.notes.editorTab') }}
+            </button>
+            <button
+              role="tab"
+              class="tab gap-1"
+              :class="{ 'tab-active': view === 'graph' }"
+              @click="store.openGraph()"
+            >
+              <Network class="w-3.5 h-3.5" />
+              {{ t('ext.ka.graph.title') }}
+            </button>
+          </div>
+
+          <button
+            v-if="view === 'editor' && selectedId"
+            class="btn btn-sm btn-ghost text-error"
+            @click="removeNote"
+          >
+            {{ t('ext.ka.notes.delete') }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Content area -->
+      <div class="flex-1 min-h-0 relative">
+        <!-- Editor view -->
+        <div
+          v-if="view === 'editor' && selectedId"
+          class="absolute inset-0 overflow-auto"
+        >
+          <div v-if="noteLoading" class="flex justify-center py-12">
+            <span class="loading loading-spinner loading-md" />
+          </div>
+          <div
+            v-else-if="!currentNote"
+            class="flex flex-col items-center justify-center h-full text-base-content/40"
+          >
+            <FileText class="w-10 h-10 mb-2 opacity-50" />
+            <p>{{ t('ext.ka.notes.notFound') }}</p>
+          </div>
+          <div v-else class="p-4 h-full">
+            <NoteEditor
+              v-model="contentMd"
+              :title="title"
+              :category-path="categoryPath"
+              :tags="tags"
+              @update:title="title = $event"
+              @update:category-path="categoryPath = $event"
+              @save="flushSave"
+            />
+          </div>
+        </div>
+
+        <!-- Empty state (editor view, nothing selected) -->
+        <div
+          v-else-if="view === 'editor' && !selectedId"
+          class="flex flex-col items-center justify-center h-full text-base-content/40 gap-3"
+        >
+          <FileText class="w-12 h-12 opacity-40" />
+          <p class="text-lg">{{ t('ext.ka.notes.selectPrompt') }}</p>
+          <button class="btn btn-sm btn-primary gap-2" @click="createNew">
+            <Plus class="w-4 h-4" />
+            {{ t('ext.ka.notes.create') }}
+          </button>
+        </div>
+
+        <!-- Graph view -->
+        <div v-else class="absolute inset-0">
+          <KnowledgeGraph
+            @select="onGraphSelect"
+            @new="onGraphNew"
+          />
         </div>
       </div>
     </main>

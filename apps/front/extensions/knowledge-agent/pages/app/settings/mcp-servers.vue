@@ -1,23 +1,35 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query';
 import { useMcpServers, type McpServer } from '@ka/composables/useAgentConfig';
+import FormInput from '@base/ui-app/components/form/FormInput.vue';
+import FormSelect from '@base/ui-app/components/form/FormSelect.vue';
+import FormSwitch from '@base/ui-app/components/form/FormSwitch.vue';
+import ConfigLayout from '@ka/components/ConfigLayout.vue';
+import { KA_SETTINGS_SECTIONS, type KaConfigSection } from '@ka/composables/useKaSettingsNav';
 
 definePageMeta({
   layout: 'default',
   middleware: ['auth', 'admin'],
 });
 
+const { t } = useI18n();
+
+const sections = computed<KaConfigSection[]>(() => KA_SETTINGS_SECTIONS(t));
+
 const { getServers, createServer, updateServer, deleteServer } = useMcpServers();
 const queryClient = useQueryClient();
-const { t } = useI18n();
 
 const { data: servers, isLoading } = useQuery({
   queryKey: ['ka-mcp-servers'],
   queryFn: getServers,
 });
 
-const editing = ref(false);
+const TRANSPORT_OPTIONS = [
+  { value: 'http', label: 'http' },
+  { value: 'stdio', label: 'stdio' },
+];
+
 const editingId = ref<string | null>(null);
 const form = ref({
   name: '',
@@ -26,6 +38,8 @@ const form = ref({
   apiKeyRef: '',
   enabled: true,
 });
+
+const isEditing = computed(() => editingId.value !== null);
 
 function resetForm() {
   form.value = {
@@ -36,11 +50,9 @@ function resetForm() {
     enabled: true,
   };
   editingId.value = null;
-  editing.value = false;
 }
 
 function startEdit(s: McpServer) {
-  editing.value = true;
   editingId.value = s.id;
   form.value = {
     name: s.name,
@@ -78,6 +90,14 @@ const deleteMutation = useMutation({
   },
 });
 
+const toggleMutation = useMutation({
+  mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) =>
+    updateServer(id, { enabled }),
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['ka-mcp-servers'] });
+  },
+});
+
 function confirmDelete(id: string) {
   if (!confirm(t('ext.ka.chat.deleteConfirm'))) return;
   deleteMutation.mutate(id);
@@ -88,127 +108,115 @@ function onSubmit() {
 }
 
 function toggleEnabled(s: McpServer) {
-  updateServer(s.id, { enabled: !s.enabled }).then(() => {
-    queryClient.invalidateQueries({ queryKey: ['ka-mcp-servers'] });
-  });
+  toggleMutation.mutate({ id: s.id, enabled: !s.enabled });
 }
 </script>
 
 <template>
-  <SettingsLayout>
-  <div class="p-6 max-w-4xl mx-auto space-y-6">
-    <header>
-      <h1 class="text-2xl font-bold">MCP Servers</h1>
-      <p class="text-base-content/60 text-sm">
-        External MCP server registry. The agent loads tools from enabled servers.
-      </p>
-    </header>
-
-    <section class="card bg-base-100 shadow-sm border p-5 space-y-4">
-      <h2 class="text-lg font-semibold">
-        {{ editingId ? 'Edit Server' : 'New Server' }}
-      </h2>
-      <div class="grid gap-3">
-        <label class="form-control">
-          <span class="label-text mb-1">Name</span>
-          <input v-model="form.name" type="text" class="input input-bordered w-full" placeholder="e.g. GitHub MCP" >
-        </label>
-        <div class="grid grid-cols-2 gap-3">
-          <label class="form-control">
-            <span class="label-text mb-1">Transport</span>
-            <select v-model="form.transport" class="select select-bordered w-full">
-              <option value="http">http</option>
-              <option value="stdio">stdio</option>
-            </select>
-          </label>
-          <label class="form-control">
-            <span class="label-text mb-1">Enabled</span>
-            <select v-model="form.enabled" class="select select-bordered w-full">
-              <option :value="true">true</option>
-              <option :value="false">false</option>
-            </select>
-          </label>
-        </div>
-        <label class="form-control">
-          <span class="label-text mb-1">URL (http) or Command (stdio)</span>
-          <input
-            v-model="form.url"
-            type="text"
-            class="input input-bordered w-full"
-            :placeholder="form.transport === 'http' ? 'https://mcp.example.com/api' : 'npx -y @mcp/server'"
-          >
-        </label>
-        <label class="form-control">
-          <span class="label-text mb-1">API Key Ref (optional — env var name)</span>
-          <input v-model="form.apiKeyRef" type="text" class="input input-bordered w-full" placeholder="MCP_API_KEY" >
-        </label>
-        <div class="flex gap-2">
-          <button
-            class="btn btn-primary"
-            :disabled="saveMutation.isPending.value"
-            @click="onSubmit"
-          >
-            {{ saveMutation.isPending.value ? 'Saving...' : (editingId ? 'Update' : 'Create') }}
-          </button>
-          <button v-if="editingId" class="btn btn-ghost" @click="resetForm">
-            Cancel
-          </button>
-        </div>
-        <p v-if="saveMutation.isError.value" class="text-error text-sm">
-          {{ saveMutation.error?.message }}
+  <ConfigLayout
+    :sections="sections"
+    active-key="mcp"
+    :title="t('ext.ka.nav.config')"
+  >
+    <div class="space-y-6">
+      <header>
+        <h1 class="text-2xl font-bold">{{ t('ext.ka.settings.mcp') }}</h1>
+        <p class="text-base-content/60 text-sm">
+          {{ t('ext.ka.settings.mcpDescription') }}
         </p>
-      </div>
-    </section>
+      </header>
 
-    <section class="space-y-3">
-      <div v-if="isLoading" class="flex justify-center py-8">
-        <span class="loading loading-spinner loading-lg"/>
-      </div>
-      <div v-else-if="!servers?.length" class="text-base-content/50 text-center py-8">
-        No MCP servers configured.
-      </div>
-      <div v-else class="overflow-x-auto">
-        <table class="table table-zebra">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Transport</th>
-              <th>URL / Command</th>
-              <th>Enabled</th>
-              <th class="text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="s in servers" :key="s.id">
-              <td class="font-medium">{{ s.name }}</td>
-              <td><code class="text-xs">{{ s.transport }}</code></td>
-              <td class="text-xs text-base-content/60 max-w-xs truncate" :title="s.url">{{ s.url }}</td>
-              <td>
-                <button
-                  class="btn btn-xs"
-                  :class="s.enabled ? 'btn-success' : 'btn-ghost'"
-                  @click="toggleEnabled(s)"
-                >
-                  {{ s.enabled ? 'ON' : 'OFF' }}
-                </button>
-              </td>
-              <td class="text-right space-x-2">
-                <button class="btn btn-xs btn-ghost" @click="startEdit(s)">
-                  Edit
-                </button>
-                <button
-                  class="btn btn-xs btn-ghost text-error"
-                  :disabled="deleteMutation.isPending.value"
-                  @click="confirmDelete(s.id)"
-                >
-                  Delete
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-  </div>
-  </SettingsLayout>
+      <section class="card bg-base-100 shadow-sm border p-5 space-y-4">
+        <h2 class="text-lg font-semibold">
+          {{ isEditing ? t('ext.ka.settings.editMcpServer') : t('ext.ka.settings.newMcpServer') }}
+        </h2>
+        <div class="grid gap-3">
+          <FormInput
+            v-model="form.name"
+            :label="t('ext.ka.settings.fieldName')"
+            placeholder="e.g. GitHub MCP"
+            required
+          />
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <FormSelect
+              v-model="form.transport"
+              :label="t('ext.ka.settings.fieldTransport')"
+              :options="TRANSPORT_OPTIONS"
+            />
+            <FormSwitch
+              v-model="form.enabled"
+              :label="t('ext.ka.settings.fieldEnabled')"
+            />
+          </div>
+          <FormInput
+            v-model="form.url"
+            :label="form.transport === 'http' ? t('ext.ka.settings.fieldUrl') : t('ext.ka.settings.fieldCommand')"
+            :placeholder="form.transport === 'http' ? 'https://mcp.example.com/api' : 'npx -y @mcp/server'"
+          />
+          <FormInput
+            v-model="form.apiKeyRef"
+            :label="t('ext.ka.settings.fieldApiKeyRef')"
+            placeholder="MCP_API_KEY"
+            :description="t('ext.ka.settings.apiKeyRefOptional')"
+          />
+          <div class="flex gap-2">
+            <button
+              class="btn btn-primary"
+              :disabled="saveMutation.isPending.value"
+              @click="onSubmit"
+            >
+              {{ saveMutation.isPending.value ? t('ext.ka.settings.saving') : (isEditing ? t('ext.ka.settings.update') : t('ext.ka.settings.create')) }}
+            </button>
+            <button v-if="isEditing" class="btn btn-ghost" @click="resetForm">
+              {{ t('ext.ka.settings.cancel') }}
+            </button>
+          </div>
+          <p v-if="saveMutation.isError.value" class="text-error text-sm">
+            {{ saveMutation.error?.message }}
+          </p>
+        </div>
+      </section>
+
+      <section class="space-y-3">
+        <div v-if="isLoading" class="flex justify-center py-8">
+          <span class="loading loading-spinner loading-lg" />
+        </div>
+        <div v-else-if="!servers?.length" class="text-base-content/50 text-center py-8">
+          {{ t('ext.ka.settings.noMcpServers') }}
+        </div>
+        <div v-else class="grid gap-3">
+          <article
+            v-for="s in servers"
+            :key="s.id"
+            class="card bg-base-100 shadow-sm border p-4 flex flex-col md:flex-row md:items-center gap-3"
+          >
+            <div class="flex-1 min-w-0">
+              <h3 class="font-semibold truncate">{{ s.name }}</h3>
+              <div class="flex flex-wrap items-center gap-2 text-xs text-base-content/60 mt-1">
+                <span class="badge badge-sm badge-outline">{{ s.transport }}</span>
+                <code class="bg-base-200 px-1.5 py-0.5 rounded truncate max-w-xs" :title="s.url">{{ s.url }}</code>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 shrink-0">
+              <FormSwitch
+                :model-value="s.enabled"
+                :label="t('ext.ka.settings.fieldEnabled')"
+                @update:model-value="toggleEnabled(s)"
+              />
+              <button class="btn btn-xs btn-ghost" @click="startEdit(s)">
+                {{ t('ext.ka.settings.edit') }}
+              </button>
+              <button
+                class="btn btn-xs btn-ghost text-error"
+                :disabled="deleteMutation.isPending.value"
+                @click="confirmDelete(s.id)"
+              >
+                {{ t('ext.ka.settings.delete') }}
+              </button>
+            </div>
+          </article>
+        </div>
+      </section>
+    </div>
+  </ConfigLayout>
 </template>

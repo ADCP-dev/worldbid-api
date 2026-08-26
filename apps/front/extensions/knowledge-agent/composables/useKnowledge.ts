@@ -1,149 +1,171 @@
 /**
- * Composable for the Knowledge Agent extension.
- * Wraps all API calls to the backend knowledge notes endpoints.
+ * useKnowledge — TanStack Query composable for Knowledge Agent notes.
+ *
+ * Pattern mirrors useUsers.ts: one query/mutation hook per operation,
+ * all delegating to useApi() for transport. Cache keys:
+ *   - List:  ['ka', 'notes', params]
+ *   - One:   ['ka', 'notes', id]
+ *   - Graph: ['ka', 'graph', params]
+ *
+ * All write mutations invalidate the list query (and the single query
+ * for the affected id when known).
  */
+import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
+import { computed, toValue } from 'vue'
+import type { MaybeRefOrGetter } from 'vue'
 
 export interface Note {
-  id: string;
-  title: string;
-  contentMd: string;
-  categoryPath: string | null;
-  tags: string[];
-  frontmatter: Record<string, unknown>;
-  embedding: number[] | null;
+  id: string
+  title: string
+  contentMd: string
+  categoryPath: string | null
+  tags: string[]
+  frontmatter: Record<string, unknown>
+  embedding: number[] | null
   /** Creator provenance — metadata only, NOT scoping. Notes are global. */
-  userId: number | null;
-  createdAt: string;
-  updatedAt: string;
-  deletedAt: string | null;
+  userId: number | null
+  createdAt: string
+  updatedAt: string
+  deletedAt: string | null
 }
 
 export interface CreateNotePayload {
-  title: string;
-  contentMd: string;
-  categoryPath?: string;
-  tags?: string[];
-  frontmatter?: Record<string, unknown>;
+  title: string
+  contentMd: string
+  categoryPath?: string
+  tags?: string[]
+  frontmatter?: Record<string, unknown>
 }
 
 export interface UpdateNotePayload {
-  title?: string;
-  contentMd?: string;
-  categoryPath?: string;
-  tags?: string[];
-  frontmatter?: Record<string, unknown>;
+  title?: string
+  contentMd?: string
+  categoryPath?: string
+  tags?: string[]
+  frontmatter?: Record<string, unknown>
 }
 
 export interface QueryNotesParams {
-  categoryPath?: string;
-  depth?: number;
-  search?: string;
-  tags?: string[];
+  categoryPath?: string
+  depth?: number
+  search?: string
+  tags?: string[]
 }
 
 export interface GraphNode {
-  id: string;
-  label: string;
-  tags: string[];
-  categoryPath: string | null;
-  degree: number;
+  id: string
+  label: string
+  tags: string[]
+  categoryPath: string | null
+  degree: number
 }
 
 export interface GraphEdge {
-  source: string;
-  target: string;
+  source: string
+  target: string
 }
 
 export interface GraphData {
-  nodes: GraphNode[];
-  edges: GraphEdge[];
+  nodes: GraphNode[]
+  edges: GraphEdge[]
 }
 
 export interface QueryGraphParams {
-  categoryPath?: string;
-  tag?: string;
+  categoryPath?: string
+  tag?: string
 }
 
-function useApi() {
-  const config = useRuntimeConfig();
-  const authStore = useAuthStore();
-  const baseUrl = config.public.apiUrl as string;
-  const apiPrefix = (config.public.apiPrefix as string) || '/api/v1';
+const NOTES_KEY = ['ka', 'notes'] as const
+const GRAPH_KEY = ['ka', 'graph'] as const
 
-  async function apiFetch<T>(
-    path: string,
-    options: {
-      method?: string;
-      query?: Record<string, unknown>;
-      body?: unknown;
-    } = {},
-  ): Promise<T> {
-    const headers: Record<string, string> = {};
-    if (authStore.token) {
-      headers.Authorization = `Bearer ${authStore.token}`;
-    }
-    return await $fetch<T>(`${baseUrl}${apiPrefix}${path}`, {
-      method: options.method,
-      query: options.query,
-      body: options.body as BodyInit | Record<string, unknown> | null | undefined,
-      headers,
-    }) as T;
-  }
+// ── Queries ──────────────────────────────────────────────────────────────
 
-  return { apiFetch };
+export function useNotesQuery(params: MaybeRefOrGetter<QueryNotesParams> = {}) {
+  const api = useApi()
+  const resolved = computed<QueryNotesParams>(() => toValue(params))
+  return useQuery({
+    queryKey: computed(() => [NOTES_KEY, resolved.value] as const),
+    queryFn: () => {
+      const p = resolved.value
+      const query: Record<string, string | number> = {}
+      if (p.categoryPath) query.categoryPath = p.categoryPath
+      if (p.depth !== undefined) query.depth = p.depth
+      if (p.search) query.search = p.search
+      return api.get<Note[]>('/ka/notes', { query })
+    },
+  })
 }
 
-export function useKnowledge() {
-  const { apiFetch } = useApi();
+export function useNoteQuery(id: MaybeRefOrGetter<string | null>) {
+  const api = useApi()
+  return useQuery({
+    queryKey: computed(() => [NOTES_KEY, toValue(id)] as const),
+    queryFn: () => api.get<Note>(`/ka/notes/${toValue(id) as string}`),
+    enabled: computed(() => !!toValue(id)),
+  })
+}
 
-  async function getNotes(params: QueryNotesParams = {}): Promise<Note[]> {
-    const query: Record<string, string | number | undefined> = {};
-    if (params.categoryPath) query.categoryPath = params.categoryPath;
-    if (params.depth !== undefined) query.depth = params.depth;
-    if (params.search) query.search = params.search;
-    return apiFetch<Note[]>('/ka/notes', { query });
-  }
+export function useBacklinksQuery(id: MaybeRefOrGetter<string | null>) {
+  const api = useApi()
+  return useQuery({
+    queryKey: computed(() => [NOTES_KEY, toValue(id), 'backlinks'] as const),
+    queryFn: () =>
+      api.get<Note[]>(`/ka/notes/${toValue(id) as string}/backlinks`),
+    enabled: computed(() => !!toValue(id)),
+  })
+}
 
-  async function getNote(id: string): Promise<Note | null> {
-    return apiFetch<Note | null>(`/ka/notes/${id}`);
-  }
+export function useGraphQuery(params: MaybeRefOrGetter<QueryGraphParams> = {}) {
+  const api = useApi()
+  const resolved = computed<QueryGraphParams>(() => toValue(params))
+  return useQuery({
+    queryKey: computed(() => [GRAPH_KEY, resolved.value] as const),
+    queryFn: () => {
+      const p = resolved.value
+      const query: Record<string, string> = {}
+      if (p.categoryPath) query.categoryPath = p.categoryPath
+      if (p.tag) query.tag = p.tag
+      return api.get<GraphData>('/ka/graph', { query })
+    },
+  })
+}
 
-  async function getBacklinks(id: string): Promise<Note[]> {
-    return apiFetch<Note[]>(`/ka/notes/${id}/backlinks`);
-  }
+// ── Mutations ────────────────────────────────────────────────────────────
 
-  async function getGraph(params: QueryGraphParams = {}): Promise<GraphData> {
-    const query: Record<string, string | undefined> = {};
-    if (params.categoryPath) query.categoryPath = params.categoryPath;
-    if (params.tag) query.tag = params.tag;
-    return apiFetch<GraphData>('/ka/graph', { query });
-  }
+export function useCreateNoteMutation() {
+  const api = useApi()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: CreateNotePayload) => api.post<Note>('/ka/notes', input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [NOTES_KEY] })
+      qc.invalidateQueries({ queryKey: [GRAPH_KEY] })
+    },
+  })
+}
 
-  async function createNote(payload: CreateNotePayload): Promise<Note> {
-    return apiFetch<Note>('/ka/notes', { method: 'POST', body: payload });
-  }
+export function useUpdateNoteMutation() {
+  const api = useApi()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateNotePayload }) =>
+      api.patch<Note>(`/ka/notes/${id}`, data),
+    onSuccess: (note) => {
+      qc.invalidateQueries({ queryKey: [NOTES_KEY] })
+      qc.invalidateQueries({ queryKey: [NOTES_KEY, note.id] })
+      qc.invalidateQueries({ queryKey: [GRAPH_KEY] })
+    },
+  })
+}
 
-  async function updateNote(
-    id: string,
-    payload: UpdateNotePayload,
-  ): Promise<Note> {
-    return apiFetch<Note>(`/ka/notes/${id}`, {
-      method: 'PATCH',
-      body: payload,
-    });
-  }
-
-  async function deleteNote(id: string): Promise<void> {
-    await apiFetch(`/ka/notes/${id}`, { method: 'DELETE' });
-  }
-
-  return {
-    getNotes,
-    getNote,
-    getBacklinks,
-    getGraph,
-    createNote,
-    updateNote,
-    deleteNote,
-  };
+export function useDeleteNoteMutation() {
+  const api = useApi()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/ka/notes/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [NOTES_KEY] })
+      qc.invalidateQueries({ queryKey: [GRAPH_KEY] })
+    },
+  })
 }

@@ -16,7 +16,6 @@
  *  - right side: backlinks panel (translate-x when a node is selected)
  */
 import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue';
-import { useRouter } from 'vue-router';
 import {
   ZoomIn,
   ZoomOut,
@@ -32,7 +31,10 @@ import {
 } from 'lucide-vue-next';
 import { useKnowledgeGraph, type SimNode } from '../composables/useKnowledgeGraph';
 
-const router = useRouter();
+const emit = defineEmits<{
+  select: [id: string];
+  new: [];
+}>();
 
 // Viewport size — observed via ResizeObserver so the SVG always fills its
 // container and the simulation forces center on the right point.
@@ -224,11 +226,11 @@ onBeforeUnmount(() => {
 });
 
 function goToAddNote() {
-  router.push('/app/knowledge');
+  emit('new');
 }
 
 function goToNote(id: string) {
-  router.push(`/app/knowledge/${id}`);
+  emit('select', id);
 }
 
 // Focalize on the selected node: translate the zoom so the node is centered.
