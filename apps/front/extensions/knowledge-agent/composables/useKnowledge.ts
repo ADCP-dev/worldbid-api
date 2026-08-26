@@ -169,3 +169,17 @@ export function useDeleteNoteMutation() {
     },
   })
 }
+
+// ── Imperative helpers (for non-reactive contexts like d3-force graph) ─────
+
+/**
+ * Fetch graph data imperatively (outside TanStack Query reactivity).
+ * Used by useKnowledgeGraph composable which manages its own d3 state.
+ */
+export async function fetchGraph(params?: QueryGraphParams): Promise<GraphData> {
+  const api = useApi()
+  const query: Record<string, string> = {}
+  if (params?.categoryPath) query.categoryPath = params.categoryPath
+  if (params?.tag) query.tag = params.tag
+  return api.get<GraphData>('/ka/graph', { query })
+}

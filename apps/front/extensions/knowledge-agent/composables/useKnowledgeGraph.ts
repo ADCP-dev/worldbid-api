@@ -28,7 +28,7 @@ import {
 } from 'd3-force';
 import { select } from 'd3-selection';
 import { zoom, zoomIdentity, type ZoomBehavior, type D3ZoomEvent } from 'd3-zoom';
-import { useKnowledge } from './useKnowledge';
+import { fetchGraph } from './useKnowledge';
 import type { GraphData, GraphEdge, GraphNode } from './useKnowledge';
 
 /** Mutable simulation node — x/y/vx/vy are added by d3-force at runtime. */
@@ -59,7 +59,7 @@ export function useKnowledgeGraph(options?: {
   width?: Ref<number>;
   height?: Ref<number>;
 }) {
-  const { getGraph } = useKnowledge();
+  // fetchGraph is called imperatively in load() below — d3 manages its own state.
 
   // Reactive state
   const nodes = ref<SimNode[]>([]);
@@ -258,7 +258,7 @@ export function useKnowledgeGraph(options?: {
     loading.value = true;
     error.value = null;
     try {
-      const data: GraphData = await getGraph(params);
+      const data: GraphData = await fetchGraph(params);
       // Map backend nodes to SimNode (x/y undefined until first tick).
       nodes.value = data.nodes.map((n: GraphNode) => ({
         id: n.id,
