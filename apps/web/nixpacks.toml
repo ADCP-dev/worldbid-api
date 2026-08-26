@@ -1,0 +1,5 @@
+[start]
+cmd = "node ./dist/server/entry.mjs"
+
+[variables]
+NIXPACKS_NODE_VERSION = "22"
