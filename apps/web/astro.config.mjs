@@ -1,5 +1,6 @@
 import { defineConfig } from 'astro/config';
-import node from '@astrojs/node';
+// node adapter removed — static output doesn't need an SSR adapter
+// import node from '@astrojs/node';
 import vue from '@astrojs/vue';
 import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
@@ -98,11 +99,9 @@ async function fetchDynamicPageUrls() {
   return paths.map((p) => `${SITE_URL}${p}`);
 }
 
-// Astro 7 SSR public web app. Standalone Node server (Coolify).
-// ISR DIY: routeRules declare cache + tags; /api/revalidate purges by tag.
+// Astro public web app. Static output (nginx-servable on Coolify).
 export default defineConfig({
-  output: 'server',
-  adapter: node({ mode: 'standalone' }),
+  output: 'static',
   site: SITE_URL,
 
   i18n: {
@@ -132,22 +131,7 @@ export default defineConfig({
     plugins: [tailwindcss()],
   },
 
-  routeRules: {
-    // Landing — long cache, SWR for stale-while-revalidate
-    '/': { cache: { maxAge: 3600, swr: 60, tags: ['home'] } },
-    // Blog list + detail + category + tag — short cache, SWR
-    '/blog': { cache: { maxAge: 300, swr: 60, tags: ['blog', 'blog-index'] } },
-    '/blog/**': { cache: { maxAge: 300, swr: 60, tags: ['blog'] } },
-    // CMS pages — medium cache
-    '/page/**': { cache: { maxAge: 600, swr: 60, tags: ['pages'] } },
-    // Blog search — no server cache (client island fetches runtime)
-    '/blog/search': { cache: false },
-    // Sitemap routes — tag for on-demand purge
-    '/sitemap-index.xml': { cache: { maxAge: 3600, tags: ['sitemap'] } },
-    '/sitemap-*.xml': { cache: { maxAge: 3600, tags: ['sitemap'] } },
-    // Revalidate endpoint — never cached
-    '/api/revalidate': { cache: false },
-  },
+  // routeRules with cache/swr require SSR adapter; removed for static output.
 
   server: {
     port: 4321,

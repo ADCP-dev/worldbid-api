@@ -1,5 +1,4 @@
-# Astro public web app — SSR standalone Node server (Coolify).
-# Mirrors apps/front/Dockerfile standalone approach.
+# Astro public web app — static output served by nginx (Coolify).
 # Build context = apps/web/ (no monorepo workspace deps needed).
 
 # ---- Build stage ----
@@ -19,16 +18,18 @@ COPY . .
 RUN pnpm run build
 
 # ---- Prod stage ----
-FROM node:22-alpine AS prod
-WORKDIR /app
+FROM nginx:alpine AS prod
 
-ENV NODE_ENV=production
-ENV HOST=0.0.0.0
-ENV PORT=4321
+# Configure nginx to listen on port 4321.
+RUN sed -i 's/listen       80;/listen       4321;/' /etc/nginx/conf.d/default.conf \
+    && sed -i 's/listen  \[::\]:80;/listen  [::]:4321;/' /etc/nginx/conf.d/default.conf
 
-COPY --from=build /app/dist ./dist
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/package.json ./package.json
+# Remove default nginx index files and copy the built static output.
+RUN rm -rf /usr/share/nginx/html/*
+COPY --from=build /app/dist/ /usr/share/nginx/html/
+
+# SPA fallback: serve index.html for client-side routes.
+RUN echo 'location / { try_files $uri $uri/ /index.html; }' > /etc/nginx/conf.d/spa.conf
 
 EXPOSE 4321
-CMD ["node", "./dist/server/entry.mjs"]
+CMD ["nginx", "-g", "daemon off;"]
