@@ -1,6 +1,5 @@
 import { defineConfig } from 'astro/config';
-// node adapter removed — static output doesn't need an SSR adapter
-// import node from '@astrojs/node';
+import node from '@astrojs/node';
 import vue from '@astrojs/vue';
 import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
@@ -99,9 +98,10 @@ async function fetchDynamicPageUrls() {
   return paths.map((p) => `${SITE_URL}${p}`);
 }
 
-// Astro public web app. Static output (nginx-servable on Coolify).
+// Astro SSR public web app. Standalone Node server (Coolify).
 export default defineConfig({
-  output: 'static',
+  output: 'server',
+  adapter: node({ mode: 'standalone' }),
   site: SITE_URL,
 
   i18n: {
@@ -131,7 +131,17 @@ export default defineConfig({
     plugins: [tailwindcss()],
   },
 
-  // routeRules with cache/swr require SSR adapter; removed for static output.
+  routeRules: {
+    // Landing — long cache
+    '/': { cache: { maxAge: 3600, swr: 60, tags: ['home'] } },
+    '/blog': { cache: { maxAge: 300, swr: 60, tags: ['blog', 'blog-index'] } },
+    '/blog/**': { cache: { maxAge: 300, swr: 60, tags: ['blog'] } },
+    '/page/**': { cache: { maxAge: 600, swr: 60, tags: ['pages'] } },
+    '/blog/search': { cache: false },
+    '/sitemap-index.xml': { cache: { maxAge: 3600, tags: ['sitemap'] } },
+    '/sitemap-*.xml': { cache: { maxAge: 3600, tags: ['sitemap'] } },
+    '/api/revalidate': { cache: false },
+  },
 
   server: {
     port: 4321,
