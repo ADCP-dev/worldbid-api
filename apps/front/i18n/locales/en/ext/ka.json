@@ -46,7 +46,17 @@
         "addCategory": "Add",
         "insertLink": "Insert note link [[ ]]",
         "charCount": "{count} chars",
-        "charWarn": "Long note — consider splitting for better AI search"
+        "charWarn": "Long note — consider splitting for better AI search",
+        "splitTab": "Split",
+        "folderActions": "Folder actions",
+        "renameFolder": "Rename",
+        "deleteFolder": "Delete",
+        "renameFolderPrompt": "New name for: {path}",
+        "folderRenamed": "Folder renamed",
+        "folderRenameError": "Could not rename folder",
+        "folderDeleted": "Folder deleted",
+        "folderDeleteError": "Could not delete folder",
+        "deleteFolderConfirm": "Delete folder? Notes will be moved to uncategorized."
       },
       "graph": {
         "title": "Knowledge Graph",

@@ -1,9 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import type { AgentConfig } from '../../domain/agent-config';
-import { ModelProviderEntity } from '../entities/model-provider.entity';
+import { ModelProviderRepository } from '../model-provider.repository';
+import type { ModelProvider } from '../../domain/model-provider';
 
 /**
  * ModelResolverService — turns an `AgentConfig.model` string like
@@ -31,8 +30,7 @@ export class ModelResolverService {
   private readonly logger = new Logger(ModelResolverService.name);
 
   constructor(
-    @InjectRepository(ModelProviderEntity)
-    private readonly providerRepo: Repository<ModelProviderEntity>,
+    private readonly providerRepo: ModelProviderRepository,
   ) {}
 
   /**
@@ -44,9 +42,7 @@ export class ModelResolverService {
   async resolve(config: AgentConfig): Promise<BaseChatModel> {
     const { provider: prefix, modelId } = this.parseModelString(config.model);
 
-    const provider = await this.providerRepo.findOne({
-      where: { provider: prefix, enabled: true },
-    });
+    const provider = await this.providerRepo.findByProvider(prefix);
     if (!provider) {
       throw new Error(
         `Model resolver: provider '${prefix}' not found in ka_model_providers.
@@ -83,7 +79,7 @@ Register it via /app/settings/models with baseUrl + apiKeyRef.`,
   private async buildChatModel(
     prefix: string,
     modelId: string,
-    provider: ModelProviderEntity,
+    provider: ModelProvider,
   ): Promise<BaseChatModel> {
     const apiKey = provider.apiKeyRef
       ? (process.env[provider.apiKeyRef] ?? provider.apiKeyRef)
@@ -112,12 +108,16 @@ Register it via /app/settings/models with baseUrl + apiKeyRef.`,
 
   private async buildOllama(
     modelId: string,
-    provider: ModelProviderEntity,
+    provider: ModelProvider,
     apiKey: string | undefined,
   ): Promise<BaseChatModel> {
     const { ChatOllama } = await import('@langchain/ollama');
 
-    const baseUrl = provider.baseUrl || 'http://127.0.0.1:11434';
+    // ChatOllama appends /api/chat to baseUrl, so we strip a trailing /api
+    // if the provider stored it. Ollama Cloud uses https://ollama.com/api
+    // in the DB but the SDK needs https://ollama.com.
+    let baseUrl = provider.baseUrl || 'http://127.0.0.1:11434';
+    baseUrl = baseUrl.replace(/\/api\/?$/, '');
 
     const headers: Record<string, string> = {};
     if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
@@ -136,7 +136,7 @@ Register it via /app/settings/models with baseUrl + apiKeyRef.`,
 
   private async buildOpenAICompatible(
     modelId: string,
-    provider: ModelProviderEntity,
+    provider: ModelProvider,
     apiKey: string | undefined,
   ): Promise<BaseChatModel> {
     const { ChatOpenAI } = await import('@langchain/openai');

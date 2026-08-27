@@ -46,7 +46,17 @@
         "addCategory": "Agregar",
         "insertLink": "Insertar enlace a nota [[ ]]",
         "charCount": "{count} caracteres",
-        "charWarn": "Nota larga — considerá dividirla para mejor búsqueda de IA"
+        "charWarn": "Nota larga — considerá dividirla para mejor búsqueda de IA",
+        "splitTab": "Lado a lado",
+        "folderActions": "Acciones de carpeta",
+        "renameFolder": "Renombrar",
+        "deleteFolder": "Eliminar",
+        "renameFolderPrompt": "Nuevo nombre para: {path}",
+        "folderRenamed": "Carpeta renombrada",
+        "folderRenameError": "No se pudo renombrar la carpeta",
+        "folderDeleted": "Carpeta eliminada",
+        "folderDeleteError": "No se pudo eliminar la carpeta",
+        "deleteFolderConfirm": "¿Eliminar carpeta? Las notas se moverán a sin categoría."
       },
       "graph": {
         "title": "Grafo de Conocimiento",

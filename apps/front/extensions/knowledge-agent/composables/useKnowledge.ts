@@ -153,6 +153,8 @@ export function useUpdateNoteMutation() {
     onSuccess: (note) => {
       qc.invalidateQueries({ queryKey: [NOTES_KEY] })
       qc.invalidateQueries({ queryKey: [NOTES_KEY, note.id] })
+      // Backlinks may change when content (wikilinks) change.
+      qc.invalidateQueries({ queryKey: [NOTES_KEY, note.id, 'backlinks'] })
       qc.invalidateQueries({ queryKey: [GRAPH_KEY] })
     },
   })

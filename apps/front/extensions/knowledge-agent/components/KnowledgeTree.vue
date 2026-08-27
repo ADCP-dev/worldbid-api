@@ -11,6 +11,8 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   select: [note: Note];
+  renameFolder: [path: string];
+  deleteFolder: [path: string];
 }>();
 
 interface TreeNodeData {
@@ -98,6 +100,8 @@ watch(
         :expanded="expanded"
         @select="emit('select', $event)"
         @toggle="toggle($event)"
+        @rename-folder="emit('renameFolder', $event)"
+        @delete-folder="emit('deleteFolder', $event)"
       />
     </ul>
   </div>

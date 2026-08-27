@@ -81,4 +81,29 @@ export class NoteController {
   async remove(@Param('id') id: string): Promise<void> {
     return this.noteService.softDelete(id);
   }
+
+  /**
+   * Rename a category folder: updates category_path on all notes whose
+   * path equals `oldPath` or starts with `oldPath.`. Useful when the user
+   * renames a folder in the tree UI.
+   */
+  @Patch('categories/rename')
+  @ApiOkResponse({ type: Number })
+  async renameCategory(
+    @Body() body: { oldPath: string; newPath: string },
+  ): Promise<number> {
+    return this.noteService.renameCategory(body.oldPath, body.newPath);
+  }
+
+  /**
+   * Delete a category folder: moves all notes in that folder (and its
+   * subfolders) to "uncategorized" (category_path = null). Notes themselves
+   * are NOT deleted — only the folder grouping is removed.
+   */
+  @Delete('categories/:path')
+  @ApiParam({ name: 'path', type: String })
+  @HttpCode(HttpStatus.OK)
+  async deleteCategory(@Param('path') path: string): Promise<number> {
+    return this.noteService.deleteCategory(path);
+  }
 }

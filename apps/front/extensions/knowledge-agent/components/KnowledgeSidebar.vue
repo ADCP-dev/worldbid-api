@@ -14,6 +14,8 @@ const emit = defineEmits<{
   select: [note: Note]
   new: []
   search: [query: string]
+  renameFolder: [path: string]
+  deleteFolder: [path: string]
 }>()
 
 function onSearchInput(event: Event) {
@@ -88,6 +90,8 @@ function onSearchInput(event: Event) {
         :notes="props.notes"
         :selected-id="props.selectedId"
         @select="emit('select', $event)"
+        @rename-folder="emit('renameFolder', $event)"
+        @delete-folder="emit('deleteFolder', $event)"
       />
     </div>
   </div>

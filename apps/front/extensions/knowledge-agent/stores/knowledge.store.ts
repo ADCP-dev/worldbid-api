@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
-export type KnowledgeView = 'editor' | 'graph'
+export type KnowledgeView = 'editor' | 'graph' | 'split'
 
 /**
  * UI state for the Knowledge Agent notes split-view.
@@ -28,6 +28,10 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
 
   function openEditor() {
     view.value = 'editor'
+  }
+
+  function openSplit() {
+    view.value = 'split'
   }
 
   function toggleView() {
@@ -67,6 +71,7 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
     selectNote,
     openGraph,
     openEditor,
+    openSplit,
     toggleView,
     setView,
     setSearch,

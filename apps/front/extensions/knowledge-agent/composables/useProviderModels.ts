@@ -20,7 +20,12 @@ export function useProviderModels() {
   const error = ref<string | null>(null);
 
   async function fetchFromOllama(baseUrl: string, apiKey?: string): Promise<ProviderModel[]> {
-    const url = baseUrl.replace(/\/$/, '') + '/api/tags';
+    // ChatOllama / the Ollama API use /api/tags. Some providers store the
+    // baseUrl WITH a trailing /api (Ollama Cloud: https://ollama.com/api).
+    // Normalize: strip trailing /api so we don't get /api/api/tags.
+    let url = baseUrl.replace(/\/$/, '');
+    url = url.replace(/\/api\/?$/, '');
+    url += '/api/tags';
     const headers: Record<string, string> = {};
     if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
     const resp = await fetch(url, { headers });

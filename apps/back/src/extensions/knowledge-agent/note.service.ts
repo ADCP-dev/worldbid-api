@@ -98,6 +98,47 @@ export class NoteService {
     return this.repository.findBacklinks(noteId);
   }
 
+  /**
+   * Rename a category folder. Updates category_path on all notes whose path
+   * equals `oldPath` or starts with `oldPath.`. Returns the number of notes
+   * affected. Also re-extracts wikilinks for each updated note so backlinks
+   * stay in sync.
+   */
+  async renameCategory(oldPath: string, newPath: string): Promise<number> {
+    if (!oldPath || !newPath || oldPath === newPath) return 0;
+    // Sanitize: only alphanumerics, dots, underscores.
+    const cleanOld = oldPath.replace(/[^a-zA-Z0-9_.]/g, '');
+    const cleanNew = newPath.replace(/[^a-zA-Z0-9_.]/g, '');
+    if (!cleanOld || !cleanNew) return 0;
+
+    const affected = await this.repository.renameCategoryPath(cleanOld, cleanNew);
+
+    // Re-extract links for each affected note (category change may affect
+    // path-aware wikilink resolution).
+    const notes = await this.repository.findByCategoryPath(cleanNew);
+    for (const note of notes) {
+      const links = this.extractLinks(note.contentMd);
+      if (links.length > 0) {
+        await this.repository.replaceLinks(note.id, links).catch((err) => {
+          this.logger.warn(`Failed to replace links for note ${note.id}: ${err?.message ?? err}`);
+        });
+      }
+    }
+
+    return affected;
+  }
+
+  /**
+   * Delete a category folder: moves all notes in that folder (and subfolders)
+   * to uncategorized (category_path = null). Notes are NOT deleted.
+   */
+  async deleteCategory(path: string): Promise<number> {
+    if (!path) return 0;
+    const clean = path.replace(/[^a-zA-Z0-9_.]/g, '');
+    if (!clean) return 0;
+    return this.repository.deleteCategoryPath(clean);
+  }
+
   private extractLinks(contentMd: string): string[] {
     const matches = [...contentMd.matchAll(LINK_PATTERN)];
     // Each captured group may be "note title" OR "category.path.note title".

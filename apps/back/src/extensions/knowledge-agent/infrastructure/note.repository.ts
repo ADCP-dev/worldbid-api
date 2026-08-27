@@ -84,6 +84,46 @@ export class NoteRepository {
     return rows.map((r: Record<string, unknown>) => this.rowToDomain(r));
   }
 
+  /**
+   * Rename a category folder: updates category_path on all notes whose path
+   * equals `oldPath` or starts with `oldPath.`. Uses SQL REPLACE for the prefix
+   * swap. Returns the number of affected rows.
+   */
+  async renameCategoryPath(oldPath: string, newPath: string): Promise<number> {
+    // Notes with exact path: category_path = oldPath → newPath
+    // Notes with subpath: category_path LIKE 'oldPath.%' → newPath + suffix
+    const sql = `
+      UPDATE ext_ka_notes
+      SET category_path = CASE
+        WHEN category_path = $1 THEN $2
+        WHEN category_path LIKE $3 THEN $2 || '.' || substring(category_path from length($1) + 2)
+      END
+      WHERE deleted_at IS NULL
+        AND (category_path = $1 OR category_path LIKE $3)
+    `;
+    const result = await this.dataSource.query(sql, [
+      oldPath,
+      newPath,
+      `${oldPath}.%`,
+    ]);
+    return Array.isArray(result) ? result.length : result?.affectedRows ?? 0;
+  }
+
+  /**
+   * Delete a category folder: moves all notes in that folder (and subfolders)
+   * to uncategorized (category_path = null). Returns the number of affected rows.
+   */
+  async deleteCategoryPath(path: string): Promise<number> {
+    const sql = `
+      UPDATE ext_ka_notes
+      SET category_path = NULL
+      WHERE deleted_at IS NULL
+        AND (category_path = $1 OR category_path LIKE $2)
+    `;
+    const result = await this.dataSource.query(sql, [path, `${path}.%`]);
+    return Array.isArray(result) ? result.length : result?.affectedRows ?? 0;
+  }
+
   async update(id: string, data: UpdateNoteDto): Promise<Note> {
     const entity = await this.noteRepository.findOne({
       where: { id },

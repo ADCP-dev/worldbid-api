@@ -37,6 +37,13 @@ export class ModelProviderRepository {
     return entities.map((e) => this.toDomain(e));
   }
 
+  async findByProvider(provider: string): Promise<NullableType<ModelProvider>> {
+    const entity = await this.repo.findOne({
+      where: { provider, enabled: true },
+    });
+    return entity ? this.toDomain(entity) : null;
+  }
+
   async update(
     id: string,
     data: UpdateModelProviderDto,

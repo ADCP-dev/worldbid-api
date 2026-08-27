@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { useDebounceFn } from '@vueuse/core';
+import { useQueryClient } from '@tanstack/vue-query';
 import { storeToRefs } from 'pinia';
 import { toast } from 'vue-sonner';
-import { FileText, Network, PanelLeft, Plus } from 'lucide-vue-next';
+import { FileText, Network, PanelLeft, Plus, Columns2 } from 'lucide-vue-next';
 import { useKnowledgeStore } from '@ka/stores/knowledge.store';
 import {
   useNotesQuery,
@@ -27,6 +27,7 @@ definePageMeta({
 const { t } = useI18n();
 const store = useKnowledgeStore();
 const { selectedId, view, searchQuery, sidebarOpen } = storeToRefs(store);
+const queryClient = useQueryClient();
 
 // ── Data (TanStack Query) ────────────────────────────────────────────────
 const notesParams = computed(() => ({
@@ -112,10 +113,40 @@ function onSelectBacklink(note: Note) {
 }
 
 function onCreateCategory(name: string): void {
-  // The new category is just a string the user typed; it becomes the
-  // categoryPath of the current note. No separate "create category" API —
-  // categories are implicit in notes' categoryPath values.
   categoryPath.value = name;
+}
+
+/* ── Folder CRUD (rename / delete via backend API) ───────────────────── */
+async function onRenameFolder(oldPath: string): Promise<void> {
+  const newPath = prompt(t('ext.ka.notes.renameFolderPrompt', 'New name for: {path}').replace('{path}', oldPath), oldPath);
+  if (!newPath || newPath === oldPath) return;
+  try {
+    await $fetch(`${useRuntimeConfig().public.apiUrl}${useRuntimeConfig().public.apiPrefix || '/api/v1'}/ka/notes/categories/rename`, {
+      method: 'PATCH',
+      body: { oldPath, newPath },
+      headers: useAuthStore().token ? { Authorization: `Bearer ${useAuthStore().token}` } : {},
+    });
+    queryClient.invalidateQueries({ queryKey: ['ka-notes'] });
+    queryClient.invalidateQueries({ queryKey: ['ka-graph'] });
+    toast.success(t('ext.ka.notes.folderRenamed', 'Folder renamed'));
+  } catch {
+    toast.error(t('ext.ka.notes.folderRenameError', 'Could not rename folder'));
+  }
+}
+
+async function onDeleteFolder(path: string): Promise<void> {
+  if (!confirm(t('ext.ka.notes.deleteFolderConfirm', 'Delete folder? Notes will be moved to uncategorized.'))) return;
+  try {
+    await $fetch(`${useRuntimeConfig().public.apiUrl}${useRuntimeConfig().public.apiPrefix || '/api/v1'}/ka/notes/categories/${encodeURIComponent(path)}`, {
+      method: 'DELETE',
+      headers: useAuthStore().token ? { Authorization: `Bearer ${useAuthStore().token}` } : {},
+    });
+    queryClient.invalidateQueries({ queryKey: ['ka-notes'] });
+    queryClient.invalidateQueries({ queryKey: ['ka-graph'] });
+    toast.success(t('ext.ka.notes.folderDeleted', 'Folder deleted'));
+  } catch {
+    toast.error(t('ext.ka.notes.folderDeleteError', 'Could not delete folder'));
+  }
 }
 
 function onGraphSelect(id: string) {
@@ -222,6 +253,8 @@ const saveLabel = computed(() => {
         @select="onSelectNote"
         @new="createNew"
         @search="onSearch"
+        @rename-folder="onRenameFolder"
+        @delete-folder="onDeleteFolder"
       />
     </aside>
 
@@ -250,7 +283,7 @@ const saveLabel = computed(() => {
         </div>
 
         <div class="flex items-center gap-2 shrink-0">
-          <!-- View toggle -->
+          <!-- View toggle: 3 modes -->
           <div role="tablist" class="tabs tabs-boxed tabs-sm">
             <button
               role="tab"
@@ -261,6 +294,16 @@ const saveLabel = computed(() => {
             >
               <FileText class="w-3.5 h-3.5" />
               {{ t('ext.ka.notes.editorTab') }}
+            </button>
+            <button
+              role="tab"
+              class="tab gap-1"
+              :class="{ 'tab-active': view === 'split' }"
+              :disabled="!selectedId"
+              @click="store.openSplit()"
+            >
+              <Columns2 class="w-3.5 h-3.5" />
+              {{ t('ext.ka.notes.splitTab', 'Split') }}
             </button>
             <button
               role="tab"
@@ -285,10 +328,10 @@ const saveLabel = computed(() => {
 
       <!-- Content area -->
       <div class="flex-1 min-h-0 flex overflow-hidden">
-        <!-- Editor view -->
+        <!-- Editor (shown in 'editor' and 'split' views) -->
         <div
-          v-if="view === 'editor' && selectedId"
-          class="flex-1 min-w-0 relative"
+          v-if="(view === 'editor' || view === 'split') && selectedId"
+          class="flex-1 min-w-0 relative flex flex-col gap-3"
         >
           <div v-if="noteLoading" class="flex justify-center py-12">
             <span class="loading loading-spinner loading-md" />
@@ -300,7 +343,7 @@ const saveLabel = computed(() => {
             <FileText class="w-10 h-10 mb-2 opacity-50" />
             <p>{{ t('ext.ka.notes.notFound') }}</p>
           </div>
-          <div v-else class="p-4 h-full overflow-auto flex flex-col gap-3">
+          <div v-else class="p-4 flex-1 overflow-auto flex flex-col gap-3">
             <NoteEditor
               v-model="contentMd"
               :title="title"
@@ -323,6 +366,17 @@ const saveLabel = computed(() => {
           </div>
         </div>
 
+        <!-- Graph (shown in 'graph' and 'split' views) -->
+        <div
+          v-if="view === 'graph' || (view === 'split' && selectedId)"
+          class="flex-1 min-w-0 relative"
+        >
+          <KnowledgeGraph
+            @select="onGraphSelect"
+            @new="onGraphNew"
+          />
+        </div>
+
         <!-- Empty state (editor view, nothing selected) -->
         <div
           v-else-if="view === 'editor' && !selectedId"
@@ -334,14 +388,6 @@ const saveLabel = computed(() => {
             <Plus class="w-4 h-4" />
             {{ t('ext.ka.notes.create') }}
           </button>
-        </div>
-
-        <!-- Graph view -->
-        <div v-else class="flex-1 min-w-0 relative">
-          <KnowledgeGraph
-            @select="onGraphSelect"
-            @new="onGraphNew"
-          />
         </div>
       </div>
     </main>
