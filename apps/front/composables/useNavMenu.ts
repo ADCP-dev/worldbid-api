@@ -40,6 +40,12 @@ export function useNavMenu() {
             link: localePath('/app/users'),
             order: 0,
           },
+          {
+            title: t('mod.nav.errorLog', 'Error Log'),
+            icon: 'AlertTriangle',
+            link: localePath('/app/errors'),
+            order: 10,
+          },
         ],
       });
     }

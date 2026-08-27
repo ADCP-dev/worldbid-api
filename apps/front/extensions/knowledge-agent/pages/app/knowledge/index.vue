@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useQueryClient } from '@tanstack/vue-query';
+import { useDebounceFn } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 import { toast } from 'vue-sonner';
 import { FileText, Network, PanelLeft, Plus, Columns2 } from 'lucide-vue-next';

@@ -31,7 +31,7 @@ export function createExecuteTool(backend: unknown) {
       }
     },
     {
-      name: 'execute',
+      name: 'run_command',
       description:
         'Execute a shell command inside the isolated virtual filesystem sandbox. Use for running scripts, inspecting files, or testing code.',
       schema: z.object({

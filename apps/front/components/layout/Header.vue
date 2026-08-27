@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import BreadcrumbCustom from '~/components/base/BreadcrumbCustom.vue'
-import ErrorTrackerBadge from '~/components/layout/ErrorTrackerBadge.vue'
 
 
 const route = useRoute()
@@ -62,7 +61,6 @@ watch(() => route.fullPath, (val) => {
       <BreadcrumbCustom :links="links" />
     </div>
     <div class="ml-auto flex items-center gap-2">
-      <ErrorTrackerBadge />
       <slot />
     </div>
   </header>
