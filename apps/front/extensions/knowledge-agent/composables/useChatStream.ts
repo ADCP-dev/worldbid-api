@@ -3,24 +3,38 @@
  *
  * Opens a POST request to the chat message endpoint with
  * `Accept: text/event-stream`, reads the streaming response body, and parses
- * SSE events (each `data:` line is a text delta or the `[DONE]` sentinel).
+ * full SSE frames (an `event:` name + one or more `data:` lines per frame,
+ * frames separated by blank lines).
+ *
+ * Frame contract with the backend (chat-session.controller.ts):
+ *   - `data: <token>`                              — assistant text delta
+ *   - `event: tool_call\ndata: <json>`             — agent invoked a tool
+ *   - `event: tool_result\ndata: <json>`           — tool returned
+ *   - `event: done\ndata: [DONE]`                  — stream end sentinel
  *
  * Reactive state:
- *   - `messages`: array of { role, content } rendered by ChatMessage.vue
+ *   - `messages`: array rendered by ChatMessage.vue (see ChatMessage.toolCalls)
  *   - `isStreaming`: true while the response is being received
- *   - `currentStream`: the in-progress assistant message (updated live)
- *
- * The backend returns `Observable<MessageEvent>` from the POST endpoint,
- * which NestJS serializes as a standard SSE stream (one `data:` line per
- * chunk, terminated by `event: done\ndata: [DONE]`).
+ *   - `currentStream`: the in-progress assistant text (updated live)
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query';
+
+/** One tool invocation surfaced by the agent during streaming. */
+export interface ChatToolCall {
+  id?: string;
+  name: string;
+  args?: Record<string, unknown>;
+  /** Present after `tool_result` arrives. */
+  output?: string;
+}
 
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  /** Tool calls attributed to this assistant message (streaming or history). */
+  toolCalls?: ChatToolCall[];
 }
 
 export interface ChatSession {
@@ -77,6 +91,7 @@ export function useChatStream() {
       id: `a-${Date.now()}`,
       role: 'assistant',
       content: '',
+      toolCalls: [],
     };
     messages.value.push(assistantMsg);
 
@@ -107,24 +122,83 @@ export function useChatStream() {
       const decoder = new TextDecoder();
       let buffer = '';
 
+      /**
+       * Split `buffer` into complete SSE frames (separated by blank lines),
+       * mutating `buffer` to keep only the trailing partial. SSE line
+       * endings may be \n\n or \r\n\r\n; normalize to \n\n first.
+       */
+      function extractFrames(): Array<{ event: string; data: string }> {
+        buffer = buffer.replace(/\r\n/g, '\n');
+        const frames: Array<{ event: string; data: string }> = [];
+        let idx: number;
+        for (;;) {
+          idx = buffer.indexOf('\n\n');
+          if (idx === -1) break;
+          const block = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 2);
+          if (!block) continue;
+          let eventName = '';
+          const dataLines: string[] = [];
+          for (const line of block.split('\n')) {
+            if (line.startsWith('event:')) eventName = line.slice(6).trim();
+            else if (line.startsWith('data:')) dataLines.push(line.slice(5).replace(/^ /, ''));
+          }
+          frames.push({ event: eventName, data: dataLines.join('\n') });
+        }
+        return frames;
+      }
+
       for (;;) {
         const { done, value } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() ?? '';
-        for (const line of lines) {
-          if (line.startsWith('event: done')) continue;
-          if (line.startsWith('data:')) {
-            const data = line.slice(5).trim();
-            if (data === '[DONE]') continue;
-            if (data) {
-              currentStream.value += data;
-              const last = messages.value[messages.value.length - 1];
-              if (last && last.role === 'assistant') {
-                last.content = currentStream.value;
-              }
+
+        for (const frame of extractFrames()) {
+          if (frame.event === 'done' || frame.data === '[DONE]') continue;
+
+          if (frame.event === 'tool_call') {
+            try {
+              const payload = JSON.parse(frame.data) as {
+                name: string;
+                args?: Record<string, unknown>;
+                id?: string;
+              };
+              assistantMsg.toolCalls = assistantMsg.toolCalls ?? [];
+              assistantMsg.toolCalls.push({
+                id: payload.id,
+                name: payload.name,
+                args: payload.args,
+              });
+            } catch {
+              // malformed frame — ignore
             }
+            continue;
+          }
+
+          if (frame.event === 'tool_result') {
+            try {
+              const payload = JSON.parse(frame.data) as {
+                name: string;
+                output?: string;
+                id?: string;
+              };
+              const calls = assistantMsg.toolCalls ?? [];
+              const match = payload.id
+                ? calls.find((c) => c.id === payload.id)
+                : [...calls].reverse().find((c) => c.name === payload.name && c.output === undefined);
+              if (match) {
+                match.output = payload.output ?? '';
+              }
+            } catch {
+              // ignore malformed frame
+            }
+            continue;
+          }
+
+          // Default: text delta frame (no event name).
+          if (!frame.event && frame.data) {
+            currentStream.value += frame.data;
+            assistantMsg.content = currentStream.value;
           }
         }
       }

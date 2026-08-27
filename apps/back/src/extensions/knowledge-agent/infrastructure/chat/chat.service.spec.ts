@@ -431,19 +431,77 @@ describe('ChatService', () => {
       };
     }
 
-    it('should be an async iterable that yields the same tokens as sendMessage', async () => {
+    it('should yield structured text chunks in order', async () => {
       const session = makeSession({ id: 'sess-1', userId: 1, agentConfigId: 'cfg-1' });
       sessionRepo.findById.mockResolvedValue(session);
       const agent = makeAgent(makeStreamRun(['A', 'B', 'C']));
       agentFactory.buildAgent.mockResolvedValue(agent);
       ragService.search.mockResolvedValue([]);
 
-      const chunks: string[] = [];
+      const chunks: Array<{ kind: string; text?: string }> = [];
       for await (const c of service.streamMessage('sess-1', 1, 'Hi')) {
         chunks.push(c);
       }
 
-      expect(chunks).toEqual(['A', 'B', 'C']);
+      expect(chunks).toEqual([
+        { kind: 'text', text: 'A' },
+        { kind: 'text', text: 'B' },
+        { kind: 'text', text: 'C' },
+      ]);
+    });
+
+    it('should emit tool_call chunks for structured tool frames', async () => {
+      const session = makeSession({ id: 'sess-1', userId: 1, agentConfigId: 'cfg-1' });
+      sessionRepo.findById.mockResolvedValue(session);
+
+      const toolFrames = [
+        'Found',
+        { type: 'tool_call', name: 'kb_search_notes', args: { q: 'x' }, id: 'tc-1' },
+        { type: 'tool_result', name: 'kb_search_notes', output: 'note body', id: 'tc-1' },
+        ' results',
+      ];
+      const textIterable = (async function* () {
+        for (const f of toolFrames) yield f;
+      })();
+      const messagesIterable = {
+        [Symbol.asyncIterator]() {
+          let yielded = false;
+          return {
+            next(): Promise<IteratorResult<{ text: AsyncIterable<unknown> }>> {
+              if (!yielded) {
+                yielded = true;
+                return Promise.resolve({ value: { text: textIterable }, done: false });
+              }
+              return Promise.resolve({ value: undefined, done: true });
+            },
+          };
+        },
+      };
+      const agent = makeAgent({ messages: messagesIterable });
+      agentFactory.buildAgent.mockResolvedValue(agent);
+      ragService.search.mockResolvedValue([]);
+
+      const chunks: Array<{ kind: string; text?: string; name?: string; output?: string }> = [];
+      for await (const c of service.streamMessage('sess-1', 1, 'Hi')) {
+        chunks.push(c as { kind: string; text?: string; name?: string; output?: string });
+      }
+
+      expect(chunks).toEqual([
+        { kind: 'text', text: 'Found' },
+        {
+          kind: 'tool_call',
+          name: 'kb_search_notes',
+          args: { q: 'x' },
+          id: 'tc-1',
+        },
+        {
+          kind: 'tool_result',
+          name: 'kb_search_notes',
+          output: 'note body',
+          id: 'tc-1',
+        },
+        { kind: 'text', text: ' results' },
+      ]);
     });
   });
 

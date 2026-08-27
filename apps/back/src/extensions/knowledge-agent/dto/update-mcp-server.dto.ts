@@ -1,4 +1,10 @@
-import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsObject,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateMcpServerDto {
@@ -31,6 +37,11 @@ export class UpdateMcpServerDto {
   @IsString()
   @MaxLength(255)
   apiKeyRef?: string;
+
+  @ApiPropertyOptional({ type: Object })
+  @IsOptional()
+  @IsObject()
+  headers?: Record<string, string>;
 
   @ApiPropertyOptional({ type: Boolean })
   @IsOptional()

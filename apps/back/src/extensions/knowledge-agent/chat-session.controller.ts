@@ -118,10 +118,7 @@ export class ChatSessionController {
   @ApiParam({ name: 'id', type: String })
   @ApiNoContentResponse()
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(
-    @Param('id') id: string,
-    @UserId() userId: number,
-  ): Promise<void> {
+  remove(@Param('id') id: string, @UserId() userId: number): Promise<void> {
     return this.chatService.deleteSession(id, userId);
   }
 
@@ -148,19 +145,49 @@ export class ChatSessionController {
   }
 
   /**
-   * Convert an async iterable of text deltas into an RxJS Observable of
+   * Convert an async iterable of structured chunks into an RxJS Observable of
    * SSE `MessageEvent` objects. NestJS detects an `Observable<MessageEvent>`
    * return type and wires the SSE response headers automatically.
+   *
+   * Wire format produced:
+   *   - text        → `data: <token>` (plain, old clients keep working)
+   *   - tool_call   → `event: tool_call` + `data: <json>` lines
+   *   - tool_result → `event: tool_result` + `data: <json>` lines
+   *   - done        → `event: done`    + `data: [DONE]`
    */
-  private toSseObservable(iterable: AsyncIterable<string>): Observable<MessageEvent> {
+  private toSseObservable(
+    iterable: AsyncIterable<
+      import('./infrastructure/chat/chat.service').ChatStreamChunk
+    >,
+  ): Observable<MessageEvent> {
     return new Observable<MessageEvent>((subscriber) => {
       void (async () => {
         try {
           for await (const chunk of iterable) {
-            subscriber.next({ data: chunk });
+            if (chunk.kind === 'text') {
+              subscriber.next({ data: chunk.text });
+            } else if (chunk.kind === 'tool_call') {
+              subscriber.next({
+                type: 'tool_call',
+                data: JSON.stringify({
+                  name: chunk.name,
+                  args: chunk.args ?? {},
+                  id: chunk.id,
+                }),
+              });
+            } else if (chunk.kind === 'tool_result') {
+              subscriber.next({
+                type: 'tool_result',
+                data: JSON.stringify({
+                  name: chunk.name,
+                  output: chunk.output ?? '',
+                  id: chunk.id,
+                }),
+              });
+            }
           }
           // Sentinel event so the client knows the stream is done.
-          subscriber.next({ data: '[DONE]', event: 'done' });
+          subscriber.next({ type: 'done', data: '[DONE]' });
           subscriber.complete();
         } catch (err) {
           subscriber.error(err);

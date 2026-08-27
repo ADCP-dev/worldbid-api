@@ -30,6 +30,7 @@ import {
   Link,
 } from 'lucide-vue-next';
 import { useKnowledgeGraph, type SimNode } from '../composables/useKnowledgeGraph';
+import { useKaThemeColors } from '../composables/useKaThemeColors';
 
 const emit = defineEmits<{
   select: [id: string];
@@ -71,6 +72,9 @@ const {
   destroy,
 } = useKnowledgeGraph({ width, height });
 
+// Theme-aware colors resolved from the active DaisyUI palette.
+const { colors: themeColors } = useKaThemeColors();
+
 const svgRef = ref<SVGSVGElement | null>(null);
 
 // Drag handlers are stable for the lifetime of the composable.
@@ -95,8 +99,10 @@ function nodeOpacity(nodeId: string): number {
 
 function labelFill(nodeId: string): string {
   const f = focusId.value;
-  if (!f) return '#e5e7eb';
-  return neighborSet.value.has(nodeId) ? '#f5f3ff' : '#4b5563';
+  if (!f) return themeColors.value.text;
+  return neighborSet.value.has(nodeId)
+    ? themeColors.value.text
+    : themeColors.value.textMuted;
 }
 
 // Node radius/color come from the composable (degree-based).
@@ -105,9 +111,14 @@ function radiusOf(node: SimNode): number {
 }
 
 function colorOf(node: SimNode): string {
-  if (node.degree === 0) return '#6b7280';
-  if (node.degree >= 4) return '#c084fc';
-  return '#a78bfa';
+  if (node.degree === 0) return themeColors.value.isolated;
+  if (node.degree >= 4) return themeColors.value.hub;
+  return themeColors.value.linked;
+}
+
+// Edge + text colors resolved per theme change via CSS vars.
+function edgeColor(): string {
+  return themeColors.value.edge;
 }
 
 function isHub(node: SimNode): boolean {
@@ -247,15 +258,18 @@ function focalizeSelected() {
 <template>
   <div
     ref="containerRef"
-    class="relative w-full h-full overflow-hidden bg-[#1e1e2e] select-none"
-    style="color: #e5e7eb"
+    class="ka-graph relative w-full h-full overflow-hidden select-none"
+    :style="{
+      backgroundColor: themeColors.bg,
+      color: themeColors.text,
+    }"
   >
     <!-- Loading / error states -->
     <div
       v-if="loading && nodes.length === 0"
       class="absolute inset-0 flex items-center justify-center z-20"
     >
-      <span class="loading loading-spinner loading-lg text-violet-400" />
+      <span class="loading loading-spinner loading-lg" :style="{ color: themeColors.hub }" />
     </div>
     <div
       v-else-if="error"
@@ -292,16 +306,16 @@ function focalizeSelected() {
         </filter>
         <!-- Radial gradient halo behind selected node -->
         <radialGradient id="selectedHalo" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="#c084fc" stop-opacity="0.45" />
-          <stop offset="60%" stop-color="#c084fc" stop-opacity="0.12" />
-          <stop offset="100%" stop-color="#c084fc" stop-opacity="0" />
+          <stop offset="0%" :stop-color="themeColors.hub" stop-opacity="0.45" />
+          <stop offset="60%" :stop-color="themeColors.hub" stop-opacity="0.12" />
+          <stop offset="100%" :stop-color="themeColors.hub" stop-opacity="0" />
         </radialGradient>
       </defs>
 
       <!-- Zoom/pan wrapper -->
       <g :transform="`translate(${transform.x}, ${transform.y}) scale(${transform.k})`">
         <!-- Edges -->
-        <g class="edges" stroke="#7c3aed" stroke-width="1.5">
+        <g class="edges" :stroke="edgeColor()" stroke-width="1.5">
           <line
             v-for="(e, i) in edges"
             :key="`e-${i}`"
@@ -338,7 +352,7 @@ function focalizeSelected() {
               v-if="isSearchHit(node.id)"
               :r="radiusOf(node) + 6"
               fill="none"
-              stroke="#facc15"
+              stroke="oklch(var(--wa, 84% 0.16 66))"
               stroke-width="2"
               stroke-dasharray="3 3"
             />
@@ -347,16 +361,16 @@ function focalizeSelected() {
             <circle
               :r="radiusOf(node)"
               :fill="colorOf(node)"
-              :stroke="selectedNodeId === node.id ? '#f5f3ff' : hoveredNodeId === node.id ? '#ddd6fe' : 'transparent'"
+              :stroke="selectedNodeId === node.id ? themeColors.text : hoveredNodeId === node.id ? themeColors.text : 'transparent'"
               :stroke-width="selectedNodeId === node.id ? 2 : 1"
               :filter="hoveredNodeId === node.id ? 'url(#glow-hover)' : selectedNodeId === node.id ? 'url(#glow-selected)' : undefined"
             />
 
-            <!-- White center dot for hubs -->
+            <!-- Center dot for hubs — readable against any palette -->
             <circle
               v-if="isHub(node)"
               r="2.5"
-              fill="#ffffff"
+              fill="oklch(var(--p-c, 98% 0.01 264))"
             />
 
             <!-- Label -->
@@ -378,7 +392,8 @@ function focalizeSelected() {
     <!-- Empty state overlay -->
     <div
       v-if="!loading && nodes.length === 0 && !error"
-      class="absolute inset-0 flex flex-col items-center justify-center z-10 text-gray-400"
+      class="absolute inset-0 flex flex-col items-center justify-center z-10"
+      :style="{ color: themeColors.textMuted }"
     >
       <Network class="w-12 h-12 mb-3 opacity-50" />
       <p class="text-lg mb-1">{{ $t('ext.ka.graph.emptyTitle') }}</p>
@@ -393,37 +408,42 @@ function focalizeSelected() {
     <div class="absolute top-4 left-4 z-10 flex flex-col gap-2">
       <div class="flex gap-1">
         <button
-          class="btn btn-sm btn-ghost bg-base-100/10 hover:bg-base-100/20 text-gray-200 border border-white/10"
-          title="Re-distribute"
+          class="btn btn-sm btn-ghost bg-base-100/10 hover:bg-base-100/20 border border-base-content/15"
+          :style="{ color: themeColors.text }"
+          :title="$t('ext.ka.graph.redistribute', 'Re-distribute')"
           @click="reheatSimulation"
         >
           <RefreshCw class="w-4 h-4" />
         </button>
         <button
-          class="btn btn-sm btn-ghost bg-base-100/10 hover:bg-base-100/20 text-gray-200 border border-white/10"
-          title="Add note"
+          class="btn btn-sm btn-ghost bg-base-100/10 hover:bg-base-100/20 border border-base-content/15"
+          :style="{ color: themeColors.text }"
+          :title="$t('ext.ka.graph.addNote', 'Add note')"
           @click="goToAddNote"
         >
           <FilePlus class="w-4 h-4" />
         </button>
         <div class="divider divider-horizontal mx-1"/>
         <button
-          class="btn btn-sm btn-ghost bg-base-100/10 hover:bg-base-100/20 text-gray-200 border border-white/10"
-          title="Zoom in"
+          class="btn btn-sm btn-ghost bg-base-100/10 hover:bg-base-100/20 border border-base-content/15"
+          :style="{ color: themeColors.text }"
+          :title="$t('ext.ka.graph.zoomIn', 'Zoom in')"
           @click="zoomIn"
         >
           <ZoomIn class="w-4 h-4" />
         </button>
         <button
-          class="btn btn-sm btn-ghost bg-base-100/10 hover:bg-base-100/20 text-gray-200 border border-white/10"
-          title="Zoom out"
+          class="btn btn-sm btn-ghost bg-base-100/10 hover:bg-base-100/20 border border-base-content/15"
+          :style="{ color: themeColors.text }"
+          :title="$t('ext.ka.graph.zoomOut', 'Zoom out')"
           @click="zoomOut"
         >
           <ZoomOut class="w-4 h-4" />
         </button>
         <button
-          class="btn btn-sm btn-ghost bg-base-100/10 hover:bg-base-100/20 text-gray-200 border border-white/10"
-          title="Reset zoom"
+          class="btn btn-sm btn-ghost bg-base-100/10 hover:bg-base-100/20 border border-base-content/15"
+          :style="{ color: themeColors.text }"
+          :title="$t('ext.ka.graph.resetZoom', 'Reset zoom')"
           @click="resetZoom"
         >
           <Maximize class="w-4 h-4" />
@@ -433,40 +453,56 @@ function focalizeSelected() {
       <!-- Search + filters -->
       <div class="flex gap-2 items-center">
         <div class="relative">
-          <Search class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search
+            class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2"
+            :style="{ color: themeColors.textMuted }"
+          />
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="Search notes..."
-            class="input input-sm w-48 pl-8 bg-base-100/10 text-gray-200 border border-white/10 placeholder-gray-500"
+            :placeholder="$t('ext.ka.graph.searchPlaceholder', 'Search notes…')"
+            class="input input-sm w-48 pl-8 bg-base-100/10 border border-base-content/15"
+            :style="{ color: themeColors.text }"
           >
         </div>
         <select
           v-model="filterCategory"
-          class="select select-sm bg-base-100/10 text-gray-200 border border-white/10"
+          class="select select-sm bg-base-100/10 border border-base-content/15"
+          :style="{ color: themeColors.text }"
         >
-          <option :value="null" class="bg-[#1e1e2e]">All categories</option>
+          <option
+            :value="null"
+            :style="{ backgroundColor: themeColors.bg }"
+          >
+            {{ $t('ext.ka.graph.allCategories', 'All categories') }}
+          </option>
           <option
             v-for="c in categories"
             :key="c"
             :value="c"
-            class="bg-[#1e1e2e]"
+            :style="{ backgroundColor: themeColors.bg }"
           >
             {{ c }}
           </option>
         </select>
         <select
           v-model="filterTag"
-          class="select select-sm bg-base-100/10 text-gray-200 border border-white/10"
+          class="select select-sm bg-base-100/10 border border-base-content/15"
+          :style="{ color: themeColors.text }"
         >
-          <option :value="null" class="bg-[#1e1e2e]">All tags</option>
           <option
-            v-for="t in tags"
-            :key="t"
-            :value="t"
-            class="bg-[#1e1e2e]"
+            :value="null"
+            :style="{ backgroundColor: themeColors.bg }"
           >
-            {{ t }}
+            {{ $t('ext.ka.graph.allTags', 'All tags') }}
+          </option>
+          <option
+            v-for="tag in tags"
+            :key="tag"
+            :value="tag"
+            :style="{ backgroundColor: themeColors.bg }"
+          >
+            {{ tag }}
           </option>
         </select>
       </div>
@@ -474,39 +510,48 @@ function focalizeSelected() {
 
     <!-- Top-right stats badge -->
     <div class="absolute top-4 right-4 z-10">
-      <div class="badge badge-lg gap-2 bg-base-100/10 text-gray-200 border border-white/10 px-3 py-3">
-        <span class="text-violet-300 font-semibold">{{ stats.nodes }}</span>
-        <span class="text-gray-400 text-xs">notes</span>
-        <span class="text-gray-600">·</span>
-        <span class="text-violet-300 font-semibold">{{ stats.edges }}</span>
-        <span class="text-gray-400 text-xs">links</span>
+      <div
+        class="badge badge-lg gap-2 bg-base-100/10 border border-base-content/15 px-3 py-3"
+        :style="{ color: themeColors.text }"
+      >
+        <span :style="{ color: themeColors.hub }" class="font-semibold">{{ stats.nodes }}</span>
+        <span class="text-xs" :style="{ color: themeColors.textMuted }">{{ $t('ext.ka.graph.nodesWord', 'notes') }}</span>
+        <span :style="{ color: themeColors.textMuted }">·</span>
+        <span :style="{ color: themeColors.hub }" class="font-semibold">{{ stats.edges }}</span>
+        <span class="text-xs" :style="{ color: themeColors.textMuted }">{{ $t('ext.ka.graph.linksWord', 'links') }}</span>
       </div>
     </div>
 
     <!-- Bottom-left legend -->
     <div class="absolute bottom-4 left-4 z-10">
-      <div class="bg-base-100/10 border border-white/10 rounded-lg p-3 text-xs text-gray-300 space-y-1.5">
+      <div
+        class="bg-base-100/10 border border-base-content/15 rounded-lg p-3 text-xs space-y-1.5"
+        :style="{ color: themeColors.text }"
+      >
         <div class="flex items-center gap-2">
-          <span class="inline-block w-3 h-3 rounded-full bg-[#c084fc]"/>
-          <span>Hub central (≥4 conexiones)</span>
+          <span class="inline-block w-3 h-3 rounded-full" :style="{ backgroundColor: themeColors.hub }"/>
+          <span>{{ $t('ext.ka.graph.legendHub', 'Hub (≥4 connections)') }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="inline-block w-3 h-3 rounded-full bg-[#a78bfa]"/>
-          <span>Nota vinculada (1-3)</span>
+          <span class="inline-block w-3 h-3 rounded-full" :style="{ backgroundColor: themeColors.linked }"/>
+          <span>{{ $t('ext.ka.graph.legendLinked', 'Linked note (1–3)') }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="inline-block w-3 h-3 rounded-full bg-[#6b7280]"/>
-          <span>Nota aislada (0)</span>
+          <span class="inline-block w-3 h-3 rounded-full" :style="{ backgroundColor: themeColors.isolated }"/>
+          <span>{{ $t('ext.ka.graph.legendIsolated', 'Isolated note (0)') }}</span>
         </div>
       </div>
     </div>
 
     <!-- Bottom status bar (hints) -->
     <div class="absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
-      <div class="bg-base-100/10 border border-white/10 rounded-full px-4 py-1.5 text-xs text-gray-400 flex gap-4">
-        <span><kbd class="kbd kbd-xs">Arrastrar</kbd> mover nodo</span>
-        <span><kbd class="kbd kbd-xs">Scroll</kbd> zoom</span>
-        <span><kbd class="kbd kbd-xs">Click</kbd> seleccionar</span>
+      <div
+        class="bg-base-100/10 border border-base-content/15 rounded-full px-4 py-1.5 text-xs flex gap-4"
+        :style="{ color: themeColors.textMuted }"
+      >
+        <span><kbd class="kbd kbd-xs">{{ $t('ext.ka.graph.hintDrag', 'Drag') }}</kbd> {{ $t('ext.ka.graph.hintDragAction', 'move node') }}</span>
+        <span><kbd class="kbd kbd-xs">{{ $t('ext.ka.graph.hintScroll', 'Scroll') }}</kbd> {{ $t('ext.ka.graph.hintScrollAction', 'zoom') }}</span>
+        <span><kbd class="kbd kbd-xs">{{ $t('ext.ka.graph.hintClick', 'Click') }}</kbd> {{ $t('ext.ka.graph.hintClickAction', 'select') }}</span>
       </div>
     </div>
 
@@ -514,33 +559,41 @@ function focalizeSelected() {
     <transition name="slide-panel">
       <aside
         v-if="selectedNode"
-        class="absolute top-0 right-0 bottom-0 w-80 sm:w-96 z-20 bg-[#262637] border-l border-white/10 shadow-2xl flex flex-col"
+        class="absolute top-0 right-0 bottom-0 w-80 sm:w-96 z-20 border-l shadow-2xl flex flex-col"
+        :style="{
+          backgroundColor: themeColors.panel,
+          borderColor: themeColors.border,
+          color: themeColors.text,
+        }"
         @click.stop
       >
         <!-- Header -->
-        <div class="p-4 border-b border-white/10 flex items-start justify-between gap-2">
+        <div class="p-4 border-b flex items-start justify-between gap-2" :style="{ borderColor: themeColors.border }">
           <div class="flex items-start gap-2 min-w-0">
-            <FilePlus class="w-4 h-4 mt-0.5 text-violet-400 shrink-0" />
+            <FilePlus class="w-4 h-4 mt-0.5 shrink-0" :style="{ color: themeColors.hub }" />
             <div class="min-w-0">
-              <h3 class="font-semibold text-gray-100 truncate">{{ selectedNode.label }}.md</h3>
+              <h3 class="font-semibold truncate">{{ selectedNode.label }}</h3>
               <div class="flex flex-wrap gap-1 mt-1.5">
                 <span
                   v-for="t in selectedNode.tags"
                   :key="t"
-                  class="badge badge-xs badge-violet bg-violet-500/20 text-violet-200 border-violet-500/30"
+                  class="badge badge-xs border border-primary/30 bg-primary/15 text-primary-content"
+                  :style="{ color: themeColors.text }"
                 >
                   <Tag class="w-2.5 h-2.5 mr-0.5" />{{ t }}
                 </span>
               </div>
               <div v-if="selectedNode.categoryPath" class="mt-1.5">
-                <span class="badge badge-xs badge-ghost bg-white/5 text-gray-300 border-white/10">
+                <span class="badge badge-xs badge-ghost border border-base-content/15" :style="{ color: themeColors.textMuted }">
                   {{ selectedNode.categoryPath }}
                 </span>
               </div>
             </div>
           </div>
           <button
-            class="btn btn-ghost btn-xs text-gray-400 hover:text-gray-200"
+            class="btn btn-ghost btn-xs"
+            :style="{ color: themeColors.textMuted }"
+            :aria-label="$t('ext.ka.graph.closePanel', 'Close')"
             @click="clearSelection"
           >
             <X class="w-4 h-4" />
@@ -548,36 +601,41 @@ function focalizeSelected() {
         </div>
 
         <!-- Degree counter -->
-        <div class="px-4 py-2 border-b border-white/10 text-xs text-gray-400">
-          <span class="text-violet-300 font-semibold">{{ selectedNode.degree }}</span>
+        <div class="px-4 py-2 border-b text-xs" :style="{ borderColor: themeColors.border, color: themeColors.textMuted }">
+          <span class="font-semibold" :style="{ color: themeColors.hub }">{{ selectedNode.degree }}</span>
           {{ $t('ext.ka.graph.connections') }}
         </div>
 
         <!-- Body: backlinks -->
         <div class="flex-1 overflow-auto p-4 space-y-2">
-          <h4 class="text-xs uppercase tracking-wider text-gray-500 mb-2">
+          <h4 class="text-xs uppercase tracking-wider mb-2" :style="{ color: themeColors.textMuted }">
             {{ $t('ext.ka.graph.backlinks') }}
           </h4>
-          <div v-if="selectedNodeLinks.length === 0" class="text-sm text-gray-500 italic">
+          <div
+            v-if="selectedNodeLinks.length === 0"
+            class="text-sm italic"
+            :style="{ color: themeColors.textMuted }">
             {{ $t('ext.ka.graph.emptyBacklinks') }}
           </div>
           <button
             v-for="link in selectedNodeLinks"
             :key="link.otherId"
-            class="w-full text-left p-2 rounded-md bg-white/5 hover:bg-violet-500/10 border border-white/5 hover:border-violet-500/30 transition-colors"
+            class="w-full text-left p-2 rounded-md border transition-colors hover:bg-base-100/10"
+            :style="{ borderColor: themeColors.border, color: themeColors.text }"
             @click="selectNode(link.otherId)"
           >
             <div class="flex items-center gap-2">
-              <Link class="w-3 h-3 text-violet-400 shrink-0" />
-              <span class="text-sm text-gray-200 truncate">{{ otherNodeLabel(link.otherId) }}</span>
+              <Link class="w-3 h-3 shrink-0" :style="{ color: themeColors.hub }" />
+              <span class="text-sm truncate">{{ otherNodeLabel(link.otherId) }}</span>
             </div>
           </button>
         </div>
 
         <!-- Footer -->
-        <div class="p-3 border-t border-white/10 flex gap-2">
+        <div class="p-3 border-t flex gap-2" :style="{ borderColor: themeColors.border }">
           <button
-            class="btn btn-sm btn-ghost flex-1 text-gray-300 border border-white/10"
+            class="btn btn-sm btn-ghost flex-1 border"
+            :style="{ borderColor: themeColors.border, color: themeColors.text }"
             @click="focalizeSelected"
           >
             <Focus class="w-4 h-4" />

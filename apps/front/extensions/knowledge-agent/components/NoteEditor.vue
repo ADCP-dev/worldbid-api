@@ -13,7 +13,11 @@ import {
   Code,
   Undo,
   Redo,
+  Save,
+  Clock3,
+  Type as TypeIcon,
 } from 'lucide-vue-next';
+import TagsChipsInput from './TagsChipsInput.vue';
 
 const props = defineProps<{
   modelValue: string;
@@ -26,8 +30,11 @@ const emit = defineEmits<{
   'update:modelValue': [value: string];
   'update:title': [value: string];
   'update:categoryPath': [value: string];
+  'update:tags': [value: string[]];
   save: [];
 }>();
+
+const { t } = useI18n();
 
 const editor = useEditor({
   content: props.modelValue || '<p></p>',
@@ -46,18 +53,35 @@ const editor = useEditor({
 
 const localTitle = ref(props.title);
 const localCategoryPath = ref(props.categoryPath ?? '');
+const localTags = ref<string[]>(props.tags ?? []);
 
 watch(() => props.title, (v) => { localTitle.value = v; });
 watch(() => props.categoryPath, (v) => { localCategoryPath.value = v ?? ''; });
+watch(() => props.tags, (v) => { localTags.value = v ?? []; });
 
 watch(localTitle, (v) => emit('update:title', v));
 watch(localCategoryPath, (v) => emit('update:categoryPath', v));
+watch(localTags, (v) => emit('update:tags', v), { deep: true });
 
 watch(() => props.modelValue, (v) => {
   if (editor.value && editor.value.getHTML() !== v) {
     editor.value.commands.setContent(v, false);
   }
 });
+
+/* ── Breadcrumbs from dotted categoryPath ("tech.notes.async" → pills) ── */
+const breadcrumbs = computed<string[]>(() => {
+  const cp = (props.categoryPath ?? '').split('.').map((s) => s.trim()).filter(Boolean);
+  return cp.length > 0 ? cp : [t('ext.ka.notes.uncategorized', 'uncategorized')];
+});
+
+/* ── Word count + reading time from editor text ────────────────────── */
+const wordCount = computed(() => {
+  const text = editor.value?.getText() ?? '';
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  return words.length;
+});
+const readingMinutes = computed(() => Math.max(1, Math.ceil(wordCount.value / 200)));
 
 const canUndo = computed(() => editor.value?.can().chain().focus().undo().run() ?? false);
 const canRedo = computed(() => editor.value?.can().chain().focus().redo().run() ?? false);
@@ -78,20 +102,40 @@ function save() { emit('save'); }
 
 <template>
   <div class="flex flex-col h-full border rounded-lg bg-base-100">
-    <div class="border-b p-3 space-y-3">
+    <div class="border-b border-base-300 p-3 space-y-2.5">
+      <!-- Title -->
       <input
         v-model="localTitle"
         type="text"
-        placeholder="Note title"
-        class="input input-bordered w-full text-lg font-semibold"
+        :placeholder="t('ext.ka.notes.titlePlaceholder', 'Note title')"
+        class="input input-ghost w-full text-xl font-bold px-0 focus:outline-none focus:bg-transparent placeholder:text-base-content/30"
       >
+
+      <!-- Category breadcrumbs -->
+      <div class="flex items-center gap-1 text-xs text-base-content/60">
+        <span
+          v-for="(crumb, i) in breadcrumbs"
+          :key="`${crumb}-${i}`"
+          class="inline-flex items-center"
+        >
+          <span class="px-1.5 py-0.5 rounded-md bg-base-200 font-medium">{{ crumb }}</span>
+          <span v-if="i < breadcrumbs.length - 1" class="mx-1 text-base-content/30">/</span>
+        </span>
+      </div>
+
+      <!-- Category input (raw dotted path — feeds breadcrumbs) -->
       <input
         v-model="localCategoryPath"
         type="text"
-        placeholder="Category path (e.g. tech.notes.async)"
-        class="input input-bordered input-sm w-full"
+        :placeholder="t('ext.ka.notes.categoryPlaceholder', 'Category path, e.g. tech.notes.async')"
+        class="input input-bordered input-sm w-full font-mono"
       >
-      <div class="flex flex-wrap gap-1">
+
+      <!-- Tags chips -->
+      <TagsChipsInput v-model="localTags" />
+
+      <!-- Toolbar -->
+      <div class="flex flex-wrap items-center gap-1 pt-1">
         <button class="btn btn-xs btn-ghost" :class="{ 'btn-active': editor?.isActive('bold') }" title="Bold" @click="toggleBold">
           <Bold class="w-3 h-3" />
         </button>
@@ -124,11 +168,28 @@ function save() { emit('save'); }
           <Redo class="w-3 h-3" />
         </button>
         <div class="flex-1"/>
-        <button class="btn btn-xs btn-primary" @click="save">Save</button>
+        <button class="btn btn-xs btn-primary gap-1" @click="save">
+          <Save :size="12" />
+          {{ t('ext.ka.notes.save', 'Save') }}
+        </button>
       </div>
     </div>
+
+    <!-- Editor content -->
     <div class="flex-1 overflow-auto">
       <EditorContent :editor="editor" />
+    </div>
+
+    <!-- Footer: word count + reading time -->
+    <div class="border-t border-base-300 px-3 py-1.5 flex items-center gap-3 text-[11px] text-base-content/50">
+      <span class="inline-flex items-center gap-1">
+        <TypeIcon :size="11" />
+        {{ t('ext.ka.notes.words', '{count} words').replace('{count}', String(wordCount)) }}
+      </span>
+      <span class="inline-flex items-center gap-1">
+        <Clock3 :size="11" />
+        {{ t('ext.ka.notes.readingTime', '{min} min read').replace('{min}', String(readingMinutes)) }}
+      </span>
     </div>
   </div>
 </template>

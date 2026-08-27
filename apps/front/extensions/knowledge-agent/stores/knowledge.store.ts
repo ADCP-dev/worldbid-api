@@ -15,6 +15,7 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
   const view = ref<KnowledgeView>('graph')
   const searchQuery = ref('')
   const sidebarOpen = ref(false)
+  const backlinksOpen = ref(false)
 
   function selectNote(id: string | null) {
     selectedId.value = id
@@ -49,11 +50,20 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
     sidebarOpen.value = false
   }
 
+  function toggleBacklinks() {
+    backlinksOpen.value = !backlinksOpen.value
+  }
+
+  function setBacklinks(open: boolean) {
+    backlinksOpen.value = open
+  }
+
   return {
     selectedId,
     view,
     searchQuery,
     sidebarOpen,
+    backlinksOpen,
     selectNote,
     openGraph,
     openEditor,
@@ -62,5 +72,7 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
     setSearch,
     toggleSidebar,
     closeSidebar,
+    toggleBacklinks,
+    setBacklinks,
   }
 })

@@ -18,13 +18,24 @@ export class McpServer {
   @Expose()
   transport: string;
 
-  @ApiProperty({ type: String, description: 'URL for http transport, command for stdio' })
+  @ApiProperty({
+    type: String,
+    description: 'URL for http transport, command for stdio',
+  })
   @Expose()
   url: string;
 
   @ApiProperty({ type: String, nullable: true })
   @Expose()
   apiKeyRef: string | null;
+
+  @ApiProperty({
+    type: Object,
+    nullable: true,
+    description: 'Extra HTTP headers for http transport',
+  })
+  @Expose()
+  headers: Record<string, string> | null;
 
   @ApiProperty({ type: Boolean })
   @Expose()

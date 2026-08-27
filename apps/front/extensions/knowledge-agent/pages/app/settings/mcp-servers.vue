@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query';
+import { toast } from 'vue-sonner';
+import { Pencil, Plug, Plus, Trash2 } from 'lucide-vue-next';
 import { useMcpServers, type McpServer } from '@ka/composables/useAgentConfig';
 import FormInput from '@base/ui-app/components/form/FormInput.vue';
 import FormSelect from '@base/ui-app/components/form/FormSelect.vue';
 import FormSwitch from '@base/ui-app/components/form/FormSwitch.vue';
+import KeyValueEditor from '@base/ui-app/components/form/KeyValueEditor.vue';
 import ConfigLayout from '@ka/components/ConfigLayout.vue';
+import KaFormModal from '@ka/components/KaFormModal.vue';
 import { KA_SETTINGS_SECTIONS, type KaConfigSection } from '@ka/composables/useKaSettingsNav';
 
 definePageMeta({
@@ -30,46 +34,75 @@ const TRANSPORT_OPTIONS = [
   { value: 'stdio', label: 'stdio' },
 ];
 
+/* ── Modal state ───────────────────────────────────────────────────── */
+const modalOpen = ref(false);
 const editingId = ref<string | null>(null);
 const form = ref({
   name: '',
   transport: 'http',
   url: '',
   apiKeyRef: '',
+  headers: {} as Record<string, string>,
   enabled: true,
 });
 
 const isEditing = computed(() => editingId.value !== null);
 
-function resetForm() {
+function openCreateModal(): void {
+  editingId.value = null;
   form.value = {
     name: '',
     transport: 'http',
     url: '',
     apiKeyRef: '',
+    headers: {},
     enabled: true,
   };
-  editingId.value = null;
+  modalOpen.value = true;
 }
 
-function startEdit(s: McpServer) {
+function openEditModal(s: McpServer): void {
   editingId.value = s.id;
   form.value = {
     name: s.name,
     transport: s.transport,
     url: s.url,
     apiKeyRef: s.apiKeyRef ?? '',
+    headers: s.headers ? { ...s.headers } : {},
     enabled: s.enabled,
   };
+  modalOpen.value = true;
 }
 
+function closeModal(): void {
+  modalOpen.value = false;
+  editingId.value = null;
+}
+
+/* ── Delete confirmation ───────────────────────────────────────────── */
+const deleteTarget = ref<McpServer | null>(null);
+const deleteDialogRef = ref<HTMLDialogElement | null>(null);
+
+function askDelete(s: McpServer): void {
+  deleteTarget.value = s;
+  deleteDialogRef.value?.showModal();
+}
+function cancelDelete(): void {
+  deleteTarget.value = null;
+  deleteDialogRef.value?.close();
+}
+
+/* ── Mutations ─────────────────────────────────────────────────────── */
 const saveMutation = useMutation({
   mutationFn: async () => {
+    const headers =
+      Object.keys(form.value.headers).length > 0 ? { ...form.value.headers } : undefined;
     const payload = {
       name: form.value.name,
       transport: form.value.transport,
       url: form.value.url,
       apiKeyRef: form.value.apiKeyRef || undefined,
+      headers,
       enabled: form.value.enabled,
     };
     if (editingId.value) {
@@ -79,7 +112,11 @@ const saveMutation = useMutation({
   },
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: ['ka-mcp-servers'] });
-    resetForm();
+    toast.success(t('ext.ka.settings.mcpSaved', 'MCP server saved'));
+    closeModal();
+  },
+  onError: (err) => {
+    toast.error(err instanceof Error ? err.message : t('ext.ka.settings.saveError', 'Save failed'));
   },
 });
 
@@ -87,6 +124,12 @@ const deleteMutation = useMutation({
   mutationFn: (id: string) => deleteServer(id),
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: ['ka-mcp-servers'] });
+    toast.success(t('ext.ka.settings.mcpDeleted', 'MCP server deleted'));
+    cancelDelete();
+  },
+  onError: (err) => {
+    toast.error(err instanceof Error ? err.message : t('ext.ka.settings.deleteError', 'Delete failed'));
+    cancelDelete();
   },
 });
 
@@ -96,18 +139,21 @@ const toggleMutation = useMutation({
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: ['ka-mcp-servers'] });
   },
+  onError: (err) => {
+    toast.error(err instanceof Error ? err.message : t('ext.ka.settings.saveError', 'Save failed'));
+  },
 });
 
-function confirmDelete(id: string) {
-  if (!confirm(t('ext.ka.chat.deleteConfirm'))) return;
-  deleteMutation.mutate(id);
+function confirmDelete(): void {
+  if (deleteTarget.value) deleteMutation.mutate(deleteTarget.value.id);
 }
 
-function onSubmit() {
+function onSubmit(): void {
+  if (!form.value.name.trim() || !form.value.url.trim()) return;
   saveMutation.mutate();
 }
 
-function toggleEnabled(s: McpServer) {
+function toggleEnabled(s: McpServer): void {
   toggleMutation.mutate({ id: s.id, enabled: !s.enabled });
 }
 </script>
@@ -119,82 +165,48 @@ function toggleEnabled(s: McpServer) {
     :title="t('ext.ka.nav.config')"
   >
     <div class="space-y-6">
-      <header>
-        <h1 class="text-2xl font-bold">{{ t('ext.ka.settings.mcp') }}</h1>
-        <p class="text-base-content/60 text-sm">
-          {{ t('ext.ka.settings.mcpDescription') }}
-        </p>
-      </header>
-
-      <section class="card bg-base-100 shadow-sm border p-5 space-y-4">
-        <h2 class="text-lg font-semibold">
-          {{ isEditing ? t('ext.ka.settings.editMcpServer') : t('ext.ka.settings.newMcpServer') }}
-        </h2>
-        <div class="grid gap-3">
-          <FormInput
-            v-model="form.name"
-            :label="t('ext.ka.settings.fieldName')"
-            placeholder="e.g. GitHub MCP"
-            required
-          />
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <FormSelect
-              v-model="form.transport"
-              :label="t('ext.ka.settings.fieldTransport')"
-              :options="TRANSPORT_OPTIONS"
-            />
-            <FormSwitch
-              v-model="form.enabled"
-              :label="t('ext.ka.settings.fieldEnabled')"
-            />
-          </div>
-          <FormInput
-            v-model="form.url"
-            :label="form.transport === 'http' ? t('ext.ka.settings.fieldUrl') : t('ext.ka.settings.fieldCommand')"
-            :placeholder="form.transport === 'http' ? 'https://mcp.example.com/api' : 'npx -y @mcp/server'"
-          />
-          <FormInput
-            v-model="form.apiKeyRef"
-            :label="t('ext.ka.settings.fieldApiKeyRef')"
-            placeholder="MCP_API_KEY"
-            :description="t('ext.ka.settings.apiKeyRefOptional')"
-          />
-          <div class="flex gap-2">
-            <button
-              class="btn btn-primary"
-              :disabled="saveMutation.isPending.value"
-              @click="onSubmit"
-            >
-              {{ saveMutation.isPending.value ? t('ext.ka.settings.saving') : (isEditing ? t('ext.ka.settings.update') : t('ext.ka.settings.create')) }}
-            </button>
-            <button v-if="isEditing" class="btn btn-ghost" @click="resetForm">
-              {{ t('ext.ka.settings.cancel') }}
-            </button>
-          </div>
-          <p v-if="saveMutation.isError.value" class="text-error text-sm">
-            {{ saveMutation.error?.message }}
+      <header class="flex items-start justify-between gap-3">
+        <div>
+          <h1 class="text-2xl font-bold">{{ t('ext.ka.settings.mcp') }}</h1>
+          <p class="text-base-content/60 text-sm">
+            {{ t('ext.ka.settings.mcpDescription') }}
           </p>
         </div>
-      </section>
+        <button class="btn btn-primary btn-sm gap-1.5" @click="openCreateModal">
+          <Plus :size="15" />
+          {{ t('ext.ka.settings.newMcpServer') }}
+        </button>
+      </header>
 
       <section class="space-y-3">
         <div v-if="isLoading" class="flex justify-center py-8">
           <span class="loading loading-spinner loading-lg" />
         </div>
-        <div v-else-if="!servers?.length" class="text-base-content/50 text-center py-8">
-          {{ t('ext.ka.settings.noMcpServers') }}
+        <div
+          v-else-if="!servers?.length"
+          class="flex flex-col items-center justify-center py-14 text-center gap-2"
+        >
+          <Plug :size="28" class="text-base-content/30" />
+          <p class="text-base-content/50">{{ t('ext.ka.settings.noMcpServers') }}</p>
+          <button class="btn btn-sm btn-primary gap-1.5 mt-2" @click="openCreateModal">
+            <Plus :size="14" />
+            {{ t('ext.ka.settings.newMcpServer') }}
+          </button>
         </div>
         <div v-else class="grid gap-3">
           <article
             v-for="s in servers"
             :key="s.id"
-            class="card bg-base-100 shadow-sm border p-4 flex flex-col md:flex-row md:items-center gap-3"
+            class="card bg-base-100 shadow-sm border border-base-300 p-4 flex flex-col md:flex-row md:items-center gap-3"
           >
             <div class="flex-1 min-w-0">
               <h3 class="font-semibold truncate">{{ s.name }}</h3>
               <div class="flex flex-wrap items-center gap-2 text-xs text-base-content/60 mt-1">
                 <span class="badge badge-sm badge-outline">{{ s.transport }}</span>
-                <code class="bg-base-200 px-1.5 py-0.5 rounded truncate max-w-xs" :title="s.url">{{ s.url }}</code>
+                <code class="bg-base-200 px-1.5 py-0.5 rounded truncate max-w-xs text-[10px]" :title="s.url">{{ s.url }}</code>
+                <span v-if="s.headers && Object.keys(s.headers).length > 0" class="badge badge-sm badge-ghost">
+                  {{ Object.keys(s.headers).length }} {{ t('ext.ka.settings.headersBadge', 'headers') }}
+                </span>
               </div>
             </div>
             <div class="flex items-center gap-3 shrink-0">
@@ -203,14 +215,21 @@ function toggleEnabled(s: McpServer) {
                 :label="t('ext.ka.settings.fieldEnabled')"
                 @update:model-value="toggleEnabled(s)"
               />
-              <button class="btn btn-xs btn-ghost" @click="startEdit(s)">
+              <button
+                class="btn btn-xs btn-ghost gap-1"
+                :aria-label="t('ext.ka.settings.edit')"
+                @click="openEditModal(s)"
+              >
+                <Pencil :size="12" />
                 {{ t('ext.ka.settings.edit') }}
               </button>
               <button
-                class="btn btn-xs btn-ghost text-error"
+                class="btn btn-xs btn-ghost text-error gap-1"
                 :disabled="deleteMutation.isPending.value"
-                @click="confirmDelete(s.id)"
+                :aria-label="t('ext.ka.settings.delete')"
+                @click="askDelete(s)"
               >
+                <Trash2 :size="12" />
                 {{ t('ext.ka.settings.delete') }}
               </button>
             </div>
@@ -218,5 +237,90 @@ function toggleEnabled(s: McpServer) {
         </div>
       </section>
     </div>
+
+    <!-- Create/Edit modal -->
+    <KaFormModal
+      v-model="modalOpen"
+      :title="isEditing ? t('ext.ka.settings.editMcpServer') : t('ext.ka.settings.newMcpServer')"
+      :loading="saveMutation.isPending.value"
+      :submit-label="isEditing ? t('ext.ka.settings.update') : t('ext.ka.settings.create')"
+      @submit="onSubmit"
+    >
+      <FormInput
+        v-model="form.name"
+        :label="t('ext.ka.settings.fieldName')"
+        placeholder="e.g. GitHub MCP"
+        required
+      />
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <FormSelect
+          v-model="form.transport"
+          :label="t('ext.ka.settings.fieldTransport')"
+          :options="TRANSPORT_OPTIONS"
+        />
+        <FormSwitch
+          v-model="form.enabled"
+          :label="t('ext.ka.settings.fieldEnabled')"
+        />
+      </div>
+      <FormInput
+        v-model="form.url"
+        :label="form.transport === 'http' ? t('ext.ka.settings.fieldUrl') : t('ext.ka.settings.fieldCommand')"
+        :placeholder="form.transport === 'http' ? 'https://mcp.example.com/api' : 'npx -y @mcp/server'"
+        required
+      />
+      <FormInput
+        v-model="form.apiKeyRef"
+        :label="t('ext.ka.settings.fieldApiKeyRef')"
+        placeholder="MCP_API_KEY"
+        :description="t('ext.ka.settings.apiKeyRefOptional')"
+      />
+
+      <!-- Headers only make sense for http transport -->
+      <div v-if="form.transport === 'http'">
+        <label class="block text-sm font-medium mb-1 text-base-content/70">
+          {{ t('ext.ka.settings.headersLabel', 'HTTP headers (optional)') }}
+        </label>
+        <KeyValueEditor
+          v-model="form.headers"
+          :key-placeholder="t('ext.ka.settings.headerKeyPlaceholder', 'Header name')"
+          :value-placeholder="t('ext.ka.settings.headerValuePlaceholder', 'value')"
+          :add-label="t('ext.ka.settings.headerAdd', 'Add header')"
+        />
+        <p class="text-xs text-base-content/50 mt-1">
+          {{ t('ext.ka.settings.headersDescription', 'Sent with every request to this MCP server — e.g. X-Tenant-Id for gateway routing.') }}
+        </p>
+      </div>
+    </KaFormModal>
+
+    <!-- Delete confirmation -->
+    <dialog ref="deleteDialogRef" class="modal">
+      <div class="modal-box max-w-sm">
+        <h3 class="font-semibold text-base mb-1">
+          {{ t('ext.ka.settings.deleteMcpTitle', 'Delete MCP server?') }}
+        </h3>
+        <p class="text-sm text-base-content/70">
+          {{
+            t('ext.ka.settings.deleteMcpBody', '"{name}" will be permanently deleted.')
+              .replace('{name}', deleteTarget?.name ?? '')
+          }}
+        </p>
+        <div class="modal-action">
+          <button class="btn btn-ghost btn-sm" type="button" @click="cancelDelete">
+            {{ t('ext.ka.settings.cancel') }}
+          </button>
+          <button
+            class="btn btn-error btn-sm gap-1"
+            type="button"
+            :disabled="deleteMutation.isPending.value"
+            @click="confirmDelete"
+          >
+            <span v-if="deleteMutation.isPending.value" class="loading loading-spinner loading-xs" />
+            {{ t('ext.ka.settings.delete') }}
+          </button>
+        </div>
+      </div>
+      <form method="dialog" class="modal-backdrop" @click="cancelDelete" />
+    </dialog>
   </ConfigLayout>
 </template>

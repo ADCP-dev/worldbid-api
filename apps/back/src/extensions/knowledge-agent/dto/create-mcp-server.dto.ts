@@ -1,8 +1,17 @@
-import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsObject,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateMcpServerDto {
-  @ApiPropertyOptional({ type: String, description: 'UUID of the parent agent config (null = global)' })
+  @ApiPropertyOptional({
+    type: String,
+    description: 'UUID of the parent agent config (null = global)',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(255)
@@ -18,7 +27,10 @@ export class CreateMcpServerDto {
   @MaxLength(16)
   transport: string;
 
-  @ApiProperty({ type: String, description: 'URL for http transport, command for stdio' })
+  @ApiProperty({
+    type: String,
+    description: 'URL for http transport, command for stdio',
+  })
   @IsString()
   @MaxLength(512)
   url: string;
@@ -28,6 +40,14 @@ export class CreateMcpServerDto {
   @IsString()
   @MaxLength(255)
   apiKeyRef?: string;
+
+  @ApiPropertyOptional({
+    type: Object,
+    description: 'Extra HTTP headers for http transport',
+  })
+  @IsOptional()
+  @IsObject()
+  headers?: Record<string, string>;
 
   @ApiPropertyOptional({ type: Boolean, default: true })
   @IsOptional()

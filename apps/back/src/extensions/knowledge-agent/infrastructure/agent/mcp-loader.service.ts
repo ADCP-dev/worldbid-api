@@ -12,6 +12,7 @@ interface McpServerConfig {
   url?: string;
   command?: string;
   args?: string[];
+  headers?: Record<string, string>;
 }
 
 /**
@@ -63,7 +64,11 @@ export class McpLoaderService {
 
     for (const s of servers) {
       if (s.transport === 'http' && s.url) {
-        config[s.name] = { transport: 'http', url: s.url };
+        config[s.name] = {
+          transport: 'http',
+          url: s.url,
+          ...(s.headers ? { headers: s.headers } : {}),
+        };
       } else if (s.transport === 'stdio' && s.url) {
         config[s.name] = { transport: 'stdio', command: s.url, args: [] };
       }

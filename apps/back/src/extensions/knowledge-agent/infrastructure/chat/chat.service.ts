@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { ChatSessionRepository } from '../chat-session.repository';
 import { AgentConfigRepository } from '../agent-config.repository';
 import { AgentFactoryService } from '../agent/agent-factory.service';
@@ -8,6 +13,27 @@ import { CreateChatSessionDto } from '../../dto/create-chat-session.dto';
 import { UpdateChatSessionDto } from '../../dto/update-chat-session.dto';
 import type { ChatSession } from '../../domain/chat-session';
 import type { RagHit } from '../rag.service';
+
+/**
+ * Structured chunk yielded by `streamMessage`. The controller maps these to
+ * SSE frames: text → plain `data:` lines; tool events → named `event:` frames
+ * with JSON `data`. Old clients that only read `data:` simply ignore tool
+ * frames (backward compatible).
+ */
+export type ChatStreamChunk =
+  | { kind: 'text'; text: string }
+  | {
+      kind: 'tool_call';
+      name: string;
+      args?: Record<string, unknown>;
+      id?: string;
+    }
+  | {
+      kind: 'tool_result';
+      name: string;
+      output?: string;
+      id?: string;
+    };
 
 /**
  * ChatService — per-user chat sessions over a DeepAgent config.
@@ -65,7 +91,10 @@ export class ChatService {
    *
    * ChatSession stays per-user (403 cross-user); notes + configs are global.
    */
-  async getSession(sessionId: string, userId: number): Promise<ChatSession | null> {
+  async getSession(
+    sessionId: string,
+    userId: number,
+  ): Promise<ChatSession | null> {
     const session = await this.sessionRepo.findById(sessionId);
     if (!session) return null;
     if (session.userId !== userId) return null;
@@ -78,14 +107,16 @@ export class ChatService {
     dto: UpdateChatSessionDto,
   ): Promise<ChatSession> {
     const session = await this.sessionRepo.findById(sessionId);
-    if (!session) throw new NotFoundException(`ChatSession ${sessionId} not found`);
+    if (!session)
+      throw new NotFoundException(`ChatSession ${sessionId} not found`);
     if (session.userId !== userId) throw new ForbiddenException();
     return this.sessionRepo.update(sessionId, dto);
   }
 
   async deleteSession(sessionId: string, userId: number): Promise<void> {
     const session = await this.sessionRepo.findById(sessionId);
-    if (!session) throw new NotFoundException(`ChatSession ${sessionId} not found`);
+    if (!session)
+      throw new NotFoundException(`ChatSession ${sessionId} not found`);
     if (session.userId !== userId) throw new ForbiddenException();
     await this.sessionRepo.remove(sessionId);
   }
@@ -104,15 +135,17 @@ export class ChatService {
   async getSessionHistory(
     sessionId: string,
     userId: number,
-  ): Promise<Array<{ role: 'user' | 'assistant'; content: string; timestamp?: string }> | null> {
+  ): Promise<Array<{
+    role: 'user' | 'assistant';
+    content: string;
+    timestamp?: string;
+  }> | null> {
     const session = await this.sessionRepo.findById(sessionId);
     if (!session) return null;
     if (session.userId !== userId) return null;
 
     const checkpointer = this.checkpointerService.getCheckpointer() as {
-      getTuple: (config: {
-        configurable: { thread_id: string };
-      }) => Promise<
+      getTuple: (config: { configurable: { thread_id: string } }) => Promise<
         | {
             checkpoint: {
               channel_values: {
@@ -135,7 +168,9 @@ export class ChatService {
     const messages = tuple.checkpoint?.channel_values?.messages ?? [];
     return messages
       .map((m) => this.toHistoryEntry(m))
-      .filter((e): e is { role: 'user' | 'assistant'; content: string } => e !== null);
+      .filter(
+        (e): e is { role: 'user' | 'assistant'; content: string } => e !== null,
+      );
   }
 
   /**
@@ -145,9 +180,10 @@ export class ChatService {
    * Content may be a string or a complex content block array; non-string
    * content is stringified defensively.
    */
-  private toHistoryEntry(
-    msg: { getType: () => string; content: unknown },
-  ): { role: 'user' | 'assistant'; content: string } | null {
+  private toHistoryEntry(msg: {
+    getType: () => string;
+    content: unknown;
+  }): { role: 'user' | 'assistant'; content: string } | null {
     const type = msg.getType();
     if (type === 'human') {
       return { role: 'user', content: this.contentToString(msg.content) };
@@ -175,17 +211,22 @@ export class ChatService {
   }
 
   /**
-   * Send a message and stream the agent's response tokens.
+   * Send a message and stream the agent's response tokens + tool events.
    *
    * Yields nothing when the session is missing or cross-user (the caller's
    * async iteration simply completes with zero chunks). Throws
    * `NotFoundException` when the session does not exist at all.
+   *
+   * Chunk contract:
+   *   - { kind: 'text', text } — assistant text deltas (concatenate for message)
+   *   - { kind: 'tool_call', name, args?, id? } — agent invoked a tool
+   *   - { kind: 'tool_result', name, output?, id? } — tool returned
    */
-  async *sendMessage(
+  async *streamChunks(
     sessionId: string,
     userId: number,
     message: string,
-  ): AsyncGenerator<string, void, unknown> {
+  ): AsyncGenerator<ChatStreamChunk, void, unknown> {
     const run = await this.startRun(sessionId, userId, message);
     if (!run) return;
     const agent = run.agent;
@@ -194,24 +235,83 @@ export class ChatService {
 
     const stream = await this.invokeStream(agent, payload, threadId);
     for await (const msg of stream.messages) {
-      for await (const token of msg.text) {
-        yield token as string;
+      for await (const part of msg.text) {
+        yield this.toChunk(part);
       }
     }
   }
 
   /**
-   * Alias for `sendMessage` — the async iterable is the same shape; the
-   * controller wraps it in an Observable for SSE. Provided so the streaming
-   * path is named explicitly and the non-streaming `sendMessage` can evolve
-   * independently (e.g. return a final state object) if needed.
+   * Structured streaming alias used by the SSE controller. Yields
+   * {@link ChatStreamChunk} objects (text + tool events).
    */
   async *streamMessage(
     sessionId: string,
     userId: number,
     message: string,
+  ): AsyncGenerator<ChatStreamChunk, void, unknown> {
+    yield* this.streamChunks(sessionId, userId, message);
+  }
+
+  /**
+   * Text-only alias for `streamChunks` — filters out tool events. Kept for
+   * consumers expecting plain string tokens (existing unit tests, scripts).
+   */
+  async *sendMessage(
+    sessionId: string,
+    userId: number,
+    message: string,
   ): AsyncGenerator<string, void, unknown> {
-    yield* this.sendMessage(sessionId, userId, message);
+    for await (const chunk of this.streamChunks(sessionId, userId, message)) {
+      if (chunk.kind === 'text') yield chunk.text;
+    }
+  }
+
+  /**
+   * Map one streamed part to a structured chunk. The deepagents streamEvents
+   * v3 `.text` iterable yields strings for assistant text; if the runtime
+   * surfaces structured tool frames (objects with `type: 'tool'` /
+   * `tool_calls` entries), we convert them here defensively. Anything we can
+   * not classify degrades to a text chunk (stringified) so the UI never
+   * breaks on unexpected shapes.
+   */
+  private toChunk(part: unknown): ChatStreamChunk {
+    if (typeof part === 'string') return { kind: 'text', text: part };
+
+    if (part && typeof part === 'object') {
+      const p = part as Record<string, unknown>;
+      // Tool-call frame shapes seen across LangChain/LangGraph versions.
+      const toolName =
+        (typeof p.name === 'string' && p.name) ||
+        (typeof p.tool === 'string' ? p.tool : null);
+      if (
+        (p.type === 'tool_call' ||
+          p.type === 'tool_use' ||
+          p.kind === 'tool_call') &&
+        toolName
+      ) {
+        return {
+          kind: 'tool_call',
+          name: toolName,
+          args: (p.args ?? p.input ?? {}) as Record<string, unknown>,
+          id: typeof p.id === 'string' ? p.id : undefined,
+        };
+      }
+      if (
+        (p.type === 'tool_result' ||
+          p.type === 'tool_message' ||
+          p.type === 'tool') &&
+        toolName
+      ) {
+        return {
+          kind: 'tool_result',
+          name: toolName,
+          output: this.contentToString(p.output ?? p.result ?? p.content ?? ''),
+          id: typeof p.id === 'string' ? p.id : undefined,
+        };
+      }
+    }
+    return { kind: 'text', text: this.contentToString(part) };
   }
 
   /**
@@ -229,7 +329,8 @@ export class ChatService {
     threadId: string;
   } | null> {
     const session = await this.sessionRepo.findById(sessionId);
-    if (!session) throw new NotFoundException(`ChatSession ${sessionId} not found`);
+    if (!session)
+      throw new NotFoundException(`ChatSession ${sessionId} not found`);
     if (session.userId !== userId) return null; // cross-user → silent skip
 
     const configId = await this.resolveConfigId(session, userId);
@@ -270,7 +371,9 @@ export class ChatService {
   /** Build the RAG context block from semantic search results (global KB). */
   private async injectRag(message: string): Promise<string | null> {
     try {
-      const hits = await this.ragService.search(message, 'semantic', { topK: 5 });
+      const hits = await this.ragService.search(message, 'semantic', {
+        topK: 5,
+      });
       if (hits.length === 0) return null;
       return this.formatRagContext(hits);
     } catch (err) {
@@ -302,7 +405,9 @@ export class ChatService {
       streamEvents: (
         state: unknown,
         config: Record<string, unknown>,
-      ) => Promise<{ messages: AsyncIterable<{ text: AsyncIterable<string> }> }>;
+      ) => Promise<{
+        messages: AsyncIterable<{ text: AsyncIterable<string> }>;
+      }>;
     };
     return a.streamEvents(payload, {
       version: 'v3',

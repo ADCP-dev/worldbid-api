@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
+import { NotebookPen } from 'lucide-vue-next';
 import type { Note } from '../composables/useKnowledge';
 import TreeNode from './TreeNode.vue';
 
@@ -79,10 +80,16 @@ watch(
 
 <template>
   <div class="h-full overflow-auto p-2 text-sm">
-    <div v-if="notes.length === 0" class="text-base-content/50 italic p-4">
-      No notes yet
+    <div
+      v-if="notes.length === 0"
+      class="flex flex-col items-center justify-center gap-2 px-4 py-10 text-center"
+    >
+      <NotebookPen :size="22" class="text-base-content/30" />
+      <p class="text-xs text-base-content/50 italic">
+        {{ $t('ext.ka.notes.emptyTree', 'No notes yet') }}
+      </p>
     </div>
-    <ul v-else class="menu menu-xs w-full">
+    <ul v-else class="w-full space-y-0.5">
       <TreeNode
         v-for="node in sortedChildren(tree)"
         :key="node.path"

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, nextTick } from 'vue';
+import { SendHorizonal } from 'lucide-vue-next';
 
 const props = defineProps<{
   disabled?: boolean;
@@ -9,6 +10,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   send: [content: string];
 }>();
+
+const { t } = useI18n();
 
 const text = ref('');
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
@@ -37,12 +40,12 @@ function onKeydown(e: KeyboardEvent) {
 </script>
 
 <template>
-  <div class="border-t bg-base-100 p-3">
+  <div class="border-t border-base-300 bg-base-100 p-3">
     <div class="flex items-end gap-2 max-w-4xl mx-auto">
       <textarea
         ref="textareaRef"
         v-model="text"
-        :placeholder="placeholder ?? 'Send a message...'"
+        :placeholder="placeholder ?? t('ext.ka.chat.inputPlaceholder', 'Escribe al agente…')"
         :disabled="disabled"
         rows="1"
         class="textarea textarea-bordered flex-1 resize-none leading-normal"
@@ -53,16 +56,19 @@ function onKeydown(e: KeyboardEvent) {
       <button
         class="btn btn-primary btn-square"
         :disabled="disabled || !text.trim()"
+        :aria-label="t('ext.ka.chat.send', 'Send message')"
         @click="submit"
       >
         <span v-if="disabled" class="loading loading-spinner loading-sm"/>
-        <svg v-else class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
-          <path d="M3.105 3.105a.75.75 0 01.848-.18l13 6.5a.75.75 0 010 1.35l-13 6.5a.75.75 0 01-1.06-.82L4.56 10 1.893 5.925a.75.75 0 01.212-.82z" />
-        </svg>
+        <SendHorizonal v-else :size="18" />
       </button>
     </div>
-    <p class="text-xs text-base-content/40 text-center mt-1">
-      Enter to send · Shift+Enter for newline
+    <p class="text-xs text-base-content/40 text-center mt-1.5 flex items-center justify-center gap-1.5">
+      <kbd class="kbd kbd-xs">Enter</kbd>
+      {{ t('ext.ka.chat.hintSend', 'to send') }}
+      <span class="opacity-40">·</span>
+      <kbd class="kbd kbd-xs">Shift</kbd><span class="opacity-60">+</span><kbd class="kbd kbd-xs">Enter</kbd>
+      {{ t('ext.ka.chat.hintNewline', 'for a newline') }}
     </p>
   </div>
 </template>

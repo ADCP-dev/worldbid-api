@@ -22,6 +22,7 @@ export class McpServerRepository {
       transport: data.transport,
       url: data.url,
       apiKeyRef: data.apiKeyRef ?? null,
+      headers: data.headers ?? null,
       enabled: data.enabled ?? true,
     });
     const saved = await this.repo.save(entity);
@@ -51,11 +52,13 @@ export class McpServerRepository {
     if (!entity) {
       throw new NotFoundException(`McpServer ${id} not found`);
     }
-    if (data.agentConfigId !== undefined) entity.agentConfigId = data.agentConfigId;
+    if (data.agentConfigId !== undefined)
+      entity.agentConfigId = data.agentConfigId;
     if (data.name !== undefined) entity.name = data.name;
     if (data.transport !== undefined) entity.transport = data.transport;
     if (data.url !== undefined) entity.url = data.url;
     if (data.apiKeyRef !== undefined) entity.apiKeyRef = data.apiKeyRef;
+    if (data.headers !== undefined) entity.headers = data.headers;
     if (data.enabled !== undefined) entity.enabled = data.enabled;
     const saved = await this.repo.save(entity);
     return this.toDomain(saved);

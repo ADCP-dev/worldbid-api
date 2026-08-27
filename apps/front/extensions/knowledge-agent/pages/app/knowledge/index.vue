@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { useDebounceFn } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 import { toast } from 'vue-sonner';
-import { FileText, Network, PanelLeft, Plus } from 'lucide-vue-next';
+import { FileText, Link2, Network, PanelLeft, Plus } from 'lucide-vue-next';
 import { useKnowledgeStore } from '@ka/stores/knowledge.store';
 import {
   useNotesQuery,
@@ -16,6 +16,7 @@ import type { Note } from '@ka/composables/useKnowledge';
 import KnowledgeSidebar from '@ka/components/KnowledgeSidebar.vue';
 import KnowledgeGraph from '@ka/components/KnowledgeGraph.vue';
 import NoteEditor from '@ka/components/NoteEditor.vue';
+import BacklinksPanel from '@ka/components/BacklinksPanel.vue';
 
 definePageMeta({
   layout: 'default',
@@ -25,7 +26,7 @@ definePageMeta({
 
 const { t } = useI18n();
 const store = useKnowledgeStore();
-const { selectedId, view, searchQuery, sidebarOpen } = storeToRefs(store);
+const { selectedId, view, searchQuery, sidebarOpen, backlinksOpen } = storeToRefs(store);
 
 // ── Data (TanStack Query) ────────────────────────────────────────────────
 const notesParams = computed(() => ({
@@ -96,6 +97,11 @@ function onSelectNote(note: Note) {
   store.closeSidebar();
 }
 
+function onSelectBacklink(note: Note) {
+  store.selectNote(note.id);
+  store.closeSidebar();
+}
+
 function onGraphSelect(id: string) {
   store.selectNote(id);
 }
@@ -149,6 +155,7 @@ async function removeNote() {
   try {
     await deleteMutation.mutateAsync(selectedId.value);
     store.selectNote(null);
+    store.setBacklinks(false);
     store.openGraph();
     toast.success(t('ext.ka.notes.deleted'));
   } catch {
@@ -252,6 +259,17 @@ const saveLabel = computed(() => {
 
           <button
             v-if="view === 'editor' && selectedId"
+            class="btn btn-sm btn-ghost gap-1.5"
+            :class="{ 'btn-active': backlinksOpen }"
+            :aria-label="t('ext.ka.notes.backlinksTitle', 'Backlinks')"
+            @click="store.toggleBacklinks()"
+          >
+            <Link2 class="w-4 h-4" />
+            <span class="hidden sm:inline">{{ t('ext.ka.notes.backlinksTitle', 'Backlinks') }}</span>
+          </button>
+
+          <button
+            v-if="view === 'editor' && selectedId"
             class="btn btn-sm btn-ghost text-error"
             @click="removeNote"
           >
@@ -261,11 +279,11 @@ const saveLabel = computed(() => {
       </div>
 
       <!-- Content area -->
-      <div class="flex-1 min-h-0 relative">
+      <div class="flex-1 min-h-0 flex overflow-hidden">
         <!-- Editor view -->
         <div
           v-if="view === 'editor' && selectedId"
-          class="absolute inset-0 overflow-auto"
+          class="flex-1 min-w-0 relative"
         >
           <div v-if="noteLoading" class="flex justify-center py-12">
             <span class="loading loading-spinner loading-md" />
@@ -277,7 +295,7 @@ const saveLabel = computed(() => {
             <FileText class="w-10 h-10 mb-2 opacity-50" />
             <p>{{ t('ext.ka.notes.notFound') }}</p>
           </div>
-          <div v-else class="p-4 h-full">
+          <div v-else class="p-4 h-full overflow-auto">
             <NoteEditor
               v-model="contentMd"
               :title="title"
@@ -285,15 +303,24 @@ const saveLabel = computed(() => {
               :tags="tags"
               @update:title="title = $event"
               @update:category-path="categoryPath = $event"
+              @update:tags="tags = $event"
               @save="flushSave"
             />
           </div>
         </div>
 
+        <!-- Backlinks side panel (editor view only) -->
+        <BacklinksPanel
+          v-if="view === 'editor' && selectedId && backlinksOpen"
+          :note-id="selectedId"
+          @select="onSelectBacklink"
+          @close="store.setBacklinks(false)"
+        />
+
         <!-- Empty state (editor view, nothing selected) -->
         <div
           v-else-if="view === 'editor' && !selectedId"
-          class="flex flex-col items-center justify-center h-full text-base-content/40 gap-3"
+          class="flex-1 flex flex-col items-center justify-center text-base-content/40 gap-3"
         >
           <FileText class="w-12 h-12 opacity-40" />
           <p class="text-lg">{{ t('ext.ka.notes.selectPrompt') }}</p>
@@ -304,7 +331,7 @@ const saveLabel = computed(() => {
         </div>
 
         <!-- Graph view -->
-        <div v-else class="absolute inset-0">
+        <div v-else class="flex-1 min-w-0 relative">
           <KnowledgeGraph
             @select="onGraphSelect"
             @new="onGraphNew"

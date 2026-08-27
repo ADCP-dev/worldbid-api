@@ -27,7 +27,11 @@ export class McpServerEntity extends EntityRelationalHelper {
   @Column({ type: 'uuid', name: 'agent_config_id', nullable: true })
   agentConfigId: string | null;
 
-  @ManyToOne(() => AgentConfigEntity, { eager: false, onDelete: 'CASCADE', nullable: true })
+  @ManyToOne(() => AgentConfigEntity, {
+    eager: false,
+    onDelete: 'CASCADE',
+    nullable: true,
+  })
   @JoinColumn({ name: 'agent_config_id' })
   agentConfig: AgentConfigEntity | null;
 
@@ -42,6 +46,10 @@ export class McpServerEntity extends EntityRelationalHelper {
 
   @Column({ type: 'varchar', length: 255, name: 'api_key_ref', nullable: true })
   apiKeyRef: string | null;
+
+  /** Extra HTTP headers (auth-proxies, gateway tenant routing). JSON object. */
+  @Column({ type: 'jsonb', nullable: true })
+  headers: Record<string, string> | null;
 
   @Column({ type: 'boolean', default: true })
   enabled: boolean;

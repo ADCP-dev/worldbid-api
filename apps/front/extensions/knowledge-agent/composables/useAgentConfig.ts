@@ -46,6 +46,7 @@ export interface McpServer {
   transport: string;
   url: string;
   apiKeyRef: string | null;
+  headers: Record<string, string> | null;
   enabled: boolean;
   createdAt: string;
   updatedAt: string;
@@ -201,6 +202,7 @@ export interface CreateMcpServerPayload {
   transport: string;
   url: string;
   apiKeyRef?: string;
+  headers?: Record<string, string>;
   enabled?: boolean;
 }
 
@@ -210,6 +212,7 @@ export interface UpdateMcpServerPayload {
   transport?: string;
   url?: string;
   apiKeyRef?: string;
+  headers?: Record<string, string>;
   enabled?: boolean;
 }
 
