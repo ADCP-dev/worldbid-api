@@ -30,12 +30,18 @@ RUN pnpm run build
 FROM nginx:alpine AS prod
 
 # Configure nginx to listen on the port Coolify exposes (3000).
-RUN sed -i 's/listen       80;/listen       3000;/' /etc/nginx/conf.d/default.conf \
+# Use relative redirects (no host:port in Location) so Caddy's HTTPS
+# domain is preserved. port_in_redirect off + absolute_redirect off
+# prevents nginx from rewriting /path → http://host:3000/path/.
+RUN sed -i 's/listen       80;/listen       3000;\n    port_in_redirect off;\n    absolute_redirect off;/' /etc/nginx/conf.d/default.conf \
     && sed -i 's/listen  \[::\]:80;/listen  [::]:3000;/' /etc/nginx/conf.d/default.conf
 
 # Remove default nginx index files and copy the built static output.
 RUN rm -rf /usr/share/nginx/html/*
 COPY --from=build /app/.output/public/ /usr/share/nginx/html/
+
+# SPA fallback: serve index.html for client-side routes (Vue Router).
+RUN echo 'location / { try_files $uri $uri/ /index.html; }' >> /etc/nginx/conf.d/default.conf
 
 EXPOSE 3000
 
