@@ -1,5 +1,5 @@
 import type { Component } from 'vue';
-import { Bot, Cpu, Plug } from 'lucide-vue-next';
+import { Bot, Plug } from 'lucide-vue-next';
 
 export interface KaConfigSection {
   key: string;
@@ -17,12 +17,6 @@ export function KA_SETTINGS_SECTIONS(
       label: t('ext.ka.nav.agents'),
       icon: Bot,
       url: '/app/settings/agents',
-    },
-    {
-      key: 'models',
-      label: t('ext.ka.nav.models'),
-      icon: Cpu,
-      url: '/app/settings/models',
     },
     {
       key: 'mcp',

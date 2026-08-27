@@ -22,7 +22,6 @@ export default defineNuxtPlugin((nuxtApp) => {
           order: 30,
           children: [
             { title: t('ext.ka.nav.agents'), icon: 'Bot', link: '/app/settings/agents', order: 0 },
-            { title: t('ext.ka.nav.models'), icon: 'Cpu', link: '/app/settings/models', order: 10 },
             { title: t('ext.ka.nav.mcpServers'), icon: 'Plug', link: '/app/settings/mcp-servers', order: 20 },
           ],
         },

@@ -2,6 +2,7 @@
 import { EditorContent, useEditor } from '@tiptap/vue-3';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
+import { Wikilink } from './WikilinkExtension';
 import { ref, watch, computed } from 'vue';
 import {
   Bold,
@@ -51,6 +52,7 @@ const editor = useEditor({
         class: 'ka-wikilink text-primary underline decoration-dotted hover:decoration-solid',
       },
     }),
+    Wikilink,
   ],
   injectCSS: false,
   editorProps: {
@@ -138,8 +140,8 @@ function toggleWikilinkPicker(): void {
 
 function insertWikilink(note: { title: string }): void {
   if (!editor.value) return;
-  // Insert [[note title]] as text — the backend extracts [[]] references.
-  editor.value.chain().focus().insertContent(`[[${note.title}]] `).run();
+  // Insert as a wikilink node — renders as [[title]] link in the editor.
+  editor.value.chain().focus().insertWikilink(note.title).insertContent(' ').run();
   wikilinkPickerOpen.value = false;
 }
 
