@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Plus, Trash2, MessageSquare } from 'lucide-vue-next';
+import { Plus, Trash2 } from 'lucide-vue-next';
 import type { ChatSession } from '@ka/composables/useChatStream';
 import FormInput from '@base/ui-app/components/form/FormInput.vue';
 
@@ -8,8 +8,6 @@ const props = defineProps<{
   sessions: ChatSession[];
   activeId: string | null;
   loading: boolean;
-  /** Ids of sessions currently streaming a reply. */
-  streamingIds?: ReadonlySet<string> | string[];
 }>();
 
 const emit = defineEmits<{
@@ -21,12 +19,6 @@ const emit = defineEmits<{
 const { t } = useI18n();
 
 const search = ref('');
-
-const streamingSet = computed<ReadonlySet<string>>(() => {
-  const sids = props.streamingIds;
-  if (!sids) return new Set();
-  return sids instanceof Set ? sids : new Set(sids);
-});
 
 const filtered = computed<ChatSession[]>(() => {
   const q = search.value.trim().toLowerCase();
@@ -147,39 +139,24 @@ function confirmDelete(): void {
           v-for="item in group.items"
           :key="item.id"
           type="button"
-          class="w-full text-left px-3 py-2 rounded-lg transition-colors group relative border-l-4 mb-0.5"
+          class="w-full text-left px-2.5 py-1.5 rounded-md transition-colors group relative flex items-center gap-2"
           :class="item.id === activeId
-            ? 'bg-primary/10 border-primary hover:bg-primary/15'
-            : 'border-transparent hover:bg-base-300'"
+            ? 'bg-primary/10'
+            : 'hover:bg-base-300'"
           @click="emit('select', item.id)"
         >
-          <div class="flex items-center gap-2">
-            <MessageSquare :size="13" class="shrink-0 text-base-content/40" />
-            <div class="font-medium text-sm truncate min-w-0 flex-1 pr-6">
-              {{ item.title }}
-            </div>
-            <span
-              v-if="streamingSet.has(item.id)"
-              class="relative flex h-2 w-2 shrink-0"
-              :aria-label="t('ext.ka.chat.streamingNow', 'Responding…')"
-            >
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-60" />
-              <span class="relative inline-flex rounded-full h-2 w-2 bg-success" />
-            </span>
-          </div>
-          <div class="flex items-center justify-between mt-0.5 pl-5">
-            <span class="text-xs text-base-content/50">
-              {{ formatRelativeTime(item.updatedAt) }}
-            </span>
-            <button
-              type="button"
-              class="btn btn-xs btn-ghost text-error opacity-0 group-hover:opacity-100 focus:opacity-100 px-1"
-              :aria-label="t('ext.ka.chat.deleteSession')"
-              @click.stop="askDelete(item)"
-            >
-              <Trash2 :size="14" />
-            </button>
-          </div>
+          <span class="truncate text-sm flex-1 min-w-0">{{ item.title }}</span>
+          <span class="text-[10px] text-base-content/40 shrink-0 tabular-nums">
+            {{ formatRelativeTime(item.updatedAt) }}
+          </span>
+          <button
+            type="button"
+            class="btn btn-xs btn-ghost btn-square h-5 w-5 min-h-5 p-0 text-error opacity-0 group-hover:opacity-100 focus:opacity-100 shrink-0"
+            :aria-label="t('ext.ka.chat.deleteSession')"
+            @click.stop="askDelete(item)"
+          >
+            <Trash2 :size="12" />
+          </button>
         </button>
       </div>
     </div>

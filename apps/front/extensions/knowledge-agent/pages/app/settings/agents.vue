@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query';
 import { Bot, Pencil, Plus, Trash2 } from 'lucide-vue-next';
 import { useAgentConfig, useModelProviders } from '@ka/composables/useAgentConfig';
-import type { AgentConfig } from '@ka/composables/useAgentConfig';
+import type { AgentConfig, ModelProvider } from '@ka/composables/useAgentConfig';
+import { useProviderModels } from '@ka/composables/useProviderModels';
 import FormInput from '@base/ui-app/components/form/FormInput.vue';
 import FormTextArea from '@base/ui-app/components/form/FormTextArea.vue';
 import FormSelect from '@base/ui-app/components/form/FormSelect.vue';
@@ -27,7 +28,7 @@ const {
   updateAgentConfig,
   deleteAgentConfig,
 } = useAgentConfig();
-const { getProviders, getActiveModels } = useModelProviders();
+const { getProviders } = useModelProviders();
 const queryClient = useQueryClient();
 
 const { data: agents, isLoading } = useQuery({
@@ -40,26 +41,48 @@ const { data: providers } = useQuery({
   queryFn: getProviders,
 });
 
-const { data: activeModels } = useQuery({
-  queryKey: ['ka-active-models'],
-  queryFn: getActiveModels,
-});
-
 const providerOptions = computed(() =>
   (providers.value ?? []).map((p) => ({ label: p.name, value: p.provider })),
 );
 
-const modelOptions = computed(() => {
+/* ── Cascading provider → model fetch ────────────────────────────────────
+ * When the user picks a provider in the form, we fetch that provider's
+ * available models directly from its API (Ollama /api/tags, OpenRouter
+ * /api/v1/models). The model list is NOT stored in the DB — only the user's
+ * choice (provider:modelId) is persisted in AgentConfig.model. Free-text
+ * input is also allowed (for custom/self-hosted models not in the list).
+ */
+const { models: providerModels, loading: modelsLoading, error: modelsError, fetchModels } = useProviderModels();
+
+/** Currently selected provider object (from DB), based on form.provider. */
+const selectedProvider = computed<ModelProvider | null>(() => {
   const ps = providers.value ?? [];
-  return (activeModels.value ?? []).map((m) => {
-    const p = ps.find((x) => x.id === m.providerId);
-    const provider = p?.provider ?? 'unknown';
-    return {
-      label: `${m.displayName} (${provider}:${m.modelId})`,
-      value: `${provider}:${m.modelId}`,
-    };
-  });
+  return ps.find((p) => p.provider === form.value.provider) ?? null;
 });
+
+/** Options for the model select: fetched models + allow free text. */
+const modelOptions = computed(() => {
+  return providerModels.value.map((m) => ({
+    label: m.name,
+    value: `${selectedProvider.value?.provider ?? ''}:${m.id}`,
+  }));
+});
+
+// Fetch models whenever the provider changes.
+watch(selectedProvider, (p) => {
+  form.value.model = ''; // reset model when provider changes
+  void fetchModels(p);
+});
+
+/** Allow free-text model input (for models not in the fetched list). */
+const allowFreeTextModel = ref(false);
+const freeTextModelId = ref('');
+function applyFreeTextModel(): void {
+  if (!freeTextModelId.value.trim() || !selectedProvider.value) return;
+  form.value.model = `${selectedProvider.value.provider}:${freeTextModelId.value.trim()}`;
+  freeTextModelId.value = '';
+  allowFreeTextModel.value = false;
+}
 
 /* ── Modal state ──────────────────────────────────────────────────────── */
 const modalOpen = ref(false);
@@ -263,12 +286,46 @@ function onSubmit(): void {
             { value: 'ollama-cloud', label: 'ollama-cloud' },
           ]"
         />
-        <FormSelect
-          v-model="form.model"
-          :label="t('ext.ka.settings.fieldModel')"
-          :options="modelOptions"
-          :placeholder="t('ext.ka.settings.selectModel')"
-        />
+        <div class="space-y-1">
+          <label class="text-sm font-medium text-base-content/70">
+            {{ t('ext.ka.settings.fieldModel') }}
+          </label>
+          <div v-if="modelsLoading" class="flex items-center gap-2 text-sm text-base-content/50">
+            <span class="loading loading-spinner loading-xs" />
+            {{ t('ext.ka.settings.fetchingModels', 'Fetching models…') }}
+          </div>
+          <FormSelect
+            v-else-if="!allowFreeTextModel && modelOptions.length > 0"
+            v-model="form.model"
+            :options="modelOptions"
+            :placeholder="t('ext.ka.settings.selectModel')"
+          />
+          <div v-else-if="allowFreeTextModel" class="flex gap-1">
+            <input
+              v-model="freeTextModelId"
+              type="text"
+              :placeholder="t('ext.ka.settings.modelIdPlaceholder', 'e.g. glm-5.3-flash:cloud')"
+              class="input input-sm input-bordered flex-1"
+              @keyup.enter="applyFreeTextModel"
+            >
+            <button class="btn btn-xs btn-primary" @click="applyFreeTextModel">
+              {{ t('ext.ka.settings.apply', 'Apply') }}
+            </button>
+            <button class="btn btn-xs btn-ghost" @click="allowFreeTextModel = false">
+              {{ t('ext.ka.settings.cancel') }}
+            </button>
+          </div>
+          <div v-else class="flex gap-2 items-center">
+            <span class="text-xs text-base-content/50">{{ t('ext.ka.settings.noModelsFetched', 'No models fetched') }}</span>
+            <button class="btn btn-xs btn-ghost" @click="allowFreeTextModel = true">
+              {{ t('ext.ka.settings.enterModelManually', 'Enter manually') }}
+            </button>
+          </div>
+          <p v-if="modelsError" class="text-xs text-error/70">{{ modelsError }}</p>
+          <p v-if="form.model" class="text-xs text-base-content/40">
+            {{ t('ext.ka.settings.selectedModel', 'Selected') }}: <code class="bg-base-200 px-1 rounded">{{ form.model }}</code>
+          </p>
+        </div>
       </div>
     </KaFormModal>
 

@@ -6,6 +6,8 @@ import type { Note } from '../composables/useKnowledge';
 
 const props = defineProps<{
   noteId: string | null;
+  /** When true, renders as an inline block (no fixed-width sidebar). */
+  embedded?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -31,16 +33,24 @@ function plainSummary(md: string, max = 140): string {
 </script>
 
 <template>
-  <aside
-    class="flex flex-col h-full w-[300px] shrink-0 border-l border-base-300 bg-base-200"
+  <div
+    class="ka-backlinks"
+    :class="embedded
+      ? 'bg-base-200 rounded-lg border border-base-300'
+      : 'flex flex-col h-full w-[300px] shrink-0 border-l border-base-300 bg-base-200'"
     :aria-label="t('ext.ka.notes.backlinksTitle', 'Backlinks')"
   >
-    <div class="flex items-center justify-between px-3 py-2.5 border-b border-base-300">
+    <div
+      class="flex items-center justify-between px-3 py-2.5"
+      :class="embedded ? 'border-b border-base-300 rounded-t-lg' : 'border-b border-base-300'"
+    >
       <span class="inline-flex items-center gap-1.5 text-sm font-semibold">
         <Link2 :size="14" class="text-base-content/60" />
         {{ t('ext.ka.notes.backlinksTitle', 'Backlinks') }}
+        <span v-if="backlinks.length > 0" class="badge badge-xs badge-ghost">{{ backlinks.length }}</span>
       </span>
       <button
+        v-if="!embedded"
         type="button"
         class="btn btn-xs btn-ghost btn-circle"
         :aria-label="t('ext.ka.notes.closeBacklinks', 'Close backlinks panel')"
@@ -50,21 +60,21 @@ function plainSummary(md: string, max = 140): string {
       </button>
     </div>
 
-    <div class="flex-1 overflow-y-auto p-3 space-y-2">
-      <div v-if="isPending" class="flex justify-center py-8">
+    <div class="overflow-y-auto p-3 space-y-2" :class="embedded ? 'max-h-48' : 'flex-1'">
+      <div v-if="isPending" class="flex justify-center py-4">
         <span class="loading loading-spinner loading-sm" />
       </div>
 
       <div
         v-else-if="isError"
-        class="text-xs text-error/80 px-2 py-3 rounded-lg bg-error/10"
+        class="text-xs text-error/80 px-2 py-2 rounded-lg bg-error/10"
       >
         {{ t('ext.ka.notes.backlinksError', 'Could not load backlinks') }}
       </div>
 
       <div
         v-else-if="backlinks.length === 0"
-        class="text-xs text-base-content/50 px-2 py-3 italic"
+        class="text-xs text-base-content/50 px-2 py-2 italic"
       >
         {{ t('ext.ka.notes.backlinksEmpty', 'No notes link here yet.') }}
       </div>
@@ -87,5 +97,5 @@ function plainSummary(md: string, max = 140): string {
         </p>
       </button>
     </div>
-  </aside>
+  </div>
 </template>

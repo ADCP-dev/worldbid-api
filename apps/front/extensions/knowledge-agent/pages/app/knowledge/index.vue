@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { useDebounceFn } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 import { toast } from 'vue-sonner';
-import { FileText, Link2, Network, PanelLeft, Plus } from 'lucide-vue-next';
+import { FileText, Network, PanelLeft, Plus } from 'lucide-vue-next';
 import { useKnowledgeStore } from '@ka/stores/knowledge.store';
 import {
   useNotesQuery,
@@ -26,7 +26,7 @@ definePageMeta({
 
 const { t } = useI18n();
 const store = useKnowledgeStore();
-const { selectedId, view, searchQuery, sidebarOpen, backlinksOpen } = storeToRefs(store);
+const { selectedId, view, searchQuery, sidebarOpen } = storeToRefs(store);
 
 // ── Data (TanStack Query) ────────────────────────────────────────────────
 const notesParams = computed(() => ({
@@ -38,6 +38,15 @@ const { data: currentNote, isPending: noteLoading } = useNoteQuery(selectedId);
 const createMutation = useCreateNoteMutation();
 const updateMutation = useUpdateNoteMutation();
 const deleteMutation = useDeleteNoteMutation();
+
+// ── Categories extracted from notes (for the category select in editor) ─
+const categories = computed<string[]>(() => {
+  const set = new Set<string>();
+  for (const n of notes.value ?? []) {
+    if (n.categoryPath) set.add(n.categoryPath);
+  }
+  return [...set].sort();
+});
 
 // ── Editor local state (synced from currentNote) ─────────────────────────
 const title = ref('');
@@ -100,6 +109,13 @@ function onSelectNote(note: Note) {
 function onSelectBacklink(note: Note) {
   store.selectNote(note.id);
   store.closeSidebar();
+}
+
+function onCreateCategory(name: string): void {
+  // The new category is just a string the user typed; it becomes the
+  // categoryPath of the current note. No separate "create category" API —
+  // categories are implicit in notes' categoryPath values.
+  categoryPath.value = name;
 }
 
 function onGraphSelect(id: string) {
@@ -259,17 +275,6 @@ const saveLabel = computed(() => {
 
           <button
             v-if="view === 'editor' && selectedId"
-            class="btn btn-sm btn-ghost gap-1.5"
-            :class="{ 'btn-active': backlinksOpen }"
-            :aria-label="t('ext.ka.notes.backlinksTitle', 'Backlinks')"
-            @click="store.toggleBacklinks()"
-          >
-            <Link2 class="w-4 h-4" />
-            <span class="hidden sm:inline">{{ t('ext.ka.notes.backlinksTitle', 'Backlinks') }}</span>
-          </button>
-
-          <button
-            v-if="view === 'editor' && selectedId"
             class="btn btn-sm btn-ghost text-error"
             @click="removeNote"
           >
@@ -295,27 +300,28 @@ const saveLabel = computed(() => {
             <FileText class="w-10 h-10 mb-2 opacity-50" />
             <p>{{ t('ext.ka.notes.notFound') }}</p>
           </div>
-          <div v-else class="p-4 h-full overflow-auto">
+          <div v-else class="p-4 h-full overflow-auto flex flex-col gap-3">
             <NoteEditor
               v-model="contentMd"
               :title="title"
               :category-path="categoryPath"
               :tags="tags"
+              :categories="categories"
               @update:title="title = $event"
               @update:category-path="categoryPath = $event"
               @update:tags="tags = $event"
+              @create-category="onCreateCategory"
               @save="flushSave"
+            />
+            <!-- Backlinks below the editor -->
+            <BacklinksPanel
+              v-if="selectedId"
+              :note-id="selectedId"
+              :embedded="true"
+              @select="onSelectBacklink"
             />
           </div>
         </div>
-
-        <!-- Backlinks side panel (editor view only) -->
-        <BacklinksPanel
-          v-if="view === 'editor' && selectedId && backlinksOpen"
-          :note-id="selectedId"
-          @select="onSelectBacklink"
-          @close="store.setBacklinks(false)"
-        />
 
         <!-- Empty state (editor view, nothing selected) -->
         <div

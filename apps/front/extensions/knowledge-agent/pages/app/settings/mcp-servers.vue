@@ -283,12 +283,14 @@ function toggleEnabled(s: McpServer): void {
         </label>
         <KeyValueEditor
           v-model="form.headers"
-          :key-placeholder="t('ext.ka.settings.headerKeyPlaceholder', 'Header name')"
-          :value-placeholder="t('ext.ka.settings.headerValuePlaceholder', 'value')"
-          :add-label="t('ext.ka.settings.headerAdd', 'Add header')"
+          value-type="string"
+          :label="t('ext.ka.settings.headersLabel', 'HTTP headers (optional)')"
         />
         <p class="text-xs text-base-content/50 mt-1">
           {{ t('ext.ka.settings.headersDescription', 'Sent with every request to this MCP server — e.g. X-Tenant-Id for gateway routing.') }}
+        </p>
+        <p class="text-xs text-base-content/40 mt-0.5">
+          {{ t('ext.ka.settings.headersExample', 'Example: key "Authorization", value "Bearer xxx"') }}
         </p>
       </div>
     </KaFormModal>

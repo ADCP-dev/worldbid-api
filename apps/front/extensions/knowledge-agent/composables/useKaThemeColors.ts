@@ -22,42 +22,44 @@ export interface KaThemeColors {
 }
 
 /**
- * Read DaisyUI HSL CSS variables (daisyUI 5 emits var(--p), var(--bc) etc as
- * HSL triplets "217 19% 27%"). Returned strings are hsl() values ready for
- * SVG fills and CSS colors.
+ * Read DaisyUI 5 CSS custom properties (--color-primary, --color-base-100,
+ * etc.) which use oklch values like "oklch(0.65 0.2 40)".
  *
- * Reactivity: a MutationObserver on <html data-theme> flips `themeKey` so any
- * consumer re-resolves colors. Callers use `themeColors` (computed from the
- * reactive var map) rather than reading getComputedStyle directly.
+ * Reactivity: a MutationObserver on <html data-theme> bumps `themeKey` so
+ * consumers re-resolve colors when the active theme changes.
  */
 export function useKaThemeColors() {
-  const themeKey = ref(0); // bumped on data-theme change
+  const themeKey = ref(0);
   const colors = ref<KaThemeColors>(defaultColors());
   let observer: MutationObserver | null = null;
 
-  function hslVar(name: string, fallbackHsl: string): string {
-    if (typeof window === 'undefined') return `hsl(${fallbackHsl})`;
+  function cssVar(name: string, fallback: string): string {
+    if (typeof window === 'undefined') return fallback;
     const raw = getComputedStyle(document.documentElement)
       .getPropertyValue(name)
       .trim();
-    if (!raw) return `hsl(${fallbackHsl})`;
-    // daisyUI 5 emits "217 19% 27%" (hsl triplet) — some versions include
-    // the alpha "/0.05"; normalize.
-    const cleaned = raw.replace(' /', '/');
-    return `hsl(${cleaned})`;
+    if (!raw) return fallback;
+    return raw;
   }
 
   function resolve(): KaThemeColors {
+    const primary = cssVar('--color-primary', '#F97316');
+    const base100 = cssVar('--color-base-100', '#161616');
+    const base200 = cssVar('--color-base-200', '#1e1e1e');
+    const base300 = cssVar('--color-base-300', '#262626');
+    const baseContent = cssVar('--color-base-content', '#F5F5F5');
+    const neutral = cssVar('--color-neutral', '#161616');
+
     return {
-      bg: hslVar('--b1', '222 47% 11%'),
-      panel: hslVar('--b2', '217 19% 27%'),
-      border: hslVar('--bc', '220 13% 69%') + ' / 0.15',
-      edge: hslVar('--a', '263 70% 50%'),
-      isolated: hslVar('--bc', '220 13% 69%'),
-      linked: hslVar('--s', '262 52% 47%'),
-      hub: hslVar('--p', '262 83% 58%'),
-      text: hslVar('--bc', '220 13% 69%'),
-      textMuted: hslVar('--bc', '220 13% 69%') + ' / 0.6',
+      bg: base100,
+      panel: base200,
+      border: base300,
+      edge: primary,
+      isolated: neutral,
+      linked: primary,
+      hub: primary,
+      text: baseContent,
+      textMuted: `${baseContent}99`,
     };
   }
 
@@ -91,17 +93,16 @@ export function useKaThemeColors() {
   watch(themeKey, () => refresh());
 
   function defaultColors(): KaThemeColors {
-    // SSR/static defaults — dark DaisyUI palette.
     return {
-      bg: 'hsl(222 47% 11%)',
-      panel: 'hsl(217 19% 27%)',
-      border: 'hsl(220 13% 69% / 0.15)',
-      edge: 'hsl(263 70% 50% / 0.6)',
-      isolated: 'hsl(220 13% 69%)',
-      linked: 'hsl(262 52% 47%)',
-      hub: 'hsl(262 83% 58%)',
-      text: 'hsl(220 13% 91%)',
-      textMuted: 'hsl(220 13% 69% / 0.6)',
+      bg: '#161616',
+      panel: '#1e1e1e',
+      border: '#262626',
+      edge: '#F97316',
+      isolated: '#737373',
+      linked: '#F97316',
+      hub: '#F97316',
+      text: '#F5F5F5',
+      textMuted: '#F5F5F599',
     };
   }
 

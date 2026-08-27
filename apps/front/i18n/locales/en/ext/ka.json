@@ -36,7 +36,17 @@
         "saving": "Saving…",
         "selectPrompt": "Select a note to edit",
         "unsaved": "Unsaved",
-        "untitled": "Untitled"
+        "untitled": "Untitled",
+        "searchNotesLink": "Search note to link…",
+        "closePicker": "Close",
+        "noNotesFound": "No notes found",
+        "noCategory": "— No category —",
+        "newCategory": "New category…",
+        "newCategoryPlaceholder": "e.g. tech.notes.async",
+        "addCategory": "Add",
+        "insertLink": "Insert note link [[ ]]",
+        "charCount": "{count} chars",
+        "charWarn": "Long note — consider splitting for better AI search"
       },
       "graph": {
         "title": "Knowledge Graph",
@@ -184,7 +194,14 @@
         "baseUrlHint": "Default endpoint for the selected provider; override if self-hosted",
         "pickProviderFirst": "Pick a provider first — model fields unlock after that.",
         "usedProvider": "Model will be registered under",
-        "save": "Save"
+        "save": "Save",
+        "fetchingModels": "Fetching models…",
+        "modelIdPlaceholder": "e.g. glm-5.3-flash:cloud",
+        "apply": "Apply",
+        "enterModelManually": "Enter manually",
+        "noModelsFetched": "No models fetched",
+        "selectedModel": "Selected",
+        "headersExample": "Example: key \"Authorization\", value \"Bearer xxx\""
       },
       "nav": {
         "notes": "Notes",

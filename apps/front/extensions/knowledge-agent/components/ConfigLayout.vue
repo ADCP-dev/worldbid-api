@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import type { Component } from 'vue';
 
 export interface ConfigSection {
   key: string;
   label: string;
-  icon?: string;
+  icon?: Component;
   url: string;
 }
 
@@ -46,19 +47,12 @@ const isActive = (section: ConfigSection) =>
             :class="{ active: isActive(section) }"
             class="flex items-center gap-3"
           >
-            <svg
+            <component
+              :is="section.icon"
               v-if="section.icon"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="h-4 w-4 shrink-0"
-            >
-              <path :d="section.icon" />
-            </svg>
+              :size="16"
+              class="shrink-0"
+            />
             <span class="truncate">{{ section.label }}</span>
           </NuxtLink>
         </li>

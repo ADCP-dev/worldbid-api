@@ -36,7 +36,17 @@
         "saving": "Guardando…",
         "selectPrompt": "Seleccioná una nota para editar",
         "unsaved": "Sin guardar",
-        "untitled": "Sin título"
+        "untitled": "Sin título",
+        "searchNotesLink": "Buscar nota para enlazar…",
+        "closePicker": "Cerrar",
+        "noNotesFound": "No se encontraron notas",
+        "noCategory": "— Sin categoría —",
+        "newCategory": "Nueva categoría…",
+        "newCategoryPlaceholder": "ej. tech.notas.async",
+        "addCategory": "Agregar",
+        "insertLink": "Insertar enlace a nota [[ ]]",
+        "charCount": "{count} caracteres",
+        "charWarn": "Nota larga — considerá dividirla para mejor búsqueda de IA"
       },
       "graph": {
         "title": "Grafo de Conocimiento",
@@ -184,7 +194,14 @@
         "baseUrlHint": "Endpoint por defecto del proveedor seleccionado; sobreescribir si es self-hosted",
         "pickProviderFirst": "Elegí un proveedor primero — los campos de modelo se destraban después.",
         "usedProvider": "El modelo se registrará bajo",
-        "save": "Guardar"
+        "save": "Guardar",
+        "fetchingModels": "Obteniendo modelos…",
+        "modelIdPlaceholder": "ej. glm-5.3-flash:cloud",
+        "apply": "Aplicar",
+        "enterModelManually": "Ingresar manualmente",
+        "noModelsFetched": "No se obtuvieron modelos",
+        "selectedModel": "Seleccionado",
+        "headersExample": "Ejemplo: clave \"Authorization\", valor \"Bearer xxx\""
       },
       "nav": {
         "notes": "Notas",
