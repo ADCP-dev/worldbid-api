@@ -30,21 +30,25 @@ export class SandboxService {
   /** 'quickjs' | 'vm'. Resolved lazily from config. */
   protected configEngine: 'quickjs' | 'vm' = 'quickjs';
 
-  private readonly DEFAULT_DENY = [
-    '.env',
-    '**/.env',
-    '**/credentials',
-    '**/*.key',
-    'apps/back/src/**',
-    'apps/front/src/**',
-    'packages/**',
-  ];
+  private readonly DEFAULT_DENY: string[];
 
   constructor(private readonly config: ConfigService) {
     const engine = this.config.get<string>('ka.sandbox.engine');
     if (engine === 'vm' || process.env.KA_SANDBOX_ISOLATED_VM === 'false') {
       this.configEngine = 'vm';
     }
+    // deepagents requires absolute paths in permissions. Convert the
+    // deny-list entries to absolute using process.cwd() as the project root.
+    const cwd = process.cwd();
+    this.DEFAULT_DENY = [
+      `${cwd}/.env`,
+      `${cwd}/**/.env`,
+      `${cwd}/**/credentials`,
+      `${cwd}/**/*.key`,
+      `${cwd}/apps/back/src/**`,
+      `${cwd}/apps/front/src/**`,
+      `${cwd}/packages/**`,
+    ];
   }
 
   /**
@@ -78,7 +82,10 @@ export class SandboxService {
 
   /** Resolve an isolated working dir for a session under the OS temp dir. */
   workingDir(sessionId: string): string {
-    const safe = createHash('sha1').update(sessionId).digest('hex').slice(0, 12);
+    const safe = createHash('sha1')
+      .update(sessionId)
+      .digest('hex')
+      .slice(0, 12);
     return join(tmpdir(), `ka-sandbox-${safe}`);
   }
 
@@ -131,7 +138,8 @@ export class SandboxService {
 
   /** Reject code that attempts network or require access. */
   private assertNoNetwork(code: string): void {
-    const forbidden = /\b(require|import|fetch|http|https|net|dgram|child_process|process)\b/;
+    const forbidden =
+      /\b(require|import|fetch|http|https|net|dgram|child_process|process)\b/;
     if (forbidden.test(code)) {
       throw new Error(
         'Sandboxed eval denied: network/require access is not allowed',

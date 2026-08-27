@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query';
-import { Bot, Pencil, Plus, Trash2 } from 'lucide-vue-next';
+import { Bot, Pencil, Plus, Trash2, Database } from 'lucide-vue-next';
 import { useAgentConfig, useModelProviders } from '@ka/composables/useAgentConfig';
 import type { AgentConfig, ModelProvider } from '@ka/composables/useAgentConfig';
 import { useProviderModels } from '@ka/composables/useProviderModels';
 import FormInput from '@base/ui-app/components/form/FormInput.vue';
 import FormTextArea from '@base/ui-app/components/form/FormTextArea.vue';
 import FormSelect from '@base/ui-app/components/form/FormSelect.vue';
+import FormSwitch from '@base/ui-app/components/form/FormSwitch.vue';
 import ConfigLayout from '@ka/components/ConfigLayout.vue';
 import KaFormModal from '@ka/components/KaFormModal.vue';
 import { KA_SETTINGS_SECTIONS, type KaConfigSection } from '@ka/composables/useKaSettingsNav';
@@ -28,7 +29,7 @@ const {
   updateAgentConfig,
   deleteAgentConfig,
 } = useAgentConfig();
-const { getProviders } = useModelProviders();
+const { getProviders, createProvider } = useModelProviders();
 const queryClient = useQueryClient();
 
 const { data: agents, isLoading } = useQuery({
@@ -53,6 +54,16 @@ const providerOptions = computed(() =>
  * input is also allowed (for custom/self-hosted models not in the list).
  */
 const { models: providerModels, loading: modelsLoading, error: modelsError, fetchModels } = useProviderModels();
+
+/* ── Form state (declared BEFORE computeds that reference it) ──────────── */
+const modalOpen = ref(false);
+const editingId = ref<string | null>(null);
+const form = ref({
+  name: '',
+  systemPrompt: '',
+  model: '',
+  provider: 'openrouter',
+});
 
 /** Currently selected provider object (from DB), based on form.provider. */
 const selectedProvider = computed<ModelProvider | null>(() => {
@@ -84,16 +95,6 @@ function applyFreeTextModel(): void {
   allowFreeTextModel.value = false;
 }
 
-/* ── Modal state ──────────────────────────────────────────────────────── */
-const modalOpen = ref(false);
-const editingId = ref<string | null>(null);
-const form = ref({
-  name: '',
-  systemPrompt: '',
-  model: '',
-  provider: 'openrouter',
-});
-
 const isEditing = computed(() => editingId.value !== null);
 
 function openCreateModal(): void {
@@ -121,6 +122,58 @@ function openEditModal(agent: AgentConfig): void {
 function closeModal(): void {
   modalOpen.value = false;
   editingId.value = null;
+}
+
+/* ── Provider management modal ────────────────────────────────────────── */
+const providerModalOpen = ref(false);
+const providerForm = ref({
+  name: '',
+  provider: 'ollama-cloud',
+  baseUrl: '',
+  apiKeyRef: '',
+  enabled: true,
+});
+
+const PROVIDER_OPTIONS = [
+  { value: 'ollama', label: 'Ollama (local)' },
+  { value: 'ollama-cloud', label: 'Ollama Cloud' },
+  { value: 'openrouter', label: 'OpenRouter' },
+  { value: 'openai', label: 'OpenAI' },
+];
+
+function openProviderModal(): void {
+  providerForm.value = {
+    name: '',
+    provider: 'ollama-cloud',
+    baseUrl: 'https://ollama.com/api',
+    apiKeyRef: '',
+    enabled: true,
+  };
+  providerModalOpen.value = true;
+}
+
+const createProviderMutation = useMutation({
+  mutationFn: () =>
+    createProvider({
+      name: providerForm.value.name,
+      provider: providerForm.value.provider,
+      apiKeyRef: providerForm.value.apiKeyRef || undefined,
+      baseUrl: providerForm.value.baseUrl || undefined,
+      enabled: providerForm.value.enabled,
+    }),
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['ka-providers'] });
+    toast.success(t('ext.ka.settings.providerSaved', 'Provider saved'));
+    providerModalOpen.value = false;
+  },
+  onError: (err) => {
+    toast.error(err instanceof Error ? err.message : t('ext.ka.settings.saveError', 'Save failed'));
+  },
+});
+
+function submitProvider(): void {
+  if (!providerForm.value.name.trim()) return;
+  createProviderMutation.mutate();
 }
 
 /* ── Delete confirmation ──────────────────────────────────────────────── */
@@ -197,10 +250,16 @@ function onSubmit(): void {
             {{ t('ext.ka.settings.agentsDescription') }}
           </p>
         </div>
-        <button class="btn btn-primary btn-sm gap-1.5" @click="openCreateModal">
-          <Plus :size="15" />
-          {{ t('ext.ka.settings.newAgent') }}
-        </button>
+        <div class="flex gap-2">
+          <button class="btn btn-ghost btn-sm gap-1.5" @click="openProviderModal">
+            <Database :size="15" />
+            {{ t('ext.ka.settings.providers', 'Providers') }}
+          </button>
+          <button class="btn btn-primary btn-sm gap-1.5" @click="openCreateModal">
+            <Plus :size="15" />
+            {{ t('ext.ka.settings.newAgent') }}
+          </button>
+        </div>
       </header>
 
       <section class="space-y-3">
@@ -358,5 +417,58 @@ function onSubmit(): void {
       </div>
       <form method="dialog" class="modal-backdrop" @click="cancelDelete" />
     </dialog>
+
+    <!-- Provider modal -->
+    <KaFormModal
+      v-model="providerModalOpen"
+      :title="t('ext.ka.settings.newProvider')"
+      :loading="createProviderMutation.isPending.value"
+      :submit-label="t('ext.ka.settings.addProvider')"
+      @submit="submitProvider"
+    >
+      <FormInput
+        v-model="providerForm.name"
+        :label="t('ext.ka.settings.fieldName')"
+        placeholder="Ollama Cloud"
+        required
+      />
+      <FormSelect
+        v-model="providerForm.provider"
+        :label="t('ext.ka.settings.fieldProvider')"
+        :options="PROVIDER_OPTIONS"
+      />
+      <FormInput
+        v-model="providerForm.baseUrl"
+        :label="t('ext.ka.settings.fieldBaseUrl')"
+        placeholder="https://ollama.com/api"
+        :description="t('ext.ka.settings.baseUrlHint', 'Default endpoint for the selected provider')"
+      />
+      <FormInput
+        v-model="providerForm.apiKeyRef"
+        :label="t('ext.ka.settings.fieldApiKey')"
+        placeholder="e.g. 39b70be2... (your Ollama Cloud key)"
+        :description="t('ext.ka.settings.apiKeyDirect', 'Paste your API key directly — it is stored in the database.')"
+      />
+      <FormSwitch
+        v-model="providerForm.enabled"
+        :label="t('ext.ka.settings.fieldEnabled')"
+      />
+
+      <!-- Existing providers list -->
+      <div v-if="providers?.length" class="mt-3 pt-3 border-t border-base-300 space-y-2">
+        <div class="text-xs font-semibold text-base-content/50 uppercase">Existing providers</div>
+        <div
+          v-for="p in providers"
+          :key="p.id"
+          class="flex items-center gap-2 text-sm"
+        >
+          <span class="flex-1 truncate">{{ p.name }}</span>
+          <span class="badge badge-xs badge-outline">{{ p.provider }}</span>
+          <span class="badge badge-xs" :class="p.enabled ? 'badge-success' : 'badge-ghost'">
+            {{ p.enabled ? '✓' : '✗' }}
+          </span>
+        </div>
+      </div>
+    </KaFormModal>
   </ConfigLayout>
 </template>

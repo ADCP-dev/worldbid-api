@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/vue-query';
 import { useDebounceFn } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 import { toast } from 'vue-sonner';
-import { FileText, Network, PanelLeft, Plus, Columns2 } from 'lucide-vue-next';
+import { FileText, Network, PanelLeft, Plus, Columns2, Trash2 } from 'lucide-vue-next';
 import { useKnowledgeStore } from '@ka/stores/knowledge.store';
 import {
   useNotesQuery,
@@ -152,6 +152,8 @@ async function onDeleteFolder(path: string): Promise<void> {
 
 function onGraphSelect(id: string) {
   store.selectNote(id);
+  // From graph nodes → always go to split so the user sees both.
+  store.openSplit();
 }
 
 function onGraphNew() {
@@ -284,13 +286,12 @@ const saveLabel = computed(() => {
         </div>
 
         <div class="flex items-center gap-2 shrink-0">
-          <!-- View toggle: 3 modes -->
+          <!-- View toggle: 3 modes — always enabled -->
           <div role="tablist" class="tabs tabs-boxed tabs-sm">
             <button
               role="tab"
               class="tab gap-1"
               :class="{ 'tab-active': view === 'editor' }"
-              :disabled="!selectedId"
               @click="store.openEditor()"
             >
               <FileText class="w-3.5 h-3.5" />
@@ -318,10 +319,11 @@ const saveLabel = computed(() => {
           </div>
 
           <button
-            v-if="view === 'editor' && selectedId"
-            class="btn btn-sm btn-ghost text-error"
+            v-if="(view === 'editor' || view === 'split') && selectedId"
+            class="btn btn-sm btn-ghost text-error gap-1"
             @click="removeNote"
           >
+            <Trash2 class="w-3.5 h-3.5" />
             {{ t('ext.ka.notes.delete') }}
           </button>
         </div>

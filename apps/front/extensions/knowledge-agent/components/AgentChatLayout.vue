@@ -5,15 +5,32 @@
  * chat logic; the page files only wire Nuxt route matching.
  */
 import { computed, ref, watch } from 'vue';
+import { useQuery } from '@tanstack/vue-query';
 import {
   useChatSessions,
   type ChatSession,
 } from '@ka/composables/useChatStream';
+import { useAgentConfig } from '@ka/composables/useAgentConfig';
 import ChatSessionList from '@ka/components/ChatSessionList.vue';
 import ChatStream from '@ka/components/ChatStream.vue';
 
 const { t } = useI18n();
 const route = useRoute();
+
+// ── Agent configs (for the header selector) ──────────────────────────────
+const { getAgentConfigs } = useAgentConfig();
+const { data: agentConfigs } = useQuery({
+  queryKey: ['ka-agent-configs'],
+  queryFn: getAgentConfigs,
+});
+const agentOptions = computed(() =>
+  (agentConfigs.value ?? []).map((c) => ({
+    label: `${c.name} (${c.provider}:${c.model.split(':').pop()})`,
+    value: c.id,
+  })),
+);
+/** Currently selected agent config id for the active session. */
+const selectedAgentConfigId = ref<string | null>(null);
 
 const {
   sessions,
@@ -32,6 +49,20 @@ const activeSessionId = computed<string | null>(() => {
 
 const activeSession = ref<ChatSession | null>(null);
 const loadingSession = ref(false);
+
+// Sync selected agent config from active session
+watch(activeSession, (s) => {
+  selectedAgentConfigId.value = s?.agentConfigId ?? null;
+});
+
+// Update session when agent config changes
+watch(selectedAgentConfigId, (newId) => {
+  if (!newId || !activeSessionId.value || newId === activeSession.value?.agentConfigId) return;
+  void updateMutation.mutateAsync({
+    id: activeSessionId.value,
+    payload: { agentConfigId: newId },
+  });
+});
 
 watch(
   activeSessionId,
@@ -183,6 +214,17 @@ const sessionsList = computed<ChatSession[]>(() => sessions.value ?? []);
           <span class="font-semibold truncate">
             {{ activeSession?.title ?? (loadingSession ? t('ext.ka.chat.loading') : t('ext.ka.chat.notFound')) }}
           </span>
+          <!-- Agent config selector -->
+          <select
+            v-if="agentOptions.length > 0"
+            v-model="selectedAgentConfigId"
+            class="select select-xs select-bordered max-w-[260px] ml-2"
+            :aria-label="t('ext.ka.settings.agents')"
+          >
+            <option v-for="opt in agentOptions" :key="opt.value" :value="opt.value">
+              {{ opt.label }}
+            </option>
+          </select>
           <div class="flex items-center gap-1">
             <button
               v-if="activeSession"

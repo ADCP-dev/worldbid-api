@@ -190,6 +190,9 @@ export class ChatSessionController {
           subscriber.next({ type: 'done', data: '[DONE]' });
           subscriber.complete();
         } catch (err) {
+          // Log the full error so the 500 is debuggable — NestJS swallows
+          // Observable errors silently otherwise.
+          console.error('[ChatSession] SSE stream error:', err);
           subscriber.error(err);
         }
       })();
