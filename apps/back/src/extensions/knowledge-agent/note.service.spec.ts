@@ -19,6 +19,7 @@ describe('NoteService', () => {
     update: jest.fn(),
     softDelete: jest.fn(),
     upsertLinks: jest.fn().mockResolvedValue(undefined),
+    replaceLinks: jest.fn().mockResolvedValue(undefined),
     findBacklinks: jest.fn(),
   };
 
@@ -95,7 +96,7 @@ describe('NoteService', () => {
 
       await service.create(dto);
 
-      expect(repository.upsertLinks).toHaveBeenCalledWith(
+      expect(repository.replaceLinks).toHaveBeenCalledWith(
         'note-1',
         ['Other Note', 'Second Note'],
       );

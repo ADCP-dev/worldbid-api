@@ -19,6 +19,7 @@ import { AgentFactoryService } from './infrastructure/agent/agent-factory.servic
 import { ToolRegistryService } from './infrastructure/agent/tool-registry.service';
 import { McpLoaderService } from './infrastructure/agent/mcp-loader.service';
 import { SandboxService } from './infrastructure/agent/sandbox.service';
+import { ModelResolverService } from './infrastructure/agent/model-resolver.service';
 import { ChatService } from './infrastructure/chat/chat.service';
 import { CheckpointerService } from './infrastructure/chat/checkpointer.service';
 import kaConfig from './config/knowledge-agent.config';
@@ -51,6 +52,7 @@ import { KnowledgeAgentSeedModule } from './seeds/knowledge-agent-seed.module';
     ToolRegistryService,
     McpLoaderService,
     SandboxService,
+    ModelResolverService,
     ChatService,
     CheckpointerService,
   ],

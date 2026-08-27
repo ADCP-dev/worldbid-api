@@ -38,8 +38,8 @@ export class NoteService {
 
     const links = this.extractLinks(dto.contentMd);
     if (links.length > 0) {
-      await this.repository.upsertLinks(note.id, links).catch((err) => {
-        this.logger.warn(`Failed to upsert links for note ${note.id}: ${err?.message ?? err}`);
+      await this.repository.replaceLinks(note.id, links).catch((err) => {
+        this.logger.warn(`Failed to replace links for note ${note.id}: ${err?.message ?? err}`);
       });
     }
 
@@ -74,11 +74,12 @@ export class NoteService {
 
     if (dto.contentMd !== undefined && dto.contentMd !== existing.contentMd) {
       const links = this.extractLinks(dto.contentMd);
-      if (links.length > 0) {
-        await this.repository.upsertLinks(note.id, links).catch((err) => {
-          this.logger.warn(`Failed to upsert links for note ${note.id}: ${err?.message ?? err}`);
-        });
-      }
+      // Replace outgoing links atomically: delete all existing links from
+      // this note, then insert the freshly extracted ones. Avoids stale
+      // edges lingering after a wikilink is removed from the content.
+      await this.repository.replaceLinks(note.id, links).catch((err) => {
+        this.logger.warn(`Failed to replace links for note ${note.id}: ${err?.message ?? err}`);
+      });
       void this.enqueueEmbedding(note.id, dto.contentMd);
     }
 
@@ -99,6 +100,7 @@ export class NoteService {
 
   private extractLinks(contentMd: string): string[] {
     const matches = [...contentMd.matchAll(LINK_PATTERN)];
+    // Each captured group may be "note title" OR "category.path.note title".
     return matches.map((m) => m[1].trim()).filter((t) => t.length > 0);
   }
 

@@ -6,6 +6,7 @@ import { McpLoaderService } from './mcp-loader.service';
 import { SandboxService } from './sandbox.service';
 import { NoteService } from '../../note.service';
 import { VectorStoreService } from '../vector-store.service';
+import { ModelResolverService } from './model-resolver.service';
 import { createKnowledgeAgentTools } from '../../agent.tools';
 import { createExecuteTool } from '../../tools/execute.tool';
 import type { AgentConfig } from '../../domain/agent-config';
@@ -46,6 +47,7 @@ export class AgentFactoryService {
     private readonly sandbox: SandboxService,
     private readonly noteService: NoteService,
     private readonly vectorStoreService: VectorStoreService,
+    private readonly modelResolver: ModelResolverService,
   ) {}
 
   /**
@@ -82,6 +84,10 @@ export class AgentFactoryService {
     const sessionId = `${config.id}:${userId}:${Date.now()}`;
     const backend = await this.sandbox.createSandbox(sessionId);
 
+    // Resolve the chat model from the provider registry (handles ollama /
+    // ollama-cloud / openrouter / openai prefix + baseUrl + apiKey).
+    const chatModel = await this.modelResolver.resolve(config);
+
     // KB tools — global (notes + configs shared across users).
     const kbTools = createKnowledgeAgentTools({
       noteService: this.noteService,
@@ -108,7 +114,7 @@ export class AgentFactoryService {
     );
 
     return await this.createDeepAgentImpl({
-      model: config.model,
+      model: chatModel,
       systemPrompt: config.systemPrompt,
       tools,
       backend,
@@ -130,7 +136,7 @@ export class AgentFactoryService {
 
   /** Wrapper around createDeepAgent — stubbed in tests. */
   protected async createDeepAgentImpl(opts: {
-    model: string;
+    model: unknown;
     systemPrompt: string;
     tools: StructuredTool[];
     backend: unknown;
@@ -139,7 +145,9 @@ export class AgentFactoryService {
     // Lazy import: deepagents pulls in langchain/testing at module load which
     // is not exported by the installed @langchain/core. Loading it lazily keeps
     // the extension boot resilient when the dependency tree is mid-upgrade.
-    const { createDeepAgent } = await import('deepagents');
-    return createDeepAgent(opts as never);
+    const { createDeepAgent } = (await import('deepagents')) as {
+      createDeepAgent: (o: typeof opts) => unknown;
+    };
+    return createDeepAgent(opts);
   }
 }

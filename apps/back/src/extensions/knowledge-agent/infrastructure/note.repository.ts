@@ -107,23 +107,93 @@ export class NoteRepository {
     await this.noteRepository.softDelete(id);
   }
 
+  /**
+   * Atomically replace outgoing links for a note: delete all existing edges
+   * from this source, then insert the freshly extracted ones via
+   * {@link upsertLinks}. Callers should pass the full current link set
+   * (including refs that may already exist).
+   */
+  async replaceLinks(sourceNoteId: string, targetTitles: string[]): Promise<void> {
+    await this.dataSource
+      .createQueryBuilder()
+      .delete()
+      .from(NoteLinkEntity)
+      .where('source_note_id = :id', { id: sourceNoteId })
+      .execute();
+    await this.upsertLinks(sourceNoteId, targetTitles);
+  }
+
+  /**
+   * Upsert outgoing links for `sourceNoteId`.
+   *
+   * Each `targetTitle` may be either a bare note title ("My Note") or a
+   * dotted category-path + title ("tech.notes.async/My Note" /
+   * "tech.notes.async.My Note"). When a path is present we match the leaf
+   * title AND the categoryPath prefix so a link can disambiguate two notes
+   * with the same title in different folders. Bare titles fall back to a
+   * single `title = ?` lookup (preserves previous behavior).
+   */
   async upsertLinks(sourceNoteId: string, targetTitles: string[]): Promise<void> {
     if (targetTitles.length === 0) return;
 
-    const targets = await this.noteRepository
-      .createQueryBuilder('note')
-      .select(['note.id', 'note.title'])
-      .where('note.title IN (:...titles)', { titles: targetTitles })
-      .andWhere('note.deletedAt IS NULL')
-      .getMany();
+    // Split each reference into (categoryPath?, title). We accept both "/" and
+    // "." as path separators inside [[ ]] so users can write either
+    // [[tech/notes/async]] or [[tech.notes.async]].
+    interface ParsedRef {
+      title: string;
+      categoryPath: string | null;
+    }
+    const parsed: ParsedRef[] = targetTitles.map((raw) => {
+      // Last segment is the title; the rest is the category path.
+      const separators = /[/.]/;
+      const segments = raw.split(separators).map((s) => s.trim()).filter(Boolean);
+      if (segments.length <= 1) {
+        return { title: raw.trim(), categoryPath: null };
+      }
+      const title = segments[segments.length - 1];
+      const categoryPath = segments.slice(0, -1).join('.');
+      return { title, categoryPath: categoryPath || null };
+    });
 
-    for (const target of targets) {
-      if (target.id === sourceNoteId) continue;
+    // Resolve each parsed ref to a note id. We do one query per ref because
+    // path-aware matching needs different predicates than title-only, and the
+    // number of refs per note is small.
+    const resolvedIds = new Set<string>();
+    for (const ref of parsed) {
+      const qb = this.noteRepository
+        .createQueryBuilder('note')
+        .select(['note.id'])
+        .where('note.title = :title', { title: ref.title })
+        .andWhere('note.deletedAt IS NULL');
+      if (ref.categoryPath) {
+        // Exact path match has priority.
+        qb.andWhere('note.categoryPath = :path', { path: ref.categoryPath });
+      }
+      const exact = await qb.getOne();
+      if (exact) {
+        if (exact.id !== sourceNoteId) resolvedIds.add(exact.id);
+        continue;
+      }
+      // Fallback: title only when a path was specified but didn't match.
+      // Helps while users are still migrating their wikilinks to the new
+      // path-aware form.
+      if (ref.categoryPath) {
+        const loose = await this.noteRepository
+          .createQueryBuilder('note')
+          .select(['note.id'])
+          .where('note.title = :title', { title: ref.title })
+          .andWhere('note.deletedAt IS NULL')
+          .getOne();
+        if (loose && loose.id !== sourceNoteId) resolvedIds.add(loose.id);
+      }
+    }
+
+    for (const targetId of resolvedIds) {
       await this.dataSource
         .createQueryBuilder()
         .insert()
         .into(NoteLinkEntity)
-        .values({ sourceNoteId, targetNoteId: target.id })
+        .values({ sourceNoteId, targetNoteId: targetId })
         .orIgnore()
         .execute();
     }
