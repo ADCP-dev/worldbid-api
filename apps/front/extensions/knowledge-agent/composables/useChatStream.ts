@@ -95,6 +95,13 @@ export function useChatStream() {
     };
     messages.value.push(assistantMsg);
 
+    // IMPORTANT: `assistantMsg` above is a RAW object — mutating it directly
+    // does NOT trigger Vue reactivity (the local variable points at the
+    // plain object, not the proxy Vue created when it entered the reactive
+    // array). Re-read the last element through `messages.value` to get the
+    // reactive proxy, and mutate ONLY that reference below.
+    const liveAssistant = messages.value[messages.value.length - 1] as ChatMessage;
+
     abortController = new AbortController();
 
     try {
@@ -176,8 +183,8 @@ export function useChatStream() {
                 args?: Record<string, unknown>;
                 id?: string;
               };
-              assistantMsg.toolCalls = assistantMsg.toolCalls ?? [];
-              assistantMsg.toolCalls.push({
+              liveAssistant.toolCalls = liveAssistant.toolCalls ?? [];
+              liveAssistant.toolCalls.push({
                 id: payload.id,
                 name: payload.name,
                 args: payload.args,
@@ -195,7 +202,7 @@ export function useChatStream() {
                 output?: string;
                 id?: string;
               };
-              const calls = assistantMsg.toolCalls ?? [];
+              const calls = liveAssistant.toolCalls ?? [];
               const match = payload.id
                 ? calls.find((c) => c.id === payload.id)
                 : [...calls].reverse().find((c) => c.name === payload.name && c.output === undefined);
@@ -211,7 +218,7 @@ export function useChatStream() {
           // Default: text delta frame (no event name).
           if (!frame.event && frame.data) {
             currentStream.value += frame.data;
-            assistantMsg.content = currentStream.value;
+            liveAssistant.content = currentStream.value;
           }
         }
       }

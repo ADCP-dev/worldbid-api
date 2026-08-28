@@ -15,6 +15,19 @@ import type { ChatSession } from '../../domain/chat-session';
 import type { RagHit } from '../rag.service';
 
 /**
+ * Tool invocation event yielded by the deepagents v3 `run.toolCalls`
+ * StreamChannel. `output` is a Promise resolving to the tool result.
+ */
+export interface DeepAgentToolEvent {
+  name: string;
+  callId?: string;
+  input?: unknown;
+  output?: Promise<unknown> | unknown;
+  status?: unknown;
+  error?: unknown;
+}
+
+/**
  * Structured chunk yielded by `streamMessage`. The controller maps these to
  * SSE frames: text → plain `data:` lines; tool events → named `event:` frames
  * with JSON `data`. Old clients that only read `data:` simply ignore tool
@@ -234,15 +247,92 @@ export class ChatService {
     const threadId = run.threadId;
 
     const stream = await this.invokeStream(agent, payload, threadId);
-    this.logger.log(`Stream opened for session ${sessionId}, iterating messages...`);
-    let chunkCount = 0;
-    for await (const msg of stream.messages) {
-      for await (const part of msg.text) {
-        chunkCount++;
-        yield this.toChunk(part);
+
+    /**
+     * deepagents v3 exposes TWO channels on the run object:
+     *   - `stream.messages[i].text` — assistant text deltas (strings only)
+     *   - `stream.toolCalls` — StreamChannel of tool invocation events
+     *
+     * Text deltas NEVER contain tool frames, so we consume both channels
+     * concurrently and merge their outputs into a single ordered chunk
+     * stream via a tiny async queue.
+     */
+    const queue: ChatStreamChunk[] = [];
+    let notify: (() => void) | null = null;
+    let finished = 0;
+    const SOURCES = 2;
+
+    const push = (chunk: ChatStreamChunk): void => {
+      queue.push(chunk);
+      notify?.();
+      notify = null;
+    };
+    const waitForItem = (): Promise<void> =>
+      new Promise<void>((resolve) => {
+        notify = resolve;
+      });
+
+    // Source 1: assistant text deltas.
+    const consumeText = (async () => {
+      for await (const msg of stream.messages) {
+        for await (const part of msg.text) {
+          push(this.toChunk(part));
+        }
       }
+      finished += 1;
+    })();
+
+    // Source 2: tool invocations (may be absent on test stubs).
+    const consumeToolCalls = (async () => {
+      const channel = stream.toolCalls;
+      if (!channel) {
+        finished += 1;
+        return;
+      }
+      try {
+        for await (const tc of channel) {
+          push({
+            kind: 'tool_call',
+            name: tc.name,
+            args: (tc.input ?? {}) as Record<string, unknown>,
+            id: tc.callId,
+          });
+          try {
+            // `output` is a Promise resolving to the tool result.
+            const out = await tc.output;
+            const text = this.contentToString(out);
+            if (text.trim()) {
+              push({
+                kind: 'tool_result',
+                name: tc.name,
+                output: text,
+                id: tc.callId,
+              });
+            }
+          } catch (err) {
+            push({
+              kind: 'tool_result',
+              name: tc.name,
+              output: `Tool error: ${err instanceof Error ? err.message : String(err)}`,
+              id: tc.callId,
+            });
+          }
+        }
+      } catch (err) {
+        this.logger.warn(
+          `toolCalls channel error (text still streaming): ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+      finished += 1;
+    })();
+
+    // Drain: yield queued chunks until both sources finished and queue empty.
+    while (finished < SOURCES || queue.length > 0) {
+      if (queue.length === 0) await waitForItem();
+      const chunk = queue.shift();
+      if (chunk) yield chunk;
     }
-    this.logger.log(`Stream completed for session ${sessionId}, chunks=${chunkCount}`);
+    await Promise.allSettled([consumeText, consumeToolCalls]);
   }
 
   /**
@@ -403,7 +493,10 @@ export class ChatService {
     agent: unknown,
     payload: { messages: Array<{ role: string; content: string }> },
     threadId: string,
-  ): Promise<{ messages: AsyncIterable<{ text: AsyncIterable<string> }> }> {
+  ): Promise<{
+    messages: AsyncIterable<{ text: AsyncIterable<string> }>;
+    toolCalls?: AsyncIterable<DeepAgentToolEvent>;
+  }> {
     const checkpointer = this.checkpointerService.getCheckpointer();
     const a = agent as {
       streamEvents: (
@@ -411,6 +504,7 @@ export class ChatService {
         config: Record<string, unknown>,
       ) => Promise<{
         messages: AsyncIterable<{ text: AsyncIterable<string> }>;
+        toolCalls?: AsyncIterable<DeepAgentToolEvent>;
       }>;
     };
     return a.streamEvents(payload, {
