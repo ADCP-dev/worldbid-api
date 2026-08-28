@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { EditorContent, useEditor } from '@tiptap/vue-3';
 import StarterKit from '@tiptap/starter-kit';
-import Link from '@tiptap/extension-link';
 import { Wikilink } from './WikilinkExtension';
 import { ref, watch, computed } from 'vue';
 import {
@@ -46,12 +45,6 @@ const editor = useEditor({
   content: props.modelValue || '<p></p>',
   extensions: [
     StarterKit,
-    Link.configure({
-      openOnClick: false,
-      HTMLAttributes: {
-        class: 'ka-wikilink text-primary underline decoration-dotted hover:decoration-solid',
-      },
-    }),
     Wikilink,
   ],
   injectCSS: false,
