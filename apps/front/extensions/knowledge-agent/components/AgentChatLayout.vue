@@ -32,6 +32,11 @@ const agentOptions = computed(() =>
 /** Currently selected agent config id for the active session. */
 const selectedAgentConfigId = ref<string | null>(null);
 
+/** Model string of the active agent config, e.g. "openrouter:z-ai/glm-5.3-flash". */
+const activeAgentModel = computed<string | null>(
+  () => agentConfigs.value?.find((c) => c.id === selectedAgentConfigId.value)?.model ?? null,
+);
+
 const {
   sessions,
   loading,
@@ -172,7 +177,7 @@ const sessionsList = computed<ChatSession[]>(() => sessions.value ?? []);
           </span>
         </div>
         <div v-if="activeSessionId" class="flex-1 overflow-hidden">
-          <ChatStream :session-id="activeSessionId" />
+          <ChatStream :session-id="activeSessionId" :agent-model="activeAgentModel" />
         </div>
         <div v-else class="flex-1 flex items-center justify-center text-base-content/50 px-4">
           <div class="text-center">
@@ -246,7 +251,7 @@ const sessionsList = computed<ChatSession[]>(() => sessions.value ?? []);
       </div>
 
       <div v-if="activeSessionId" class="flex-1 overflow-hidden">
-        <ChatStream :session-id="activeSessionId" />
+        <ChatStream :session-id="activeSessionId" :agent-model="activeAgentModel" />
       </div>
       <div v-else class="flex-1 flex items-center justify-center text-base-content/50">
         <div class="text-center">

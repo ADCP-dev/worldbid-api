@@ -106,6 +106,26 @@
         "streaming": "El agente está escribiendo...",
         "copyCode": "Copiar código",
         "copied": "¡Copiado!",
+        "attach": "Adjuntar archivo",
+        "removeAttachment": "Quitar adjunto",
+        "attachWarning": "Tipo de archivo no permitido para este modelo",
+        "tooManyFiles": "Máximo {max} archivos",
+        "fileTooBig": "{name} supera el límite de {size}",
+        "thinking": "Pensando…",
+        "errorLabel": "Error",
+        "close": "Cerrar",
+        "scrollBottom": "Ir al final",
+        "suggestions": {
+          "s1": "Resumí mis notas",
+          "s2": "¿Qué sé sobre frontend?",
+          "s3": "Creá una nota de prueba"
+        },
+        "modalities": {
+          "images": "Este modelo acepta imágenes",
+          "pdf": "Este modelo acepta PDFs",
+          "audio": "Este modelo acepta audio",
+          "txt": "Este modelo acepta archivos de texto"
+        },
         "cancel": "Cancelar",
         "deleteConfirmTitle": "¿Eliminar chat?",
         "deleteConfirmBody": "\"{title}\" se eliminará permanentemente.",
@@ -133,7 +153,8 @@
           "done": "{name} completada",
           "result": "Resultado",
           "running": "Usando {name}…",
-          "waiting": "Esperando resultado…"
+          "waiting": "Esperando resultado…",
+          "error": "Error"
         }
       },
       "settings": {
@@ -191,6 +212,13 @@
         "mcpSaved": "Servidor MCP guardado",
         "mcpDeleted": "Servidor MCP eliminado",
         "providerSaved": "Proveedor guardado",
+        "editProvider": "Editar proveedor",
+        "providerUpdated": "Proveedor actualizado",
+        "providerDeleted": "Proveedor eliminado",
+        "deleteProviderTitle": "¿Eliminar proveedor?",
+        "deleteProviderBody": "\"{name}\" se eliminará permanentemente.",
+        "existingProviders": "Proveedores existentes",
+        "apiKeyRefHint": "Nombre de variable de entorno o la key literal.",
         "modelSaved": "Modelo guardado",
         "saveError": "Error al guardar",
         "deleteError": "Error al eliminar",

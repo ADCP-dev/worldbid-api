@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Loader2,
   CheckCircle2,
+  XCircle,
 } from 'lucide-vue-next';
 import type { ChatToolCall } from '../composables/useChatStream';
 
@@ -21,6 +22,9 @@ const open = ref(false);
 /** Running = no output yet. */
 const pending = computed(() => props.call.output === undefined);
 
+/** Backend prefixes failed tool output with "Tool error:". */
+const isError = computed(() => (props.call.output ?? '').startsWith('Tool error:'));
+
 const icon = computed(() => {
   const n = props.call.name.toLowerCase();
   if (n.includes('search') || n.includes('kb_')) return Search;
@@ -28,24 +32,28 @@ const icon = computed(() => {
   return Wrench;
 });
 
-/** Humanized action line: "🔍 Buscar en la base de conocimiento: cats". */
+/** Accessibility hint on the collapsed row. */
 const summary = computed(() => {
   if (pending.value) {
-    return t('ext.ka.chat.tools.running', 'Using {name}').replace('{name}', props.call.name);
+    return t('ext.ka.chat.tools.running', { name: props.call.name });
   }
-  return t('ext.ka.chat.tools.done', '{name} done').replace('{name}', props.call.name);
+  return t('ext.ka.chat.tools.done', { name: props.call.name });
 });
 
-const argsPreview = computed(() => {
+const argsEntries = computed<Array<[string, unknown]>>(() => {
   const args = props.call.args;
-  if (!args || Object.keys(args).length === 0) return null;
-  try {
-    const s = JSON.stringify(args);
-    return s.length > 140 ? `${s.slice(0, 140)}…` : s;
-  } catch {
-    return null;
-  }
+  if (!args || typeof args !== 'object' || Array.isArray(args)) return [];
+  return Object.entries(args);
 });
+
+function formatArgValue(value: unknown): string {
+  if (typeof value === 'string') return value;
+  try {
+    return JSON.stringify(value) ?? String(value);
+  } catch {
+    return String(value);
+  }
+}
 
 const outputPreview = computed(() => {
   const out = props.call.output;
@@ -59,45 +67,59 @@ const outputPreview = computed(() => {
     <!-- Collapsed header -->
     <button
       type="button"
-      class="ka-tool-header w-full flex items-center gap-2 px-3 py-1.5 rounded-full bg-base-300/60 hover:bg-base-300 text-xs font-mono text-base-content/80 transition-colors border border-base-300/80"
+      class="ka-tool-header w-full flex items-center gap-2 px-2 py-1 rounded-xl bg-base-200/80 border border-base-300 hover:border-base-300/60 transition-colors"
+      :title="summary"
       :aria-expanded="open"
       @click="open = !open"
     >
-      <component
-        :is="pending ? Loader2 : CheckCircle2"
-        :size="13"
-        class="shrink-0"
-        :class="pending ? 'animate-spin' : 'text-success'"
-      />
-      <component :is="icon" :size="13" class="shrink-0 opacity-70" />
-      <span class="truncate">{{ summary }}</span>
-      <ChevronRight
-        :size="12"
-        class="shrink-0 transition-transform ml-auto opacity-60"
-        :class="{ 'rotate-90': open }"
-      />
+      <span class="w-[22px] h-[22px] rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0">
+        <component :is="icon" :size="12" />
+      </span>
+      <span class="font-mono text-xs truncate text-base-content/90">{{ call.name }}</span>
+      <span class="ml-auto flex items-center gap-1 shrink-0">
+        <Loader2 v-if="pending" :size="13" class="animate-spin text-warning" />
+        <XCircle v-else-if="isError" :size="13" class="text-error" />
+        <CheckCircle2 v-else :size="13" class="text-success" />
+        <ChevronRight
+          :size="12"
+          class="shrink-0 transition-transform opacity-60"
+          :class="{ 'rotate-90': open }"
+        />
+      </span>
     </button>
 
     <!-- Expanded detail -->
     <div
       v-if="open"
-      class="ka-tool-detail mt-1.5 ml-2 rounded-lg border border-base-300 bg-base-100 p-2.5 font-mono text-[11px] leading-snug space-y-2"
+      class="ka-tool-detail mt-1.5 ml-3 rounded-xl border border-base-300 bg-base-100 p-2.5 space-y-2"
     >
-      <div v-if="argsPreview" class="space-y-0.5">
-        <div class="uppercase tracking-wide text-base-content/50 text-[10px] font-semibold">
-          {{ t('ext.ka.chat.tools.args', 'Arguments') }}
+      <div v-if="argsEntries.length > 0" class="space-y-1">
+        <div class="text-base-content/50 font-mono text-[10px] uppercase tracking-wide">
+          {{ t('ext.ka.chat.tools.args') }}
         </div>
-        <pre class="whitespace-pre-wrap break-all text-base-content/80">{{ argsPreview }}</pre>
+        <div
+          v-for="[key, value] in argsEntries"
+          :key="key"
+          class="grid grid-cols-[auto_1fr] items-baseline gap-x-2 gap-y-0.5"
+        >
+          <span class="text-base-content/50 font-mono text-[10px] uppercase">{{ key }}</span>
+          <span class="font-mono text-xs break-all text-base-content/80">{{ formatArgValue(value) }}</span>
+        </div>
       </div>
-      <div v-if="pending" class="flex items-center gap-2 text-base-content/60 italic">
+
+      <div v-if="pending" class="flex items-center gap-2 text-base-content/60">
         <Loader2 :size="11" class="animate-spin" />
-        {{ t('ext.ka.chat.tools.waiting', 'Waiting for result…') }}
+        <span class="font-mono text-xs animate-pulse">{{ t('ext.ka.chat.tools.waiting') }}</span>
       </div>
-      <div v-else-if="outputPreview !== null" class="space-y-0.5">
-        <div class="uppercase tracking-wide text-base-content/50 text-[10px] font-semibold">
-          {{ t('ext.ka.chat.tools.result', 'Result') }}
+
+      <div v-else-if="outputPreview !== null" class="space-y-1">
+        <div
+          class="font-mono text-[10px] uppercase tracking-wide"
+          :class="isError ? 'text-error/80' : 'text-base-content/50'"
+        >
+          {{ t(isError ? 'ext.ka.chat.tools.error' : 'ext.ka.chat.tools.result') }}
         </div>
-        <pre class="whitespace-pre-wrap break-all text-base-content/80">{{ outputPreview }}</pre>
+        <pre class="max-h-40 overflow-y-auto whitespace-pre-wrap break-all font-mono text-xs text-base-content/80">{{ outputPreview }}</pre>
       </div>
     </div>
   </div>

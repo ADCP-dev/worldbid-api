@@ -29,7 +29,7 @@ const {
   updateAgentConfig,
   deleteAgentConfig,
 } = useAgentConfig();
-const { getProviders, createProvider } = useModelProviders();
+const { getProviders, createProvider, updateProvider, deleteProvider } = useModelProviders();
 const queryClient = useQueryClient();
 
 const { data: agents, isLoading } = useQuery({
@@ -126,6 +126,8 @@ function closeModal(): void {
 
 /* ── Provider management modal ────────────────────────────────────────── */
 const providerModalOpen = ref(false);
+const editingProviderId = ref<string | null>(null);
+const isEditingProvider = computed(() => editingProviderId.value !== null);
 const providerForm = ref({
   name: '',
   provider: 'ollama-cloud',
@@ -142,6 +144,7 @@ const PROVIDER_OPTIONS = [
 ];
 
 function openProviderModal(): void {
+  editingProviderId.value = null;
   providerForm.value = {
     name: '',
     provider: 'ollama-cloud',
@@ -152,19 +155,39 @@ function openProviderModal(): void {
   providerModalOpen.value = true;
 }
 
-const createProviderMutation = useMutation({
-  mutationFn: () =>
-    createProvider({
+function openEditProviderModal(provider: ModelProvider): void {
+  editingProviderId.value = provider.id;
+  providerForm.value = {
+    name: provider.name,
+    provider: provider.provider,
+    baseUrl: provider.baseUrl ?? '',
+    apiKeyRef: provider.apiKeyRef ?? '',
+    enabled: provider.enabled,
+  };
+  providerModalOpen.value = true;
+}
+
+const saveProviderMutation = useMutation({
+  mutationFn: () => {
+    const payload = {
       name: providerForm.value.name,
       provider: providerForm.value.provider,
       apiKeyRef: providerForm.value.apiKeyRef || undefined,
       baseUrl: providerForm.value.baseUrl || undefined,
       enabled: providerForm.value.enabled,
-    }),
+    };
+    if (editingProviderId.value) {
+      return updateProvider(editingProviderId.value, payload);
+    }
+    return createProvider(payload);
+  },
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: ['ka-providers'] });
-    toast.success(t('ext.ka.settings.providerSaved', 'Provider saved'));
+    toast.success(
+      t(isEditingProvider.value ? 'ext.ka.settings.providerUpdated' : 'ext.ka.settings.providerSaved'),
+    );
     providerModalOpen.value = false;
+    editingProviderId.value = null;
   },
   onError: (err) => {
     toast.error(err instanceof Error ? err.message : t('ext.ka.settings.saveError', 'Save failed'));
@@ -173,7 +196,38 @@ const createProviderMutation = useMutation({
 
 function submitProvider(): void {
   if (!providerForm.value.name.trim()) return;
-  createProviderMutation.mutate();
+  saveProviderMutation.mutate();
+}
+
+/* ── Provider delete confirmation ─────────────────────────────────────── */
+const providerDeleteTarget = ref<ModelProvider | null>(null);
+const providerDeleteDialogRef = ref<HTMLDialogElement | null>(null);
+
+function askDeleteProvider(provider: ModelProvider): void {
+  providerDeleteTarget.value = provider;
+  providerDeleteDialogRef.value?.showModal();
+}
+
+function cancelDeleteProvider(): void {
+  providerDeleteTarget.value = null;
+  providerDeleteDialogRef.value?.close();
+}
+
+const deleteProviderMutation = useMutation({
+  mutationFn: (id: string) => deleteProvider(id),
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['ka-providers'] });
+    toast.success(t('ext.ka.settings.providerDeleted'));
+    cancelDeleteProvider();
+  },
+  onError: (err) => {
+    toast.error(err instanceof Error ? err.message : t('ext.ka.settings.deleteError', 'Delete failed'));
+    cancelDeleteProvider();
+  },
+});
+
+function confirmDeleteProvider(): void {
+  if (providerDeleteTarget.value) deleteProviderMutation.mutate(providerDeleteTarget.value.id);
 }
 
 /* ── Delete confirmation ──────────────────────────────────────────────── */
@@ -418,12 +472,12 @@ function onSubmit(): void {
       <form method="dialog" class="modal-backdrop" @click="cancelDelete" />
     </dialog>
 
-    <!-- Provider modal -->
+    <!-- Provider modal (create / edit) -->
     <KaFormModal
       v-model="providerModalOpen"
-      :title="t('ext.ka.settings.newProvider')"
-      :loading="createProviderMutation.isPending.value"
-      :submit-label="t('ext.ka.settings.addProvider')"
+      :title="isEditingProvider ? t('ext.ka.settings.editProvider') : t('ext.ka.settings.newProvider')"
+      :loading="saveProviderMutation.isPending.value"
+      :submit-label="isEditingProvider ? t('ext.ka.settings.update') : t('ext.ka.settings.addProvider')"
       @submit="submitProvider"
     >
       <FormInput
@@ -447,7 +501,7 @@ function onSubmit(): void {
         v-model="providerForm.apiKeyRef"
         :label="t('ext.ka.settings.fieldApiKey')"
         placeholder="e.g. 39b70be2... (your Ollama Cloud key)"
-        :description="t('ext.ka.settings.apiKeyDirect', 'Paste your API key directly — it is stored in the database.')"
+        :description="t('ext.ka.settings.apiKeyRefHint', 'Env var name or the literal API key.')"
       />
       <FormSwitch
         v-model="providerForm.enabled"
@@ -456,19 +510,70 @@ function onSubmit(): void {
 
       <!-- Existing providers list -->
       <div v-if="providers?.length" class="mt-3 pt-3 border-t border-base-300 space-y-2">
-        <div class="text-xs font-semibold text-base-content/50 uppercase">Existing providers</div>
-        <div
+        <div class="text-xs font-semibold text-base-content/50 uppercase">
+          {{ t('ext.ka.settings.existingProviders') }}
+        </div>
+        <article
           v-for="p in providers"
           :key="p.id"
-          class="flex items-center gap-2 text-sm"
+          class="card bg-base-200/50 border border-base-300 rounded-xl px-3 py-2 flex items-center gap-2"
         >
-          <span class="flex-1 truncate">{{ p.name }}</span>
-          <span class="badge badge-xs badge-outline">{{ p.provider }}</span>
-          <span class="badge badge-xs" :class="p.enabled ? 'badge-success' : 'badge-ghost'">
-            {{ p.enabled ? '✓' : '✗' }}
-          </span>
-        </div>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-medium truncate">{{ p.name }}</div>
+            <div class="flex items-center gap-1.5 mt-0.5">
+              <span class="badge badge-xs badge-outline">{{ p.provider }}</span>
+              <span class="badge badge-xs" :class="p.enabled ? 'badge-success' : 'badge-ghost'">
+                {{ p.enabled ? '✓' : '✗' }}
+              </span>
+            </div>
+          </div>
+          <button
+            class="btn btn-ghost btn-xs btn-square"
+            :aria-label="t('ext.ka.settings.edit')"
+            @click="openEditProviderModal(p)"
+          >
+            <Pencil :size="13" />
+          </button>
+          <button
+            class="btn btn-ghost btn-xs btn-square text-error"
+            :disabled="deleteProviderMutation.isPending.value"
+            :aria-label="t('ext.ka.settings.delete')"
+            @click="askDeleteProvider(p)"
+          >
+            <Trash2 :size="13" />
+          </button>
+        </article>
       </div>
     </KaFormModal>
+
+    <!-- Provider delete confirmation -->
+    <dialog ref="providerDeleteDialogRef" class="modal">
+      <div class="modal-box max-w-sm">
+        <h3 class="font-semibold text-base mb-1">
+          {{ t('ext.ka.settings.deleteProviderTitle') }}
+        </h3>
+        <p class="text-sm text-base-content/70">
+          {{
+            t('ext.ka.settings.deleteProviderBody')
+              .replace('{name}', providerDeleteTarget?.name ?? '')
+          }}
+        </p>
+        <div class="modal-action">
+          <button class="btn btn-ghost btn-sm" type="button" @click="cancelDeleteProvider">
+            {{ t('ext.ka.settings.cancel') }}
+          </button>
+          <button
+            class="btn btn-error btn-sm gap-1"
+            type="button"
+            :disabled="deleteProviderMutation.isPending.value"
+            @click="confirmDeleteProvider"
+          >
+            <span v-if="deleteProviderMutation.isPending.value" class="loading loading-spinner loading-xs" />
+            {{ t('ext.ka.settings.delete') }}
+          </button>
+        </div>
+      </div>
+      <form method="dialog" class="modal-backdrop" @click="cancelDeleteProvider" />
+    </dialog>
   </ConfigLayout>
 </template>

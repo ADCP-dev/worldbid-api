@@ -29,12 +29,20 @@ export interface ChatToolCall {
   output?: string;
 }
 
+/** Metadata for a file attached to a user message. */
+export interface ChatAttachmentMeta {
+  name: string;
+  mimeType: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   /** Tool calls attributed to this assistant message (streaming or history). */
   toolCalls?: ChatToolCall[];
+  /** Files attached by the user (rendered as chips above the bubble). */
+  attachments?: ChatAttachmentMeta[];
 }
 
 export interface ChatSession {
@@ -74,7 +82,11 @@ export function useChatStream() {
    * Appends the user message immediately, then opens the SSE stream and
    * appends the assistant message incrementally.
    */
-  async function sendMessage(sessionId: string, content: string): Promise<void> {
+  async function sendMessage(
+    sessionId: string,
+    content: string,
+    attachments?: Array<{ name: string; mimeType: string; data: string }>,
+  ): Promise<void> {
     if (isStreaming.value) return;
     error.value = null;
     isStreaming.value = true;
@@ -84,6 +96,7 @@ export function useChatStream() {
       id: `u-${Date.now()}`,
       role: 'user',
       content,
+      attachments: attachments?.map((a) => ({ name: a.name, mimeType: a.mimeType })),
     };
     messages.value.push(userMsg);
 
@@ -104,6 +117,18 @@ export function useChatStream() {
 
     abortController = new AbortController();
 
+    /**
+     * Inactivity watchdog: if the server sends NOTHING for 120s (hung agent,
+     * proxy stall, crashed run), abort so the UI un-sticks instead of
+     * spinning "responding…" forever. Hoisted outside the try so the
+     * catch/finally can clear it and detect timeout-vs-user-stop.
+     */
+    let lastActivity = Date.now();
+    let watchdog: ReturnType<typeof setInterval> | null = null;
+    const touch = (): void => {
+      lastActivity = Date.now();
+    };
+
     try {
       // Single POST with manual SSE response (backend uses @Res() to write
       // text/event-stream frames directly, avoiding the NestJS @Sse() GET
@@ -117,7 +142,7 @@ export function useChatStream() {
             Accept: 'text/event-stream',
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
-          body: JSON.stringify({ message: content }),
+          body: JSON.stringify({ message: content, attachments: attachments ?? [] }),
           signal: abortController.signal,
         },
       );
@@ -131,6 +156,12 @@ export function useChatStream() {
       const reader = resp.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+
+      watchdog = setInterval(() => {
+        if (Date.now() - lastActivity > 120_000) {
+          abortController?.abort();
+        }
+      }, 10_000);
 
       /**
        * Split `buffer` into complete SSE frames (separated by blank lines),
@@ -161,9 +192,11 @@ export function useChatStream() {
       for (;;) {
         const { done, value } = await reader.read();
         if (done) break;
+        touch();
         buffer += decoder.decode(value, { stream: true });
 
         for (const frame of extractFrames()) {
+          touch();
           if (frame.event === 'done' || frame.data === '[DONE]') continue;
 
           if (frame.event === 'error') {
@@ -224,11 +257,17 @@ export function useChatStream() {
       }
     } catch (e) {
       if (e instanceof DOMException && e.name === 'AbortError') {
-        // user cancelled — not an error
+        // Distinguish user stop from watchdog timeout: the watchdog only
+        // aborts after 120s of silence, so a recent lastActivity means the
+        // user hit Stop (or navigation) — not an error.
+        if (Date.now() - lastActivity > 100_000) {
+          error.value = 'Stream timed out after 2 minutes of inactivity.';
+        }
       } else {
         error.value = e instanceof Error ? e.message : String(e);
       }
     } finally {
+      if (watchdog !== null) clearInterval(watchdog);
       isStreaming.value = false;
       currentStream.value = '';
       abortController = null;

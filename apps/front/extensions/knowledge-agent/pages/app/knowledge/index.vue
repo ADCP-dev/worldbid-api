@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useQueryClient } from '@tanstack/vue-query';
-import { useDebounceFn } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 import { toast } from 'vue-sonner';
 import { FileText, Network, PanelLeft, Plus, Columns2, Trash2 } from 'lucide-vue-next';
@@ -69,7 +68,12 @@ watch(currentNote, (note) => {
 });
 
 // ── Auto-save (debounced 1.5s) ───────────────────────────────────────────
-const doSave = useDebounceFn(async () => {
+// Manual timer instead of useDebounceFn: VueUse 13 returns a plain function
+// with no .cancel(), so flushing the pending save crashed with
+// "doSave.cancel is not a function".
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+
+async function runSave(): Promise<void> {
   if (!selectedId.value || !dirty.value) return;
   saveStatus.value = 'saving';
   try {
@@ -87,12 +91,19 @@ const doSave = useDebounceFn(async () => {
     setTimeout(() => {
       if (saveStatus.value === 'saved') saveStatus.value = 'idle';
     }, 2000);
-  } catch (e) {
+  } catch {
     saveStatus.value = 'idle';
     toast.error(t('ext.ka.notes.saveError'));
-    throw e;
   }
-}, 1500);
+}
+
+function doSave(): void {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
+    void runSave();
+  }, 1500);
+}
 
 watch([title, contentMd, categoryPath, tags], () => {
   if (currentNote.value) {
@@ -161,29 +172,11 @@ function onGraphNew() {
 }
 
 async function flushSave() {
-  doSave.cancel();
-  if (!selectedId.value || !dirty.value) return;
-  saveStatus.value = 'saving';
-  try {
-    await updateMutation.mutateAsync({
-      id: selectedId.value,
-      data: {
-        title: title.value,
-        contentMd: contentMd.value,
-        categoryPath: categoryPath.value || undefined,
-        tags: tags.value,
-      },
-    });
-    dirty.value = false;
-    saveStatus.value = 'saved';
-    setTimeout(() => {
-      if (saveStatus.value === 'saved') saveStatus.value = 'idle';
-    }, 2000);
-  } catch (e) {
-    saveStatus.value = 'idle';
-    toast.error(t('ext.ka.notes.saveError'));
-    throw e;
+  if (saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
   }
+  await runSave();
 }
 
 async function createNew() {

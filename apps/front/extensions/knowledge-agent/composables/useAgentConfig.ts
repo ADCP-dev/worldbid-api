@@ -174,6 +174,22 @@ export function useModelProviders() {
     });
   }
 
+  async function updateProvider(
+    id: string,
+    payload: Partial<CreateModelProviderPayload>,
+  ): Promise<ModelProvider> {
+    return apiFetch<ModelProvider>(`/ka/model-providers/${id}`, {
+      method: 'PATCH',
+      body: payload,
+    });
+  }
+
+  async function deleteProvider(id: string): Promise<null> {
+    return apiFetch<null>(`/ka/model-providers/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   async function getModels(providerId?: string): Promise<Model[]> {
     const query = providerId ? { providerId } : undefined;
     return apiFetch<Model[]>('/ka/models', { query });
@@ -190,6 +206,8 @@ export function useModelProviders() {
   return {
     getProviders,
     createProvider,
+    updateProvider,
+    deleteProvider,
     getModels,
     getActiveModels,
     createModel,

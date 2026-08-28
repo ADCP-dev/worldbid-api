@@ -106,6 +106,26 @@
         "streaming": "Agent is typing...",
         "copyCode": "Copy code",
         "copied": "Copied!",
+        "attach": "Attach file",
+        "removeAttachment": "Remove attachment",
+        "attachWarning": "File type not allowed for this model",
+        "tooManyFiles": "Maximum {max} files",
+        "fileTooBig": "{name} exceeds the {size} limit",
+        "thinking": "Thinking…",
+        "errorLabel": "Error",
+        "close": "Close",
+        "scrollBottom": "Scroll to bottom",
+        "suggestions": {
+          "s1": "Summarize my notes",
+          "s2": "What do I know about frontend?",
+          "s3": "Create a test note"
+        },
+        "modalities": {
+          "images": "This model accepts images",
+          "pdf": "This model accepts PDFs",
+          "audio": "This model accepts audio",
+          "txt": "This model accepts text files"
+        },
         "cancel": "Cancel",
         "deleteConfirmTitle": "Delete chat?",
         "deleteConfirmBody": "\"{title}\" will be permanently deleted.",
@@ -133,7 +153,8 @@
           "done": "{name} done",
           "result": "Result",
           "running": "Using {name}…",
-          "waiting": "Waiting for result…"
+          "waiting": "Waiting for result…",
+          "error": "Error"
         }
       },
       "settings": {
@@ -191,6 +212,13 @@
         "mcpSaved": "MCP server saved",
         "mcpDeleted": "MCP server deleted",
         "providerSaved": "Provider saved",
+        "editProvider": "Edit provider",
+        "providerUpdated": "Provider updated",
+        "providerDeleted": "Provider deleted",
+        "deleteProviderTitle": "Delete provider?",
+        "deleteProviderBody": "\"{name}\" will be permanently deleted.",
+        "existingProviders": "Existing providers",
+        "apiKeyRefHint": "Env var name or the literal API key.",
         "modelSaved": "Model saved",
         "saveError": "Save failed",
         "deleteError": "Delete failed",
