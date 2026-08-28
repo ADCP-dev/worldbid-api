@@ -40,13 +40,55 @@ export class EmbeddingsService implements OnModuleInit {
     }
   }
 
-  /** Build the OllamaEmbeddings instance. Kept separate so tests can stub it. */
+  /** Build the embeddings instance. Kept separate so tests can stub it. */
   protected init(): void {
+    // OpenAI-compatible provider (OpenRouter, OpenAI, Ark, …) when configured.
+    // Env contract (read directly — there is no registered 'ka' config ns):
+    //   KA_EMBEDDING_BASE_URL — e.g. https://openrouter.ai/api/v1
+    //   KA_EMBEDDING_MODEL    — e.g. openai/text-embedding-3-small (MUST match
+    //                           the DB column dimension: 1536 for 3-small)
+    //   KA_EMBEDDING_API_KEY  — or OPENROUTER_API_KEY as fallback
+    const baseUrl = process.env.KA_EMBEDDING_BASE_URL;
+    if (baseUrl) {
+      const model =
+        process.env.KA_EMBEDDING_MODEL ?? 'openai/text-embedding-3-small';
+      const apiKey =
+        process.env.KA_EMBEDDING_API_KEY ??
+        process.env.OPENROUTER_API_KEY ??
+        '';
+      this.embeddings = this.createOpenAIEmbeddingsImpl({
+        model,
+        baseUrl,
+        apiKey,
+      });
+      return;
+    }
+
+    // Legacy local Ollama (default).
     const model =
-      this.config.get<string>('ka.embeddingModel') ?? 'nomic-embed-text';
-    const baseUrl =
-      this.config.get<string>('ka.ollamaBaseUrl') ?? 'http://localhost:11434';
-    this.embeddings = this.createEmbeddingsImpl({ model, baseUrl });
+      process.env.KA_EMBEDDING_MODEL_OLLAMA ?? 'nomic-embed-text';
+    const ollamaBaseUrl =
+      process.env.KA_OLLAMA_BASE_URL ?? 'http://localhost:11434';
+    this.embeddings = this.createEmbeddingsImpl({
+      model,
+      baseUrl: ollamaBaseUrl,
+    });
+  }
+
+  /** Create OpenAI-compatible embeddings (OpenRouter / OpenAI / Ark). */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  protected createOpenAIEmbeddingsImpl(opts: {
+    model: string;
+    baseUrl: string;
+    apiKey: string;
+  }): any {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { OpenAIEmbeddings } = require('@langchain/openai');
+    return new OpenAIEmbeddings({
+      model: opts.model,
+      apiKey: opts.apiKey,
+      configuration: { baseURL: opts.baseUrl },
+    });
   }
 
   /** Create the real OllamaEmbeddings. Stubbed in tests to avoid network. */

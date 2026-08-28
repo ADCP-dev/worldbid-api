@@ -44,12 +44,11 @@ describe('EmbeddingsService', () => {
 
   afterEach(() => jest.clearAllMocks());
 
-  it('should construct OllamaEmbeddings with model + baseUrl from config', () => {
-    expect(config.get).toHaveBeenCalledWith('ka.embeddingModel');
-    expect(config.get).toHaveBeenCalledWith('ka.ollamaBaseUrl');
+  it('should construct OllamaEmbeddings with legacy env defaults (no KA_EMBEDDING_BASE_URL)', () => {
+    // No KA_EMBEDDING_BASE_URL → legacy local-Ollama path with defaults.
     expect(service['createEmbeddingsImpl']).toHaveBeenCalledWith({
       model: 'nomic-embed-text',
-      baseUrl: 'http://127.0.0.1:11434',
+      baseUrl: 'http://localhost:11434',
     });
   });
 

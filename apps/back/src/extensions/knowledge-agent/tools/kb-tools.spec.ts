@@ -3,6 +3,8 @@ import { VectorStoreService } from '../infrastructure/vector-store.service';
 import { Note } from '../domain/note';
 import { createSearchNotesTreeTool } from './search-notes-tree.tool';
 import { createSearchNotesSemanticTool } from './search-notes-semantic.tool';
+import { createListCategoriesTool } from './list-categories.tool';
+import { createGetNoteTool } from './get-note.tool';
 import { createCreateNoteTool } from './create-note.tool';
 import { createUpdateNoteTool } from './update-note.tool';
 import { createDeleteNoteTool } from './delete-note.tool';
@@ -23,7 +25,7 @@ const makeNote = (overrides: Partial<Note> = {}): Note => ({
 });
 
 describe('KB tools (LangChain tool factories)', () => {
-  describe('search_notes_tree', () => {
+  describe('list_notes (search_notes_tree)', () => {
     it('should call NoteService.findByCategoryPath (global, no userId) and return mapped notes', async () => {
       const noteService = {
         findByCategoryPath: jest.fn().mockResolvedValue([
@@ -33,30 +35,94 @@ describe('KB tools (LangChain tool factories)', () => {
       } as unknown as jest.Mocked<NoteService>;
 
       const tool = createSearchNotesTreeTool(noteService);
-      const result = await tool.invoke({ categoryPath: 'tech', depth: 2 });
+      const result = await tool.invoke({ categoryPath: 'tech' });
 
-      expect(noteService.findByCategoryPath).toHaveBeenCalledWith('tech', 2);
+      expect(noteService.findByCategoryPath).toHaveBeenCalledWith('tech', 10);
       const parsed = JSON.parse(result as string);
       expect(parsed).toHaveLength(2);
-      expect(parsed[0]).toEqual({ id: 'n1', title: 'A', categoryPath: 'tech', tags: ['a'] });
-      expect(parsed[1]).toEqual({ id: 'n2', title: 'B', categoryPath: 'tech.notes', tags: ['b'] });
+      expect(parsed[0].id).toBe('n1');
+      expect(parsed[1].id).toBe('n2');
     });
 
-    it('should default depth to 2 when not specified', async () => {
+    it('should list ALL notes when no categoryPath given', async () => {
       const noteService = {
-        findByCategoryPath: jest.fn().mockResolvedValue([]),
+        findAll: jest.fn().mockResolvedValue([makeNote({ id: 'n1' })]),
+        findByCategoryPath: jest.fn(),
       } as unknown as jest.Mocked<NoteService>;
 
       const tool = createSearchNotesTreeTool(noteService);
-      await tool.invoke({ categoryPath: 'tech' });
+      const result = await tool.invoke({});
 
-      expect(noteService.findByCategoryPath).toHaveBeenCalledWith('tech', 2);
+      expect(noteService.findAll).toHaveBeenCalled();
+      expect(noteService.findByCategoryPath).not.toHaveBeenCalled();
+      expect(JSON.parse(result as string)).toHaveLength(1);
     });
 
-    it('should have name search_notes_tree and a description', () => {
+    it('should have name list_notes and a description', () => {
       const noteService = {} as unknown as jest.Mocked<NoteService>;
       const tool = createSearchNotesTreeTool(noteService);
-      expect(tool.name).toBe('search_notes_tree');
+      expect(tool.name).toBe('list_notes');
+      expect(tool.description.length).toBeGreaterThan(10);
+    });
+  });
+
+  describe('list_categories', () => {
+    it('should return category counts from NoteService.listCategories', async () => {
+      const noteService = {
+        listCategories: jest.fn().mockResolvedValue([
+          { categoryPath: 'empresa', count: 3 },
+          { categoryPath: 'tech', count: 1 },
+        ]),
+      } as unknown as jest.Mocked<NoteService>;
+
+      const tool = createListCategoriesTool(noteService);
+      const result = await tool.invoke({});
+
+      expect(noteService.listCategories).toHaveBeenCalled();
+      const parsed = JSON.parse(result as string);
+      expect(parsed).toEqual([
+        { categoryPath: 'empresa', count: 3 },
+        { categoryPath: 'tech', count: 1 },
+      ]);
+    });
+
+    it('should have name list_categories and a description', () => {
+      const tool = createListCategoriesTool({} as unknown as NoteService);
+      expect(tool.name).toBe('list_categories');
+      expect(tool.description.length).toBeGreaterThan(10);
+    });
+  });
+
+  describe('get_note', () => {
+    it('should return the full note content by id', async () => {
+      const noteService = {
+        findById: jest.fn().mockResolvedValue(
+          makeNote({ id: 'n1', title: 'Empresa', contentMd: '<p>full body</p>' }),
+        ),
+      } as unknown as jest.Mocked<NoteService>;
+
+      const tool = createGetNoteTool(noteService);
+      const result = await tool.invoke({ id: 'n1' });
+
+      expect(noteService.findById).toHaveBeenCalledWith('n1');
+      const parsed = JSON.parse(result as string);
+      expect(parsed).toMatchObject({ id: 'n1', title: 'Empresa', content: '<p>full body</p>' });
+    });
+
+    it('should return an error object when the note does not exist', async () => {
+      const noteService = {
+        findById: jest.fn().mockResolvedValue(null),
+      } as unknown as jest.Mocked<NoteService>;
+
+      const tool = createGetNoteTool(noteService);
+      const result = await tool.invoke({ id: 'missing' });
+
+      expect(JSON.parse(result as string)).toHaveProperty('error');
+    });
+
+    it('should have name get_note and a description', () => {
+      const tool = createGetNoteTool({} as unknown as NoteService);
+      expect(tool.name).toBe('get_note');
       expect(tool.description.length).toBeGreaterThan(10);
     });
   });

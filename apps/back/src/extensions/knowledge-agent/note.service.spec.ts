@@ -81,7 +81,7 @@ describe('NoteService', () => {
       expect(result).toBeDefined();
       expect(embeddingQueue.add).toHaveBeenCalledWith(
         'embed',
-        { noteId: 'note-1', contentMd: 'content' },
+        { noteId: 'note-1', contentMd: '<p>content</p>\n' },
         expect.any(Object),
       );
     });
@@ -132,10 +132,10 @@ describe('NoteService', () => {
 
       await service.update('note-1', { contentMd: 'new content' } as any);
 
-      expect(repository.update).toHaveBeenCalledWith('note-1', { contentMd: 'new content' });
+      expect(repository.update).toHaveBeenCalledWith('note-1', { contentMd: '<p>new content</p>\n' });
       expect(embeddingQueue.add).toHaveBeenCalledWith(
         'embed',
-        { noteId: 'note-1', contentMd: 'new content' },
+        { noteId: 'note-1', contentMd: '<p>new content</p>\n' },
         expect.any(Object),
       );
     });

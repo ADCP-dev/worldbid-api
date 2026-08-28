@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import MarkdownIt from 'markdown-it';
 import { NoteRepository } from './infrastructure/note.repository';
 import { Note } from './domain/note';
 import { CreateNoteDto } from './dto/create-note.dto';
@@ -17,6 +18,7 @@ const LINK_PATTERN = /\[\[([^\]]+)\]\]/g;
 @Injectable()
 export class NoteService {
   private readonly logger = new Logger(NoteService.name);
+  private readonly md: MarkdownIt = new MarkdownIt({ html: false, linkify: true });
 
   constructor(
     private readonly repository: NoteRepository,
@@ -24,9 +26,37 @@ export class NoteService {
     private readonly embeddingQueue: Queue,
   ) {}
 
+  /**
+   * Normalize incoming content to HTML. TipTap (the editor) edits HTML, and
+   * the agent's create/update tools write plain markdown — store HTML for
+   * BOTH paths so the editor renders generated notes correctly.
+   *
+   * Heuristic: content that already starts with an HTML block tag is left
+   * as-is; anything else goes through markdown-it. Wikilinks [[title]] are
+   * preserved verbatim (they are extracted separately for the link graph),
+   * but wrapped in <a> markers during conversion so markdown-it doesn't mangle
+   * the brackets.
+   */
+  private normalizeToHtml(contentMd: string): string {
+    if (!contentMd || /^\s*</.test(contentMd)) return contentMd;
+    // Protect wikilinks from markdown-it emphasis/parsing quirks.
+    const protectedMd = contentMd
+      .replace(/\[\[([^\]]+)\]\]/g, (_m, title: string) => `[[${title}]]`.replace('[', '&#91;').replace(']', '&#93;'));
+    let html = this.md.render(protectedMd);
+    // Restore wikilinks as plain [[title]] text inside the HTML.
+    html = html
+      .replace(/&#91;&#91;/g, '[[')
+      .replace(/&#93;&#93;/g, ']]');
+    return html;
+  }
+
   async create(dto: CreateNoteDto & { userId?: number | null }): Promise<Note> {
+    // Agent tools send plain markdown; the editor consumes HTML. Normalize
+    // once at the boundary so BOTH write paths store editor-ready HTML.
+    const contentMd = this.normalizeToHtml(dto.contentMd);
     const data = {
       ...dto,
+      contentMd,
       // Global knowledge base: userId is creator provenance only. Default
       // to null so the repository write path always gets a defined value.
       userId: dto.userId ?? null,
@@ -36,14 +66,16 @@ export class NoteService {
 
     const note = await this.repository.create(data);
 
-    const links = this.extractLinks(dto.contentMd);
+    // Wikilinks are extracted from the ORIGINAL markdown (normalizeToHtml
+    // preserves [[title]] verbatim, so extracting from the HTML works too).
+    const links = this.extractLinks(contentMd);
     if (links.length > 0) {
       await this.repository.replaceLinks(note.id, links).catch((err) => {
         this.logger.warn(`Failed to replace links for note ${note.id}: ${err?.message ?? err}`);
       });
     }
 
-    void this.enqueueEmbedding(note.id, dto.contentMd);
+    void this.enqueueEmbedding(note.id, contentMd);
 
     return note;
   }
@@ -64,23 +96,53 @@ export class NoteService {
     return this.repository.findByCategoryPath(categoryPath, depth);
   }
 
+  /**
+   * Distinct category paths + note counts (for the list_categories tool).
+   */
+  async listCategories(): Promise<Array<{ categoryPath: string; count: number }>> {
+    return this.repository.listCategories();
+  }
+
+  /**
+   * Re-queue embedding jobs for every non-deleted note. Used by the admin
+   * reindex endpoint after (re)configuring the embeddings provider so the
+   * semantic search covers pre-existing notes.
+   */
+  async reindexEmbeddings(): Promise<number> {
+    const notes = await this.repository.findAll();
+    for (const note of notes) {
+      void this.enqueueEmbedding(note.id, note.contentMd);
+    }
+    return notes.length;
+  }
+
   async update(id: string, dto: UpdateNoteDto): Promise<Note> {
     const existing = await this.repository.findById(id);
     if (!existing) {
       throw new NotFoundException(`Note ${id} not found`);
     }
 
-    const note = await this.repository.update(id, dto);
+    // Same boundary normalization as create: markdown coming from agent
+    // tools becomes HTML before storage.
+    let effectiveDto = dto;
+    if (dto.contentMd !== undefined) {
+      effectiveDto = {
+        ...dto,
+        contentMd: this.normalizeToHtml(dto.contentMd),
+      };
+    }
 
-    if (dto.contentMd !== undefined && dto.contentMd !== existing.contentMd) {
-      const links = this.extractLinks(dto.contentMd);
+    const note = await this.repository.update(id, effectiveDto);
+
+    if (effectiveDto.contentMd !== undefined && effectiveDto.contentMd !== existing.contentMd) {
+      const links = this.extractLinks(effectiveDto.contentMd);
       // Replace outgoing links atomically: delete all existing links from
       // this note, then insert the freshly extracted ones. Avoids stale
       // edges lingering after a wikilink is removed from the content.
       await this.repository.replaceLinks(note.id, links).catch((err) => {
         this.logger.warn(`Failed to replace links for note ${note.id}: ${err?.message ?? err}`);
       });
-      void this.enqueueEmbedding(note.id, dto.contentMd);
+      void this.enqueueEmbedding(note.id, effectiveDto.contentMd);
     }
 
     return note;

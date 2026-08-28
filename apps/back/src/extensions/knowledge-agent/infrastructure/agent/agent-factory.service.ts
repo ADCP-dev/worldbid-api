@@ -8,7 +8,6 @@ import { NoteService } from '../../note.service';
 import { VectorStoreService } from '../vector-store.service';
 import { ModelResolverService } from './model-resolver.service';
 import { createKnowledgeAgentTools } from '../../agent.tools';
-import { createExecuteTool } from '../../tools/execute.tool';
 import type { AgentConfig } from '../../domain/agent-config';
 import type { StructuredTool } from '@langchain/core/tools';
 
@@ -99,14 +98,17 @@ export class AgentFactoryService {
     const nativeTools = await this.toolRegistry.collect();
     const mcpTools = await this.mcpLoader.load(config.mcpServerIds);
 
-    // Execute tool — bound to this agent's sandbox backend.
-    const executeTool = createExecuteTool(backend);
+    // NOTE: no custom execute/run_command tool — deepagents wires the full
+    // filesystem middleware natively from the VfsBackend (read/write/edit/
+    // ls/grep/glob), and VfsBackend has NO execute() method (verified:
+    // VfsBackend API = read, readRaw, write, edit, delete, ls, grep, glob).
+    // A hand-rolled shell tool against that API always failed with
+    // "Sandbox backend is not available".
 
     const tools: StructuredTool[] = [
       ...kbTools,
       ...nativeTools,
       ...mcpTools,
-      executeTool,
     ];
 
     const permissions = this.sandbox.buildPermissions(

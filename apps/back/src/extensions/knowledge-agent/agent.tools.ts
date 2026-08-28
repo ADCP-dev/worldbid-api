@@ -1,6 +1,8 @@
 import type { StructuredTool } from '@langchain/core/tools';
 import { createSearchNotesTreeTool } from './tools/search-notes-tree.tool';
 import { createSearchNotesSemanticTool } from './tools/search-notes-semantic.tool';
+import { createListCategoriesTool } from './tools/list-categories.tool';
+import { createGetNoteTool } from './tools/get-note.tool';
 import { createCreateNoteTool } from './tools/create-note.tool';
 import { createUpdateNoteTool } from './tools/update-note.tool';
 import { createDeleteNoteTool } from './tools/delete-note.tool';
@@ -37,8 +39,12 @@ export interface ToolContext {
  */
 export function createKnowledgeAgentTools(ctx: ToolContext): StructuredTool[] {
   return [
+    // Read/discover
+    createListCategoriesTool(ctx.noteService),
     createSearchNotesTreeTool(ctx.noteService),
     createSearchNotesSemanticTool(ctx.vectorStoreService, ctx.noteService),
+    createGetNoteTool(ctx.noteService),
+    // Mutate
     createCreateNoteTool(ctx.noteService),
     createUpdateNoteTool(ctx.noteService),
     createDeleteNoteTool(ctx.noteService),

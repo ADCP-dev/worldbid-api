@@ -97,6 +97,26 @@ export class NoteRepository {
   }
 
   /**
+   * Distinct category paths with note counts (non-deleted, non-null path).
+   * Powers the list_categories agent tool and any future folder overview UI.
+   */
+  async listCategories(): Promise<Array<{ categoryPath: string; count: number }>> {
+    const rows = await this.dataSource.query(
+      `
+        SELECT category_path AS "categoryPath", count(*)::int AS count
+        FROM ext_ka_notes
+        WHERE deleted_at IS NULL AND category_path IS NOT NULL
+        GROUP BY category_path
+        ORDER BY count DESC, category_path ASC
+      `,
+    );
+    return rows.map((r: Record<string, unknown>) => ({
+      categoryPath: String(r['categoryPath'] ?? ''),
+      count: Number(r['count'] ?? 0),
+    }));
+  }
+
+  /**
    * Keyword / full-text search fallback for when the vector store is
    * unavailable (embeddings provider down) or has no indexed rows.
    *

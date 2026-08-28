@@ -181,20 +181,25 @@ describe('AgentFactoryService', () => {
 
     const tools = captured.tools as Array<{ name: string }>;
     const names = tools.map((t) => t.name);
-    // 5 KB tools + 1 native + 1 MCP + 1 sandbox command runner = 8
-    expect(tools).toHaveLength(8);
+    // 7 KB tools (list_categories, list_notes, search_notes_semantic,
+    // get_note, create, update, delete) + 1 native + 1 MCP = 9.
+    // No run_command: deepagents wires the filesystem natively from the
+    // VfsBackend and VfsBackend has no execute() method.
+    expect(tools).toHaveLength(9);
     expect(names).toEqual(
       expect.arrayContaining([
-        'search_notes_tree',
+        'list_categories',
+        'list_notes',
         'search_notes_semantic',
+        'get_note',
         'create_note',
         'update_note',
         'delete_note',
         'native_a',
         'get_weather',
-        'run_command',
       ]),
     );
+    expect(names).not.toContain('run_command');
   });
 
   it('should build KB tools globally (no userId scoping — notes + configs shared)', async () => {
@@ -208,7 +213,7 @@ describe('AgentFactoryService', () => {
     // KB tools are constructed without userId closure — verify the tree tool
     // (search_notes_tree) is present. userId stays in the agent cache key only.
     const tools = captured.tools as Array<{ name: string }>;
-    const tree = tools.find((t) => t.name === 'search_notes_tree');
+    const tree = tools.find((t) => t.name === 'list_notes');
     expect(tree).toBeDefined();
   });
 

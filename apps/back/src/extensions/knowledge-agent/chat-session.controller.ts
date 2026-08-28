@@ -154,7 +154,13 @@ export class ChatSessionController {
       );
       for await (const chunk of iterable) {
         if (chunk.kind === 'text') {
-          res.write(`data: ${chunk.text}\n\n`);
+          // SSE requires one `data:` line PER payload line. Streamed tokens
+          // are raw markdown fragments that frequently contain '\n' — writing
+          // them raw inside a single data frame breaks the frame boundary and
+          // the client silently drops every line after the first (markdown
+          // looked broken until the page reload re-fetched clean history).
+          const dataLines = chunk.text.split('\n').map((l) => `data: ${l}`);
+          res.write(`${dataLines.join('\n')}\n\n`);
         } else if (chunk.kind === 'tool_call') {
           res.write(`event: tool_call\ndata: ${JSON.stringify({ name: chunk.name, args: chunk.args ?? {}, id: chunk.id })}\n\n`);
         } else if (chunk.kind === 'tool_result') {

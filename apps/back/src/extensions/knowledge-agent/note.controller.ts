@@ -18,6 +18,11 @@ import { QueryNoteDto } from './dto/query-note.dto';
 import { Note } from './domain/note';
 import { JwtAuth } from '@iam/auth/decorators/auth.decorator';
 import { UserId } from '@iam/auth/decorators/current-user.decorator';
+import { AuthGuard } from '@nestjs/passport';
+import { UseGuards } from '@nestjs/common';
+import { Roles } from '@iam/roles/roles.decorator';
+import { RoleEnum } from '@iam/roles/roles.enum';
+import { RolesGuard } from '@iam/roles/roles.guard';
 
 @ApiTags('Knowledge Notes')
 @JwtAuth()
@@ -105,5 +110,19 @@ export class NoteController {
   @HttpCode(HttpStatus.OK)
   async deleteCategory(@Param('path') path: string): Promise<number> {
     return this.noteService.deleteCategory(path);
+  }
+
+  /**
+   * Re-queue embedding jobs for every note. Admin-only. Call after
+   * (re)configuring the embeddings provider so semantic search covers
+   * pre-existing notes (new/updated notes embed automatically).
+   */
+  @Post('reindex')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RoleEnum.admin)
+  @ApiOkResponse({ type: Number })
+  @HttpCode(HttpStatus.OK)
+  async reindex(): Promise<number> {
+    return this.noteService.reindexEmbeddings();
   }
 }
