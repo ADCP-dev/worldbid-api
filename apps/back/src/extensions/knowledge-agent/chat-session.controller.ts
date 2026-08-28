@@ -7,14 +7,10 @@ import {
   Param,
   Patch,
   Post,
-  Query,
   Body,
   Res,
-  Sse,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { Observable } from 'rxjs';
-import { MessageEvent } from '@nestjs/common/interfaces/http/message-event.interface';
 import {
   ApiCreatedResponse,
   ApiNoContentResponse,
@@ -127,13 +123,12 @@ export class ChatSessionController {
   }
 
   /**
-   * Send a message to the chat session. The message is saved and the agent
-   * run is queued. Returns 200 immediately so the client can open the SSE
-   * stream via GET :sessionId/stream.
+   * Send a message and stream the agent response as Server-Sent Events.
    *
-   * Two-step design: NestJS @Sse() only supports GET, so we split the write
-   * (POST message) from the stream (GET stream) to stay within the official
-   * NestJS SSE pattern.
+   * Uses @Post with manual SSE writing via @Res() instead of the @Sse()
+   * decorator (which only supports GET and can't receive a POST body).
+   * The response is flushed with text/event-stream headers and each chunk
+   * is written as an SSE frame.
    */
   @Post(':sessionId/message')
   @ApiParam({ name: 'sessionId', type: String })
@@ -142,92 +137,36 @@ export class ChatSessionController {
     @Param('sessionId') sessionId: string,
     @UserId() userId: number,
     @Body() dto: SendMessageDto,
-  ): Promise<{ ok: true }> {
-    // Queue the stream. The actual agent run starts when the client opens
-    // the GET SSE endpoint. We store the pending message so the GET
-    // handler can pick it up.
-    this.pendingMessages.set(`${sessionId}:${userId}`, dto.message);
-    return { ok: true };
-  }
+    @Res() res: Response,
+  ): Promise<void> {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders();
 
-  /**
-   * SSE stream for the pending message (set by POST :sessionId/message).
-   * Uses the official NestJS @Sse() decorator which sets the correct
-   * Content-Type: text/event-stream headers and keeps the connection open.
-   */
-  @Sse(':sessionId/stream')
-  @ApiParam({ name: 'sessionId', type: String })
-  streamMessage(
-    @Param('sessionId') sessionId: string,
-    @UserId() userId: number,
-  ): Observable<MessageEvent> {
-    const key = `${sessionId}:${userId}`;
-    const message = this.pendingMessages.get(key) ?? '';
-    this.pendingMessages.delete(key);
-
-    const iterable = this.chatService.streamMessage(
-      sessionId,
-      userId,
-      message,
-    );
-    return this.toSseObservable(iterable);
-  }
-
-  /** Pending messages from POST, keyed by sessionId:userId. */
-  private readonly pendingMessages = new Map<string, string>();
-
-  /**
-   * Convert an async iterable of structured chunks into an RxJS Observable of
-   * SSE `MessageEvent` objects. NestJS detects an `Observable<MessageEvent>`
-   * return type and wires the SSE response headers automatically.
-   *
-   * Wire format produced:
-   *   - text        → `data: <token>` (plain, old clients keep working)
-   *   - tool_call   → `event: tool_call` + `data: <json>` lines
-   *   - tool_result → `event: tool_result` + `data: <json>` lines
-   *   - done        → `event: done`    + `data: [DONE]`
-   */
-  private toSseObservable(
-    iterable: AsyncIterable<
-      import('./infrastructure/chat/chat.service').ChatStreamChunk
-    >,
-  ): Observable<MessageEvent> {
-    return new Observable<MessageEvent>((subscriber) => {
-      void (async () => {
-        try {
-          for await (const chunk of iterable) {
-            if (chunk.kind === 'text') {
-              subscriber.next({ data: chunk.text });
-            } else if (chunk.kind === 'tool_call') {
-              subscriber.next({
-                type: 'tool_call',
-                data: JSON.stringify({
-                  name: chunk.name,
-                  args: chunk.args ?? {},
-                  id: chunk.id,
-                }),
-              });
-            } else if (chunk.kind === 'tool_result') {
-              subscriber.next({
-                type: 'tool_result',
-                data: JSON.stringify({
-                  name: chunk.name,
-                  output: chunk.output ?? '',
-                  id: chunk.id,
-                }),
-              });
-            }
-          }
-          // Sentinel event so the client knows the stream is done.
-          subscriber.next({ type: 'done', data: '[DONE]' });
-          subscriber.complete();
-        } catch (err) {
-          // Log the full error so the 500 is debuggable — NestJS swallows
-          // Observable errors silently otherwise.
-          console.error('[ChatSession] SSE stream error:', err);
-          subscriber.error(err);
+    try {
+      const iterable = this.chatService.streamMessage(
+        sessionId,
+        userId,
+        dto.message,
+      );
+      for await (const chunk of iterable) {
+        if (chunk.kind === 'text') {
+          res.write(`data: ${chunk.text}\n\n`);
+        } else if (chunk.kind === 'tool_call') {
+          res.write(`event: tool_call\ndata: ${JSON.stringify({ name: chunk.name, args: chunk.args ?? {}, id: chunk.id })}\n\n`);
+        } else if (chunk.kind === 'tool_result') {
+          res.write(`event: tool_result\ndata: ${JSON.stringify({ name: chunk.name, output: chunk.output ?? '', id: chunk.id })}\n\n`);
         }
-      })();
-    });
+      }
+      res.write(`event: done\ndata: [DONE]\n\n`);
+      res.end();
+    } catch (err) {
+      console.error('[ChatSession] SSE stream error:', err);
+      res.write(`event: error\ndata: ${JSON.stringify({ message: err instanceof Error ? err.message : String(err) })}\n\n`);
+      res.end();
+    }
   }
+
 }

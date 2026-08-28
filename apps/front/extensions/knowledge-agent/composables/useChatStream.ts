@@ -98,34 +98,19 @@ export function useChatStream() {
     abortController = new AbortController();
 
     try {
-      // Step 1: POST the message (returns immediately with { ok: true })
-      const postResp = await fetch(
+      // Single POST with manual SSE response (backend uses @Res() to write
+      // text/event-stream frames directly, avoiding the NestJS @Sse() GET
+      // limitation).
+      const resp = await fetch(
         `${baseUrl}${apiPrefix}/ka/chat/sessions/${sessionId}/message`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({ message: content }),
-          signal: abortController.signal,
-        },
-      );
-
-      if (!postResp.ok) {
-        const text = await postResp.text();
-        throw new Error(`HTTP ${postResp.status}: ${text || postResp.statusText}`);
-      }
-
-      // Step 2: GET the SSE stream (official NestJS @Sse pattern)
-      const resp = await fetch(
-        `${baseUrl}${apiPrefix}/ka/chat/sessions/${sessionId}/stream`,
-        {
-          method: 'GET',
-          headers: {
             Accept: 'text/event-stream',
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
+          body: JSON.stringify({ message: content }),
           signal: abortController.signal,
         },
       );
