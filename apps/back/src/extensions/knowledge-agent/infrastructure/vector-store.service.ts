@@ -27,9 +27,17 @@ export class VectorStoreService implements OnModuleInit {
   async onModuleInit(): Promise<void> {
     try {
       await this.initialize();
+      this.logger.log('VectorStore initialized (pgvector)');
     } catch (err) {
+      // Include the class name + stack hint — a bare non-Error rejection
+      // (common with lazy-import failures) previously logged an EMPTY
+      // message, making semantic-search outages undebuggable.
+      const detail =
+        err instanceof Error
+          ? `${err.name}: ${err.message}`
+          : JSON.stringify(err, Object.getOwnPropertyNames(err as object));
       this.logger.warn(
-        `VectorStore init failed: ${err instanceof Error ? err.message : String(err)}. Semantic search disabled until DB available.`,
+        `VectorStore init failed: ${detail}. Semantic search falls back to keyword search.`,
       );
     }
   }

@@ -62,6 +62,11 @@ describe('KB tools (LangChain tool factories)', () => {
   });
 
   describe('search_notes_semantic', () => {
+    const makeNoteService = () =>
+      ({
+        keywordSearch: jest.fn().mockResolvedValue([]),
+      }) as unknown as jest.Mocked<NoteService>;
+
     it('should call VectorStoreService.similaritySearch and return hits', async () => {
       const hits = [
         [{ content: 'note A', metadata: { id: 'n1' } }, 0.12],
@@ -71,7 +76,7 @@ describe('KB tools (LangChain tool factories)', () => {
         similaritySearch: jest.fn().mockResolvedValue(hits),
       } as unknown as jest.Mocked<VectorStoreService>;
 
-      const tool = createSearchNotesSemanticTool(vectorStoreService);
+      const tool = createSearchNotesSemanticTool(vectorStoreService, makeNoteService());
       const result = await tool.invoke({ query: 'search text', topK: 5 });
 
       expect(vectorStoreService.similaritySearch).toHaveBeenCalledWith('search text', 5);
@@ -83,15 +88,41 @@ describe('KB tools (LangChain tool factories)', () => {
         similaritySearch: jest.fn().mockResolvedValue([]),
       } as unknown as jest.Mocked<VectorStoreService>;
 
-      const tool = createSearchNotesSemanticTool(vectorStoreService);
+      const tool = createSearchNotesSemanticTool(vectorStoreService, makeNoteService());
       await tool.invoke({ query: 'text' });
 
       expect(vectorStoreService.similaritySearch).toHaveBeenCalledWith('text', 5);
     });
 
+    it('should fall back to keyword search when the vector store returns nothing', async () => {
+      const vectorStoreService = {
+        similaritySearch: jest.fn().mockResolvedValue([]),
+      } as unknown as jest.Mocked<VectorStoreService>;
+      const keywordHits = [
+        {
+          id: 'n9',
+          title: 'Empresa',
+          categoryPath: 'empresa',
+          tags: [],
+          snippet: 'La empresa…',
+        },
+      ];
+      const noteService = {
+        keywordSearch: jest.fn().mockResolvedValue(keywordHits),
+      } as unknown as jest.Mocked<NoteService>;
+
+      const tool = createSearchNotesSemanticTool(vectorStoreService, noteService);
+      const result = await tool.invoke({ query: 'empresa', topK: 5 });
+
+      expect(noteService.keywordSearch).toHaveBeenCalledWith('empresa', 5);
+      const parsed = JSON.parse(result as string);
+      expect(parsed).toHaveLength(1);
+      expect(parsed[0]).toMatchObject({ id: 'n9', source: 'keyword' });
+    });
+
     it('should have name search_notes_semantic and a description', () => {
       const vectorStoreService = {} as unknown as jest.Mocked<VectorStoreService>;
-      const tool = createSearchNotesSemanticTool(vectorStoreService);
+      const tool = createSearchNotesSemanticTool(vectorStoreService, makeNoteService());
       expect(tool.name).toBe('search_notes_semantic');
       expect(tool.description.length).toBeGreaterThan(10);
     });

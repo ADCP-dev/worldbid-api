@@ -38,18 +38,29 @@ describe('SandboxService', () => {
       expect(opts.mountPath).not.toBe(tmpdir());
     });
 
-    it('should deny .env and credentials in permissions', () => {
+    it('should deny .env and credentials in permissions (ABSOLUTE paths — deepagents requires them)', () => {
       const perms = service.buildPermissions();
+      const cwd = process.cwd();
 
       const denied = perms.filter((p) => p.mode === 'deny');
       const deniedPaths = denied.flatMap((p) => p.paths);
-      expect(deniedPaths).toEqual(expect.arrayContaining(['.env', '**/.env']));
       expect(deniedPaths).toEqual(
-        expect.arrayContaining(['**/credentials', '**/*.key']),
+        expect.arrayContaining([
+          `${cwd}/.env`,
+          `${cwd}/**/.env`,
+          `${cwd}/**/credentials`,
+          `${cwd}/**/*.key`,
+        ]),
       );
+      // Every deny path must be absolute — deepagents validatePath rejects
+      // relative paths with "path must be absolute".
+      for (const p of deniedPaths) {
+        expect(p.startsWith('/')).toBe(true);
+      }
     });
 
-    it('should deny project source paths (apps/, packages/, src/)', () => {
+    it('should deny project source paths (apps/, packages/)', () => {
+      const cwd = process.cwd();
       const perms = service.buildPermissions();
 
       const deniedPaths = perms
@@ -57,9 +68,9 @@ describe('SandboxService', () => {
         .flatMap((p) => p.paths);
       expect(deniedPaths).toEqual(
         expect.arrayContaining([
-          'apps/back/src/**',
-          'apps/front/src/**',
-          'packages/**',
+          `${cwd}/apps/back/src/**`,
+          `${cwd}/apps/front/src/**`,
+          `${cwd}/packages/**`,
         ]),
       );
     });

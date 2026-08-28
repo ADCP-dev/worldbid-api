@@ -61,27 +61,114 @@ export class NoteRepository {
 
   /**
    * Tree search by category_path (ltree).
-   * Uses `category_path <@ 'prefix.*'` via raw SQL.
-   * `depth` limits the number of sublevel segments matched (0 = exact).
    *
+   * Uses `category_path ~ 'path.*{0,depth}'::lquery` — the `<@` operator only
+   * accepts ltree (NOT lquery), and casting an lquery pattern to ::ltree
+   * throws "ltree syntax error". `~` is the lquery-matching operator.
+   *
+   * Root ('/', '', '.') → returns ALL non-deleted notes (no path filter).
    * Global: no user_id filter — notes are shared.
    */
   async findByCategoryPath(
     categoryPath: string,
     depth = 0,
   ): Promise<Note[]> {
-    const sanitized = categoryPath.replace(/[^a-zA-Z0-9_.]/g, '');
-    if (!sanitized) return [];
+    const sanitized = categoryPath
+      .replace(/[^a-zA-Z0-9_.]/g, '')
+      .replace(/^\.+|\.+$/g, '');
 
-    const prefix = depth > 0 ? `${sanitized}.*{0,${depth}}` : sanitized;
+    // Root request → everything.
+    if (!sanitized || sanitized === '.') {
+      const rows = await this.dataSource.query(
+        `SELECT * FROM ext_ka_notes WHERE deleted_at IS NULL ORDER BY created_at DESC`,
+      );
+      return rows.map((r: Record<string, unknown>) => this.rowToDomain(r));
+    }
+
+    const pattern = `${sanitized}.*{0,${Math.max(1, depth)}}`;
     const sql = `
       SELECT * FROM ext_ka_notes
       WHERE deleted_at IS NULL
-        AND category_path <@ $1::ltree
+        AND category_path ~ $1::lquery
       ORDER BY created_at DESC
     `;
-    const rows = await this.dataSource.query(sql, [prefix]);
+    const rows = await this.dataSource.query(sql, [pattern]);
     return rows.map((r: Record<string, unknown>) => this.rowToDomain(r));
+  }
+
+  /**
+   * Keyword / full-text search fallback for when the vector store is
+   * unavailable (embeddings provider down) or has no indexed rows.
+   *
+   * Uses Postgres FTS (spanish config, websearch syntax) ranked by ts_rank;
+   * falls back to ILIKE matching when FTS yields nothing (handles partial
+   * words and non-Spanish content). Returns title + a headline snippet.
+   */
+  async keywordSearch(
+    query: string,
+    topK = 5,
+  ): Promise<
+    Array<{
+      id: string;
+      title: string;
+      categoryPath: string | null;
+      tags: string[];
+      snippet: string;
+    }>
+  > {
+    const clean = query.trim();
+    if (!clean) return [];
+
+    const ftsSql = `
+      SELECT id, title, tags, category_path,
+             ts_headline('spanish', content_md,
+               websearch_to_tsquery('spanish', $1),
+               'MaxWords=20, MinWords=8, StartSel=…, StopSel=…') AS snippet,
+             ts_rank(to_tsvector('spanish', title || ' ' || content_md),
+               websearch_to_tsquery('spanish', $1)) AS rank
+      FROM ext_ka_notes
+      WHERE deleted_at IS NULL
+        AND to_tsvector('spanish', title || ' ' || content_md)
+              @@ websearch_to_tsquery('spanish', $1)
+      ORDER BY rank DESC
+      LIMIT $2
+    `;
+    let rows: Array<Record<string, unknown>> = [];
+    try {
+      rows = await this.dataSource.query(ftsSql, [clean, topK]);
+    } catch {
+      rows = [];
+    }
+
+    // ILIKE fallback — covers partial words, accents drift, non-Spanish text.
+    if (rows.length === 0) {
+      const words = clean
+        .split(/\s+/)
+        .filter((w) => w.length >= 3)
+        .slice(0, 5);
+      if (words.length === 0) return [];
+      const conditions = words
+        .map((_, i) => `(title ILIKE $${i + 1} OR content_md ILIKE $${i + 1})`)
+        .join(' OR ');
+      const params = words.map((w) => `%${w}%`);
+      rows = await this.dataSource.query(
+        `SELECT id, title, tags, category_path,
+                left(regexp_replace(content_md, '<[^>]*>|\\s+', ' ', 'g'), 240) AS snippet
+         FROM ext_ka_notes
+         WHERE deleted_at IS NULL AND (${conditions})
+         ORDER BY updated_at DESC
+         LIMIT $${words.length + 1}`,
+        [...params, topK],
+      );
+    }
+
+    return rows.map((r) => ({
+      id: r['id'] as string,
+      title: r['title'] as string,
+      categoryPath: (r['category_path'] as string) ?? null,
+      tags: (r['tags'] as string[]) ?? [],
+      snippet: (r['snippet'] as string) ?? '',
+    }));
   }
 
   /**
@@ -272,28 +359,32 @@ export class NoteRepository {
     }>
   > {
     if (filters?.categoryPath) {
-      const sanitized = filters.categoryPath.replace(/[^a-zA-Z0-9_.]/g, '');
-      if (!sanitized) return [];
+      const sanitized = filters.categoryPath
+        .replace(/[^a-zA-Z0-9_.]/g, '')
+        .replace(/^\.+|\.+$/g, '');
 
-      const params: unknown[] = [sanitized];
-      let sql = `
-        SELECT id, title, tags, category_path
-        FROM ext_ka_notes
-        WHERE deleted_at IS NULL
-          AND category_path <@ $1::ltree
-      `;
-      if (filters.tag) {
-        params.push(JSON.stringify([filters.tag]));
-        sql += ` AND tags @> $2::jsonb`;
+      // Root request → no path filter (all notes), fall through below.
+      if (sanitized && sanitized !== '.') {
+        const params: unknown[] = [sanitized];
+        let sql = `
+          SELECT id, title, tags, category_path
+          FROM ext_ka_notes
+          WHERE deleted_at IS NULL
+            AND category_path <@ $1::ltree
+        `;
+        if (filters.tag) {
+          params.push(JSON.stringify([filters.tag]));
+          sql += ` AND tags @> $2::jsonb`;
+        }
+        return this.dataSource.query(sql, params).then((rows: Array<Record<string, unknown>>) =>
+          rows.map((r) => ({
+            id: r['id'] as string,
+            title: r['title'] as string,
+            tags: (r['tags'] as string[]) ?? [],
+            category_path: (r['category_path'] as string) ?? null,
+          })),
+        );
       }
-      return this.dataSource.query(sql, params).then((rows: Array<Record<string, unknown>>) =>
-        rows.map((r) => ({
-          id: r['id'] as string,
-          title: r['title'] as string,
-          tags: (r['tags'] as string[]) ?? [],
-          category_path: (r['category_path'] as string) ?? null,
-        })),
-      );
     }
 
     // No category_path filter — safe to use the query builder.

@@ -38,7 +38,7 @@ export interface ToolContext {
 export function createKnowledgeAgentTools(ctx: ToolContext): StructuredTool[] {
   return [
     createSearchNotesTreeTool(ctx.noteService),
-    createSearchNotesSemanticTool(ctx.vectorStoreService),
+    createSearchNotesSemanticTool(ctx.vectorStoreService, ctx.noteService),
     createCreateNoteTool(ctx.noteService),
     createUpdateNoteTool(ctx.noteService),
     createDeleteNoteTool(ctx.noteService),

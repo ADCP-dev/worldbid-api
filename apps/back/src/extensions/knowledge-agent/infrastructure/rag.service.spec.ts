@@ -28,6 +28,7 @@ describe('RagService', () => {
   beforeEach(async () => {
     const noteServiceMock = {
       findByCategoryPath: jest.fn(),
+      keywordSearch: jest.fn().mockResolvedValue([]),
     };
     const vectorStoreServiceMock = {
       similaritySearch: jest.fn(),

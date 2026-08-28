@@ -84,13 +84,38 @@ export class RagService {
     query: string,
     options: { topK?: number },
   ): Promise<RagHit[]> {
-    const hits = (await this.vectorStoreService.similaritySearch(
-      query,
-      options.topK ?? 5,
-    )) as unknown[];
-    return (hits as Array<[unknown, number]>).map((h) =>
-      this.fromSemanticTuple(h),
-    );
+    const topK = options.topK ?? 5;
+
+    // 1) Vector search (needs embeddings provider up + indexed rows).
+    let hits: unknown[];
+    try {
+      hits = (await this.vectorStoreService.similaritySearch(
+        query,
+        topK,
+      )) as unknown[];
+    } catch {
+      hits = [];
+    }
+
+    if (hits.length > 0) {
+      return (hits as Array<[unknown, number]>).map((h) =>
+        this.fromSemanticTuple(h),
+      );
+    }
+
+    // 2) Keyword fallback — guarantees context even when the vector store is
+    // unavailable (local Ollama embeddings down). Same contract as the
+    // semantic tool fallback.
+    const keywordHits = await this.noteService.keywordSearch(query, topK);
+    return keywordHits.map((h) => ({
+      id: h.id,
+      title: h.title,
+      contentMd: h.snippet,
+      categoryPath: h.categoryPath,
+      tags: h.tags,
+      score: null,
+      source: 'semantic' as const,
+    }));
   }
 
   /**

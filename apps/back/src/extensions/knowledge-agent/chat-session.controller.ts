@@ -150,6 +150,7 @@ export class ChatSessionController {
         sessionId,
         userId,
         dto.message,
+        dto.attachments,
       );
       for await (const chunk of iterable) {
         if (chunk.kind === 'text') {

@@ -11,8 +11,19 @@ import { RagService } from '../rag.service';
 import { CheckpointerService } from './checkpointer.service';
 import { CreateChatSessionDto } from '../../dto/create-chat-session.dto';
 import { UpdateChatSessionDto } from '../../dto/update-chat-session.dto';
+import { MessageAttachmentDto } from '../../dto/send-message.dto';
 import type { ChatSession } from '../../domain/chat-session';
 import type { RagHit } from '../rag.service';
+
+/**
+ * Multimodal content block (OpenAI-compatible chat format). Kept loose —
+ * LangChain accepts these shapes for HumanMessage content arrays.
+ */
+export interface ContentBlock {
+  type: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
+}
 
 /**
  * Tool invocation event yielded by the deepagents v3 `run.toolCalls`
@@ -239,8 +250,9 @@ export class ChatService {
     sessionId: string,
     userId: number,
     message: string,
+    attachments?: MessageAttachmentDto[],
   ): AsyncGenerator<ChatStreamChunk, void, unknown> {
-    const run = await this.startRun(sessionId, userId, message);
+    const run = await this.startRun(sessionId, userId, message, attachments);
     if (!run) return;
     const agent = run.agent;
     const payload = run.payload;
@@ -258,37 +270,47 @@ export class ChatService {
      * stream via a tiny async queue.
      */
     const queue: ChatStreamChunk[] = [];
-    let notify: (() => void) | null = null;
-    let finished = 0;
-    const SOURCES = 2;
+    const resolvers: Array<() => void> = [];
+    let textDone = false;
 
+    const wake = (): void => {
+      for (const r of resolvers.splice(0)) r();
+    };
     const push = (chunk: ChatStreamChunk): void => {
       queue.push(chunk);
-      notify?.();
-      notify = null;
+      wake();
     };
     const waitForItem = (): Promise<void> =>
       new Promise<void>((resolve) => {
-        notify = resolve;
+        resolvers.push(resolve);
       });
 
-    // Source 1: assistant text deltas.
+    // Source 1: assistant text deltas. THE stream ends when text finishes —
+    // tool events that land in the queue before then are still drained.
+    // We must NOT wait for the toolCalls channel to close: it can outlive
+    // the run and would hang the SSE response forever (UI stuck "typing").
     const consumeText = (async () => {
-      for await (const msg of stream.messages) {
-        for await (const part of msg.text) {
-          push(this.toChunk(part));
+      try {
+        for await (const msg of stream.messages) {
+          for await (const part of msg.text) {
+            push(this.toChunk(part));
+          }
         }
+      } catch (err) {
+        this.logger.warn(
+          `text stream error: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      } finally {
+        textDone = true;
+        wake();
       }
-      finished += 1;
     })();
 
-    // Source 2: tool invocations (may be absent on test stubs).
+    // Source 2: tool invocations (may be absent on test stubs). Consumed
+    // opportunistically; never blocks stream completion.
     const consumeToolCalls = (async () => {
       const channel = stream.toolCalls;
-      if (!channel) {
-        finished += 1;
-        return;
-      }
+      if (!channel) return;
       try {
         for await (const tc of channel) {
           push({
@@ -323,16 +345,17 @@ export class ChatService {
           `toolCalls channel error (text still streaming): ${err instanceof Error ? err.message : String(err)}`,
         );
       }
-      finished += 1;
     })();
+    void consumeToolCalls.catch(() => {
+      /* channel errors already logged inside */
+    });
 
-    // Drain: yield queued chunks until both sources finished and queue empty.
-    while (finished < SOURCES || queue.length > 0) {
+    // Drain: yield queued chunks until text finished AND queue empty.
+    while (!(textDone && queue.length === 0)) {
       if (queue.length === 0) await waitForItem();
       const chunk = queue.shift();
       if (chunk) yield chunk;
     }
-    await Promise.allSettled([consumeText, consumeToolCalls]);
   }
 
   /**
@@ -343,8 +366,9 @@ export class ChatService {
     sessionId: string,
     userId: number,
     message: string,
+    attachments?: MessageAttachmentDto[],
   ): AsyncGenerator<ChatStreamChunk, void, unknown> {
-    yield* this.streamChunks(sessionId, userId, message);
+    yield* this.streamChunks(sessionId, userId, message, attachments);
   }
 
   /**
@@ -412,14 +436,20 @@ export class ChatService {
    * Resolve session + agent + RAG context. Returns null when the session is
    * missing or cross-user (silent skip — caller yields nothing). Throws
    * NotFoundException when the session truly does not exist.
+   *
+   * Attachments are converted to multimodal content blocks (OpenAI-compatible
+   * wire format understood by ChatOpenAI/OpenRouter and Ark): images →
+   * image_url, PDFs → file, audio → input_audio, text-like files are decoded
+   * and inlined into the prompt text.
    */
   private async startRun(
     sessionId: string,
     userId: number,
     message: string,
+    attachments?: MessageAttachmentDto[],
   ): Promise<{
     agent: unknown;
-    payload: { messages: Array<{ role: string; content: string }> };
+    payload: { messages: Array<{ role: string; content: string | ContentBlock[] }> };
     threadId: string;
   } | null> {
     const session = await this.sessionRepo.findById(sessionId);
@@ -431,13 +461,76 @@ export class ChatService {
     const agent = await this.agentFactory.buildAgent(configId, userId);
 
     const ragContext = await this.injectRag(message);
-    const content = ragContext ? `${ragContext}\n\nUser: ${message}` : message;
+    const content = this.buildUserContent(message, attachments, ragContext);
 
     return {
       agent,
       payload: { messages: [{ role: 'user', content }] },
       threadId: sessionId,
     };
+  }
+
+  /**
+   * Build the user message content: plain string when there are no
+   * attachments, or an array of multimodal content blocks otherwise.
+   * Blocks follow the OpenAI chat-completions multimodal format that
+   * OpenRouter / Ark / OpenAI-compatible endpoints understand.
+   */
+  private buildUserContent(
+    message: string,
+    attachments: MessageAttachmentDto[] | undefined,
+    ragContext: string | null,
+  ): string | ContentBlock[] {
+    const textParts: string[] = [];
+    if (ragContext) textParts.push(ragContext, '');
+    textParts.push(message);
+
+    const media: ContentBlock[] = [];
+    for (const att of attachments ?? []) {
+      if (
+        att.mimeType.startsWith('text/') ||
+        att.mimeType === 'application/json'
+      ) {
+        // Text-like files are inlined into the prompt (no modality needed).
+        try {
+          const decoded = Buffer.from(att.data, 'base64').toString('utf8');
+          textParts.push(
+            '',
+            `--- Attached file: ${att.name} ---`,
+            decoded.slice(0, 200_000),
+            '--- end of file ---',
+          );
+        } catch {
+          textParts.push(`[Could not decode file: ${att.name}]`);
+        }
+      } else if (att.mimeType.startsWith('image/')) {
+        media.push({
+          type: 'image_url',
+          image_url: { url: `data:${att.mimeType};base64,${att.data}` },
+        });
+      } else if (att.mimeType === 'application/pdf') {
+        media.push({
+          type: 'file',
+          file: {
+            filename: att.name,
+            file_data: `data:application/pdf;base64,${att.data}`,
+          },
+        });
+      } else if (att.mimeType.startsWith('audio/')) {
+        media.push({
+          type: 'input_audio',
+          input_audio: {
+            data: att.data,
+            format: att.mimeType.split('/')[1] ?? 'wav',
+          },
+        });
+      } else {
+        textParts.push(`[Unsupported attachment type: ${att.name} (${att.mimeType})]`);
+      }
+    }
+
+    if (media.length === 0) return textParts.join('\n');
+    return [{ type: 'text', text: textParts.join('\n') }, ...media];
   }
 
   /**
@@ -491,7 +584,9 @@ export class ChatService {
    */
   private async invokeStream(
     agent: unknown,
-    payload: { messages: Array<{ role: string; content: string }> },
+    payload: {
+      messages: Array<{ role: string; content: string | ContentBlock[] }>,
+    },
     threadId: string,
   ): Promise<{
     messages: AsyncIterable<{ text: AsyncIterable<string> }>;
@@ -509,9 +604,18 @@ export class ChatService {
     };
     return a.streamEvents(payload, {
       version: 'v3',
-      configurable: { thread_id: threadId },
+      configurable: {
+        thread_id: threadId,
+        /**
+         * LangGraph reads the runtime checkpointer from
+         * `config.configurable.__pregel_checkpointer` (CONFIG_KEY_CHECKPONTER
+         * in @langchain/langgraph/dist/constants). A top-level
+         * `checkpointers:` field is silently ignored — that's why sessions
+         * never persisted history (checkpoints table stayed empty).
+         */
+        __pregel_checkpointer: checkpointer,
+      },
       store: undefined,
-      checkpointers: checkpointer,
     } as Record<string, unknown>);
   }
 }

@@ -5,6 +5,7 @@ import { AgentFactoryService } from './agent-factory.service';
 import { AgentConfigRepository } from '../agent-config.repository';
 import { ToolRegistryService } from './tool-registry.service';
 import { McpLoaderService } from './mcp-loader.service';
+import { ModelResolverService } from './model-resolver.service';
 import { SandboxService } from './sandbox.service';
 import { NoteService } from '../../note.service';
 import { VectorStoreService } from '../vector-store.service';
@@ -71,6 +72,11 @@ describe('AgentFactoryService', () => {
     const vectorStoreServiceMock = {
       similaritySearch: jest.fn(),
     };
+    const modelResolverMock = {
+      resolve: jest.fn().mockResolvedValue({ _stubChatModel: true }),
+      parseModelString: jest.fn(),
+      invalidate: jest.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -81,6 +87,7 @@ describe('AgentFactoryService', () => {
         { provide: SandboxService, useValue: sandboxMock },
         { provide: NoteService, useValue: noteServiceMock },
         { provide: VectorStoreService, useValue: vectorStoreServiceMock },
+        { provide: ModelResolverService, useValue: modelResolverMock },
       ],
     }).compile();
     service = module.get<AgentFactoryService>(AgentFactoryService);
@@ -127,7 +134,14 @@ describe('AgentFactoryService', () => {
     await expect(service.buildAgent('cfg-1', 1)).resolves.not.toThrow();
   });
 
-  it('should construct createDeepAgent with the correct model string', async () => {
+  it('should construct createDeepAgent with the RESOLVED chat model', async () => {
+    const chatModel = { _stubChatModel: true };
+    const resolverMock = {
+      resolve: jest.fn().mockResolvedValue(chatModel),
+      parseModelString: jest.fn(),
+      invalidate: jest.fn(),
+    };
+    service['modelResolver'] = resolverMock as never;
     agentConfigRepo.findById.mockResolvedValue(
       makeConfig({ model: 'ollama:north-mini-code-1.0' }),
     );
@@ -137,7 +151,10 @@ describe('AgentFactoryService', () => {
 
     await service.buildAgent('cfg-1', 1);
 
-    expect(captured.model).toBe('ollama:north-mini-code-1.0');
+    expect(resolverMock.resolve).toHaveBeenCalledWith(
+      expect.objectContaining({ model: 'ollama:north-mini-code-1.0' }),
+    );
+    expect(captured.model).toBe(chatModel);
   });
 
   it('should load systemPrompt from DB into createDeepAgent', async () => {
@@ -164,7 +181,7 @@ describe('AgentFactoryService', () => {
 
     const tools = captured.tools as Array<{ name: string }>;
     const names = tools.map((t) => t.name);
-    // 5 KB tools + 1 native + 1 MCP + 1 execute = 8
+    // 5 KB tools + 1 native + 1 MCP + 1 sandbox command runner = 8
     expect(tools).toHaveLength(8);
     expect(names).toEqual(
       expect.arrayContaining([
@@ -175,7 +192,7 @@ describe('AgentFactoryService', () => {
         'delete_note',
         'native_a',
         'get_weather',
-        'execute',
+        'run_command',
       ]),
     );
   });

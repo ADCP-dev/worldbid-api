@@ -160,53 +160,70 @@ describe('ChatSessionController', () => {
     }
 
     /**
-     * Collect every `data` field from the SSE MessageEvent stream the
-     * controller emits, including the trailing `[DONE]` sentinel.
+     * Mock Express Response collecting every SSE frame written by the
+     * controller (manual @Res() SSE — no Observable anymore).
      */
-    async function drain(obs: import('rxjs').Observable<unknown>): Promise<string[]> {
-      const out: string[] = [];
-      await new Promise<void>((resolve, reject) => {
-        obs.subscribe({
-          next: (e) => {
-            const data = (e as { data?: unknown }).data;
-            out.push(typeof data === 'string' ? data : String(data ?? ''));
-          },
-          error: reject,
-          complete: resolve,
-        });
-      });
-      return out;
+    function makeMockRes(): {
+      setHeader: jest.Mock;
+      flushHeaders: jest.Mock;
+      write: jest.Mock;
+      end: jest.Mock;
+    } {
+      return {
+        setHeader: jest.fn(),
+        flushHeaders: jest.fn(),
+        write: jest.fn(),
+        end: jest.fn(),
+      };
     }
 
-    it('should return an Observable<MessageEvent> that emits the agent tokens', async () => {
-      const iter = makeAsyncIterable(['Hello', ' world']);
+    it('should write SSE text frames + done sentinel to the response', async () => {
+      const iter = makeAsyncIterable([
+        { kind: 'text', text: 'Hello' },
+        { kind: 'text', text: ' world' },
+      ]);
       chatService.streamMessage.mockReturnValue(iter as never);
+      const res = makeMockRes();
 
-      const obs = controller.sendMessage('sess-1', 1, { message: 'Hi' });
+      await controller.sendMessage('sess-1', 1, { message: 'Hi' }, res as never);
 
-      expect(chatService.streamMessage).toHaveBeenCalledWith('sess-1', 1, 'Hi');
-      const events = await drain(obs);
-      expect(events).toEqual(['Hello', ' world', '[DONE]']);
+      expect(chatService.streamMessage).toHaveBeenCalledWith('sess-1', 1, 'Hi', undefined);
+      expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'text/event-stream');
+      const frames = res.write.mock.calls.map((c) => c[0] as string);
+      expect(frames).toEqual([
+        'data: Hello\n\n',
+        'data:  world\n\n',
+        'event: done\ndata: [DONE]\n\n',
+      ]);
+      expect(res.end).toHaveBeenCalled();
     });
 
     it('should forward the message body to the service', async () => {
       chatService.streamMessage.mockReturnValue(makeAsyncIterable([]) as never);
+      const res = makeMockRes();
 
-      await drain(controller.sendMessage('sess-1', 1, { message: 'What is LangGraph?' }));
+      await controller.sendMessage(
+        'sess-1',
+        1,
+        { message: 'What is LangGraph?' },
+        res as never,
+      );
 
       expect(chatService.streamMessage).toHaveBeenCalledWith(
         'sess-1',
         1,
         'What is LangGraph?',
+        undefined,
       );
     });
 
     it('should scope the call to the authenticated user id', async () => {
       chatService.streamMessage.mockReturnValue(makeAsyncIterable([]) as never);
+      const res = makeMockRes();
 
-      await drain(controller.sendMessage('sess-1', 42, { message: 'Hi' }));
+      await controller.sendMessage('sess-1', 42, { message: 'Hi' }, res as never);
 
-      expect(chatService.streamMessage).toHaveBeenCalledWith('sess-1', 42, 'Hi');
+      expect(chatService.streamMessage).toHaveBeenCalledWith('sess-1', 42, 'Hi', undefined);
     });
   });
 

@@ -99,6 +99,26 @@ export class NoteService {
   }
 
   /**
+   * Keyword / full-text search (FTS spanish + ILIKE fallback). Used by the
+   * semantic tool and RAG injection as a fallback when the vector store is
+   * unavailable — guarantees the agent can always find notes by keywords.
+   */
+  async keywordSearch(
+    query: string,
+    topK = 5,
+  ): Promise<
+    Array<{
+      id: string;
+      title: string;
+      categoryPath: string | null;
+      tags: string[];
+      snippet: string;
+    }>
+  > {
+    return this.repository.keywordSearch(query, topK);
+  }
+
+  /**
    * Rename a category folder. Updates category_path on all notes whose path
    * equals `oldPath` or starts with `oldPath.`. Returns the number of notes
    * affected. Also re-extracts wikilinks for each updated note so backlinks
