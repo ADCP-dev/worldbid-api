@@ -239,7 +239,17 @@
         "enterModelManually": "Ingresar manualmente",
         "noModelsFetched": "No se obtuvieron modelos",
         "selectedModel": "Seleccionado",
-        "headersExample": "Ejemplo: clave \"Authorization\", valor \"Bearer xxx\""
+        "headersExample": "Ejemplo: clave \"Authorization\", valor \"Bearer xxx\"",
+        "integrationsTitle": "Integraciones",
+        "integrationsAdd": "Agregar",
+        "tavilyDesc": "Búsqueda web en tiempo real (search, extract, crawl)",
+        "tavilyTitle": "Conectar Tavily",
+        "tavilyConnect": "Conectar",
+        "tavilyHelp": "Pegá tu API key de Tavily (empieza con tvly-). Se agrega como servidor MCP remoto con search, extract, crawl, map y research.",
+        "tavilyAdded": "Tavily conectado",
+        "tavilyAlready": "Tavily ya está conectado.",
+        "tavilyKeyHint": "Obtenela en app.tavily.com — se guarda en la URL del servidor MCP.",
+        "fieldApiKey": "API key"
       },
       "nav": {
         "notes": "Notas",

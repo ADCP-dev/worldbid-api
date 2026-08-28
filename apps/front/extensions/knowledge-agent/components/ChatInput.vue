@@ -2,7 +2,7 @@
 import { computed, nextTick, ref } from 'vue';
 import { toast } from 'vue-sonner';
 import {
-  SendHorizonal,
+  ArrowUp,
   Paperclip,
   X,
   FileText,
@@ -135,13 +135,16 @@ function autoResize(): void {
   const el = textareaRef.value;
   if (!el) return;
   el.style.height = 'auto';
-  el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+  el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
 }
+
+const canSubmit = computed(
+  () => !props.disabled && !reading.value && (text.value.trim().length > 0 || files.value.length > 0),
+);
 
 async function submit(): Promise<void> {
   const content = text.value.trim();
-  if (props.disabled || reading.value) return;
-  if (!content && files.value.length === 0) return;
+  if (!canSubmit.value) return;
 
   let attachments: PendingAttachment[] = [];
   if (files.value.length > 0) {
@@ -177,90 +180,106 @@ function onKeydown(e: KeyboardEvent): void {
 </script>
 
 <template>
-  <div class="border-t border-base-300 bg-base-100 p-3">
+  <!-- OpenCode-style floating composer pill -->
+  <div class="px-3 pb-3 pt-1 bg-gradient-to-t from-base-100 via-base-100 to-transparent">
     <div class="max-w-4xl mx-auto">
-      <!-- Selected attachment chips -->
-      <div v-if="files.length > 0" class="flex flex-wrap gap-2 mb-2">
+      <!-- Attachment chips: inside the pill, above the text row -->
+      <div v-if="files.length > 0" class="flex flex-wrap gap-2 px-3 pt-3">
         <div
           v-for="(f, i) in files"
           :key="`${f.file.name}-${i}`"
-          class="flex items-center gap-1.5 rounded-xl border border-base-300 bg-base-200/60 p-1 pr-1"
+          class="flex items-center gap-2 rounded-lg border border-base-300 bg-base-200/70 pl-1 pr-0.5 py-0.5"
         >
           <img
             v-if="f.previewUrl"
             :src="f.previewUrl"
             :alt="f.file.name"
-            class="w-10 h-10 rounded-lg object-cover"
+            class="w-8 h-8 rounded-md object-cover"
           >
           <span
             v-else
-            class="w-10 h-10 rounded-lg bg-base-300/60 flex items-center justify-center text-base-content/70"
+            class="w-8 h-8 rounded-md bg-base-300/70 flex items-center justify-center text-base-content/70"
           >
-            <FileAudio v-if="isAudioFile(f)" :size="18" />
-            <ImageIcon v-else-if="isImageFile(f)" :size="18" />
-            <FileText v-else :size="18" />
+            <FileAudio v-if="isAudioFile(f)" :size="15" />
+            <ImageIcon v-else-if="isImageFile(f)" :size="15" />
+            <FileText v-else :size="15" />
           </span>
-          <span class="flex flex-col min-w-0 max-w-[160px]">
-            <span class="text-xs truncate">{{ f.file.name }}</span>
-            <span class="text-[10px] text-base-content/50">{{ formatSize(f.file.size) }}</span>
+          <span class="flex flex-col min-w-0 max-w-[150px] leading-tight">
+            <span class="text-[11px] truncate font-medium">{{ f.file.name }}</span>
+            <span class="text-[9px] text-base-content/50">{{ formatSize(f.file.size) }}</span>
           </span>
           <button
             type="button"
-            class="btn btn-ghost btn-xs btn-circle"
+            class="btn btn-ghost btn-xs btn-circle h-5 w-5 min-h-5"
             :aria-label="t('ext.ka.chat.removeAttachment')"
             @click="removeFile(i)"
           >
-            <X :size="13" />
+            <X :size="11" />
           </button>
         </div>
       </div>
 
-      <div class="flex items-end gap-2">
-        <input
-          ref="fileInputRef"
-          type="file"
-          multiple
-          :accept="accept"
-          class="hidden"
-          @change="onPickFiles"
-        >
-        <button
-          type="button"
-          class="btn btn-ghost btn-square"
-          :disabled="disabled"
-          :aria-label="t('ext.ka.chat.attach')"
-          @click="fileInputRef?.click()"
-        >
-          <Paperclip :size="18" />
-        </button>
-        <textarea
-          ref="textareaRef"
-          v-model="text"
-          :placeholder="placeholder ?? t('ext.ka.chat.inputPlaceholder', 'Escribe al agente…')"
-          :disabled="disabled"
-          rows="1"
-          class="textarea textarea-bordered flex-1 resize-none leading-normal"
-          style="max-height: 200px;"
-          @input="autoResize"
-          @keydown="onKeydown"
-        />
-        <button
-          class="btn btn-primary btn-square"
-          :disabled="disabled || reading || (!text.trim() && files.length === 0)"
-          :aria-label="t('ext.ka.chat.send', 'Send message')"
-          @click="submit"
-        >
-          <span v-if="disabled || reading" class="loading loading-spinner loading-sm"/>
-          <SendHorizonal v-else :size="18" />
-        </button>
+      <div
+        class="ka-composer rounded-3xl border border-base-300 bg-base-200/80 shadow-lg focus-within:border-primary/60 transition-colors"
+      >
+        <div class="flex items-end gap-1 px-2 py-1.5">
+          <input
+            ref="fileInputRef"
+            type="file"
+            multiple
+            :accept="accept"
+            class="hidden"
+            @change="onPickFiles"
+          >
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm btn-circle shrink-0 text-base-content/70 hover:text-primary"
+            :disabled="disabled"
+            :aria-label="t('ext.ka.chat.attach')"
+            :title="t('ext.ka.chat.attach')"
+            @click="fileInputRef?.click()"
+          >
+            <Paperclip :size="18" />
+          </button>
+
+          <textarea
+            ref="textareaRef"
+            v-model="text"
+            :placeholder="placeholder ?? t('ext.ka.chat.inputPlaceholder', 'Escribe al agente…')"
+            :disabled="disabled"
+            rows="1"
+            class="ka-composer-input flex-1 bg-transparent border-none outline-none resize-none leading-relaxed py-2 min-h-[38px] text-sm placeholder:text-base-content/40 focus:outline-none"
+            style="max-height: 180px;"
+            @input="autoResize"
+            @keydown="onKeydown"
+          />
+
+          <button
+            type="button"
+            class="ka-send btn btn-circle btn-sm shrink-0 border-none text-primary-content shadow-md transition-all"
+            :class="canSubmit ? 'bg-primary hover:bg-primary/90' : 'bg-base-300 text-base-content/40 cursor-not-allowed'"
+            :disabled="disabled || reading || !canSubmit"
+            :aria-label="t('ext.ka.chat.send', 'Send message')"
+            @click="submit"
+          >
+            <span v-if="disabled || reading" class="loading loading-spinner loading-xs" />
+            <ArrowUp v-else :size="18" :stroke-width="2.5" />
+          </button>
+        </div>
       </div>
-      <p class="text-xs text-base-content/40 text-center mt-1.5 flex items-center justify-center gap-1.5">
-        <kbd class="kbd kbd-xs">Enter</kbd>
-        {{ t('ext.ka.chat.hintSend', 'to send') }}
-        <span class="opacity-40">·</span>
-        <kbd class="kbd kbd-xs">Shift</kbd><span class="opacity-60">+</span><kbd class="kbd kbd-xs">Enter</kbd>
-        {{ t('ext.ka.chat.hintNewline', 'for a newline') }}
-      </p>
     </div>
   </div>
 </template>
+
+<style scoped>
+.ka-composer :deep(textarea) {
+  field-sizing: content;
+}
+/* Slim scrollbar-free composer input */
+.ka-composer-input::-webkit-scrollbar {
+  display: none;
+}
+.ka-composer-input {
+  scrollbar-width: none;
+}
+</style>

@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query';
 import { toast } from 'vue-sonner';
-import { Pencil, Plug, Plus, Trash2 } from 'lucide-vue-next';
+import { Pencil, Plug, Plus, Trash2, Globe } from 'lucide-vue-next';
 import { useMcpServers, type McpServer } from '@ka/composables/useAgentConfig';
 import FormInput from '@base/ui-app/components/form/FormInput.vue';
 import FormSelect from '@base/ui-app/components/form/FormSelect.vue';
@@ -156,6 +156,42 @@ function onSubmit(): void {
 function toggleEnabled(s: McpServer): void {
   toggleMutation.mutate({ id: s.id, enabled: !s.enabled });
 }
+
+/* ── Tavily one-click integration ─────────────────────────────────────── */
+const TAVILY_MCP_URL = 'https://mcp.tavily.com/mcp/?tavilyApiKey=';
+const tavilyModalOpen = ref(false);
+const tavilyKey = ref('');
+const tavilyConnected = computed(() =>
+  (servers.value ?? []).some((s) => s.name === 'tavily'),
+);
+
+function openTavilyModal(): void {
+  tavilyKey.value = '';
+  tavilyModalOpen.value = true;
+}
+
+const addTavilyMutation = useMutation({
+  mutationFn: () =>
+    createServer({
+      name: 'tavily',
+      transport: 'http',
+      url: `${TAVILY_MCP_URL}${tavilyKey.value.trim()}`,
+      enabled: true,
+    }),
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['ka-mcp-servers'] });
+    toast.success(t('ext.ka.settings.tavilyAdded', 'Tavily conectado'));
+    tavilyModalOpen.value = false;
+  },
+  onError: (err) => {
+    toast.error(err instanceof Error ? err.message : t('ext.ka.settings.saveError', 'Save failed'));
+  },
+});
+
+function submitTavily(): void {
+  if (!tavilyKey.value.trim()) return;
+  addTavilyMutation.mutate();
+}
 </script>
 
 <template>
@@ -177,6 +213,31 @@ function toggleEnabled(s: McpServer): void {
           {{ t('ext.ka.settings.newMcpServer') }}
         </button>
       </header>
+
+      <!-- ── Integrations menu: one-click MCP presets ──────────────────── -->
+      <section class="card bg-base-200/40 border border-base-300/60 p-4">
+        <h2 class="text-sm font-semibold uppercase tracking-wide text-base-content/60 mb-3">
+          {{ t('ext.ka.settings.integrationsTitle', 'Integraciones') }}
+        </h2>
+        <div class="flex flex-wrap gap-3">
+          <!-- Tavily: remote MCP, key-in-URL -->
+          <div class="flex items-center gap-3 rounded-xl border border-base-300 bg-base-100 p-3">
+            <div class="w-9 h-9 rounded-lg bg-primary/15 text-primary flex items-center justify-center shrink-0">
+              <Globe :size="18" />
+            </div>
+            <div class="min-w-0">
+              <h3 class="text-sm font-semibold leading-tight">Tavily</h3>
+              <p class="text-xs text-base-content/50 leading-tight">
+                {{ t('ext.ka.settings.tavilyDesc', 'Búsqueda web en tiempo real (search, extract, crawl)') }}
+              </p>
+            </div>
+            <button class="btn btn-xs btn-primary gap-1 ml-2 shrink-0" @click="openTavilyModal">
+              <Plus :size="12" />
+              {{ t('ext.ka.settings.integrationsAdd', 'Agregar') }}
+            </button>
+          </div>
+        </div>
+      </section>
 
       <section class="space-y-3">
         <div v-if="isLoading" class="flex justify-center py-8">
@@ -324,5 +385,30 @@ function toggleEnabled(s: McpServer): void {
       </div>
       <form method="dialog" class="modal-backdrop" @click="cancelDelete" />
     </dialog>
+
+    <!-- Tavily integration modal: paste key → done -->
+    <KaFormModal
+      v-model="tavilyModalOpen"
+      :title="t('ext.ka.settings.tavilyTitle', 'Conectar Tavily')"
+      :loading="addTavilyMutation.isPending.value"
+      :submit-label="t('ext.ka.settings.tavilyConnect', 'Conectar')"
+      @submit="submitTavily"
+    >
+      <div v-if="tavilyConnected" class="alert alert-success text-sm">
+        <span>{{ t('ext.ka.settings.tavilyAlready', 'Tavily ya está conectado.') }}</span>
+      </div>
+      <p class="text-sm text-base-content/70">
+        {{ t('ext.ka.settings.tavilyHelp', 'Pegá tu API key de Tavily (empieza con tvly-). Se agregará como servidor MCP remoto con search, extract, crawl, map y research.') }}
+      </p>
+      <FormInput
+        v-model="tavilyKey"
+        :label="t('ext.ka.settings.fieldApiKey', 'API key')"
+        placeholder="tvly-dev-…"
+        required
+      />
+      <p class="text-xs text-base-content/40">
+        {{ t('ext.ka.settings.tavilyKeyHint', 'Obtenela en app.tavily.com — se guarda en la URL del servidor MCP.') }}
+      </p>
+    </KaFormModal>
   </ConfigLayout>
 </template>

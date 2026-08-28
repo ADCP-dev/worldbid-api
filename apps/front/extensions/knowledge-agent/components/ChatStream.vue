@@ -201,13 +201,17 @@ defineExpose({ resetMessages });
           </div>
 
           <template v-else>
-            <!-- Thinking indicator (assistant placeholder not started yet) -->
+            <!-- Thinking indicator: sits exactly where the assistant reply
+                 will appear (below the last user message), same box metrics
+                 as a message row so there is no layout jump. -->
             <div
               v-if="showThinking"
-              class="flex items-center gap-2.5 py-3 px-2 text-base-content/60"
+              class="flex justify-start py-3 px-2"
             >
-              <span class="loading loading-dots loading-sm text-primary" />
-              <span class="text-sm">{{ t('ext.ka.chat.thinking') }}</span>
+              <div class="max-w-[85%] rounded-2xl rounded-bl-md bg-base-200/70 border border-base-300/50 px-4 py-3 flex items-center gap-2.5">
+                <span class="loading loading-dots loading-sm text-primary" />
+                <span class="text-sm text-base-content/60">{{ t('ext.ka.chat.thinking') }}</span>
+              </div>
             </div>
             <ChatMessage
               v-for="msg in visibleMessages"
