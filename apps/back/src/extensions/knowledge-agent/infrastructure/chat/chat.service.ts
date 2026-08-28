@@ -193,7 +193,12 @@ export class ChatService {
     return messages
       .map((m) => this.toHistoryEntry(m))
       .filter(
-        (e): e is { role: 'user' | 'assistant'; content: string } => e !== null,
+        (e): e is { role: 'user' | 'assistant'; content: string } =>
+          e !== null &&
+          // Drop empty assistant shells (LangGraph persists an empty AI
+          // message alongside the streamed one — they render as blank
+          // bubbles in the UI).
+          !(e.role === 'assistant' && e.content.trim() === ''),
       );
   }
 
@@ -201,8 +206,10 @@ export class ChatService {
    * Map a LangGraph BaseMessage to a history entry. Only `human` (user) and
    * `ai` (assistant) messages are surfaced; tool calls and system messages
    * are dropped (they are internal to the agent run, not chat UI content).
-   * Content may be a string or a complex content block array; non-string
-   * content is stringified defensively.
+   *
+   * For user messages, the injected RAG context block is stripped — the
+   * checkpointer stores the full augmented prompt (RAG + user text) but the
+   * UI should show only what the user actually typed.
    */
   private toHistoryEntry(msg: {
     getType: () => string;
@@ -210,12 +217,25 @@ export class ChatService {
   }): { role: 'user' | 'assistant'; content: string } | null {
     const type = msg.getType();
     if (type === 'human') {
-      return { role: 'user', content: this.contentToString(msg.content) };
+      const raw = this.contentToString(msg.content);
+      return { role: 'user', content: this.stripRagContext(raw) };
     }
     if (type === 'ai') {
       return { role: 'assistant', content: this.contentToString(msg.content) };
     }
     return null;
+  }
+
+  /**
+   * Remove the RAG context block from an augmented user prompt. The context
+   * is appended AFTER the user text behind a unique sentinel header
+   * (see buildUserContent) — cut at the LAST occurrence to survive a user
+   * literally typing the sentinel earlier in their message.
+   */
+  private stripRagContext(content: string): string {
+    const sentinel = '\n---\n[Knowledge base context]';
+    const idx = content.lastIndexOf(sentinel);
+    return idx === -1 ? content : content.slice(0, idx);
   }
 
   private contentToString(content: unknown): string {
@@ -481,9 +501,14 @@ export class ChatService {
     attachments: MessageAttachmentDto[] | undefined,
     ragContext: string | null,
   ): string | ContentBlock[] {
-    const textParts: string[] = [];
-    if (ragContext) textParts.push(ragContext, '');
-    textParts.push(message);
+    const textParts: string[] = [message];
+
+    // RAG context goes AFTER the user text behind a unique sentinel so
+    // toHistoryEntry can strip it back off for the UI (the user bubble must
+    // show only what the user typed, not the injected context).
+    if (ragContext) {
+      textParts.push('', '---', '[Knowledge base context]', '', ragContext);
+    }
 
     const media: ContentBlock[] = [];
     for (const att of attachments ?? []) {
