@@ -159,6 +159,16 @@ export function useChatStream() {
         for (const frame of extractFrames()) {
           if (frame.event === 'done' || frame.data === '[DONE]') continue;
 
+          if (frame.event === 'error') {
+            try {
+              const payload = JSON.parse(frame.data) as { message?: string };
+              error.value = payload.message ?? 'Unknown stream error';
+            } catch {
+              error.value = frame.data;
+            }
+            continue;
+          }
+
           if (frame.event === 'tool_call') {
             try {
               const payload = JSON.parse(frame.data) as {
