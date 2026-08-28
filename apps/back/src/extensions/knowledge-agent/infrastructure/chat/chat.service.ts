@@ -234,11 +234,15 @@ export class ChatService {
     const threadId = run.threadId;
 
     const stream = await this.invokeStream(agent, payload, threadId);
+    this.logger.log(`Stream opened for session ${sessionId}, iterating messages...`);
+    let chunkCount = 0;
     for await (const msg of stream.messages) {
       for await (const part of msg.text) {
+        chunkCount++;
         yield this.toChunk(part);
       }
     }
+    this.logger.log(`Stream completed for session ${sessionId}, chunks=${chunkCount}`);
   }
 
   /**
