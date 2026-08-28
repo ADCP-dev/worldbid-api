@@ -31,11 +31,27 @@ FROM nginx:alpine AS prod
 
 # Configure nginx: listen on 3000, relative redirects (preserve HTTPS),
 # and SPA fallback (try_files index.html for client-side routes).
-# The default nginx.conf has a `location /` block with `try_files $uri $uri/ =404;`
-# We replace the =404 with /index.html for SPA routing.
-RUN sed -i 's/listen       80;/listen       3000;\n    port_in_redirect off;\n    absolute_redirect off;/' /etc/nginx/conf.d/default.conf \
-    && sed -i 's/listen  \[::\]:80;/listen  [::]:3000;/' /etc/nginx/conf.d/default.conf \
-    && sed -i 's/try_files \$uri \$uri\/ =404;/try_files $uri $uri\/ \/index.html;/' /etc/nginx/conf.d/default.conf
+# Replace the entire default.conf with a minimal SPA server config.
+RUN cat > /etc/nginx/conf.d/default.conf << 'NGINXEOF'
+server {
+    listen       3000;
+    listen  [::]:3000;
+    server_name  localhost;
+    port_in_redirect off;
+    absolute_redirect off;
+
+    location / {
+        root   /usr/share/nginx/html;
+        index  index.html index.htm;
+        try_files $uri $uri/ /index.html;
+    }
+
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+}
+NGINXEOF
 
 # Remove default nginx index files and copy the built static output.
 RUN rm -rf /usr/share/nginx/html/*
