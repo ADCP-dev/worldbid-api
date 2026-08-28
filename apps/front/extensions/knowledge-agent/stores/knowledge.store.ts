@@ -19,7 +19,10 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
 
   function selectNote(id: string | null) {
     selectedId.value = id
-    if (id) view.value = 'editor'
+    // If the user is already in split or editor view, keep that view —
+    // switching notes shouldn't force them back to editor-only.
+    // Only switch to editor if we're currently in graph-only view.
+    if (id && view.value === 'graph') view.value = 'editor'
   }
 
   function openGraph() {

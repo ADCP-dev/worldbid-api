@@ -111,7 +111,12 @@ const creating = ref(false);
 async function newChat() {
   creating.value = true;
   try {
-    const session = await createMutation.mutateAsync({ title: 'New Chat' });
+    // Default to the first agent config if none specified.
+    const defaultConfigId = agentConfigs.value?.[0]?.id;
+    const session = await createMutation.mutateAsync({
+      title: 'New Chat',
+      agentConfigId: defaultConfigId,
+    });
     await navigateTo(`/app/agent/${session.id}`);
   } finally {
     creating.value = false;
