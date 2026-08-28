@@ -130,6 +130,7 @@ export class ChatSessionController {
    * when the agent run finishes (async iterable exhausts).
    */
   @Post(':sessionId/message')
+  @HttpCode(HttpStatus.OK)
   @ApiParam({ name: 'sessionId', type: String })
   sendMessage(
     @Param('sessionId') sessionId: string,
