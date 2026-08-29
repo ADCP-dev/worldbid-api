@@ -20,7 +20,16 @@ import { GlobalExceptionFilter } from './modules/error-tracker/filters/global-ex
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     rawBody: true,
+    // Chat file attachments (base64 images/PDFs/audio) ride in the JSON
+    // body — Express's default 100KB json limit rejected any real image
+    // with 500. 50MB (binary cap) ≈ 20MB raw payload headroom.
+    bodyParser: true,
   });
+  const expressJson = await import('express');
+  const { json } = expressJson;
+  const REQUEST_SIZE_LIMIT = '20mb';
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+  app.use(json({ limit: REQUEST_SIZE_LIMIT }));
   app.set('query parser', 'extended');
 
   useContainer(app.select(AppModule), { fallbackOnErrors: true });
