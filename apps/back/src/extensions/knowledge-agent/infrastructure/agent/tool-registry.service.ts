@@ -57,9 +57,12 @@ export class ToolRegistryService {
     const toolsFile = join(extensionsDir, name, 'agent.tools');
     let mtimeMs: number;
     try {
-      mtimeMs = this.statMtimeMs(`${toolsFile}.ts`);
+      // Discovery must work in both runtimes: dev serves `agent.tools.ts`,
+      // prod serves `dist/**/agent.tools.js`. A file exists if EITHER is
+      // present (stat both; first hit wins).
+      mtimeMs = this.statMtimeMs(`${toolsFile}.ts`, `${toolsFile}.js`);
     } catch {
-      // No agent.tools.ts — skip gracefully.
+      // No agent.tools.{ts,js} — skip gracefully.
       return [];
     }
 
@@ -103,9 +106,19 @@ export class ToolRegistryService {
       .map((e) => e.name);
   }
 
-  /** Return mtime ms for a file. Stubbed in tests. */
-  protected statMtimeMs(file: string): number {
-    return statSync(file).mtimeMs;
+  /**
+   * Return mtime ms for the first existing candidate file. Throws when none
+   * exist. Stubbed in tests.
+   */
+  protected statMtimeMs(...candidates: string[]): number {
+    for (const file of candidates) {
+      try {
+        return statSync(file).mtimeMs;
+      } catch {
+        // Try the next candidate.
+      }
+    }
+    throw new Error(`No tool file found: ${candidates.join(', ')}`);
   }
 
   protected resolveExtensionsDir(): string {

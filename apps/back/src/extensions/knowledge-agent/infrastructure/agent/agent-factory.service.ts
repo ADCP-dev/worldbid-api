@@ -64,7 +64,8 @@ export class AgentFactoryService {
       throw new NotFoundException(`AgentConfig ${configId} not found`);
     }
 
-    const hash = this.hashConfig(config, userId);
+    const mcpSignature = await this.getMcpSignature(config);
+    const hash = this.hashConfig(config, userId, mcpSignature);
     const cacheKey = `${configId}:${userId}`;
     const cached = this.cache.get(cacheKey);
     if (cached && cached.hash === hash) {
@@ -76,6 +77,23 @@ export class AgentFactoryService {
     const agent = await this.constructAgent(config, userId);
     this.cache.set(cacheKey, { agent, hash });
     return agent;
+  }
+
+  /**
+   * Snapshot signature of the effective MCP server set (row state: url,
+   * headers, enabled, apiKeyRef name). Edits to an MCP server row change
+   * this key → cached agents rebuild. Loader failure degrades gracefully:
+   * the signature is cache-invalidation sugar, not a hard dependency.
+   */
+  private async getMcpSignature(config: AgentConfig): Promise<string> {
+    try {
+      return await this.mcpLoader.getSnapshotKey(config.mcpServerIds);
+    } catch (err) {
+      this.logger.warn(
+        `MCP snapshot key failed (cache-key fallback): ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return 'unavailable';
+    }
   }
 
   private async constructAgent(
@@ -128,13 +146,22 @@ export class AgentFactoryService {
     });
   }
 
-  /** Hash the mutable fields that should invalidate the cache. */
-  private hashConfig(config: AgentConfig, userId: number): string {
+  /**
+   * Hash the mutable fields that should invalidate the cache. The MCP
+   * snapshot signature covers row-level MCP changes (url/headers/enabled/
+   * apiKeyRef) that the config object alone cannot see.
+   */
+  private hashConfig(
+    config: AgentConfig,
+    userId: number,
+    mcpSignature: string,
+  ): string {
     const payload = JSON.stringify({
       systemPrompt: config.systemPrompt,
       model: config.model,
       permissions: config.permissions,
       mcpServerIds: [...config.mcpServerIds].sort(),
+      mcpSignature,
       userId,
     });
     return createHash('sha1').update(payload).digest('hex');

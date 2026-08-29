@@ -27,11 +27,14 @@ describe('McpLoaderService', () => {
     }) as McpServer;
 
   const makeTool = (name: string): StructuredTool =>
-    ({ name } as unknown as StructuredTool);
+    ({ name }) as unknown as StructuredTool;
 
   beforeEach(async () => {
     getTools = jest.fn();
-    createClient = jest.fn().mockReturnValue({ getTools });
+    createClient = jest.fn().mockImplementation(() => ({
+      getTools,
+      close: jest.fn().mockResolvedValue(undefined),
+    }));
 
     const repoMock = {
       findEnabledByIds: jest.fn(),
@@ -55,12 +58,17 @@ describe('McpLoaderService', () => {
       ],
     }).compile();
     service = module.get<McpLoaderService>(McpLoaderService);
-    mcpServerRepo = module.get(McpServerRepository) as jest.Mocked<McpServerRepository>;
+    mcpServerRepo = module.get(
+      McpServerRepository,
+    ) as jest.Mocked<McpServerRepository>;
     service['logger'] = new Logger() as unknown as Logger;
     service['createMcpClient'] = createClient;
   });
 
-  afterEach(() => jest.clearAllMocks());
+  afterEach(() => {
+    jest.clearAllMocks();
+    delete process.env.MCP_TEST_KEY;
+  });
 
   it('should load tools from enabled MCP servers from DB', async () => {
     mcpServerRepo.findEnabledByIds.mockResolvedValue([
@@ -85,11 +93,13 @@ describe('McpLoaderService', () => {
 
     expect(mcpServerRepo.findAllEnabled).toHaveBeenCalled();
     expect(mcpServerRepo.findEnabledByIds).not.toHaveBeenCalled();
-    expect(
-      tools.map((t) => (t as unknown as { name: string }).name),
-    ).toContain('tavily_search');
+    expect(tools.map((t) => (t as unknown as { name: string }).name)).toContain(
+      'tavily_search',
+    );
     expect(createClient).toHaveBeenCalledWith(
-      expect.objectContaining({ tavily: expect.objectContaining({ transport: 'http' }) }),
+      expect.objectContaining({
+        tavily: expect.objectContaining({ transport: 'http' }),
+      }),
     );
   });
 
@@ -101,13 +111,30 @@ describe('McpLoaderService', () => {
     getTools.mockImplementation(() => new Promise(() => {})); // never resolves
 
     const promise = service.load(['srv-1']);
-    await Promise.resolve(); // flush the microtask that schedules the timeout
-    await Promise.resolve();
+    // Flush the async chain (repo → allSettled → acquireClient) so the
+    // per-server timeout timer exists on the fake clock before advancing.
+    for (let i = 0; i < 25; i++) await Promise.resolve();
     jest.advanceTimersByTime(20_500);
     const tools = await promise;
     jest.useRealTimers();
 
     expect(tools).toEqual([]);
+  });
+
+  it('should isolate failures: a dead server must not poison healthy ones', async () => {
+    mcpServerRepo.findEnabledByIds.mockResolvedValue([
+      makeServer({ id: 's-dead', name: 'dead' }),
+      makeServer({ id: 's-alive', name: 'alive' }),
+    ]);
+    getTools
+      .mockRejectedValueOnce(new Error('connection refused'))
+      .mockResolvedValueOnce([makeTool('healthy_tool')]);
+
+    const tools = await service.load(['s-dead', 's-alive']);
+
+    expect(createClient).toHaveBeenCalledTimes(2);
+    const names = tools.map((t) => (t as unknown as { name: string }).name);
+    expect(names).toEqual(['healthy_tool']);
   });
 
   it('should return empty array (not throw) if all servers are down', async () => {
@@ -122,23 +149,43 @@ describe('McpLoaderService', () => {
     expect(tools).toEqual([]);
   });
 
-  it('should merge tools from multiple servers + local', async () => {
+  it('should merge tools from multiple servers', async () => {
     mcpServerRepo.findEnabledByIds.mockResolvedValue([
       makeServer({ id: 's1', name: 'a' }),
       makeServer({ id: 's2', name: 'b' }),
     ]);
-    getTools.mockResolvedValue([
-      makeTool('tool_a'),
-      makeTool('tool_b'),
-      makeTool('local_tool'),
-    ]);
+    getTools
+      .mockResolvedValueOnce([makeTool('tool_a')])
+      .mockResolvedValueOnce([makeTool('tool_b')]);
 
     const tools = await service.load(['s1', 's2']);
 
     const names = tools.map((t) => (t as unknown as { name: string }).name);
-    expect(names).toEqual(
-      expect.arrayContaining(['tool_a', 'tool_b', 'local_tool']),
-    );
+    expect(names).toEqual(expect.arrayContaining(['tool_a', 'tool_b']));
+  });
+
+  it('should reuse a cached client when the connection signature is unchanged', async () => {
+    mcpServerRepo.findEnabledByIds.mockResolvedValue([
+      makeServer({ id: 'srv-1' }),
+    ]);
+    getTools.mockResolvedValue([makeTool('get_weather')]);
+
+    await service.load(['srv-1']);
+    await service.load(['srv-1']);
+
+    expect(createClient).toHaveBeenCalledTimes(1);
+  });
+
+  it('should reconnect (and close the stale client) when url changes', async () => {
+    mcpServerRepo.findEnabledByIds
+      .mockResolvedValueOnce([makeServer({ id: 'srv-1', url: 'http://old/' })])
+      .mockResolvedValueOnce([makeServer({ id: 'srv-1', url: 'http://new/' })]);
+    getTools.mockResolvedValue([makeTool('get_weather')]);
+
+    await service.load(['srv-1']);
+    await service.load(['srv-1']);
+
+    expect(createClient).toHaveBeenCalledTimes(2);
   });
 
   it('should skip stdio servers that have no command configured', async () => {
@@ -147,11 +194,111 @@ describe('McpLoaderService', () => {
     ]);
     getTools.mockResolvedValue([]);
 
-    // With the broken server filtered out, the config map is empty →
-    // load() short-circuits to [] without creating a client.
+    // With the broken server filtered out, no client is ever created —
+    // load() degrades to [] per server.
     const tools = await service.load(['srv-1']);
 
     expect(tools).toEqual([]);
     expect(createClient).not.toHaveBeenCalled();
+  });
+
+  it('should inject Authorization bearer from the env var named by apiKeyRef', async () => {
+    process.env.MCP_TEST_KEY = 'secret-sauce';
+    mcpServerRepo.findEnabledByIds.mockResolvedValue([
+      makeServer({ apiKeyRef: 'MCP_TEST_KEY' }),
+    ]);
+    getTools.mockResolvedValue([makeTool('get_weather')]);
+
+    await service.load(['srv-1']);
+
+    expect(createClient).toHaveBeenCalledWith(
+      expect.objectContaining({
+        weather: expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer secret-sauce',
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('should NOT override an explicit Authorization header with apiKeyRef', async () => {
+    process.env.MCP_TEST_KEY = 'env-secret';
+    mcpServerRepo.findEnabledByIds.mockResolvedValue([
+      makeServer({
+        apiKeyRef: 'MCP_TEST_KEY',
+        headers: { Authorization: 'Bearer explicit-header' },
+      }),
+    ]);
+    getTools.mockResolvedValue([makeTool('get_weather')]);
+
+    await service.load(['srv-1']);
+
+    expect(createClient).toHaveBeenCalledWith(
+      expect.objectContaining({
+        weather: expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer explicit-header',
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('should warn and skip injection when the apiKeyRef env var is missing', async () => {
+    delete process.env.MCP_UNSET_KEY;
+    mcpServerRepo.findEnabledByIds.mockResolvedValue([
+      makeServer({ apiKeyRef: 'MCP_UNSET_KEY' }),
+    ]);
+    getTools.mockResolvedValue([makeTool('get_weather')]);
+
+    await service.load(['srv-1']);
+
+    const call = createClient.mock.calls[0][0] as {
+      weather?: { headers?: Record<string, string> };
+    };
+    expect(call.weather?.headers).toBeUndefined();
+  });
+
+  it('should produce a different snapshot key when an MCP row changes', async () => {
+    mcpServerRepo.findEnabledByIds.mockResolvedValue([
+      makeServer({ url: 'http://old/' }),
+    ]);
+    const before = await service.getSnapshotKey(['srv-1']);
+
+    mcpServerRepo.findEnabledByIds.mockResolvedValue([
+      makeServer({ url: 'http://new/' }),
+    ]);
+    const after = await service.getSnapshotKey(['srv-1']);
+
+    expect(before).not.toBe(after);
+  });
+
+  it('should produce a stable snapshot key for identical rows', async () => {
+    mcpServerRepo.findEnabledByIds.mockResolvedValue([
+      makeServer({ name: 'a' }),
+      makeServer({ name: 'b' }),
+    ]);
+    const a = await service.getSnapshotKey(['srv-1']);
+    const b = await service.getSnapshotKey(['srv-1']);
+
+    expect(a).toBe(b);
+  });
+
+  it('should keep the snapshot key stable regardless of server order', async () => {
+    mcpServerRepo.findEnabledByIds
+      .mockResolvedValueOnce([
+        makeServer({ id: 's1', name: 'a' }),
+        makeServer({ id: 's2', name: 'b' }),
+      ])
+      .mockResolvedValueOnce([
+        makeServer({ id: 's2', name: 'b' }),
+        makeServer({ id: 's1', name: 'a' }),
+      ]);
+
+    const a = await service.getSnapshotKey(['s1', 's2']);
+    const b = await service.getSnapshotKey(['s1', 's2']);
+
+    expect(a).toBe(b);
   });
 });

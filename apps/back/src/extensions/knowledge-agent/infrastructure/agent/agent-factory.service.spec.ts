@@ -22,7 +22,13 @@ describe('AgentFactoryService', () => {
   let noteService: jest.Mocked<NoteService>;
   let vectorStoreService: jest.Mocked<VectorStoreService>;
   let createDeepAgent: jest.Mock;
-  let captured: { model?: string; systemPrompt?: string; tools?: unknown[]; backend?: unknown; permissions?: unknown };
+  let captured: {
+    model?: string;
+    systemPrompt?: string;
+    tools?: unknown[];
+    backend?: unknown;
+    permissions?: unknown;
+  };
 
   const makeConfig = (overrides: Partial<AgentConfig> = {}): AgentConfig =>
     ({
@@ -40,7 +46,7 @@ describe('AgentFactoryService', () => {
     }) as AgentConfig;
 
   const makeTool = (name: string): StructuredTool =>
-    ({ name } as unknown as StructuredTool);
+    ({ name }) as unknown as StructuredTool;
 
   beforeEach(async () => {
     captured = {};
@@ -58,6 +64,7 @@ describe('AgentFactoryService', () => {
     };
     const mcpLoaderMock = {
       load: jest.fn(),
+      getSnapshotKey: jest.fn().mockResolvedValue('sig-v1'),
     };
     const sandboxMock = {
       createSandbox: jest.fn(),
@@ -100,12 +107,18 @@ describe('AgentFactoryService', () => {
       ],
     }).compile();
     service = module.get<AgentFactoryService>(AgentFactoryService);
-    agentConfigRepo = module.get(AgentConfigRepository) as jest.Mocked<AgentConfigRepository>;
-    toolRegistry = module.get(ToolRegistryService) as jest.Mocked<ToolRegistryService>;
+    agentConfigRepo = module.get(
+      AgentConfigRepository,
+    ) as jest.Mocked<AgentConfigRepository>;
+    toolRegistry = module.get(
+      ToolRegistryService,
+    ) as jest.Mocked<ToolRegistryService>;
     mcpLoader = module.get(McpLoaderService) as jest.Mocked<McpLoaderService>;
     sandbox = module.get(SandboxService) as jest.Mocked<SandboxService>;
     noteService = module.get(NoteService) as jest.Mocked<NoteService>;
-    vectorStoreService = module.get(VectorStoreService) as jest.Mocked<VectorStoreService>;
+    vectorStoreService = module.get(
+      VectorStoreService,
+    ) as jest.Mocked<VectorStoreService>;
     service['logger'] = new Logger() as unknown as Logger;
     service['createDeepAgentImpl'] = createDeepAgent;
   });
@@ -300,6 +313,48 @@ describe('AgentFactoryService', () => {
     await service.buildAgent('cfg-1', 1);
 
     expect(mcpLoader.load).toHaveBeenCalledWith(['srv-a', 'srv-b']);
+    expect(mcpLoader.getSnapshotKey).toHaveBeenCalledWith(['srv-a', 'srv-b']);
+  });
+
+  it('should keep the cached agent when the MCP signature is unchanged', async () => {
+    agentConfigRepo.findById.mockResolvedValue(makeConfig());
+    toolRegistry.collect.mockResolvedValue([]);
+    mcpLoader.load.mockResolvedValue([]);
+    mcpLoader.getSnapshotKey.mockResolvedValue('sig-v1');
+    sandbox.createSandbox.mockResolvedValue({ stop: jest.fn() });
+
+    const first = await service.buildAgent('cfg-1', 1);
+    const second = await service.buildAgent('cfg-1', 1);
+
+    expect(first).toBe(second);
+    expect(createDeepAgent).toHaveBeenCalledTimes(1);
+  });
+
+  it('should rebuild when the MCP server row changes (snapshot key in hash)', async () => {
+    agentConfigRepo.findById.mockResolvedValue(makeConfig());
+    toolRegistry.collect.mockResolvedValue([]);
+    mcpLoader.load.mockResolvedValue([]);
+    mcpLoader.getSnapshotKey
+      .mockResolvedValueOnce('sig-v1')
+      .mockResolvedValueOnce('sig-v2'); // e.g. url/headers/enabled edited
+    sandbox.createSandbox.mockResolvedValue({ stop: jest.fn() });
+
+    const first = await service.buildAgent('cfg-1', 1);
+    const second = await service.buildAgent('cfg-1', 1);
+
+    expect(first).not.toBe(second);
+    expect(createDeepAgent).toHaveBeenCalledTimes(2);
+  });
+
+  it('should still build when the snapshot key fails (degraded cache key)', async () => {
+    agentConfigRepo.findById.mockResolvedValue(makeConfig());
+    toolRegistry.collect.mockResolvedValue([]);
+    mcpLoader.load.mockResolvedValue([]);
+    mcpLoader.getSnapshotKey.mockRejectedValue(new Error('db down'));
+    sandbox.createSandbox.mockResolvedValue({ stop: jest.fn() });
+
+    await expect(service.buildAgent('cfg-1', 1)).resolves.toBeDefined();
+    expect(createDeepAgent).toHaveBeenCalledTimes(1);
   });
 
   it('should inject NoteService and VectorStoreService for KB tools', async () => {

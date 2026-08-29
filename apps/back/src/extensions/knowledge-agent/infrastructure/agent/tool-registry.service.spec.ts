@@ -11,7 +11,7 @@ describe('ToolRegistryService', () => {
   let service: ToolRegistryService;
 
   const makeTool = (name: string): StructuredTool =>
-    ({ name } as unknown as StructuredTool);
+    ({ name }) as unknown as StructuredTool;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -126,5 +126,49 @@ describe('ToolRegistryService', () => {
     expect(tools.map((t) => (t as unknown as { name: string }).name)).toEqual([
       'good_tool',
     ]);
+  });
+
+  it('should discover tools from a compiled agent.tools.js (prod dist runtime)', async () => {
+    // Simulates prod: only agent.tools.js exists on disk. statMtimeMs must
+    // accept it — extensionless `statMtimeMs(file, file)` stub ignores the
+    // candidates and returns a fixed mtime.
+    service['listExtensionDirs'] = () => ['cms'];
+    const statCalls: string[][] = [];
+    service['statMtimeMs'] = (...candidates: string[]) => {
+      statCalls.push(candidates);
+      return 1234;
+    };
+    service['loadToolsFile'] = jest
+      .fn()
+      .mockResolvedValue([makeTool('cms_tool')]);
+
+    const tools = await service.collect();
+
+    expect(tools.map((t) => (t as unknown as { name: string }).name)).toEqual([
+      'cms_tool',
+    ]);
+    // Both candidates (.ts then .js) were offered so a .js-only runtime hits.
+    expect(statCalls[0]).toEqual([
+      '/fake/extensions/cms/agent.tools.ts',
+      '/fake/extensions/cms/agent.tools.js',
+    ]);
+  });
+
+  it('should skip an extension when neither agent.tools.ts nor .js exists', async () => {
+    // statMtimeMs throws only when both candidates are missing (real impl
+    // propagates the failure; the stub mimics it via candidates check).
+    service['listExtensionDirs'] = () => ['empty-ext'];
+    service['statMtimeMs'] = (...candidates: string[]) => {
+      if (candidates.length === 2) {
+        throw new Error('No tool file found');
+      }
+      return 1000;
+    };
+    service['loadToolsFile'] = jest.fn();
+
+    const tools = await service.collect();
+
+    expect(tools).toHaveLength(0);
+    expect(service['loadToolsFile']).not.toHaveBeenCalled();
   });
 });
