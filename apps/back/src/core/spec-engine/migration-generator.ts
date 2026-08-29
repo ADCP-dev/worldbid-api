@@ -42,6 +42,7 @@ import type {
 } from './spec.types';
 import { SpecLoader } from './spec-loader';
 import { TriggerFactory } from './trigger-factory';
+import { joinTableName } from './naming';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -726,6 +727,9 @@ export function buildSnapshot(spec: ResourceSpec): ResourceSnapshot {
 
 /**
  * Build join table snapshots from many-to-many fields.
+ * Uses the shared joinTableName helper so snapshot names always match the
+ * materialized EntitySchema (no doubled ext_ prefix). The extension name is
+ * derived from the spec (spec.name) — same value EntityFactory receives.
  */
 function buildJoinTableSnapshots(spec: ResourceSpec): JoinTableSnapshot[] {
   const snapshots: JoinTableSnapshot[] = [];
@@ -734,7 +738,7 @@ function buildJoinTableSnapshots(spec: ResourceSpec): JoinTableSnapshot[] {
     const fromCol = f.throughFields?.from ?? `${spec.name}Id`;
     const toCol = f.throughFields?.to ?? `${f.name.replace(/Id$/, '')}Id`;
     snapshots.push({
-      name: f.joinTable ?? `ext_${spec.table}_${f.name}`,
+      name: joinTableName(spec.name, spec, f),
       fromColumn: fromCol,
       toColumn: toCol,
       fromResource: spec.name,

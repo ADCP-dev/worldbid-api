@@ -6,6 +6,7 @@ import {
   AudioLines,
   Bot,
   Cpu,
+  ExternalLink,
   FileText,
   Image as ImageIcon,
   X,
@@ -14,6 +15,7 @@ import { useChatStream } from '../composables/useChatStream';
 import { useModelCapabilities } from '@ka/composables/useModelCapabilities';
 import ChatMessage from './ChatMessage.vue';
 import ChatInput from './ChatInput.vue';
+import KaFileViewer from './KaFileViewer.vue';
 
 import type { AgentChipOption } from './ChatInput.vue';
 
@@ -139,7 +141,50 @@ function onSend(content: string, attachments: OutgoingAttachment[] = []): void {
   userJustSent.value = true;
   scrollToBottom();
   void sendMessage(props.sessionId, content, attachments);
+  // The agent may have just written sandbox files; refresh the list shortly
+  // (stream end also refreshes — this catches write_file before text flows).
+  setTimeout(() => void refreshFiles(), 1500);
 }
+
+/* ── Agent-generated files (sandbox artifacts) ───────────────────────── */
+interface SandboxFile {
+  name: string;
+  path: string;
+  size: number;
+  mtime: string;
+  mime: string;
+}
+const sessionFiles = ref<SandboxFile[]>([]);
+const viewerFile = ref<SandboxFile | null>(null);
+
+async function refreshFiles(): Promise<void> {
+  try {
+    const api = useApi();
+    const list = await api.get<SandboxFile[]>(
+      `/ka/chat/sessions/${props.sessionId}/files`,
+    );
+    sessionFiles.value = list ?? [];
+  } catch {
+    sessionFiles.value = [];
+  }
+}
+
+function refreshFilesSoon(): void {
+  setTimeout(() => void refreshFiles(), 400);
+}
+
+// Initial + on-session-change fetch.
+watch(
+  () => props.sessionId,
+  async () => {
+    await refreshFiles();
+  },
+);
+
+// After a stream completes there may be new artifacts.
+watch(isStreaming, (streaming) => {
+  if (!streaming) refreshFilesSoon();
+});
 
 defineExpose({ resetMessages });
 </script>
@@ -273,6 +318,35 @@ defineExpose({ resetMessages });
     </div>
 
     <!-- Input -->
+    <!-- Generated files strip (only when the agent produced artifacts) -->
+    <div
+      v-if="sessionFiles.length > 0"
+      class="mx-3 mb-1 flex flex-wrap items-center gap-2"
+    >
+      <span class="text-[11px] uppercase tracking-wide text-base-content/50 font-semibold shrink-0">
+        {{ t('ext.ka.chat.filesLabel', 'Archivos') }}
+      </span>
+      <button
+        v-for="f in sessionFiles.slice(0, 8)"
+        :key="f.path"
+        type="button"
+        class="btn btn-xs gap-1.5 rounded-full border border-base-300 bg-base-200/70 hover:border-primary/50"
+        :title="f.path"
+        @click="viewerFile = f"
+      >
+        <FileText :size="12" class="text-primary" />
+        <span class="max-w-[140px] truncate">{{ f.name }}</span>
+        <ExternalLink :size="10" class="opacity-50" />
+      </button>
+    </div>
+
+    <KaFileViewer
+      v-if="viewerFile"
+      :file="viewerFile"
+      :session-id="sessionId"
+      @close="viewerFile = null"
+    />
+
     <ChatInput
       :disabled="isStreaming"
       :placeholder="isStreaming ? t('ext.ka.chat.streamingNow') : t('ext.ka.chat.inputPlaceholder')"

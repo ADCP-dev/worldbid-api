@@ -29,7 +29,6 @@ import {
   HttpCode,
   NotFoundException,
   BadRequestException,
-  ForbiddenException,
   Logger,
   Inject,
 } from '@nestjs/common';
@@ -40,13 +39,14 @@ import {
   FindManyOptions,
   FindOneOptions,
   EntitySchema,
+  EntityManager,
+  In,
 } from 'typeorm';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { z } from 'zod';
 import type { Request, Response } from 'express';
 
 import { Roles } from '@iam/roles/roles.decorator';
-import { RoleEnum } from '@iam/roles/roles.enum';
 import { RolesGuard } from '@iam/roles/roles.guard';
 import {
   ApiKeyAuthGuard,
@@ -77,14 +77,7 @@ import { SpecScheduledActionManager } from './spec-engine-scheduled-actions';
 import { RoleRegistry } from './role-registry';
 import { DenyAllGuard } from './deny-all.guard';
 import { PublicGuard } from './public.guard';
-
-// Role name → RoleEnum value map. Built-in roles resolve via RoleRegistry so
-// custom roles (manager) declared in ExtensionSpec.roles are honored.
-const BUILTIN_ROLE_MAP: Record<string, number | null> = {
-  admin: RoleEnum.admin,
-  user: RoleEnum.customer,
-  public: null,
-};
+import { joinTableName } from './naming';
 
 // Free function for role resolution (used inside dynamic controller class).
 // Consults RoleRegistry so custom roles (e.g. 'manager') resolve to their DB
@@ -246,6 +239,8 @@ export interface ControllerFactoryParams {
   /** The EntitySchema instance (preferred over a name string so getRepositoryToken resolves correctly). */
   entitySchema: EntitySchema<any>;
   extensionDir: string;
+  /** Extension name — drives join-table auto-naming (shared with EntityFactory). */
+  extensionName?: string;
   hookExecutor: HookExecutor;
   notificationDispatcher: NotificationDispatcher;
   isDev: boolean;
@@ -270,6 +265,7 @@ export class ControllerFactory {
       spec,
       entitySchema,
       extensionDir,
+      extensionName,
       hookExecutor,
       notificationDispatcher,
       isDev,
@@ -372,7 +368,6 @@ export class ControllerFactory {
       ) {}
 
       private dataSource: any = null;
-      private transactionManager: any = null;
 
       private getDataSource(): any {
         if (!this.dataSource) {
@@ -381,18 +376,19 @@ export class ControllerFactory {
         return this.dataSource;
       }
 
-      private getRepositoryForOperation(): Repository<any> {
-        return this.transactionManager
-          ? this.transactionManager.getRepository(entitySchemaName as any)
+      /**
+       * Resolve the repository used for the DB stage of an operation.
+       * Transaction safety (P0 fix): the EntityManager is threaded as an
+       * explicit method-local parameter through the pipeline — this class
+       * used to keep it as an instance field set inside
+       * `dataSource.transaction()` callbacks, which races on concurrent
+       * requests (singleton controller). `manager === null` means
+       * non-transactional and falls back to the injected repository.
+       */
+      private getRepositoryForOperation(manager?: EntityManager | null): Repository<any> {
+        return manager
+          ? manager.getRepository(entitySchemaName as any)
           : this.repository;
-      }
-
-      private setTransactionManager(manager: any): void {
-        this.transactionManager = manager;
-      }
-
-      private clearTransactionManager(): void {
-        this.transactionManager = null;
       }
 
       // ─── Helper: many-to-many field handling ─────────────
@@ -425,6 +421,7 @@ export class ControllerFactory {
         entity: Record<string, unknown>,
         values: Record<string, number[]>,
         operation: 'create' | 'update',
+        manager?: EntityManager | null,
       ): Promise<void> {
         const entityId = Number(entity.id);
         if (!Number.isFinite(entityId)) return;
@@ -442,8 +439,8 @@ export class ControllerFactory {
           }
 
           const entityName = (joinSchema.options as any).name as string;
-          const repo = this.transactionManager
-            ? this.transactionManager.getRepository(entityName as any)
+          const repo = manager
+            ? manager.getRepository(entityName as any)
             : this.getJoinTableRepository(f);
 
           const fromCol = f.throughFields?.from ?? `${spec.name}Id`;
@@ -479,7 +476,10 @@ export class ControllerFactory {
       }
 
       private getJoinTableName(field: FieldSpec): string {
-        return field.joinTable ?? `ext_${spec.table}_${field.name}`;
+        // Shared naming helper — MUST be the same function the entity
+        // factory used when it created the join-table EntitySchema, or the
+        // runtime lookup misses the registered schema.
+        return joinTableName(extensionName, spec, field);
       }
 
       private getJoinTableRepository(field: FieldSpec): Repository<any> {
@@ -883,7 +883,11 @@ export class ControllerFactory {
         const manyToManyValues = this.extractManyToManyValues(data);
         data = this.omitManyToManyFields(data);
 
-        const executeCore = async () => {
+        // executeCore threads the per-request EntityManager explicitly
+        // (P0 fix): no shared instance state between concurrent requests.
+        const executeCore = async (
+          manager: EntityManager | null,
+        ): Promise<{ saved: Record<string, unknown> } | { aborted: true; error: string }> => {
           // Stage 3: Before hook
           if (allHooks.beforeCreate) {
             trace.startStage('beforeHook');
@@ -913,7 +917,7 @@ export class ControllerFactory {
           trace.startStage('db');
           let saved: any;
           try {
-            const repo = this.getRepositoryForOperation();
+            const repo = this.getRepositoryForOperation(manager);
             const entity = repo.create(data);
             saved = await repo.save(entity);
             trace.endStage('db', 'pass', {
@@ -954,11 +958,13 @@ export class ControllerFactory {
 
         let saved: any;
         if (isTransactional) {
+          // The EntityManager is scoped to THIS transaction callback only —
+          // concurrent requests each get their own manager and cannot see
+          // or clear each other's.
           try {
             const outcome = await this.getDataSource().transaction(
-              async (manager: any) => {
-                this.setTransactionManager(manager);
-                const result = await executeCore();
+              async (manager: EntityManager) => {
+                const result = await executeCore(manager);
                 if ('aborted' in result) {
                   throw new HookAbortError(
                     result.error || 'Hook aborted the operation',
@@ -969,33 +975,42 @@ export class ControllerFactory {
                   result.saved,
                   manyToManyValues,
                   'create',
+                  manager,
                 );
                 return result.saved;
               },
             );
             saved = outcome;
           } catch (err) {
+            // Hook aborts are client errors — respond as an HTTP 4xx, not
+            // a 2xx body with { error } (contract fix). Trace + headers are
+            // still recorded/attached before throwing.
             if (err instanceof HookAbortError) {
               trace.finish();
               this.attachTrace(res, trace);
-              return { error: err.message };
+              throw new BadRequestException(err.message);
             }
             trace.endStage('db', 'fail', { error: (err as Error).message });
             trace.finish();
             this.attachTrace(res, trace);
             throw err;
-          } finally {
-            this.clearTransactionManager();
           }
         } else {
-          const outcome = await executeCore();
+          const outcome = await executeCore(null);
           if ('aborted' in outcome) {
             trace.finish();
             this.attachTrace(res, trace);
-            return { error: outcome.error };
+            throw new BadRequestException(
+              outcome.error || 'Hook aborted the operation',
+            );
           }
           saved = outcome.saved;
-          await this.syncManyToManyRelations(saved, manyToManyValues, 'create');
+          await this.syncManyToManyRelations(
+            saved,
+            manyToManyValues,
+            'create',
+            null,
+          );
         }
 
         // Outbound webhooks + scheduled actions (fire-and-forget)
@@ -1092,7 +1107,11 @@ export class ControllerFactory {
         const manyToManyValues = this.extractManyToManyValues(data);
         data = this.omitManyToManyFields(data);
 
-        const executeCore = async () => {
+        // executeCore threads the per-request EntityManager explicitly
+        // (P0 fix) — same rationale as create().
+        const executeCore = async (
+          manager: EntityManager | null,
+        ): Promise<{ saved: Record<string, unknown> } | { aborted: true; error: string }> => {
           // Stage 3: Before hook
           if (allHooks.beforeUpdate) {
             trace.startStage('beforeHook');
@@ -1121,7 +1140,7 @@ export class ControllerFactory {
           // Stage 4: DB
           trace.startStage('db');
           const where = this.applyRowLevelFilter(user, { id: numericId });
-          const repo = this.getRepositoryForOperation();
+          const repo = this.getRepositoryForOperation(manager);
           const existing = await repo.findOne({ where });
           if (!existing) {
             trace.endStage('db', 'fail', { error: 'Not found' });
@@ -1205,9 +1224,8 @@ export class ControllerFactory {
         if (isTransactional) {
           try {
             const outcome = await this.getDataSource().transaction(
-              async (manager: any) => {
-                this.setTransactionManager(manager);
-                const result = await executeCore();
+              async (manager: EntityManager) => {
+                const result = await executeCore(manager);
                 if ('aborted' in result) {
                   throw new HookAbortError(
                     result.error || 'Hook aborted the operation',
@@ -1222,6 +1240,7 @@ export class ControllerFactory {
                     result.saved,
                     manyToManyValues,
                     'update',
+                    manager,
                   );
                 }
                 return result.saved;
@@ -1229,24 +1248,25 @@ export class ControllerFactory {
             );
             saved = outcome;
           } catch (err) {
+            // Hook aborts are client errors — HTTP 4xx (contract fix).
             if (err instanceof HookAbortError) {
               trace.finish();
               this.attachTrace(res, trace);
-              return { error: err.message };
+              throw new BadRequestException(err.message);
             }
             trace.endStage('db', 'fail', { error: (err as Error).message });
             trace.finish();
             this.attachTrace(res, trace);
             throw err;
-          } finally {
-            this.clearTransactionManager();
           }
         } else {
-          const outcome = await executeCore();
+          const outcome = await executeCore(null);
           if ('aborted' in outcome) {
             trace.finish();
             this.attachTrace(res, trace);
-            return { error: outcome.error };
+            throw new BadRequestException(
+              outcome.error || 'Hook aborted the operation',
+            );
           }
           saved = outcome.saved;
           if (manyToManyValues && Object.keys(manyToManyValues).length > 0) {
@@ -1254,6 +1274,7 @@ export class ControllerFactory {
               saved,
               manyToManyValues,
               'update',
+              null,
             );
           }
         }
@@ -1342,10 +1363,14 @@ export class ControllerFactory {
           rolesChecked: deleteRoles,
         });
 
-        const executeCore = async () => {
+        // executeCore threads the per-request EntityManager explicitly
+        // (P0 fix) — same rationale as create().
+        const executeCore = async (
+          manager: EntityManager | null,
+        ): Promise<Record<string, unknown>> => {
           trace.startStage('db');
           const where = this.applyRowLevelFilter(user, { id: numericId });
-          const repo = this.getRepositoryForOperation();
+          const repo = this.getRepositoryForOperation(manager);
           const entity = await repo.findOne({ where });
           if (!entity) {
             trace.endStage('db', 'fail', { error: 'Not found' });
@@ -1395,21 +1420,22 @@ export class ControllerFactory {
         if (isTransactional) {
           try {
             entity = await this.getDataSource().transaction(
-              async (manager: any) => {
-                this.setTransactionManager(manager);
-                return executeCore();
-              },
+              async (manager: EntityManager) => executeCore(manager),
             );
           } catch (err) {
+            // Consistent with create/update: HookAbortError maps to HTTP 400.
+            if (err instanceof HookAbortError) {
+              trace.finish();
+              this.attachTrace(res, trace);
+              throw new BadRequestException(err.message);
+            }
             trace.endStage('db', 'fail', { error: (err as Error).message });
             trace.finish();
             this.attachTrace(res, trace);
             throw err;
-          } finally {
-            this.clearTransactionManager();
           }
         } else {
-          entity = await executeCore();
+          entity = await executeCore(null);
         }
 
         // Outbound webhooks (fire-and-forget)
@@ -1749,8 +1775,8 @@ export class ControllerFactory {
       if (parts.length === 1) {
         result[field] = parts[0];
       } else {
-        // Use a simple In operator via TypeORM FindOperator
-        const { In } = require('typeorm');
+        // Use a TypeORM In FindOperator (imported at module scope —
+        // no inline require in the request path).
         result[field] = In(parts);
       }
     }

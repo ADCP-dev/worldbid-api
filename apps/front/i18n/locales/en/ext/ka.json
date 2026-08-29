@@ -155,7 +155,12 @@
           "running": "Using {name}…",
           "waiting": "Waiting for result…",
           "error": "Error"
-        }
+        },
+        "filesLabel": "Files",
+        "saveAsPdf": "Save as PDF",
+        "downloadFile": "Download",
+        "noPreview": "No preview for this format",
+        "printUnavailable": "Print unavailable"
       },
       "settings": {
         "agents": "Agent Configs",

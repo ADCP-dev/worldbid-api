@@ -22,6 +22,8 @@
  */
 import { Logger } from '@nestjs/common';
 import * as crypto from 'crypto';
+import * as path from 'path';
+import { existsSync } from 'fs';
 import { Repository } from 'typeorm';
 
 import type { OutboundWebhookSpec, HookContext } from './spec.types';
@@ -30,6 +32,14 @@ import {
   SPEC_WEBHOOK_SUBSCRIPTION_SCHEMA_NAME,
   SpecWebhookSubscriptionRow,
 } from './spec-engine-scheduled-actions';
+import {
+  postJsonWithTimeout,
+  resolveWebhookSecret,
+} from './outbound-http';
+import {
+  loadExtensionModule,
+  extractModuleExport,
+} from './extension-module-loader';
 
 // ─── types ────────────────────────────────────────────────────────────────
 
@@ -75,7 +85,7 @@ export class OutboundWebhookDispatcher {
 
     if (!webhooks || webhooks.length === 0) return summary;
 
-    const secret = process.env.WEBHOOK_HMAC_SECRET || '';
+    const envSecret = process.env.WEBHOOK_HMAC_SECRET || '';
 
     // Build the canonical payload once. Per-webhook transforms (if any) are
     // applied per-target; the base payload is shared.
@@ -147,13 +157,23 @@ export class OutboundWebhookDispatcher {
 
       // Fire each target. Fire-and-forget at the dispatch() level — errors
       // are collected into the summary and reported, but never thrown.
+      // Per-webhook HMAC secret precedence (P1 fix):
+      //   1. target.secret (dynamic subscription row)
+      //   2. spec webhooks[].hmacSecret (per-webhook static secret)
+      //   3. WEBHOOK_HMAC_SECRET env fallback (existing behavior)
+      //   4. none → deliver UNSIGNED with a one-time loud WARN.
       for (const target of targets) {
-        const targetSecret = target.secret || secret;
+        const resolved = resolveWebhookSecret({
+          webhookKey: `${webhook.name}:${target.url}`,
+          webhookName: webhook.name,
+          specSecret: target.secret || (webhook as OutboundWebhookSpec).hmacSecret,
+          envSecret: envSecret,
+        });
         const result = await this.fireOne(
           webhook.name,
           target.url,
           payload,
-          targetSecret,
+          resolved,
           ctx,
         );
         summary.results.push(result);
@@ -308,12 +328,10 @@ export class OutboundWebhookDispatcher {
     // have the extension dir here directly, but the spec guarantees the
     // handler path is relative to the spec dir, which the boot service can
     // resolve. As a fallback we resolve relative to process.cwd().
-    const path = require('path') as typeof import('path');
-    const fs = require('fs') as typeof import('fs');
     let resolved: string;
     try {
       resolved = path.resolve(process.cwd(), handlerPath);
-      if (!fs.existsSync(resolved)) {
+      if (!existsSync(resolved)) {
         // Try resolving via the loaded specs to find the extension dir.
         resolved = this.resolveViaLoadedSpecs(handlerPath);
       }
@@ -322,14 +340,8 @@ export class OutboundWebhookDispatcher {
     }
     if (!resolved) return null;
     try {
-      const requirePath =
-        process.env.NODE_ENV === 'production'
-          ? resolved.replace(/\.ts$/, '.js')
-          : resolved;
-
-      const mod = require(requirePath);
-      const fn =
-        mod && typeof mod === 'object' && 'default' in mod ? mod.default : mod;
+      const mod = loadExtensionModule(resolved);
+      const fn = extractModuleExport(mod);
       if (typeof fn !== 'function') return null;
       return fn;
     } catch (err) {
@@ -341,8 +353,6 @@ export class OutboundWebhookDispatcher {
   }
 
   private static resolveViaLoadedSpecs(handlerPath: string): string {
-    const path = require('path') as typeof import('path');
-    const fs = require('fs') as typeof import('fs');
     try {
       const moduleRef = SpecEngineBootService.getModuleRef();
       const loadedSpecs = moduleRef.get<any[]>('SPEC_LOADED_SPECS', {
@@ -351,7 +361,7 @@ export class OutboundWebhookDispatcher {
       if (Array.isArray(loadedSpecs)) {
         for (const loaded of loadedSpecs) {
           const candidate = path.resolve(loaded.dir || '', handlerPath);
-          if (fs.existsSync(candidate)) return candidate;
+          if (existsSync(candidate)) return candidate;
         }
       }
     } catch {
@@ -366,7 +376,7 @@ export class OutboundWebhookDispatcher {
     webhookName: string,
     url: string,
     payload: Record<string, unknown>,
-    secret: string,
+    resolved: { secret: string | null; signed: boolean },
     ctx: HookContext,
   ): Promise<{
     name: string;
@@ -393,43 +403,40 @@ export class OutboundWebhookDispatcher {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
-    if (secret) {
-      headers['X-Signature-256'] = 'sha256=' + this.sign(body, secret);
+    if (resolved.secret) {
+      headers['X-Signature-256'] = 'sha256=' + this.sign(body, resolved.secret);
     }
 
-    try {
-      const response = await fetch(url, { method: 'POST', headers, body });
-      if (!response.ok) {
-        const error = `HTTP ${response.status}`;
-        this.logger.warn(
-          `Outbound webhook "${webhookName}" to ${url} returned ${error}`,
-        );
-        await this.reportError(
-          ctx,
-          `Outbound webhook "${webhookName}" returned non-2xx ${error}`,
-          { webhookName, url, httpStatus: response.status },
-        );
-        return {
-          name: webhookName,
-          url,
-          ok: false,
-          status: response.status,
-          error,
-        };
-      }
-      return { name: webhookName, url, ok: true, status: response.status };
-    } catch (err) {
-      const message = (err as Error).message ?? String(err);
-      this.logger.error(
-        `Outbound webhook "${webhookName}" to ${url} failed: ${message}`,
-      );
+    // postJsonWithTimeout applies the configured timeout (AbortSignal),
+    // logs failures with bounded detail (host + status only) and never
+    // throws — outbound delivery stays fire-and-forget.
+    const outcome = await postJsonWithTimeout({
+      url,
+      body,
+      headers,
+      name: webhookName,
+    });
+    if (!outcome.ok) {
       await this.reportError(
         ctx,
-        `Outbound webhook "${webhookName}" request failed: ${message}`,
-        { webhookName, url, error: (err as Error).stack },
+        `Outbound webhook "${webhookName}" failed: ${outcome.error ?? 'unknown error'}`,
+        {
+          webhookName,
+          url,
+          ...(outcome.status !== undefined
+            ? { httpStatus: outcome.status }
+            : { error: outcome.error }),
+        },
       );
-      return { name: webhookName, url, ok: false, error: message };
+      return {
+        name: webhookName,
+        url,
+        ok: false,
+        ...(outcome.status !== undefined ? { status: outcome.status } : {}),
+        error: outcome.error,
+      };
     }
+    return { name: webhookName, url, ok: true, status: outcome.status };
   }
 
   // ─── HMAC signing (same as inbound webhooks) ────────────────────────────

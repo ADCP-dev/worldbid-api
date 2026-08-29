@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onBeforeUnmount, ref, watch, nextTick } from 'vue';
 import MarkdownIt from 'markdown-it';
 import hljs from 'highlight.js/lib/common';
 import DOMPurify from 'dompurify';
@@ -37,6 +37,10 @@ const md = new MarkdownIt({
   typographer: true,
   breaks: true,
   highlight(str: string, lang: string): string {
+    // Mermaid blocks are NOT highlighted: rendered as diagrams post-mount.
+    if (lang === 'mermaid') {
+      return `<pre class="ka-mermaid-src"><code>${md.utils.escapeHtml(str)}</code></pre>`;
+    }
     const language = lang && hljs.getLanguage(lang) ? lang : 'plaintext';
     // Raw code is carried base64-encoded on the button so the copy handler
     // never needs to reconstruct it from (already highlighted) DOM text.
@@ -107,6 +111,74 @@ function onMarkdownClick(e: MouseEvent): void {
     }, 1600);
   });
 }
+
+/* ── Mermaid rendering ──────────────────────────────────────────────────
+ * markdown-it emits <pre class="ka-mermaid-src"><code>…</code></pre> for
+ * mermaid blocks (no highlight). After the sanitized HTML lands in the DOM
+ * we swap each source block for the rendered SVG. Import is lazy + single.
+ * Partial diagrams during streaming fail to parse → kept as source until
+ * the block closes and parses.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let mermaidModule: any = null;
+
+async function renderMermaidBlocks(): Promise<void> {
+  const root = markdownRoot.value;
+  if (!root) return;
+  const sources = root.querySelectorAll('pre.ka-mermaid-src:not([data-rendered])');
+  if (sources.length === 0) return;
+
+  if (!mermaidModule) {
+    try {
+      mermaidModule = await import('mermaid');
+      mermaidModule.default.initialize({
+        startOnLoad: false,
+        theme: 'dark',
+        securityLevel: 'strict',
+      });
+    } catch {
+      return; // mermaid unavailable → blocks stay as readable source
+    }
+  }
+  const mermaid = mermaidModule.default;
+  let idCounter = 0;
+  for (const pre of Array.from(sources)) {
+    pre.setAttribute('data-rendered', '1');
+    const code = pre.querySelector('code')?.textContent ?? '';
+    const id = `ka-mermaid-${Math.random().toString(36).slice(2)}-${idCounter++}`;
+    try {
+      const { svg } = await mermaid.render(id, code);
+      const wrapper = document.createElement('div');
+      wrapper.className = 'ka-mermaid-svg';
+      wrapper.innerHTML = DOMPurify.sanitize(svg, {
+        USE_PROFILES: { svg: true, svgFilters: true },
+        ADD_TAGS: ['foreignObject'],
+        ADD_ATTR: ['style'],
+      });
+      pre.replaceWith(wrapper);
+    } catch {
+      // Incomplete/invalid diagram during streaming: leave the source
+      // visible but marked so we don't retry the same node forever.
+      pre.setAttribute('data-render-error', '1');
+    }
+  }
+}
+
+const markdownRoot = ref<HTMLElement | null>(null);
+
+watch(
+  () => renderedHtml.value,
+  async () => {
+    if (isUser.value) return;
+    await nextTick();
+    void renderMermaidBlocks();
+  },
+  { immediate: true },
+);
+
+onBeforeUnmount(() => {
+  // mermaid holds render timers; module-level cleanup is not required.
+});
 </script>
 
 <template>
@@ -156,6 +228,7 @@ function onMarkdownClick(e: MouseEvent): void {
       >{{ message.content }}</div>
       <div
         v-else
+        ref="markdownRoot"
         class="prose prose-sm sm:prose-base max-w-none break-words prose-invert ka-chat-markdown"
         @click="onMarkdownClick"
         v-html="renderedHtml"
@@ -169,6 +242,37 @@ function onMarkdownClick(e: MouseEvent): void {
 </template>
 
 <style scoped>
+/* ── Mermaid diagrams ─────────────────────────────────────────────────── */
+.ka-chat-markdown :deep(.ka-mermaid-svg) {
+  background: var(--color-base-100);
+  border: 1px solid var(--color-base-300);
+  border-radius: 0.625rem;
+  padding: 0.75rem;
+  margin: 0.625rem 0;
+  overflow-x: auto;
+  display: flex;
+  justify-content: center;
+}
+.ka-chat-markdown :deep(.ka-mermaid-svg svg) {
+  max-width: 100%;
+  height: auto;
+}
+.ka-chat-markdown :deep(pre.ka-mermaid-src) {
+  background: var(--color-base-200);
+  border: 1px dashed var(--color-base-300);
+  border-radius: 0.625rem;
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  margin: 0.625rem 0;
+}
+.ka-chat-markdown :deep(pre.ka-mermaid-src[data-render-error='1'])::after {
+  content: '⏳ diagram incomplete — waiting for the full mermaid block';
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 11px;
+  opacity: 0.55;
+}
+
 /* ── Code blocks (header bar + hljs dark theme) ─────────────────────────── */
 .ka-chat-markdown :deep(.ka-code-block) {
   background: var(--color-base-200);

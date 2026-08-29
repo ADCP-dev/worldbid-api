@@ -6,6 +6,7 @@ import { AgentConfigRepository } from '../agent-config.repository';
 import { AgentFactoryService } from '../agent/agent-factory.service';
 import { RagService } from '../rag.service';
 import { CheckpointerService } from './checkpointer.service';
+import { SandboxService } from '../agent/sandbox.service';
 import type { ChatSession } from '../../domain/chat-session';
 import type { AgentConfig } from '../../domain/agent-config';
 
@@ -76,6 +77,7 @@ describe('ChatService', () => {
         { provide: AgentFactoryService, useValue: agentFactoryMock },
         { provide: RagService, useValue: ragServiceMock },
         { provide: CheckpointerService, useValue: checkpointerMock },
+        { provide: SandboxService, useValue: { workingDir: jest.fn().mockReturnValue('/tmp/ka-sandbox-test'), listFiles: jest.fn().mockReturnValue([]), readFile: jest.fn() } },
       ],
     }).compile();
 

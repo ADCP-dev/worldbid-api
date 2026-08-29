@@ -7,6 +7,7 @@ import {
 import { ChatSessionRepository } from '../chat-session.repository';
 import { AgentConfigRepository } from '../agent-config.repository';
 import { AgentFactoryService } from '../agent/agent-factory.service';
+import { SandboxService } from '../agent/sandbox.service';
 import { RagService } from '../rag.service';
 import { CheckpointerService } from './checkpointer.service';
 import { CreateChatSessionDto } from '../../dto/create-chat-session.dto';
@@ -91,6 +92,7 @@ export class ChatService {
     private readonly agentFactory: AgentFactoryService,
     private readonly ragService: RagService,
     private readonly checkpointerService: CheckpointerService,
+    private readonly sandbox: SandboxService,
   ) {}
 
   async createSession(
@@ -123,6 +125,44 @@ export class ChatService {
     if (!session) return null;
     if (session.userId !== userId) return null;
     return session;
+  }
+
+  /**
+   * Raw session lookup (INCLUDING cross-user) for the file endpoints — the
+   * controller distinguishes 404 (missing) from 403 (cross-user) via the
+   * returned `userId` field.
+   */
+  async getSessionForUser(
+    sessionId: string,
+    userId: number,
+  ): Promise<ChatSession | null> {
+    return this.sessionRepo.findById(sessionId);
+  }
+
+  /**
+   * List files the agent created in this session's sandbox working dir
+   * (`/tmp/ka-sandbox-<sha1(sessionId)[0:12]>`).
+   */
+  listSessionFiles(sessionId: string): Array<{
+    name: string;
+    path: string;
+    size: number;
+    mtime: string;
+    mime: string;
+  }> {
+    const dir = this.sandbox.workingDir(sessionId);
+    return this.sandbox.listFiles(dir);
+  }
+
+  /**
+   * Read one sandbox file (path-traversal-guarded), with mime detection so
+   * the inline viewer renders HTML/images and downloads the rest.
+   */
+  readSessionFile(
+    sessionId: string,
+    relativePath: string,
+  ): { name: string; mime: string; content: Buffer } {
+    return this.sandbox.readFile(this.sandbox.workingDir(sessionId), relativePath);
   }
 
   async updateSession(

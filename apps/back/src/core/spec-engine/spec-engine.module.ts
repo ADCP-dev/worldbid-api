@@ -83,8 +83,16 @@ export class SpecEngineModule {
       }
     }
 
-    // Validate all resources using SpecValidator
+    // Validate all resources using SpecValidator. Resources that carry
+    // validation ERRORS are skipped (not materialized) so a broken spec
+    // cannot produce a half-working API; clean resources still load.
+    // Warnings never block materialization.
     const validationResult = SpecValidator.validateAll(loadedSpecs);
+
+    // Group errors by resource name. Extension-level errors (no resource
+    // attached) do not single out any resource, so they don't exclude one.
+    const erroredResources = new Set<string>();
+    const firstErrorByResource = new Map<string, string>();
     if (validationResult.errors.length > 0) {
       logger.error(
         `❌ ${validationResult.errors.length} validation error(s) found:`,
@@ -94,6 +102,12 @@ export class SpecEngineModule {
         logger.error(
           `   ${ctx ? `[${ctx}] ` : ''}${e.message}${e.suggestion ? ` → ${e.suggestion}` : ''}`,
         );
+        if (e.resource) {
+          erroredResources.add(e.resource);
+          if (!firstErrorByResource.has(e.resource)) {
+            firstErrorByResource.set(e.resource, e.message);
+          }
+        }
       });
     }
     if (validationResult.warnings.length > 0) {
@@ -138,6 +152,14 @@ export class SpecEngineModule {
 
     for (const loaded of loadedSpecs) {
       for (const resource of loaded.spec.resources) {
+        // Validation gate (P1 fix): skip ONLY resources that carry errors.
+        // Non-errored resources still materialize.
+        if (erroredResources.has(resource.name)) {
+          logger.error(
+            `⏭  Skipped materializing resource "${resource.name}" — validation failed: ${firstErrorByResource.get(resource.name)}`,
+          );
+          continue;
+        }
         try {
           // Create entity schema with relations
           const { mainSchema, joinTableSchemas } = EntityFactory.create(
@@ -175,6 +197,7 @@ export class SpecEngineModule {
             spec: resource,
             entitySchema: mainSchema,
             extensionDir: loaded.dir,
+            extensionName: loaded.spec.name,
             hookExecutor,
             notificationDispatcher,
             isDev: process.env.NODE_ENV !== 'production',

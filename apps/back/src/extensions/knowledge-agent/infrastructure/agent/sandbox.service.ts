@@ -1,9 +1,47 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHash, randomUUID } from 'node:crypto';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join, resolve } from 'node:path';
+import {
+  existsSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+} from 'node:fs';
+import type { Dirent } from 'node:fs';
 import * as vm from 'node:vm';
+
+/** Best-effort mime for the sandbox file viewer. */
+function detectMime(name: string): string {
+  const ext = name.split('.').pop()?.toLowerCase() ?? '';
+  const map: Record<string, string> = {
+    html: 'text/html',
+    htm: 'text/html',
+    css: 'text/css',
+    js: 'text/javascript',
+    mjs: 'text/javascript',
+    json: 'application/json',
+    txt: 'text/plain',
+    md: 'text/markdown',
+    csv: 'text/csv',
+    xml: 'application/xml',
+    svg: 'image/svg+xml',
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    gif: 'image/gif',
+    webp: 'image/webp',
+    pdf: 'application/pdf',
+    mp3: 'audio/mpeg',
+    wav: 'audio/wav',
+    ogg: 'audio/ogg',
+    webm: 'video/webm',
+    mp4: 'video/mp4',
+    zip: 'application/zip',
+  };
+  return map[ext] ?? 'application/octet-stream';
+}
 
 /**
  * SandboxService — builds a VfsBackend + permissions block for a DeepAgent and
@@ -87,6 +125,85 @@ export class SandboxService {
       .digest('hex')
       .slice(0, 12);
     return join(tmpdir(), `ka-sandbox-${safe}`);
+  }
+
+  /**
+   * List files the agent created under `dir` (recursive, sandbox dirs only).
+   * Returns relative paths + size + mtime + detected mime for the chat
+   * file chips / viewer.
+   */
+  listFiles(dir: string): Array<{
+    name: string;
+    path: string;
+    size: number;
+    mtime: string;
+    mime: string;
+  }> {
+    if (!existsSync(dir)) return [];
+    const out: Array<{
+      name: string;
+      path: string;
+      size: number;
+      mtime: string;
+      mime: string;
+    }> = [];
+    const walk = (current: string, rel: string): void => {
+      let entries: Dirent[];
+      try {
+        entries = readdirSync(current, { withFileTypes: true });
+      } catch {
+        return;
+      }
+      for (const e of entries) {
+        const full = join(current, e.name);
+        const relPath = rel ? `${rel}/${e.name}` : e.name;
+        if (e.isDirectory()) {
+          walk(full, relPath);
+        } else if (e.isFile()) {
+          let size = 0;
+          let mtime = new Date().toISOString();
+          try {
+            const st = statSync(full);
+            size = st.size;
+            mtime = st.mtime.toISOString();
+          } catch {
+            // stat failure → still expose the row with defaults
+          }
+          out.push({
+            name: e.name,
+            path: relPath,
+            size,
+            mtime,
+            mime: detectMime(e.name),
+          });
+        }
+      }
+    };
+    walk(dir, '');
+    return out.sort((a, b) => a.path.localeCompare(b.path));
+  }
+
+  /**
+   * Read one file under `dir` (guarded) — content as Buffer with a detected
+   * mime so the controller can serve it inline or as a download.
+   */
+  readFile(
+    dir: string,
+    relativePath: string,
+  ): { name: string; mime: string; content: Buffer } {
+    const name = basename(relativePath);
+    // Path traversal guard: the resolved absolute path MUST stay inside dir.
+    const abs = resolve(dir, relativePath);
+    if (!abs.startsWith(resolve(dir))) {
+      throw new NotFoundException('Path outside sandbox');
+    }
+    if (!existsSync(abs) || !statSync(abs).isFile()) {
+      throw new NotFoundException(`File ${relativePath} not found`);
+    }
+    if (statSync(abs).size > 20 * 1024 * 1024) {
+      throw new NotFoundException('File too large to serve (20MB cap)');
+    }
+    return { name, mime: detectMime(name), content: readFileSync(abs) };
   }
 
   /**

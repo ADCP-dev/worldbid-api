@@ -41,6 +41,7 @@ import * as path from 'path';
 import type { NotificationSpec, HookContext } from './spec.types';
 import type { TemplateRenderer } from '@comms/mail/services/template-renderer.service';
 import type { EmailDiscoveryService } from '@comms/mail/services/email-discovery.service';
+import { postJsonWithTimeout } from './outbound-http';
 
 /**
  * App-level config slice needed to render email templates and address mail.
@@ -373,49 +374,30 @@ export class NotificationDispatcher {
       timestamp: new Date().toISOString(),
     };
 
-    let response: Response;
-    try {
-      response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-    } catch (err) {
-      // Network-level failure (DNS, connection refused, timeout). Report but
-      // don't throw — notifications are best-effort.
-      const message = (err as Error).message ?? String(err);
-      this.logger.error(`Webhook "${spec.name}" to ${url} failed: ${message}`);
-      try {
-        await ctx.logError(
-          `Webhook "${spec.name}" request failed: ${message}`,
-          `spec-engine:notifications`,
-          {
-            notificationName: spec.name,
-            channel: 'webhook',
-            url,
-            error: (err as Error).stack,
-          },
-        );
-      } catch {
-        // best-effort
-      }
-      return { name: spec.name, channel: 'webhook', to: url };
-    }
+    // POST via the shared outbound-http helper — carries an AbortSignal
+    // timeout (default 10s, SPEC_ENGINE_WEBHOOK_TIMEOUT_MS) and logs
+    // failures with bounded detail (host + status/error name only).
+    const result = await postJsonWithTimeout({
+      url,
+      body: JSON.stringify(payload),
+      headers: { 'Content-Type': 'application/json' },
+      name: spec.name,
+    });
 
-    if (!response.ok) {
-      const status = response.status;
-      this.logger.warn(
-        `Webhook "${spec.name}" to ${url} returned HTTP ${status}`,
-      );
+    if (!result.ok) {
       try {
         await ctx.logError(
-          `Webhook "${spec.name}" returned non-2xx status ${status}`,
+          result.status
+            ? `Webhook "${spec.name}" returned non-2xx status ${result.status}`
+            : `Webhook "${spec.name}" request failed: ${result.error}`,
           `spec-engine:notifications`,
           {
             notificationName: spec.name,
             channel: 'webhook',
             url,
-            httpStatus: status,
+            ...(result.status !== undefined
+              ? { httpStatus: result.status }
+              : { error: result.error }),
           },
         );
       } catch {

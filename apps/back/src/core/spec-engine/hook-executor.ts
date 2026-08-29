@@ -1,8 +1,9 @@
 /**
  * HookExecutor — loads, validates, and executes lifecycle hooks.
  *
- * At materialization time: loads hook handlers via require(), validates
- * they export a default function, and caches them.
+ * At materialization time: loads hook handlers via the shared extension
+ * module loader (require cache semantics preserved), validates they export
+ * a default function, and caches them.
  *
  * At runtime: wraps hook execution with trace + error handling.
  *
@@ -33,6 +34,10 @@ import type { VectorFieldSpec } from './spec.types';
 import type { SpecErrorReporter } from './spec-error-reporter';
 import { computeSpecErrorHash } from './spec-error-reporter';
 import type { TraceBuilder } from './spec-trace';
+import {
+  resolveHookModulePath,
+  loadExtensionModule,
+} from './extension-module-loader';
 
 export type HookType =
   | 'beforeCreate'
@@ -69,20 +74,15 @@ export class HookExecutor {
   ): LoadedHook | null {
     if (!hookPath) return null;
 
+    // Path containment + prod .ts/.js resolution live in the shared loader.
     const absolutePath = path.resolve(extensionDir, hookPath);
-    // Path containment: prevent directory traversal
-    const normalizedDir = path.resolve(extensionDir) + path.sep;
-    if (!absolutePath.startsWith(normalizedDir)) {
+    const requirePath = resolveHookModulePath(absolutePath, extensionDir);
+    if (!requirePath) {
       this.logger.warn(
         `⚠️  Hook path "${hookPath}" escapes extension directory — skipping`,
       );
       return null;
     }
-    // In production, .ts files are compiled to .js — strip extension
-    const requirePath =
-      process.env.NODE_ENV === 'production'
-        ? absolutePath.replace(/\.ts$/, '.js')
-        : absolutePath;
     const cacheKey = `${resourceName}:${hookType}:${absolutePath}`;
 
     // Check cache
@@ -90,7 +90,7 @@ export class HookExecutor {
     if (cached) return cached;
 
     try {
-      const mod = require(requirePath);
+      const mod = loadExtensionModule(requirePath);
       const handler = mod.default;
 
       if (typeof handler !== 'function') {

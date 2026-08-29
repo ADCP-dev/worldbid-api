@@ -1,14 +1,18 @@
 import {
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
+  NotFoundException,
   Param,
   Patch,
   Post,
+  Query,
   Body,
   Res,
+  StreamableFile,
 } from '@nestjs/common';
 import { Response } from 'express';
 import {
@@ -176,4 +180,53 @@ export class ChatSessionController {
     }
   }
 
+  /**
+   * List files the agent created in this session's sandbox (VfsBackend
+   * working dir). Powers the chat file chips + viewer.
+   */
+  @Get(':sessionId/files')
+  @ApiParam({ name: 'sessionId', type: String })
+  @ApiOkResponse({ type: Array })
+  async listFiles(
+    @Param('sessionId') sessionId: string,
+    @UserId() userId: number,
+  ): Promise<
+    Array<{ name: string; path: string; size: number; mtime: string; mime: string }>
+  > {
+    await this.assertOwned(sessionId, userId);
+    return this.chatService.listSessionFiles(sessionId);
+  }
+
+  /**
+   * Download / view a sandbox file. `?download=1` forces attachment;
+   * otherwise the browser renders inline (HTML in iframe → the user
+   * prints to PDF from the viewer).
+   */
+  @Get(':sessionId/files/content')
+  @ApiParam({ name: 'sessionId', type: String })
+  async readSandboxFile(
+    @Param('sessionId') sessionId: string,
+    @UserId() userId: number,
+    @Query('path') path: string,
+    @Query('download') download: string | undefined,
+    @Res() res: Response,
+  ): Promise<void> {
+    await this.assertOwned(sessionId, userId);
+    const file = this.chatService.readSessionFile(sessionId, path);
+    const disposition = download === '1' ? 'attachment' : 'inline';
+    res.setHeader('Content-Type', file.mime);
+    res.setHeader(
+      'Content-Disposition',
+      `${disposition}; filename="${encodeURIComponent(file.name)}"`,
+    );
+    res.setHeader('Cache-Control', 'no-store');
+    res.send(file.content);
+  }
+
+  /** Verify the session exists AND belongs to the requesting user. */
+  private async assertOwned(sessionId: string, userId: number): Promise<void> {
+    const session = await this.chatService.getSessionForUser(sessionId, userId);
+    if (!session) throw new NotFoundException(`Session ${sessionId} not found`);
+    if (session.userId !== userId) throw new ForbiddenException();
+  }
 }

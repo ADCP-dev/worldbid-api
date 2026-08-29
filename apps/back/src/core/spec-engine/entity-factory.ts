@@ -17,6 +17,7 @@ import {
   EntitySchemaRelationOptions,
 } from 'typeorm';
 import type { ResourceSpec, FieldSpec, VectorFieldSpec } from './spec.types';
+import { joinTableName } from './naming';
 
 export interface EntityFactoryResult {
   mainSchema: EntitySchema<any>;
@@ -172,8 +173,10 @@ export class EntityFactory {
     field: FieldSpec,
     extensionName?: string,
   ): EntitySchema<any> {
-    const tableName =
-      field.joinTable ?? this.defaultJoinTableName(spec, field, extensionName);
+    // Shared naming helper — the controller factory resolves join-table
+    // repositories by this exact name, so both sides MUST use the same
+    // derivation (see naming.ts for the doubled-prefix bug this fixed).
+    const tableName = joinTableName(extensionName, spec, field);
     const fromCol = field.throughFields?.from ?? `${spec.name}Id`;
     const toCol =
       field.throughFields?.to ??
@@ -208,19 +211,6 @@ export class EntityFactory {
       columns,
       relations,
     });
-  }
-
-  /**
-   * Auto-generate a join table name when not provided.
-   * Format: ext_<extension>_<resource>_<field>
-   */
-  private static defaultJoinTableName(
-    spec: ResourceSpec,
-    field: FieldSpec,
-    extensionName?: string,
-  ): string {
-    const extPrefix = extensionName ? `ext_${extensionName}` : 'ext';
-    return `${extPrefix}_${spec.name}_${field.name}`;
   }
 
   /**
