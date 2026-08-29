@@ -59,6 +59,14 @@ export class AffiliatePartnerEntity extends EntityRelationalHelper {
   @Column({ type: 'varchar', length: 50, nullable: true })
   iban: string | null;
 
+  /**
+   * Public, human-readable unique referral code (e.g. AFF-4K7TQ2).
+   * Generated on create; used to attribute leads to this partner.
+   */
+  @Index('UQ_affiliate_partner_code', { unique: true })
+  @Column({ type: 'varchar', length: 30 })
+  code: string;
+
   @Column({
     type: 'decimal',
     precision: 5,

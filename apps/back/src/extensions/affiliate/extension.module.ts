@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { JwtModule } from '@nestjs/jwt';
 
 import { AffiliatePartnerEntity } from '@ext/affiliate/infrastructure/persistence/entities/affiliate-partner.entity';
 import { AffiliateReferralEntity } from '@ext/affiliate/infrastructure/persistence/entities/affiliate-referral.entity';
@@ -44,6 +45,8 @@ import { AffiliatePortalController } from '@ext/affiliate/controllers/affiliate-
       UserEntity,
       RoleEntity,
     ]),
+    // JWT needed to sign set-password invitation links (auth.forgotSecret)
+    JwtModule.register({}),
   ],
   controllers: [
     AffiliatePartnerController,

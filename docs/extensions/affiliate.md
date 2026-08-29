@@ -3,13 +3,16 @@ id: "affiliate"
 name: "Affiliate Program"
 type: "extension"
 parent: null
-dependencies: ["auth"]
+dependencies: ["auth", "crm"]
 entities: ["AffiliatePartner", "AffiliateReferral", "AffiliateCommission"]
 ---
 
 # Affiliate Extension
 
-Programa de afiliados: partners referencian usuarios, se trackean referidos y se calculan comisiones. Incluye portal de afiliado (autogestión) + dashboard admin + reportes.
+Programa de afiliados: partners referencian clientes, se trackean referidos y se calculan comisiones. Incluye portal de afiliado (autogestión, rol `affiliate` con acceso restringido) + dashboard admin + conversión CRM→afiliado.
+
+> Full backend reference (entity diagram, endpoints, mermaid flows) lives in
+> [`apps/back/src/extensions/affiliate/README.md`](../../apps/back/src/extensions/affiliate/README.md).
 
 ## Overview
 

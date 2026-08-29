@@ -51,12 +51,14 @@ export class AffiliatePortalService {
 
   async updatePartnerProfile(
     userId: number,
-    data: { name?: string; phone?: string; iban?: string },
+    data: { phone?: string; iban?: string; companyName?: string },
   ): Promise<AffiliatePartnerEntity> {
     const partner = await this.findPartnerByUserId(userId);
-    if (data.name !== undefined) partner.name = data.name;
+    // Allowlist only. Identity (name/email/code) is admin-managed and never
+    // editable from the portal.
     if (data.phone !== undefined) partner.phone = data.phone;
     if (data.iban !== undefined) partner.iban = data.iban;
+    if (data.companyName !== undefined) partner.companyName = data.companyName;
     const saved = await this.partnerRepository.save(partner);
     this.logger.log(
       `Portal: partner id=${saved.id} (userId=${userId}) updated own profile`,

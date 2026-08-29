@@ -3,15 +3,10 @@ import { IsOptional, IsString, MaxLength } from 'class-validator';
 
 /**
  * DTO for affiliate self-service profile update.
- * Only name, phone, iban are editable by the partner themselves.
+ * Only phone, iban and companyName are editable by the partner themselves.
+ * Identity fields (name, email, code) are admin-managed.
  */
 export class UpdatePortalProfileDto {
-  @ApiPropertyOptional({ example: 'John Doe', type: String })
-  @IsOptional()
-  @IsString()
-  @MaxLength(200)
-  name?: string;
-
   @ApiPropertyOptional({ example: '+34 600 000 000', type: String })
   @IsOptional()
   @IsString()
@@ -23,4 +18,10 @@ export class UpdatePortalProfileDto {
   @IsString()
   @MaxLength(50)
   iban?: string;
+
+  @ApiPropertyOptional({ example: 'Acme S.L.', type: String })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  companyName?: string;
 }

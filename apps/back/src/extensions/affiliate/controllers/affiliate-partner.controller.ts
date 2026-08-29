@@ -19,6 +19,7 @@ import { RolesGuard } from '@iam/roles/roles.guard';
 import { AffiliatePartnerService } from '../services/affiliate-partner.service';
 import { CreatePartnerDto } from '../dto/create-partner.dto';
 import { UpdatePartnerDto } from '../dto/update-partner.dto';
+import { CreatePartnerFromClientDto } from '../dto/create-partner-from-client.dto';
 
 @ApiTags('Affiliate')
 @ApiBearerAuth()
@@ -53,6 +54,15 @@ export class AffiliatePartnerController {
   @HttpCode(HttpStatus.CREATED)
   create(@Body() dto: CreatePartnerDto) {
     return this.partnerService.create(dto);
+  }
+
+  @Post('from-client/:clientId')
+  @HttpCode(HttpStatus.CREATED)
+  createFromClient(
+    @Param('clientId') clientId: number,
+    @Body() dto: CreatePartnerFromClientDto,
+  ) {
+    return this.partnerService.createFromClient(Number(clientId), dto);
   }
 
   @Patch(':id')

@@ -9,6 +9,7 @@ export default defineConfig({
       'src/core/spec-engine/__tests__/**/*.spec.ts',
       'src/core/realtime/__tests__/**/*.spec.ts',
       'src/extensions/tasks/__tests__/**/*.spec.ts',
+      'src/extensions/affiliate/__tests__/**/*.spec.ts',
       'src/extensions/knowledge-agent/**/*.spec.ts',
       'src/modules/error-tracker/__tests__/**/*.spec.ts',
       'src/modules/communications/mail/__tests__/**/*.spec.ts',
