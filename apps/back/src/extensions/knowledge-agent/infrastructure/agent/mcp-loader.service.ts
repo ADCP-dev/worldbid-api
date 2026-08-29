@@ -5,7 +5,9 @@ import type { StructuredTool } from '@langchain/core/tools';
 import { McpServerRepository } from '../mcp-server.repository';
 import { McpServer } from '../../domain/mcp-server';
 
-const MCP_TIMEOUT_MS = 3000;
+// Remote MCPs (Tavily, etc.) often need 5-15s for the streamable HTTP
+// handshake + tool enumeration. 3s made every remote integration invisible.
+const MCP_TIMEOUT_MS = 20_000;
 
 interface McpServerConfig {
   transport: 'http' | 'stdio';
@@ -50,6 +52,9 @@ export class McpLoaderService {
 
     const client = this.createMcpClient(config);
     try {
+      // Remote MCPs (Tavily) regularly need >5s for the streamable HTTP
+      // handshake; 3s starved them into invisible tools. Also close the
+      // client: a raced (timed-out) connect leaks the socket otherwise.
       return await Promise.race([
         client.getTools(),
         this.timeout(MCP_TIMEOUT_MS),
@@ -59,6 +64,8 @@ export class McpLoaderService {
         `MCP load failed: ${err instanceof Error ? err.message : String(err)}`,
       );
       return [];
+    } finally {
+      void client.close?.().catch(() => undefined);
     }
   }
 
@@ -81,10 +88,10 @@ export class McpLoaderService {
       // Skip servers with no URL/command (graceful).
     }
 
-    const localUrl = this.config.get<string>('ka.localMcpUrl');
-    if (localUrl) {
-      config['__local_introspection__'] = { transport: 'http', url: localUrl };
-    }
+    // NOTE: the legacy __local_introspection__ entry was removed — it pointed
+    // at http://localhost:3000/api/v1/_mcp/tools which does not exist (the
+    // backend container listens on 3001), and the connect attempt stalled the
+    // whole agent build until timeout (the "chat sends → 500 / silence" bug).
     return config;
   }
 

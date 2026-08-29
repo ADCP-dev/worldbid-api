@@ -32,10 +32,7 @@ import {
   SPEC_WEBHOOK_SUBSCRIPTION_SCHEMA_NAME,
   SpecWebhookSubscriptionRow,
 } from './spec-engine-scheduled-actions';
-import {
-  postJsonWithTimeout,
-  resolveWebhookSecret,
-} from './outbound-http';
+import { postJsonWithTimeout, resolveWebhookSecret } from './outbound-http';
 import {
   loadExtensionModule,
   extractModuleExport,
@@ -166,7 +163,8 @@ export class OutboundWebhookDispatcher {
         const resolved = resolveWebhookSecret({
           webhookKey: `${webhook.name}:${target.url}`,
           webhookName: webhook.name,
-          specSecret: target.secret || (webhook as OutboundWebhookSpec).hmacSecret,
+          specSecret:
+            target.secret || (webhook as OutboundWebhookSpec).hmacSecret,
           envSecret: envSecret,
         });
         const result = await this.fireOne(

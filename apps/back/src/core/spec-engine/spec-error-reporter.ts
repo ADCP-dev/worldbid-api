@@ -172,12 +172,12 @@ function findGhBinary(): string | null {
   // 2. PATH lookup
   try {
     execSync('command -v gh', { stdio: 'ignore', shell: '/bin/sh' });
-     ghAvailabilityCache = true;
-     return 'gh';
-   } catch {
-     ghAvailabilityCache = false;
-     return null;
-   }
+    ghAvailabilityCache = true;
+    return 'gh';
+  } catch {
+    ghAvailabilityCache = false;
+    return null;
+  }
 }
 
 // ─── Actionable Error enrichment (PRD 01) ───────────────────────────────────
@@ -200,15 +200,9 @@ export function scrubSensitive(value: unknown): unknown {
   if (typeof scrubbed === 'string' && scrubbed.length > MAX_INPUT_BYTES) {
     return scrubbed.slice(0, MAX_INPUT_BYTES) + '[truncated]';
   }
-  if (
-    scrubbed &&
-    typeof scrubbed === 'object' &&
-    !Array.isArray(scrubbed)
-  ) {
+  if (scrubbed && typeof scrubbed === 'object' && !Array.isArray(scrubbed)) {
     const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(
-      scrubbed as Record<string, unknown>,
-    )) {
+    for (const [k, v] of Object.entries(scrubbed as Record<string, unknown>)) {
       if (typeof v === 'string' && v.length > MAX_INPUT_BYTES) {
         out[k] = v.slice(0, MAX_INPUT_BYTES) + '[truncated]';
       } else {
@@ -351,10 +345,7 @@ export function inferSuggestedFix(
  * Categorize an error into the ErrorCategory taxonomy based on the trace
  * layer + message. Pure function.
  */
-function categorize(
-  error: SpecError,
-  trace: SpecTrace,
-): ErrorCategory {
+function categorize(error: SpecError, trace: SpecTrace): ErrorCategory {
   switch (trace.layer) {
     case 'permission_guard':
       return 'permission_denied';
@@ -372,7 +363,9 @@ function categorize(
       return 'notification';
     case 'spec_loader':
     case 'spec_engine_boot':
-      return msgIsSpecInvalid(error.message) ? 'spec_invalid' : 'extension_load';
+      return msgIsSpecInvalid(error.message)
+        ? 'spec_invalid'
+        : 'extension_load';
     case 'controller_factory':
       return msgIsNotFound(error.message) ? 'not_found' : 'database';
     default:
@@ -400,10 +393,7 @@ function msgIsNotFound(msg: string): boolean {
  * cannot load or the DB is unreachable; error = a real bug; warning =
  * expected-but-noteworthy (not_found, rate_limit). Pure function.
  */
-function inferSeverity(
-  error: SpecError,
-  trace: SpecTrace,
-): ErrorSeverity {
+function inferSeverity(error: SpecError, trace: SpecTrace): ErrorSeverity {
   const cat = categorize(error, trace);
   if (cat === 'extension_load' || cat === 'database') return 'critical';
   if (cat === 'not_found' || cat === 'rate_limit') return 'warning';
@@ -422,8 +412,7 @@ export function buildActionableError(
   const timestamp = new Date().toISOString();
   const category = categorize(error, trace);
   const severity = inferSeverity(error, trace);
-  const layer: FailurePointLayer =
-    trace.layer ?? 'spec_engine_boot';
+  const layer: FailurePointLayer = trace.layer ?? 'spec_engine_boot';
   return {
     id: randomUUID(),
     hash: error.hash,
@@ -497,18 +486,18 @@ export class SpecErrorReporter {
    *
    * Additionally, when ALL of the following are true:
    *   - occurrences === 1  (first time we've seen this hash)
-    *   - NODE_ENV === 'production'
-    *   - the `gh` CLI is available
-    * then a GitHub issue is created so the team is notified.
-    *
-    * Auto-fix is handled by an external system (GitHub Issues → LangChain
-    * agent → PR). This reporter just creates the issue; the external agent
-    * reads it, uses the MCP introspection server to understand the app,
-    * and submits a fix PR.
-    *
-    * This method never throws — reporting failures must not cascade into
-    * the caller's error handling.
-    */
+   *   - NODE_ENV === 'production'
+   *   - the `gh` CLI is available
+   * then a GitHub issue is created so the team is notified.
+   *
+   * Auto-fix is handled by an external system (GitHub Issues → LangChain
+   * agent → PR). This reporter just creates the issue; the external agent
+   * reads it, uses the MCP introspection server to understand the app,
+   * and submits a fix PR.
+   *
+   * This method never throws — reporting failures must not cascade into
+   * the caller's error handling.
+   */
   async report(error: SpecError): Promise<void> {
     if (!error || !error.hash) {
       this.logger.warn(

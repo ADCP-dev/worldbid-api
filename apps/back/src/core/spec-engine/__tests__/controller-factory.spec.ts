@@ -14,7 +14,10 @@
 
 import 'reflect-metadata';
 import type { EntitySchema } from 'typeorm';
-import { ControllerFactory, parseId } from '@src/core/spec-engine/controller-factory';
+import {
+  ControllerFactory,
+  parseId,
+} from '@src/core/spec-engine/controller-factory';
 import { RoleRegistry } from '@src/core/spec-engine/role-registry';
 import { EntityFactory } from '@src/core/spec-engine/entity-factory';
 import { HookExecutor } from '@src/core/spec-engine/hook-executor';
@@ -28,7 +31,10 @@ import type {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function makeResource(name: string, opts: Partial<ResourceSpec> = {}): ResourceSpec {
+function makeResource(
+  name: string,
+  opts: Partial<ResourceSpec> = {},
+): ResourceSpec {
   return {
     name,
     table: `ext_test_${name}`,
@@ -108,9 +114,11 @@ describe('ControllerFactory — CRUD generation', () => {
 describe('ControllerFactory — role resolution (BUG #8 regression)', () => {
   // Access the private static helper via the class to test the pure logic.
   const resolveRoles = (roles: PermissionRole[]): number[] =>
-    (ControllerFactory as unknown as {
-      resolveRoles: (r: PermissionRole[]) => number[];
-    }).resolveRoles(roles);
+    (
+      ControllerFactory as unknown as {
+        resolveRoles: (r: PermissionRole[]) => number[];
+      }
+    ).resolveRoles(roles);
 
   it('resolves built-in admin role to its numeric id', () => {
     RoleRegistry.reset();

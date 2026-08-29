@@ -37,7 +37,8 @@ try {
 }
 
 const extensionName = process.argv.slice(2).find((a) => !a.startsWith('--'));
-const verbose = process.argv.includes('--verbose') || process.argv.includes('-v');
+const verbose =
+  process.argv.includes('--verbose') || process.argv.includes('-v');
 
 const extensionsDir = path.resolve(process.cwd(), 'src/extensions');
 const customDir = path.resolve(process.cwd(), 'src/custom');
@@ -86,7 +87,10 @@ if (extensionName) {
     process.exit(2);
   }
 } else {
-  specFiles = [...collectSpecsFromDir(extensionsDir), ...collectSpecsFromDir(customDir)];
+  specFiles = [
+    ...collectSpecsFromDir(extensionsDir),
+    ...collectSpecsFromDir(customDir),
+  ];
 }
 
 if (specFiles.length === 0) {
@@ -198,13 +202,7 @@ for (const file of specFiles) {
           message: `${rName}: missing permissions block`,
         });
       } else {
-        const requiredActions = [
-          'list',
-          'read',
-          'create',
-          'update',
-          'delete',
-        ];
+        const requiredActions = ['list', 'read', 'create', 'update', 'delete'];
         for (const action of requiredActions) {
           if (!(action in resource.permissions)) {
             errors.push({
@@ -292,12 +290,7 @@ for (const r of allResources) {
 for (const r of allResources) {
   for (const field of r.resource.fields || []) {
     if (field.type === 'ref' && field.ref) {
-      const knownTargets = new Set([
-        ...resourceNames,
-        'user',
-        'role',
-        'file',
-      ]);
+      const knownTargets = new Set([...resourceNames, 'user', 'role', 'file']);
       if (!knownTargets.has(field.ref)) {
         warnings.push({
           file: r.file,
@@ -310,7 +303,9 @@ for (const r of allResources) {
 
 // ─── Output ──────────────────────────────────────────────────────────────
 
-console.log(`\n📋 Spec Validator — ${allResources.length} resources in ${specFiles.length} files\n`);
+console.log(
+  `\n📋 Spec Validator — ${allResources.length} resources in ${specFiles.length} files\n`,
+);
 
 if (errors.length > 0) {
   console.log(`❌ ${errors.length} error(s):\n`);
@@ -352,7 +347,9 @@ if (verbose) {
       const val = field.validation
         ? ` (min:${field.validation.min ?? '-'}, max:${field.validation.max ?? '-'})`
         : '';
-      console.log(`    ${req} ${field.name}: ${field.type}${ref}${enumValues}${val}`);
+      console.log(
+        `    ${req} ${field.name}: ${field.type}${ref}${enumValues}${val}`,
+      );
     }
 
     // Permissions
@@ -375,7 +372,9 @@ if (verbose) {
     // Hooks
     if (r.resource.hooks && Object.keys(r.resource.hooks).length > 0) {
       console.log(
-        `    Hooks: ${Object.entries(r.resource.hooks).map(([t, n]) => `${t}=${n}`).join(', ')}`,
+        `    Hooks: ${Object.entries(r.resource.hooks)
+          .map(([t, n]) => `${t}=${n}`)
+          .join(', ')}`,
       );
     }
 

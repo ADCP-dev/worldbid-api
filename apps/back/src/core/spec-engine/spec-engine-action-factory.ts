@@ -105,18 +105,18 @@ export class SpecEngineActionFactory {
    * Returns the controller class to register with the Nest module, or null
    * if the resource has no actions.
    */
-   static create(
-     spec: ResourceSpec,
-     entitySchema: EntitySchema<any>,
-     extensionDir: string,
-     isDev: boolean,
-   ): ActionFactoryResult | null {
-     if (!spec.actions || spec.actions.length === 0) return null;
+  static create(
+    spec: ResourceSpec,
+    entitySchema: EntitySchema<any>,
+    extensionDir: string,
+    isDev: boolean,
+  ): ActionFactoryResult | null {
+    if (!spec.actions || spec.actions.length === 0) return null;
 
-     const resourceName = spec.name;
-     const displayName = spec.displayName || resourceName;
-     const routePath = this.pluralize(resourceName);
-     const diToken = getRepositoryToken(entitySchema);
+    const resourceName = spec.name;
+    const displayName = spec.displayName || resourceName;
+    const routePath = this.pluralize(resourceName);
+    const diToken = getRepositoryToken(entitySchema);
 
     // Default auth = resource create permissions (per spec contract)
     const createRoles = spec.permissions?.create || ['admin'];

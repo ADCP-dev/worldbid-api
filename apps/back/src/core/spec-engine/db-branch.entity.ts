@@ -28,7 +28,12 @@ export class DbBranchEntity {
   @Column({ type: 'varchar', length: 120, unique: true })
   schema: string;
 
-  @Column({ type: 'varchar', length: 120, name: 'parent_schema', default: 'public' })
+  @Column({
+    type: 'varchar',
+    length: 120,
+    name: 'parent_schema',
+    default: 'public',
+  })
   parentSchema: string;
 
   @Column({ type: 'varchar', length: 20, default: 'active' })

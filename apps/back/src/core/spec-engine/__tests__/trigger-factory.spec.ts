@@ -41,7 +41,9 @@ describe('TriggerFactory', () => {
       expect(fnStatement!.up).toContain("pg_notify('task'");
       expect(fnStatement!.up).toContain("'event', TG_OP");
       expect(fnStatement!.up).toContain("'resource', 'task'");
-      expect(fnStatement!.up).toContain("'id', CASE WHEN TG_OP = 'DELETE' THEN OLD.id ELSE NEW.id END");
+      expect(fnStatement!.up).toContain(
+        "'id', CASE WHEN TG_OP = 'DELETE' THEN OLD.id ELSE NEW.id END",
+      );
       expect(fnStatement!.up).not.toContain("'data'");
 
       const triggerStatement = statements.find((s) =>
@@ -49,7 +51,9 @@ describe('TriggerFactory', () => {
       );
       expect(triggerStatement).toBeDefined();
       expect(triggerStatement!.up).toContain('task_realtime_notify');
-      expect(triggerStatement!.up).toContain('AFTER INSERT OR UPDATE OR DELETE');
+      expect(triggerStatement!.up).toContain(
+        'AFTER INSERT OR UPDATE OR DELETE',
+      );
       expect(triggerStatement!.up).toContain('ext_tasks_task');
       expect(triggerStatement!.up).toContain('FOR EACH ROW');
     });
@@ -82,16 +86,13 @@ describe('TriggerFactory', () => {
 
   describe('payload full', () => {
     it('genera jsonb_build_object con campos seguros (excluye password/secret/file)', () => {
-      const spec = baseSpec(
-        { events: ['insert', 'update'], payload: 'full' },
-        [
-          { name: 'title', type: 'string' },
-          { name: 'apiKey', type: 'secret' },
-          { name: 'password', type: 'password' },
-          { name: 'attachment', type: 'file' },
-          { name: 'status', type: 'string' },
-        ],
-      );
+      const spec = baseSpec({ events: ['insert', 'update'], payload: 'full' }, [
+        { name: 'title', type: 'string' },
+        { name: 'apiKey', type: 'secret' },
+        { name: 'password', type: 'password' },
+        { name: 'attachment', type: 'file' },
+        { name: 'status', type: 'string' },
+      ]);
       const statements = TriggerFactory.create(spec);
 
       const fnStatement = statements.find((s) =>
@@ -106,10 +107,9 @@ describe('TriggerFactory', () => {
     });
 
     it('DELETE con payload full envía data null', () => {
-      const spec = baseSpec(
-        { events: ['delete'], payload: 'full' },
-        [{ name: 'title', type: 'string' }],
-      );
+      const spec = baseSpec({ events: ['delete'], payload: 'full' }, [
+        { name: 'title', type: 'string' },
+      ]);
       const statements = TriggerFactory.create(spec);
 
       const fnStatement = statements.find((s) =>
@@ -122,13 +122,10 @@ describe('TriggerFactory', () => {
 
   describe('payload diff', () => {
     it('UPDATE genera diff con jsonb_object_agg', () => {
-      const spec = baseSpec(
-        { events: ['update'], payload: 'diff' },
-        [
-          { name: 'title', type: 'string' },
-          { name: 'status', type: 'string' },
-        ],
-      );
+      const spec = baseSpec({ events: ['update'], payload: 'diff' }, [
+        { name: 'title', type: 'string' },
+        { name: 'status', type: 'string' },
+      ]);
       const statements = TriggerFactory.create(spec);
 
       const fnStatement = statements.find((s) =>
@@ -141,10 +138,9 @@ describe('TriggerFactory', () => {
     });
 
     it('INSERT con diff envía data full', () => {
-      const spec = baseSpec(
-        { events: ['insert'], payload: 'diff' },
-        [{ name: 'title', type: 'string' }],
-      );
+      const spec = baseSpec({ events: ['insert'], payload: 'diff' }, [
+        { name: 'title', type: 'string' },
+      ]);
       const statements = TriggerFactory.create(spec);
 
       const fnStatement = statements.find((s) =>
@@ -191,10 +187,7 @@ describe('TriggerFactory', () => {
         name: `field${i}`,
         type: 'string' as const,
       }));
-      const spec = baseSpec(
-        { events: ['insert'], payload: 'full' },
-        fewFields,
-      );
+      const spec = baseSpec({ events: ['insert'], payload: 'full' }, fewFields);
 
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       TriggerFactory.create(spec);
@@ -206,7 +199,10 @@ describe('TriggerFactory', () => {
   describe('drop', () => {
     it('genera DROP TRIGGER + DROP FUNCTION para realtime removido', () => {
       const spec = baseSpec({ events: ['insert'], channel: 'tasks' });
-      const statements = TriggerFactory.drop(spec, { events: ['insert'], channel: 'tasks' });
+      const statements = TriggerFactory.drop(spec, {
+        events: ['insert'],
+        channel: 'tasks',
+      });
 
       expect(statements.length).toBeGreaterThanOrEqual(2);
       expect(statements.some((s) => s.up.includes('DROP TRIGGER'))).toBe(true);

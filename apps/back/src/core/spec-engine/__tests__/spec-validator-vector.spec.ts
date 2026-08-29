@@ -6,7 +6,11 @@
  */
 import { describe, it, expect } from 'vitest';
 import { SpecValidator } from '@src/core/spec-engine/spec-validator';
-import type { ExtensionSpec, ResourceSpec, VectorFieldSpec } from '@src/core/spec-engine/spec.types';
+import type {
+  ExtensionSpec,
+  ResourceSpec,
+  VectorFieldSpec,
+} from '@src/core/spec-engine/spec.types';
 
 function makeSpec(fields: any[]): ResourceSpec {
   return {
@@ -36,7 +40,8 @@ describe('SpecValidator — vector field validation (PRD 06)', () => {
     const result = SpecValidator.validateAll([makeLoaded(spec)]);
 
     const typeErrors = result.errors.filter(
-      (e) => e.field === 'embedding' && e.message.includes('Invalid field type'),
+      (e) =>
+        e.field === 'embedding' && e.message.includes('Invalid field type'),
     );
     expect(typeErrors).toHaveLength(0);
   });
@@ -47,9 +52,11 @@ describe('SpecValidator — vector field validation (PRD 06)', () => {
     ]);
     const result = SpecValidator.validateAll([makeLoaded(spec)]);
 
-    expect(result.errors.some((e) =>
-      e.field === 'embedding' && e.message.includes('dimensions'),
-    )).toBe(true);
+    expect(
+      result.errors.some(
+        (e) => e.field === 'embedding' && e.message.includes('dimensions'),
+      ),
+    ).toBe(true);
   });
 
   it('should reject vector field with zero dimensions', () => {
@@ -58,9 +65,11 @@ describe('SpecValidator — vector field validation (PRD 06)', () => {
     ]);
     const result = SpecValidator.validateAll([makeLoaded(spec)]);
 
-    expect(result.errors.some((e) =>
-      e.field === 'embedding' && e.message.includes('dimensions'),
-    )).toBe(true);
+    expect(
+      result.errors.some(
+        (e) => e.field === 'embedding' && e.message.includes('dimensions'),
+      ),
+    ).toBe(true);
   });
 
   it('should reject vector field with negative dimensions', () => {
@@ -69,9 +78,11 @@ describe('SpecValidator — vector field validation (PRD 06)', () => {
     ]);
     const result = SpecValidator.validateAll([makeLoaded(spec)]);
 
-    expect(result.errors.some((e) =>
-      e.field === 'embedding' && e.message.includes('dimensions'),
-    )).toBe(true);
+    expect(
+      result.errors.some(
+        (e) => e.field === 'embedding' && e.message.includes('dimensions'),
+      ),
+    ).toBe(true);
   });
 
   it('should reject autoEmbed without source field', () => {
@@ -80,14 +91,19 @@ describe('SpecValidator — vector field validation (PRD 06)', () => {
         name: 'embedding',
         type: 'vector',
         dimensions: 1536,
-        autoEmbed: { model: 'text-embedding-3-small', provider: 'openai' } as any,
+        autoEmbed: {
+          model: 'text-embedding-3-small',
+          provider: 'openai',
+        } as any,
       },
     ]);
     const result = SpecValidator.validateAll([makeLoaded(spec)]);
 
-    expect(result.errors.some((e) =>
-      e.message.includes('autoEmbed') && e.message.includes('source'),
-    )).toBe(true);
+    expect(
+      result.errors.some(
+        (e) => e.message.includes('autoEmbed') && e.message.includes('source'),
+      ),
+    ).toBe(true);
   });
 
   it('should reject autoEmbed with source referencing nonexistent field', () => {
@@ -106,9 +122,12 @@ describe('SpecValidator — vector field validation (PRD 06)', () => {
     ]);
     const result = SpecValidator.validateAll([makeLoaded(spec)]);
 
-    expect(result.errors.some((e) =>
-      e.message.includes('autoEmbed') && e.message.includes('nonexistent'),
-    )).toBe(true);
+    expect(
+      result.errors.some(
+        (e) =>
+          e.message.includes('autoEmbed') && e.message.includes('nonexistent'),
+      ),
+    ).toBe(true);
   });
 
   it('should reject autoEmbed without model', () => {
@@ -123,9 +142,11 @@ describe('SpecValidator — vector field validation (PRD 06)', () => {
     ]);
     const result = SpecValidator.validateAll([makeLoaded(spec)]);
 
-    expect(result.errors.some((e) =>
-      e.message.includes('autoEmbed') && e.message.includes('model'),
-    )).toBe(true);
+    expect(
+      result.errors.some(
+        (e) => e.message.includes('autoEmbed') && e.message.includes('model'),
+      ),
+    ).toBe(true);
   });
 
   it('should reject autoEmbed with invalid provider', () => {
@@ -140,9 +161,12 @@ describe('SpecValidator — vector field validation (PRD 06)', () => {
     ]);
     const result = SpecValidator.validateAll([makeLoaded(spec)]);
 
-    expect(result.errors.some((e) =>
-      e.message.includes('autoEmbed') && e.message.includes('provider'),
-    )).toBe(true);
+    expect(
+      result.errors.some(
+        (e) =>
+          e.message.includes('autoEmbed') && e.message.includes('provider'),
+      ),
+    ).toBe(true);
   });
 
   it('should accept valid vector field with autoEmbed', () => {

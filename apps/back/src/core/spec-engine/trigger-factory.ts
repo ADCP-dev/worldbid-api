@@ -9,7 +9,10 @@ export class TriggerFactory {
     return this.buildCreateStatements(spec, spec.realtime);
   }
 
-  static drop(spec: ResourceSpec, realtime: RealtimeSpec): MigrationStatement[] {
+  static drop(
+    spec: ResourceSpec,
+    realtime: RealtimeSpec,
+  ): MigrationStatement[] {
     return this.buildDropStatements(spec, realtime);
   }
 
@@ -57,7 +60,9 @@ export class TriggerFactory {
         up: `DROP TRIGGER IF EXISTS "${triggerName}" ON "${spec.table}"`,
         down: `CREATE TRIGGER "${triggerName}" AFTER ${realtime.events
           .map((e) => e.toUpperCase())
-          .join(' OR ')} ON "${spec.table}" FOR EACH ROW EXECUTE FUNCTION "${fnName}"()`,
+          .join(
+            ' OR ',
+          )} ON "${spec.table}" FOR EACH ROW EXECUTE FUNCTION "${fnName}"()`,
         description: `Drop realtime trigger for ${spec.table}`,
       },
       {
@@ -92,7 +97,7 @@ export class TriggerFactory {
   ): string {
     const hasDelete = events.includes('delete');
     const idExpr = hasDelete
-      ? 'CASE WHEN TG_OP = \'DELETE\' THEN OLD.id ELSE NEW.id END'
+      ? "CASE WHEN TG_OP = 'DELETE' THEN OLD.id ELSE NEW.id END"
       : 'NEW.id';
 
     return `BEGIN
@@ -218,13 +223,15 @@ END`;
 
   private static warnIfLarge(spec: ResourceSpec): void {
     const safeCount = spec.fields.filter(
-      (f) => !EXCLUDED_FIELD_TYPES.has(f.type) && f.type !== 'computed' && f.type !== 'many-to-many',
+      (f) =>
+        !EXCLUDED_FIELD_TYPES.has(f.type) &&
+        f.type !== 'computed' &&
+        f.type !== 'many-to-many',
     ).length;
     const hasLargeFields = spec.fields.some(
       (f) => f.type === 'text' || f.type === 'json',
     );
     if (safeCount > 10 || hasLargeFields) {
-      // eslint-disable-next-line no-console
       console.warn(
         `[TriggerFactory] Warning: resource "${spec.name}" has ${safeCount} safe fields` +
           (hasLargeFields ? ' with text/json fields' : '') +

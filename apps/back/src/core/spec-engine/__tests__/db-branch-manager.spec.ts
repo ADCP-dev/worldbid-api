@@ -31,7 +31,10 @@ export const __mockDataSourceInstances: Array<{
 vi.mock('typeorm', async (importOriginal) => {
   const actual = await importOriginal<typeof import('typeorm')>();
   // A function that works with `new` — returns an object instance.
-  function MockDataSourceConstructor(this: unknown, options: { schema?: string }) {
+  function MockDataSourceConstructor(
+    this: unknown,
+    options: { schema?: string },
+  ) {
     const instance = {
       options,
       schema: options?.schema,
@@ -43,7 +46,10 @@ vi.mock('typeorm', async (importOriginal) => {
   }
   // Preserve static members from the real DataSource (if any used by type checks).
   Object.assign(MockDataSourceConstructor, actual.DataSource);
-  return { ...actual, DataSource: MockDataSourceConstructor as unknown as typeof DataSource };
+  return {
+    ...actual,
+    DataSource: MockDataSourceConstructor as unknown as typeof DataSource,
+  };
 });
 
 import { DbBranchManager } from '@src/core/spec-engine/db-branch-manager';
@@ -101,7 +107,7 @@ describe('DbBranchManager — createBranch (REQ-01)', () => {
       h('information_schema.tables', [{ table_name: 'users' }]),
       // CREATE TABLE LIKE (no result)
       // FKs in target schema (none)
-      h("con.contype = 'f'", [],),
+      h("con.contype = 'f'", []),
       // original FKs in source (none)
       // sequences
       h('information_schema.sequences', []),
@@ -110,11 +116,17 @@ describe('DbBranchManager — createBranch (REQ-01)', () => {
       // topologicalSort deps for users
       h("tc.constraint_type = 'FOREIGN KEY'", []),
       // columns for users
-      h('information_schema.columns', [{ column_name: 'id' }, { column_name: 'name' }]),
+      h('information_schema.columns', [
+        { column_name: 'id' },
+        { column_name: 'name' },
+      ]),
     ]);
 
     const manager = new DbBranchManager(ds as never);
-    const branch = await manager.createBranch({ name: 'test-001', copyData: true });
+    const branch = await manager.createBranch({
+      name: 'test-001',
+      copyData: true,
+    });
 
     expect(branch.name).toBe('test-001');
     expect(branch.schema).toBe('branch_test-001');
@@ -124,9 +136,16 @@ describe('DbBranchManager — createBranch (REQ-01)', () => {
     expect(branch.createdBy).toBe('manual');
 
     // CREATE SCHEMA issued
-    expect(ds.calls.some((c) => c.sql.includes('CREATE SCHEMA') && c.sql.includes('branch_test-001'))).toBe(true);
+    expect(
+      ds.calls.some(
+        (c) =>
+          c.sql.includes('CREATE SCHEMA') && c.sql.includes('branch_test-001'),
+      ),
+    ).toBe(true);
     // Tracking INSERT into public._db_branches
-    expect(ds.calls.some((c) => c.sql.includes('INSERT INTO public._db_branches'))).toBe(true);
+    expect(
+      ds.calls.some((c) => c.sql.includes('INSERT INTO public._db_branches')),
+    ).toBe(true);
   });
 
   it('generates a random branch name when name is omitted', async () => {
@@ -147,7 +166,10 @@ describe('DbBranchManager — createBranch (REQ-01)', () => {
       h('information_schema.sequences', []),
     ]);
     const manager = new DbBranchManager(ds as never);
-    const branch = await manager.createBranch({ name: 'branch_custom', copyData: false });
+    const branch = await manager.createBranch({
+      name: 'branch_custom',
+      copyData: false,
+    });
 
     expect(branch.schema).toBe('branch_custom');
   });
@@ -158,7 +180,11 @@ describe('DbBranchManager — createBranch (REQ-01)', () => {
       h('information_schema.sequences', []),
     ]);
     const manager = new DbBranchManager(ds as never);
-    const branch = await manager.createBranch({ name: 'x', parentSchema: 'staging', copyData: false });
+    const branch = await manager.createBranch({
+      name: 'x',
+      parentSchema: 'staging',
+      copyData: false,
+    });
 
     expect(branch.parentSchema).toBe('staging');
   });
@@ -172,14 +198,22 @@ describe('DbBranchManager — createBranch (REQ-01)', () => {
     await manager.createBranch({ name: 'x', copyData: false });
 
     // No INSERT INTO "branch_x" ... SELECT should be issued (data copy skipped)
-    expect(ds.calls.some((c) => c.sql.includes('INSERT INTO "branch_') && c.sql.includes('SELECT'))).toBe(false);
+    expect(
+      ds.calls.some(
+        (c) =>
+          c.sql.includes('INSERT INTO "branch_') && c.sql.includes('SELECT'),
+      ),
+    ).toBe(false);
   });
 });
 
 describe('DbBranchManager — copySchemaStructure (REQ-02)', () => {
   it('creates each table with LIKE INCLUDING ALL', async () => {
     const ds = makeMockDataSource([
-      h('information_schema.tables', [{ table_name: 'users' }, { table_name: 'posts' }]),
+      h('information_schema.tables', [
+        { table_name: 'users' },
+        { table_name: 'posts' },
+      ]),
       // FKs in target (none returned)
       h("con.contype = 'f'", []),
       // sequences
@@ -188,7 +222,9 @@ describe('DbBranchManager — copySchemaStructure (REQ-02)', () => {
     const manager = new DbBranchManager(ds as never);
     await manager.createBranch({ name: 's', copyData: false });
 
-    const createStmts = ds.calls.filter((c) => c.sql.includes('CREATE TABLE') && c.sql.includes('INCLUDING ALL'));
+    const createStmts = ds.calls.filter(
+      (c) => c.sql.includes('CREATE TABLE') && c.sql.includes('INCLUDING ALL'),
+    );
     expect(createStmts.length).toBe(2);
     expect(createStmts[0].sql).toContain('"branch_s"."users"');
     expect(createStmts[1].sql).toContain('"branch_s"."posts"');
@@ -199,7 +235,12 @@ describe('DbBranchManager — copySchemaStructure (REQ-02)', () => {
       h('information_schema.tables', [{ table_name: 'posts' }]),
       // original FKs in source (to be recreated) — matched by the "AND cls.relname"
       // clause that only appears in the source-FK query, not the target-FK query.
-      h('AND cls.relname = $2', [{ conname: 'fk_posts_user', def: 'FOREIGN KEY ("userId") REFERENCES "public"."users" (id)' }]),
+      h('AND cls.relname = $2', [
+        {
+          conname: 'fk_posts_user',
+          def: 'FOREIGN KEY ("userId") REFERENCES "public"."users" (id)',
+        },
+      ]),
       // FKs copied into target (to be dropped) — generic match.
       h("con.contype = 'f'", [{ conname: 'fk_posts_user' }]),
       h('information_schema.sequences', []),
@@ -208,9 +249,17 @@ describe('DbBranchManager — copySchemaStructure (REQ-02)', () => {
     await manager.createBranch({ name: 'fk', copyData: false });
 
     // DROP CONSTRAINT for copied FK
-    expect(ds.calls.some((c) => c.sql.includes('DROP CONSTRAINT') && c.sql.includes('fk_posts_user'))).toBe(true);
+    expect(
+      ds.calls.some(
+        (c) =>
+          c.sql.includes('DROP CONSTRAINT') && c.sql.includes('fk_posts_user'),
+      ),
+    ).toBe(true);
     // ADD CONSTRAINT with replaced schema
-    const addStmt = ds.calls.find((c) => c.sql.includes('ADD CONSTRAINT') && c.sql.includes('fk_posts_user'));
+    const addStmt = ds.calls.find(
+      (c) =>
+        c.sql.includes('ADD CONSTRAINT') && c.sql.includes('fk_posts_user'),
+    );
     expect(addStmt).toBeDefined();
     expect(addStmt!.sql).toContain('"branch_fk"."users"');
     expect(addStmt!.sql).not.toContain('"public"."users"');
@@ -225,7 +274,12 @@ describe('DbBranchManager — copySchemaStructure (REQ-02)', () => {
     const manager = new DbBranchManager(ds as never);
     await manager.createBranch({ name: 'seq', copyData: false });
 
-    expect(ds.calls.some((c) => c.sql.includes('CREATE SEQUENCE') && c.sql.includes('users_id_seq'))).toBe(true);
+    expect(
+      ds.calls.some(
+        (c) =>
+          c.sql.includes('CREATE SEQUENCE') && c.sql.includes('users_id_seq'),
+      ),
+    ).toBe(true);
     const setval = ds.calls.find((c) => c.sql.includes('setval'));
     expect(setval).toBeDefined();
     expect(setval!.params).toEqual([42]);
@@ -239,7 +293,10 @@ describe('DbBranchManager — copySchemaData (REQ-03)', () => {
     // Handlers are consumed in order, so duplicates are listed explicitly.
     const ds = makeMockDataSource([
       // structure: tables
-      h('information_schema.tables', [{ table_name: 'users' }, { table_name: 'posts' }]),
+      h('information_schema.tables', [
+        { table_name: 'users' },
+        { table_name: 'posts' },
+      ]),
       // structure: FKs in target (none)
       h("con.contype = 'f'", []),
       // structure: FKs in source (none — the AND variant)
@@ -247,20 +304,32 @@ describe('DbBranchManager — copySchemaData (REQ-03)', () => {
       // structure: sequences (none)
       h('information_schema.sequences', []),
       // data: tables again
-      h('information_schema.tables', [{ table_name: 'users' }, { table_name: 'posts' }]),
+      h('information_schema.tables', [
+        { table_name: 'users' },
+        { table_name: 'posts' },
+      ]),
       // topologicalSort: posts depends on users (consumed when posts is checked)
       h("tc.constraint_type = 'FOREIGN KEY'", [{ dep_table: 'users' }]),
       // topologicalSort: users has no deps
       h("tc.constraint_type = 'FOREIGN KEY'", []),
       // columns for users
-      h('information_schema.columns', [{ column_name: 'id' }, { column_name: 'name' }]),
+      h('information_schema.columns', [
+        { column_name: 'id' },
+        { column_name: 'name' },
+      ]),
       // columns for posts
-      h('information_schema.columns', [{ column_name: 'id' }, { column_name: 'title' }]),
+      h('information_schema.columns', [
+        { column_name: 'id' },
+        { column_name: 'title' },
+      ]),
     ]);
     const manager = new DbBranchManager(ds as never);
     await manager.createBranch({ name: 'd', copyData: true });
 
-    const inserts = ds.calls.filter((c) => c.sql.includes('INSERT INTO "branch_d"') && c.sql.includes('SELECT'));
+    const inserts = ds.calls.filter(
+      (c) =>
+        c.sql.includes('INSERT INTO "branch_d"') && c.sql.includes('SELECT'),
+    );
     expect(inserts.length).toBeGreaterThan(0);
     // Each insert uses explicit column list
     expect(inserts[0].sql).toMatch(/"id", "name"/);
@@ -285,9 +354,11 @@ describe('DbBranchManager — topologicalSort (REQ-03)', () => {
       h("tc.constraint_type = 'FOREIGN KEY'", [{ dep_table: 'users' }]),
     ]);
     const manager = new DbBranchManager(ds as never);
-    const sorted = await (manager as unknown as {
-      topologicalSort: (t: string[], s: string) => Promise<string[]>;
-    }).topologicalSort(['posts', 'users'], 'public');
+    const sorted = await (
+      manager as unknown as {
+        topologicalSort: (t: string[], s: string) => Promise<string[]>;
+      }
+    ).topologicalSort(['posts', 'users'], 'public');
 
     // users (no deps) should come before posts
     expect(sorted.indexOf('users')).toBeLessThan(sorted.indexOf('posts'));
@@ -300,9 +371,11 @@ describe('DbBranchManager — topologicalSort (REQ-03)', () => {
       h("tc.constraint_type = 'FOREIGN KEY'", [{ dep_table: 'b' }]),
     ]);
     const manager = new DbBranchManager(ds as never);
-    const sorted = await (manager as unknown as {
-      topologicalSort: (t: string[], s: string) => Promise<string[]>;
-    }).topologicalSort(['a', 'b'], 'public');
+    const sorted = await (
+      manager as unknown as {
+        topologicalSort: (t: string[], s: string) => Promise<string[]>;
+      }
+    ).topologicalSort(['a', 'b'], 'public');
 
     // Cycle → both included (no infinite loop), order not guaranteed
     expect(sorted).toContain('a');
@@ -370,15 +443,19 @@ describe('DbBranchManager — mergeBranch (REQ-05)', () => {
       // branch migrations: one new
       h('typeorm_migrations', [{ timestamp: 1700000000000, name: 'AddFoo' }]),
       // beforeCount
-      h('SELECT count(*)::int AS count FROM public.typeorm_migrations', [{ count: 5 }]),
+      h('SELECT count(*)::int AS count FROM public.typeorm_migrations', [
+        { count: 5 },
+      ]),
       // afterCount (5 + 1 = 6)
-      h('SELECT count(*)::int AS count FROM public.typeorm_migrations', [{ count: 6 }]),
+      h('SELECT count(*)::int AS count FROM public.typeorm_migrations', [
+        { count: 6 },
+      ]),
     ]);
     const manager = new DbBranchManager(ds as never);
     // Stub the private migration runner so we don't touch the filesystem.
-    (manager as unknown as { runMigrationAgainstPublic: jest.Mock }).runMigrationAgainstPublic = jest
-      .fn()
-      .mockResolvedValue(undefined);
+    (
+      manager as unknown as { runMigrationAgainstPublic: jest.Mock }
+    ).runMigrationAgainstPublic = jest.fn().mockResolvedValue(undefined);
 
     const branch: DbBranch = {
       name: 'm',
@@ -391,23 +468,35 @@ describe('DbBranchManager — mergeBranch (REQ-05)', () => {
     };
     await manager.mergeBranch(branch);
 
-    const runMock = (manager as unknown as { runMigrationAgainstPublic: jest.Mock }).runMigrationAgainstPublic;
+    const runMock = (
+      manager as unknown as { runMigrationAgainstPublic: jest.Mock }
+    ).runMigrationAgainstPublic;
     expect(runMock).toHaveBeenCalledWith('AddFoo');
-    expect(ds.calls.some((c) => c.sql.includes('DROP SCHEMA') && c.sql.includes('branch_m'))).toBe(true);
-    expect(ds.calls.some((c) => c.sql.includes("status = 'merged'"))).toBe(true);
+    expect(
+      ds.calls.some(
+        (c) => c.sql.includes('DROP SCHEMA') && c.sql.includes('branch_m'),
+      ),
+    ).toBe(true);
+    expect(ds.calls.some((c) => c.sql.includes("status = 'merged'"))).toBe(
+      true,
+    );
   });
 
   it('throws when migration count does not match after re-apply', async () => {
     const ds = makeMockDataSource([
       h('typeorm_migrations', [{ timestamp: 1700000000000, name: 'AddFoo' }]),
-      h('SELECT count(*)::int AS count FROM public.typeorm_migrations', [{ count: 5 }]),
+      h('SELECT count(*)::int AS count FROM public.typeorm_migrations', [
+        { count: 5 },
+      ]),
       // afterCount wrong: 7 instead of 6
-      h('SELECT count(*)::int AS count FROM public.typeorm_migrations', [{ count: 7 }]),
+      h('SELECT count(*)::int AS count FROM public.typeorm_migrations', [
+        { count: 7 },
+      ]),
     ]);
     const manager = new DbBranchManager(ds as never);
-    (manager as unknown as { runMigrationAgainstPublic: jest.Mock }).runMigrationAgainstPublic = jest
-      .fn()
-      .mockResolvedValue(undefined);
+    (
+      manager as unknown as { runMigrationAgainstPublic: jest.Mock }
+    ).runMigrationAgainstPublic = jest.fn().mockResolvedValue(undefined);
 
     const branch: DbBranch = {
       name: 'm2',
@@ -418,7 +507,9 @@ describe('DbBranchManager — mergeBranch (REQ-05)', () => {
       parentSchema: 'public',
       copyData: false,
     };
-    await expect(manager.mergeBranch(branch)).rejects.toThrow(/count mismatch/i);
+    await expect(manager.mergeBranch(branch)).rejects.toThrow(
+      /count mismatch/i,
+    );
   });
 });
 
@@ -437,16 +528,41 @@ describe('DbBranchManager — discardBranch (REQ-06)', () => {
     };
     await manager.discardBranch(branch);
 
-    expect(ds.calls.some((c) => c.sql.includes('DROP SCHEMA') && c.sql.includes('branch_dc') && c.sql.includes('CASCADE'))).toBe(true);
-    expect(ds.calls.some((c) => c.sql.includes("status = 'discarded'"))).toBe(true);
+    expect(
+      ds.calls.some(
+        (c) =>
+          c.sql.includes('DROP SCHEMA') &&
+          c.sql.includes('branch_dc') &&
+          c.sql.includes('CASCADE'),
+      ),
+    ).toBe(true);
+    expect(ds.calls.some((c) => c.sql.includes("status = 'discarded'"))).toBe(
+      true,
+    );
   });
 });
 
 describe('DbBranchManager — listBranches (REQ-07)', () => {
   it('returns branches ordered by created_at desc', async () => {
     const rows = [
-      { name: 'b2', schema: 'branch_b2', parent_schema: 'public', status: 'active', copy_data: true, created_by: 'agent1', created_at: new Date('2026-08-20').toISOString() },
-      { name: 'b1', schema: 'branch_b1', parent_schema: 'public', status: 'merged', copy_data: false, created_by: 'manual', created_at: new Date('2026-08-19').toISOString() },
+      {
+        name: 'b2',
+        schema: 'branch_b2',
+        parent_schema: 'public',
+        status: 'active',
+        copy_data: true,
+        created_by: 'agent1',
+        created_at: new Date('2026-08-20').toISOString(),
+      },
+      {
+        name: 'b1',
+        schema: 'branch_b1',
+        parent_schema: 'public',
+        status: 'merged',
+        copy_data: false,
+        created_by: 'manual',
+        created_at: new Date('2026-08-19').toISOString(),
+      },
     ];
     const ds = makeMockDataSource([h('SELECT', rows)]);
     const manager = new DbBranchManager(ds as never);
@@ -467,9 +583,7 @@ describe('DbBranchManager — cleanupStale (REQ-08)', () => {
       { name: 'old1', schema: 'branch_old1' },
       { name: 'old2', schema: 'branch_old2' },
     ];
-    const ds = makeMockDataSource([
-      h('status', staleRows),
-    ]);
+    const ds = makeMockDataSource([h('status', staleRows)]);
     const manager = new DbBranchManager(ds as never);
     const count = await manager.cleanupStale(24);
 
@@ -478,7 +592,9 @@ describe('DbBranchManager — cleanupStale (REQ-08)', () => {
     const drops = ds.calls.filter((c) => c.sql.includes('DROP SCHEMA'));
     expect(drops.length).toBe(2);
     // Two UPDATE status=discarded
-    const updates = ds.calls.filter((c) => c.sql.includes("status = 'discarded'"));
+    const updates = ds.calls.filter((c) =>
+      c.sql.includes("status = 'discarded'"),
+    );
     expect(updates.length).toBe(2);
   });
 

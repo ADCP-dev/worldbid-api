@@ -90,7 +90,9 @@ beforeEach(() => {
 describe('db-branch-cli — create (REQ-10)', () => {
   it('calls createBranch with parsed --name and --copy-data', async () => {
     mockManager.createBranch.mockResolvedValue({
-      name: 'test-001', schema: 'branch_test-001', status: 'active',
+      name: 'test-001',
+      schema: 'branch_test-001',
+      status: 'active',
     });
     const res = await run(['create', '--name=test-001', '--copy-data']);
 
@@ -102,7 +104,10 @@ describe('db-branch-cli — create (REQ-10)', () => {
   });
 
   it('passes --parent as parentSchema', async () => {
-    mockManager.createBranch.mockResolvedValue({ name: 'x', schema: 'branch_x' });
+    mockManager.createBranch.mockResolvedValue({
+      name: 'x',
+      schema: 'branch_x',
+    });
     await run(['create', '--name=x', '--parent=staging']);
 
     expect(mockManager.createBranch).toHaveBeenCalledWith({
@@ -124,7 +129,15 @@ describe('db-branch-cli — create (REQ-10)', () => {
 describe('db-branch-cli — list (REQ-10)', () => {
   it('calls listBranches and prints human-readable output', async () => {
     mockManager.listBranches.mockResolvedValue([
-      { name: 'b1', schema: 'branch_b1', status: 'active', parentSchema: 'public', copyData: true, createdBy: 'agent1', createdAt: '2026-08-20T00:00:00Z' },
+      {
+        name: 'b1',
+        schema: 'branch_b1',
+        status: 'active',
+        parentSchema: 'public',
+        copyData: true,
+        createdBy: 'agent1',
+        createdAt: '2026-08-20T00:00:00Z',
+      },
     ]);
     const res = await run(['list']);
 
@@ -135,7 +148,15 @@ describe('db-branch-cli — list (REQ-10)', () => {
 
   it('prints JSON when --json flag is passed', async () => {
     mockManager.listBranches.mockResolvedValue([
-      { name: 'b1', schema: 'branch_b1', status: 'active', parentSchema: 'public', copyData: true, createdBy: 'agent1', createdAt: '2026-08-20T00:00:00Z' },
+      {
+        name: 'b1',
+        schema: 'branch_b1',
+        status: 'active',
+        parentSchema: 'public',
+        copyData: true,
+        createdBy: 'agent1',
+        createdAt: '2026-08-20T00:00:00Z',
+      },
     ]);
     const res = await run(['list', '--json']);
 
@@ -150,7 +171,15 @@ describe('db-branch-cli — list (REQ-10)', () => {
 describe('db-branch-cli — discard (REQ-10)', () => {
   it('calls discardBranch with the branch object', async () => {
     mockManager.listBranches.mockResolvedValue([
-      { name: 'dc', schema: 'branch_dc', status: 'active', parentSchema: 'public', copyData: false, createdBy: 'manual', createdAt: '2026-08-20T00:00:00Z' },
+      {
+        name: 'dc',
+        schema: 'branch_dc',
+        status: 'active',
+        parentSchema: 'public',
+        copyData: false,
+        createdBy: 'manual',
+        createdAt: '2026-08-20T00:00:00Z',
+      },
     ]);
     mockManager.discardBranch.mockResolvedValue(undefined);
     const res = await run(['discard', '--name=dc']);
@@ -173,7 +202,15 @@ describe('db-branch-cli — discard (REQ-10)', () => {
 describe('db-branch-cli — merge (REQ-10)', () => {
   it('calls mergeBranch with the branch object', async () => {
     mockManager.listBranches.mockResolvedValue([
-      { name: 'mg', schema: 'branch_mg', status: 'active', parentSchema: 'public', copyData: false, createdBy: 'manual', createdAt: '2026-08-20T00:00:00Z' },
+      {
+        name: 'mg',
+        schema: 'branch_mg',
+        status: 'active',
+        parentSchema: 'public',
+        copyData: false,
+        createdBy: 'manual',
+        createdAt: '2026-08-20T00:00:00Z',
+      },
     ]);
     mockManager.mergeBranch.mockResolvedValue(undefined);
     const res = await run(['merge', '--name=mg']);
@@ -208,7 +245,9 @@ describe('db-branch-cli — dispatch errors (REQ-10)', () => {
     const res = await run(['bogus']);
 
     expect(res.exitCode).toBe(1);
-    expect(res.stderr.some((s) => s.includes('Unknown') || s.includes('Usage'))).toBe(true);
+    expect(
+      res.stderr.some((s) => s.includes('Unknown') || s.includes('Usage')),
+    ).toBe(true);
   });
 
   it('exits 1 when no subcommand given', async () => {

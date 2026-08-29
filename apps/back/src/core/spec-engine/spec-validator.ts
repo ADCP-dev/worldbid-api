@@ -464,10 +464,7 @@ export class SpecValidator {
     // In strict mode, missing permissions / actions surface as errors
     // (blocking materialization). In warn mode (default) they surface as
     // warnings so existing extensions keep loading while authors migrate.
-    const permissionGapErrors = this.validatePermissionGaps(
-      spec,
-      specFile,
-    );
+    const permissionGapErrors = this.validatePermissionGaps(spec, specFile);
     if (strict) {
       errors.push(...permissionGapErrors);
     } else {

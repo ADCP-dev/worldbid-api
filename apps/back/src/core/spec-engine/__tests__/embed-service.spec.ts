@@ -7,7 +7,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ConfigService } from '@nestjs/config';
 import { EmbedService } from '@src/core/spec-engine/embed-service';
 
-function makeConfigService(overrides: Record<string, unknown> = {}): ConfigService {
+function makeConfigService(
+  overrides: Record<string, unknown> = {},
+): ConfigService {
   const values: Record<string, unknown> = {
     EMBED_PROVIDER: 'openai',
     OPENAI_API_KEY: 'test-key',
@@ -135,7 +137,9 @@ describe('EmbedService (PRD 06 — REQ-10)', () => {
     await service.embed('text', 'model');
 
     expect(fetchSpy).toHaveBeenCalledOnce();
-    expect(fetchSpy.mock.calls[0][0]).toBe('https://api.openai.com/v1/embeddings');
+    expect(fetchSpy.mock.calls[0][0]).toBe(
+      'https://api.openai.com/v1/embeddings',
+    );
   });
 
   it('should throw for unknown provider', async () => {

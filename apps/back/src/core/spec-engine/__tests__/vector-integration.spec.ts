@@ -61,20 +61,14 @@ describe('pgvector integration smoke test (PRD 06)', () => {
   });
 
   it('should validate the vector spec without errors', () => {
-    const loadedSpecs = SpecLoader.load(
-      path.join(tmpDir, 'extensions'),
-    );
+    const loadedSpecs = SpecLoader.load(path.join(tmpDir, 'extensions'));
     const result = SpecValidator.validateAll(loadedSpecs);
-    const errors = result.errors.filter(
-      (e) => e.field === 'embedding',
-    );
+    const errors = result.errors.filter((e) => e.field === 'embedding');
     expect(errors).toHaveLength(0);
   });
 
   it('should generate EntitySchema with vector column + transformer', () => {
-    const loadedSpecs = SpecLoader.load(
-      path.join(tmpDir, 'extensions'),
-    );
+    const loadedSpecs = SpecLoader.load(path.join(tmpDir, 'extensions'));
     const spec = loadedSpecs[0].spec.resources[0];
 
     const result = EntityFactory.create(spec);
@@ -136,9 +130,7 @@ describe('pgvector integration smoke test (PRD 06)', () => {
   });
 
   it('should round-trip transformer: array → string → array', () => {
-    const loadedSpecs = SpecLoader.load(
-      path.join(tmpDir, 'extensions'),
-    );
+    const loadedSpecs = SpecLoader.load(path.join(tmpDir, 'extensions'));
     const spec = loadedSpecs[0].spec.resources[0];
 
     const result = EntityFactory.create(spec);

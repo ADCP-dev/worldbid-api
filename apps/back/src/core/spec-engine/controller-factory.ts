@@ -48,10 +48,7 @@ import type { Request, Response } from 'express';
 
 import { Roles } from '@iam/roles/roles.decorator';
 import { RolesGuard } from '@iam/roles/roles.guard';
-import {
-  ApiKeyAuthGuard,
-  FlexibleAuthGuard,
-} from '@iam/auth/guards';
+import { ApiKeyAuthGuard, FlexibleAuthGuard } from '@iam/auth/guards';
 
 import type {
   ResourceSpec,
@@ -172,8 +169,7 @@ export function resolveGuardStack(
     };
   }
 
-  const opIsPublic =
-    authMethods.includes('public') && roles.includes('public');
+  const opIsPublic = authMethods.includes('public') && roles.includes('public');
 
   if (opIsPublic) {
     return {
@@ -385,7 +381,9 @@ export class ControllerFactory {
        * requests (singleton controller). `manager === null` means
        * non-transactional and falls back to the injected repository.
        */
-      private getRepositoryForOperation(manager?: EntityManager | null): Repository<any> {
+      private getRepositoryForOperation(
+        manager?: EntityManager | null,
+      ): Repository<any> {
         return manager
           ? manager.getRepository(entitySchemaName as any)
           : this.repository;
@@ -887,7 +885,9 @@ export class ControllerFactory {
         // (P0 fix): no shared instance state between concurrent requests.
         const executeCore = async (
           manager: EntityManager | null,
-        ): Promise<{ saved: Record<string, unknown> } | { aborted: true; error: string }> => {
+        ): Promise<
+          { saved: Record<string, unknown> } | { aborted: true; error: string }
+        > => {
           // Stage 3: Before hook
           if (allHooks.beforeCreate) {
             trace.startStage('beforeHook');
@@ -1111,7 +1111,9 @@ export class ControllerFactory {
         // (P0 fix) — same rationale as create().
         const executeCore = async (
           manager: EntityManager | null,
-        ): Promise<{ saved: Record<string, unknown> } | { aborted: true; error: string }> => {
+        ): Promise<
+          { saved: Record<string, unknown> } | { aborted: true; error: string }
+        > => {
           // Stage 3: Before hook
           if (allHooks.beforeUpdate) {
             trace.startStage('beforeHook');
@@ -1758,9 +1760,7 @@ export class ControllerFactory {
       'enum',
     ]);
     const filterable = new Set(
-      spec.fields
-        .filter((f) => SCALAR_TYPES.has(f.type))
-        .map((f) => f.name),
+      spec.fields.filter((f) => SCALAR_TYPES.has(f.type)).map((f) => f.name),
     );
 
     const result: Record<string, unknown> = {};
@@ -1806,9 +1806,7 @@ export class ControllerFactory {
       'enum',
     ]);
     const sortable = new Set(
-      spec.fields
-        .filter((f) => SCALAR_TYPES.has(f.type))
-        .map((f) => f.name),
+      spec.fields.filter((f) => SCALAR_TYPES.has(f.type)).map((f) => f.name),
     );
     const result: Record<string, 'ASC' | 'DESC'> = {};
     for (const raw of sortParam.split(',')) {

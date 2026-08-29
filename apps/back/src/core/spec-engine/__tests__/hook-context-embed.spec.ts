@@ -7,7 +7,10 @@ import { describe, it, expect, vi } from 'vitest';
 import { ModuleRef, ConfigService } from '@nestjs/common';
 import { HookContextImpl } from '@src/core/spec-engine/hook-context';
 import { EmbedService } from '@src/core/spec-engine/embed-service';
-import type { AuthenticatedUser, TraceWriter } from '@src/core/spec-engine/spec.types';
+import type {
+  AuthenticatedUser,
+  TraceWriter,
+} from '@src/core/spec-engine/spec.types';
 
 function makeModuleRef(embedService: EmbedService): ModuleRef {
   return {
@@ -19,10 +22,12 @@ function makeModuleRef(embedService: EmbedService): ModuleRef {
 }
 
 function makeConfigService(): ConfigService {
-  return { get: vi.fn((key: string) => {
-    if (key === 'EMBED_PROVIDER') return 'openai';
-    return undefined;
-  }) } as unknown as ConfigService;
+  return {
+    get: vi.fn((key: string) => {
+      if (key === 'EMBED_PROVIDER') return 'openai';
+      return undefined;
+    }),
+  } as unknown as ConfigService;
 }
 
 function makeTraceWriter(): TraceWriter {
@@ -47,7 +52,11 @@ describe('HookContextImpl embed (PRD 06 — REQ-09)', () => {
     const result = await ctx.embed('hello', 'text-embedding-3-small');
 
     expect(result).toEqual([0.1, 0.2]);
-    expect(spy).toHaveBeenCalledWith('hello', 'text-embedding-3-small', undefined);
+    expect(spy).toHaveBeenCalledWith(
+      'hello',
+      'text-embedding-3-small',
+      undefined,
+    );
   });
 
   it('should pass provider to embed service when given', async () => {

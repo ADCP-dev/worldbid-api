@@ -31,9 +31,7 @@ function makeResource(autoEmbed?: VectorFieldSpec['autoEmbed']): ResourceSpec {
   };
 }
 
-function makeCtx(
-  overrides: Partial<HookContext> = {},
-): HookContext {
+function makeCtx(overrides: Partial<HookContext> = {}): HookContext {
   const updateMock = vi.fn().mockResolvedValue(undefined);
   const repoMock = { update: updateMock } as any;
   return {
@@ -41,8 +39,8 @@ function makeCtx(
     resource: 'kb-article',
     user: null,
     getRepository: () => repoMock,
-    getService: () => ({} as any),
-    config: () => ({} as any),
+    getService: () => ({}) as any,
+    config: () => ({}) as any,
     sendEmail: async () => {},
     logError: async () => {},
     logger: {
@@ -124,11 +122,7 @@ describe('HookExecutor — autoEmbed afterCreate (PRD 06 — REQ-07)', () => {
     const ctx = makeCtx();
     const executor = new HookExecutor();
 
-    await executor.executeAutoEmbed(
-      { id: 1, content: 'hello' },
-      ctx,
-      resource,
-    );
+    await executor.executeAutoEmbed({ id: 1, content: 'hello' }, ctx, resource);
 
     expect(ctx.embed).not.toHaveBeenCalled();
   });
@@ -183,11 +177,7 @@ describe('HookExecutor — autoEmbed afterCreate (PRD 06 — REQ-07)', () => {
 
     // Should NOT throw
     await expect(
-      executor.executeAutoEmbed(
-        { id: 1, content: 'hello' },
-        ctx,
-        resource,
-      ),
+      executor.executeAutoEmbed({ id: 1, content: 'hello' }, ctx, resource),
     ).resolves.toBeUndefined();
 
     expect(ctx.logger.warn).toHaveBeenCalled();

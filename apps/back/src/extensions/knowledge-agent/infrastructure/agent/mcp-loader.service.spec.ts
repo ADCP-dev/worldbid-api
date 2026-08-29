@@ -75,34 +75,39 @@ describe('McpLoaderService', () => {
     expect((tools[0] as unknown as { name: string }).name).toBe('get_weather');
   });
 
-  it('should include the local McpModule as an internal MCP server', async () => {
-    mcpServerRepo.findEnabledByIds.mockResolvedValue([]);
-    getTools.mockResolvedValue([makeTool('local_introspect')]);
+  it('should load ALL enabled servers when mcpServerIds is empty (integration menu)', async () => {
+    mcpServerRepo.findAllEnabled.mockResolvedValue([
+      makeServer({ id: 'tav-1', name: 'tavily' }),
+    ]);
+    getTools.mockResolvedValue([makeTool('tavily_search')]);
 
     const tools = await service.load([]);
 
+    expect(mcpServerRepo.findAllEnabled).toHaveBeenCalled();
+    expect(mcpServerRepo.findEnabledByIds).not.toHaveBeenCalled();
     expect(
       tools.map((t) => (t as unknown as { name: string }).name),
-    ).toContain('local_introspect');
+    ).toContain('tavily_search');
     expect(createClient).toHaveBeenCalledWith(
-      expect.objectContaining({
-        __local_introspection__: expect.objectContaining({ transport: 'http' }),
-      }),
+      expect.objectContaining({ tavily: expect.objectContaining({ transport: 'http' }) }),
     );
   });
 
-  it('should timeout after 3s if a server is down (graceful degradation)', async () => {
+  it('should timeout (20s cap) if a server is down (graceful degradation)', async () => {
+    jest.useFakeTimers();
     mcpServerRepo.findEnabledByIds.mockResolvedValue([
       makeServer({ name: 'down-srv' }),
     ]);
     getTools.mockImplementation(() => new Promise(() => {})); // never resolves
 
-    const start = Date.now();
-    const tools = await service.load(['srv-1']);
-    const elapsed = Date.now() - start;
+    const promise = service.load(['srv-1']);
+    await Promise.resolve(); // flush the microtask that schedules the timeout
+    await Promise.resolve();
+    jest.advanceTimersByTime(20_500);
+    const tools = await promise;
+    jest.useRealTimers();
 
     expect(tools).toEqual([]);
-    expect(elapsed).toBeLessThan(5000);
   });
 
   it('should return empty array (not throw) if all servers are down', async () => {
@@ -140,13 +145,13 @@ describe('McpLoaderService', () => {
     mcpServerRepo.findEnabledByIds.mockResolvedValue([
       makeServer({ name: 'broken-stdio', transport: 'stdio', url: '' }),
     ]);
-    // Only local remains; the broken-stdio server must NOT be in the config.
     getTools.mockResolvedValue([]);
 
+    // With the broken server filtered out, the config map is empty →
+    // load() short-circuits to [] without creating a client.
     const tools = await service.load(['srv-1']);
 
     expect(tools).toEqual([]);
-    const cfg = createClient.mock.calls[0][0];
-    expect(cfg['broken-stdio']).toBeUndefined();
+    expect(createClient).not.toHaveBeenCalled();
   });
 });

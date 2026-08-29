@@ -22,9 +22,8 @@ export class DenyAllGuard implements CanActivate {
       (Reflect.getMetadata('spec:resource', handler) as string | undefined) ||
       'unknown';
     const operation =
-      (Reflect.getMetadata('spec:operation', handler) as
-        | string
-        | undefined) || 'unknown';
+      (Reflect.getMetadata('spec:operation', handler) as string | undefined) ||
+      'unknown';
     throw new ForbiddenException(
       `Operation "${operation}" on resource "${resourceName}" is disabled ` +
         '(empty permissions array in spec).',

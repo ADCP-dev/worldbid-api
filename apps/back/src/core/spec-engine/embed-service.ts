@@ -23,7 +23,11 @@ export class EmbedService implements EmbedProvider {
 
   constructor(private readonly configService: ConfigService) {}
 
-  async embed(text: string, model: string, provider?: string): Promise<number[]> {
+  async embed(
+    text: string,
+    model: string,
+    provider?: string,
+  ): Promise<number[]> {
     const resolvedProvider =
       provider || this.configService.get<string>('EMBED_PROVIDER') || 'openai';
 
@@ -60,7 +64,9 @@ export class EmbedService implements EmbedProvider {
       );
     }
 
-    const data = (await response.json()) as { data: Array<{ embedding: number[] }> };
+    const data = (await response.json()) as {
+      data: Array<{ embedding: number[] }>;
+    };
     return data.data[0].embedding;
   }
 
@@ -94,6 +100,9 @@ export class EmbedService implements EmbedProvider {
       (h, c) => (h * 31 + c.charCodeAt(0)) | 0,
       0,
     );
-    return Array.from({ length: 1536 }, (_, i) => (hash + i * 7) % 1000 / 1000);
+    return Array.from(
+      { length: 1536 },
+      (_, i) => ((hash + i * 7) % 1000) / 1000,
+    );
   }
 }

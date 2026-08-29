@@ -55,7 +55,8 @@ interface MigrationRow {
   name: string;
 }
 
-const DEFAULT_MIGRATIONS_DIR = 'apps/back/src/infrastructure/database/migrations';
+const DEFAULT_MIGRATIONS_DIR =
+  'apps/back/src/infrastructure/database/migrations';
 const DEFAULT_PARENT_SCHEMA = 'public';
 
 export class DbBranchManager {
@@ -111,7 +112,10 @@ export class DbBranchManager {
     // Postgres-only: `schema` is a Postgres DataSourceOption. Cast options to
     // a permissive record so we can override it without fighting the union of
     // connector-specific option types (mysql, sqlite, etc. don't have schema).
-    const baseOptions = this.dataSource.options as unknown as Record<string, unknown>;
+    const baseOptions = this.dataSource.options as unknown as Record<
+      string,
+      unknown
+    >;
     const branchDataSource = new DataSource({
       ...baseOptions,
       schema: branch.schema,
@@ -219,7 +223,9 @@ export class DbBranchManager {
     }
 
     if (stale.length > 0) {
-      this.logger.log(`Cleaned up ${stale.length} stale branches (>${maxAgeHours}h)`);
+      this.logger.log(
+        `Cleaned up ${stale.length} stale branches (>${maxAgeHours}h)`,
+      );
     }
     return stale.length;
   }
@@ -352,7 +358,9 @@ export class DbBranchManager {
           [schema, table],
         )) as Array<{ dep_table: string }>;
 
-        const allDepsProcessed = deps.every((d) => result.includes(d.dep_table));
+        const allDepsProcessed = deps.every((d) =>
+          result.includes(d.dep_table),
+        );
         if (allDepsProcessed) {
           result.push(table);
           remaining.delete(table);
@@ -368,15 +376,14 @@ export class DbBranchManager {
     return result;
   }
 
-  private async runMigrationAgainstPublic(migrationName: string): Promise<void> {
+  private async runMigrationAgainstPublic(
+    migrationName: string,
+  ): Promise<void> {
     const migrationsDir =
       this.configService?.get<string>('dbBranching.migrationsDir') ||
       this.configService?.get<string>('MIGRATIONS_DIR') ||
       DEFAULT_MIGRATIONS_DIR;
-    const migrationFile = path.join(
-      migrationsDir,
-      `${migrationName}.ts`,
-    );
+    const migrationFile = path.join(migrationsDir, `${migrationName}.ts`);
     if (!existsSync(migrationFile)) {
       throw new Error(`Migration file not found: ${migrationFile}`);
     }

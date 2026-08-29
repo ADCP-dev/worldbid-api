@@ -247,7 +247,11 @@ export class HookContextImpl {
    * Generate an embedding vector for the given text (PRD 06).
    * Delegates to EmbedService via ModuleRef.
    */
-  async embed(text: string, model: string, provider?: string): Promise<number[]> {
+  async embed(
+    text: string,
+    model: string,
+    provider?: string,
+  ): Promise<number[]> {
     const embedService = this.moduleRef.get(EmbedService, { strict: false });
     return embedService.embed(text, model, provider);
   }

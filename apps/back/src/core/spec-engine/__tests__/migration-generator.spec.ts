@@ -80,7 +80,9 @@ describe('MigrationGenerator — split-spec merge (BUG #7)', () => {
 
     // task-comment.taskId → ext_tasks_task.id (CASCADE)
     const commentStmt = result.statements.find(
-      (s) => s.description.includes('task-comment') || s.up.includes('ext_tasks_task_comment'),
+      (s) =>
+        s.description.includes('task-comment') ||
+        s.up.includes('ext_tasks_task_comment'),
     );
     expect(commentStmt).toBeDefined();
     const allUp = result.statements.map((s) => s.up).join('\n');
@@ -184,7 +186,9 @@ describe('MigrationGenerator — realtime triggers (PRD 05)', () => {
       resources: {
         demo: {
           table: 'ext_rt_demo_demo',
-          fields: [{ name: 'title', type: 'string', nullable: false, unique: false }],
+          fields: [
+            { name: 'title', type: 'string', nullable: false, unique: false },
+          ],
           timestamps: true,
           softDelete: true,
           indices: [],

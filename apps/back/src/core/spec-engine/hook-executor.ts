@@ -212,7 +212,11 @@ export class HookExecutor {
             resource: ctx.resource,
             operation: ctx.operation,
             stage: 'beforeHook',
-            hash: computeSpecErrorHash(message, `spec-engine/hook:${hook.path}`, stack),
+            hash: computeSpecErrorHash(
+              message,
+              `spec-engine/hook:${hook.path}`,
+              stack,
+            ),
             occurrences: 1,
             inputData: data,
             trace: {
@@ -410,9 +414,9 @@ export class HookExecutor {
     ctx: HookContext,
     resource: ResourceSpec,
   ): Promise<void> {
-    const vectorField = resource.fields.find(
-      (f) => f.type === 'vector',
-    ) as VectorFieldSpec | undefined;
+    const vectorField = resource.fields.find((f) => f.type === 'vector') as
+      | VectorFieldSpec
+      | undefined;
 
     if (!vectorField?.autoEmbed) return;
 
@@ -434,7 +438,9 @@ export class HookExecutor {
       );
       // Retry async if queue is available
       const ctxWithQueue = ctx as HookContext & {
-        queue?: { add: (name: string, data: unknown, opts?: unknown) => Promise<void> };
+        queue?: {
+          add: (name: string, data: unknown, opts?: unknown) => Promise<void>;
+        };
       };
       if (ctxWithQueue.queue) {
         await ctxWithQueue.queue.add(
@@ -466,9 +472,9 @@ export class HookExecutor {
     resource: ResourceSpec,
     changes?: Record<string, unknown>,
   ): Promise<void> {
-    const vectorField = resource.fields.find(
-      (f) => f.type === 'vector',
-    ) as VectorFieldSpec | undefined;
+    const vectorField = resource.fields.find((f) => f.type === 'vector') as
+      | VectorFieldSpec
+      | undefined;
 
     if (!vectorField?.autoEmbed) return;
 

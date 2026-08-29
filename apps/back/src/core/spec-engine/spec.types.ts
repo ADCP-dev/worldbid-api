@@ -405,9 +405,7 @@ export interface ExtensionSpec {
 // Single definition lives in spec-loader.ts. Re-exported here only for
 // import convenience within spec.types consumers — do NOT redeclare.
 
-export type {
-  LoadedSpec,
-} from './spec-loader';
+export type { LoadedSpec } from './spec-loader';
 
 // ─── Trace Types ────────────────────────────────────────────────────────────
 

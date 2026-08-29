@@ -18,15 +18,21 @@ import { URL } from 'url';
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const hostFlagIdx = args.indexOf('--host');
-  const host = hostFlagIdx !== -1 ? args[hostFlagIdx + 1] : 'http://localhost:3010';
+  const host =
+    hostFlagIdx !== -1 ? args[hostFlagIdx + 1] : 'http://localhost:3010';
   const requestId = args.find((a) => !a.startsWith('--'));
 
   if (!requestId) {
-    console.error('Usage: ts-node spec-trace-cli.ts <requestId> [--host <url>]');
+    console.error(
+      'Usage: ts-node spec-trace-cli.ts <requestId> [--host <url>]',
+    );
     process.exit(1);
   }
 
-  const url = new URL(`/api/v1/_spec/trace/${encodeURIComponent(requestId)}`, host);
+  const url = new URL(
+    `/api/v1/_spec/trace/${encodeURIComponent(requestId)}`,
+    host,
+  );
 
   const options: http.RequestOptions = {
     method: 'GET',
@@ -39,7 +45,9 @@ async function main(): Promise<void> {
   const req = http.request(options, (res) => {
     let body = '';
     res.setEncoding('utf8');
-    res.on('data', (chunk) => { body += chunk; });
+    res.on('data', (chunk) => {
+      body += chunk;
+    });
     res.on('end', () => {
       try {
         const parsed = JSON.parse(body);

@@ -14,7 +14,9 @@ import type { LoadedSpec } from '@src/core/spec-engine/spec-loader';
 function makeMockRoleRepo(
   roles: Array<{ id: number; name: string }>,
 ): import('typeorm').Repository<any> {
-  return { find: jest.fn().mockResolvedValue(roles) } as unknown as import('typeorm').Repository<any>;
+  return {
+    find: jest.fn().mockResolvedValue(roles),
+  } as unknown as import('typeorm').Repository<any>;
 }
 
 function makeLoadedSpec(roleNames: string[]): LoadedSpec[] {
@@ -24,7 +26,11 @@ function makeLoadedSpec(roleNames: string[]): LoadedSpec[] {
         name: 'tasks',
         version: '2.0.0',
         resources: [],
-        roles: roleNames.map((name) => ({ name, description: '', permissions: [] })),
+        roles: roleNames.map((name) => ({
+          name,
+          description: '',
+          permissions: [],
+        })),
       },
       dir: '/tmp/tasks',
       specPath: '/tmp/tasks/tasks.extension.spec.yaml',
@@ -91,7 +97,10 @@ describe('RoleRegistry — custom roles via DB (BUG #8)', () => {
 
   it('custom role not yet seeded fails closed until build() sees it', async () => {
     // build() with a repo that has no manager row → warn, role unresolved.
-    const repo = makeMockRoleRepo([{ id: 1, name: 'admin' }, { id: 2, name: 'customer' }]);
+    const repo = makeMockRoleRepo([
+      { id: 1, name: 'admin' },
+      { id: 2, name: 'customer' },
+    ]);
     await RoleRegistry.build(makeLoadedSpec(['manager']), repo);
 
     expect(RoleRegistry.resolveName(4)).toBe(DENIED_ROLE);

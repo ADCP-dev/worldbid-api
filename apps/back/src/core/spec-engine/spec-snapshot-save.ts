@@ -13,7 +13,12 @@ import path from 'path';
 import { DataSource } from 'typeorm';
 import * as fs from 'fs';
 import * as dotenv from 'dotenv';
-import { readSpecFile, buildFullSnapshot, writeSnapshotToDb, getDataSource } from './migration-generator';
+import {
+  readSpecFile,
+  buildFullSnapshot,
+  writeSnapshotToDb,
+  getDataSource,
+} from './migration-generator';
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
@@ -31,7 +36,9 @@ async function main(): Promise<void> {
     const spec = readSpecFile(extensionName, extensionsDir);
     const snapshot = buildFullSnapshot(extensionName, spec);
     await writeSnapshotToDb(ds, snapshot);
-    console.log(`✅ Snapshot saved for "${extensionName}" (version ${snapshot.version}).`);
+    console.log(
+      `✅ Snapshot saved for "${extensionName}" (version ${snapshot.version}).`,
+    );
   } catch (err) {
     console.error(`❌ Failed: ${(err as Error).message}`);
     process.exit(1);

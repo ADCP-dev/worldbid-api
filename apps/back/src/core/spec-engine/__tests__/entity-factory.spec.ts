@@ -20,9 +20,7 @@ describe('EntityFactory — ref target resolution (BUG #2)', () => {
   });
 
   it('ref field to user resolves target as lowercase "user" (not "User")', () => {
-    const spec = baseSpec([
-      { name: 'assigneeId', type: 'ref', ref: 'user' },
-    ]);
+    const spec = baseSpec([{ name: 'assigneeId', type: 'ref', ref: 'user' }]);
 
     const result = EntityFactory.create(spec, new Map());
 
@@ -37,9 +35,7 @@ describe('EntityFactory — ref target resolution (BUG #2)', () => {
   });
 
   it('ref field to another spec resource uses field.ref verbatim', () => {
-    const spec = baseSpec([
-      { name: 'taskId', type: 'ref', ref: 'task' },
-    ]);
+    const spec = baseSpec([{ name: 'taskId', type: 'ref', ref: 'task' }]);
 
     const result = EntityFactory.create(spec, new Map());
 
@@ -61,7 +57,9 @@ describe('EntityFactory — ref target resolution (BUG #2)', () => {
       (k) => k !== 'demo',
     );
     expect(userRelationKey).toBeDefined();
-    const target = (joinOptions.relations[userRelationKey!].target as () => string)();
+    const target = (
+      joinOptions.relations[userRelationKey!].target as () => string
+    )();
     expect(target).toBe('user');
     expect(target).not.toBe('User');
   });

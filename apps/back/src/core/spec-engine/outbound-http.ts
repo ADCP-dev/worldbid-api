@@ -66,7 +66,9 @@ export interface ResolvedSecret {
  * Resolve the HMAC secret for one webhook per the precedence chain:
  * spec field → env fallback → none (deliver unsigned + warn once).
  */
-export function resolveWebhookSecret(params: ResolveSecretParams): ResolvedSecret {
+export function resolveWebhookSecret(
+  params: ResolveSecretParams,
+): ResolvedSecret {
   const { webhookKey, webhookName, specSecret, envSecret } = params;
   if (specSecret) {
     return { secret: specSecret, signed: true };
@@ -118,7 +120,9 @@ export interface PostJsonResult {
  * detail) and returned — never thrown — since outbound delivery is
  * fire-and-forget everywhere it is used.
  */
-export async function postJsonWithTimeout(params: PostJsonParams): Promise<PostJsonResult> {
+export async function postJsonWithTimeout(
+  params: PostJsonParams,
+): Promise<PostJsonResult> {
   const { url, body, headers, name } = params;
   const timeoutMs = getWebhookTimeoutMs();
   try {
@@ -132,12 +136,18 @@ export async function postJsonWithTimeout(params: PostJsonParams): Promise<PostJ
       logger.warn(
         `Outbound webhook "${name}" to ${safeHost(url)} returned HTTP ${response.status}`,
       );
-      return { ok: false, status: response.status, error: `HTTP ${response.status}` };
+      return {
+        ok: false,
+        status: response.status,
+        error: `HTTP ${response.status}`,
+      };
     }
     return { ok: true, status: response.status };
   } catch (err) {
     const errorName =
-      err instanceof Error ? (err.name || 'Error') + `: ${err.message}` : String(err);
+      err instanceof Error
+        ? (err.name || 'Error') + `: ${err.message}`
+        : String(err);
     logger.warn(
       `Outbound webhook "${name}" to ${safeHost(url)} failed: ${errorName} (timeout ${timeoutMs}ms)`,
     );

@@ -47,7 +47,9 @@ function main(): void {
       console.log(`   dir: ${loaded.dir}`);
       console.log(`   resources (${spec.resources.length}):`);
       for (const r of spec.resources) {
-        console.log(`     • ${r.name} → table ${r.table} (${r.fields.length} fields)`);
+        console.log(
+          `     • ${r.name} → table ${r.table} (${r.fields.length} fields)`,
+        );
       }
     }
     console.log('');

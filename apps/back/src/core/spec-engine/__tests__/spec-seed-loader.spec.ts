@@ -10,7 +10,10 @@
 
 import { runSpecSeeds } from '@src/core/spec-engine/spec-seed-loader';
 import type { LoadedSpec } from '@src/core/spec-engine/spec-loader';
-import type { ResourceSpec, ExtensionSpec } from '@src/core/spec-engine/spec.types';
+import type {
+  ResourceSpec,
+  ExtensionSpec,
+} from '@src/core/spec-engine/spec.types';
 
 // ─── Mock helpers ────────────────────────────────────────────────────────────
 
@@ -73,7 +76,10 @@ describe('SpecSeedLoader — seed dedup + FK-dependency sort', () => {
     taskRepo.findOne.mockImplementationOnce(async () => ({ id: 1 }));
     const ds = makeDataSource({ task: taskRepo });
     const task = makeResource('task', {
-      seeds: [{ id: 1, title: 'First' }, { id: 2, title: 'Second' }],
+      seeds: [
+        { id: 1, title: 'First' },
+        { id: 2, title: 'Second' },
+      ],
     });
 
     await runSpecSeeds([makeLoadedSpec([task])], ds as never);
@@ -113,7 +119,10 @@ describe('SpecSeedLoader — seed dedup + FK-dependency sort', () => {
       insertOrder.push(`activity:${seed.desc}`);
     });
 
-    const ds = makeDataSource({ task: taskRepo, 'task-activity': activityRepo });
+    const ds = makeDataSource({
+      task: taskRepo,
+      'task-activity': activityRepo,
+    });
 
     // activity has a ref to task — even though activity is declared first,
     // it must be seeded AFTER task.

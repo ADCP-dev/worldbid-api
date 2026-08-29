@@ -48,14 +48,17 @@ export function useKaThemeColors() {
     const base200 = cssVar('--color-base-200', '#1e1e1e');
     const base300 = cssVar('--color-base-300', '#262626');
     const baseContent = cssVar('--color-base-content', '#F5F5F5');
-    const neutral = cssVar('--color-neutral', '#161616');
+    // Isolated nodes must be visible against the bg — use a mid slate-blue
+    // far from both the dark background AND the primary orange (the old
+    // `neutral` var equals base-100 in luxury-dark → invisible nodes).
+    const isolated = cssVar('--color-info', '#3B82F6');
 
     return {
       bg: base100,
       panel: base200,
       border: base300,
       edge: primary,
-      isolated: neutral,
+      isolated,
       linked: primary,
       hub: primary,
       text: baseContent,
@@ -98,7 +101,7 @@ export function useKaThemeColors() {
       panel: '#1e1e1e',
       border: '#262626',
       edge: '#F97316',
-      isolated: '#737373',
+      isolated: '#3B82F6',
       linked: '#F97316',
       hub: '#F97316',
       text: '#F5F5F5',

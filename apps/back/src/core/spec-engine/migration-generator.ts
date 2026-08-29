@@ -93,7 +93,11 @@ export interface MigrationStatement {
   down: string;
   description: string;
   /** Deferred FK specs (populated by buildCreateTable, consumed by generator). */
-  deferredFkSpecs?: Array<{ column: string; targetTable: string; onDelete: string }>;
+  deferredFkSpecs?: Array<{
+    column: string;
+    targetTable: string;
+    onDelete: string;
+  }>;
 }
 
 export interface GenerationResult {
@@ -393,7 +397,11 @@ function buildCreateTable(
   // yet. FKs to Foundation built-ins (user, role, file) are safe inline
   // because those tables already exist. We collect both here and split below.
   const inlineFkConstraints: string[] = [];
-  const deferredFkSpecs: Array<{ column: string; targetTable: string; onDelete: string }> = [];
+  const deferredFkSpecs: Array<{
+    column: string;
+    targetTable: string;
+    onDelete: string;
+  }> = [];
   if (resourceMap) {
     for (const f of spec.fields) {
       if (f.type !== 'ref' || !f.ref) continue;
@@ -500,7 +508,9 @@ function buildDeferredFkStatements(
   const statements: MigrationStatement[] = [];
   for (const spec of specs) {
     const prevResource = previousSnapshot?.resources[spec.name];
-    const prevFieldNames = new Set(prevResource?.fields.map((f) => f.name) ?? []);
+    const prevFieldNames = new Set(
+      prevResource?.fields.map((f) => f.name) ?? [],
+    );
     for (const f of spec.fields) {
       if (f.type !== 'ref' || !f.ref) continue;
       if (!resourceMap.has(f.ref)) continue; // only spec-resource FKs
@@ -1048,9 +1058,7 @@ export class MigrationGenerator {
       } else if (!currRealtime && prevRealtime) {
         statements.push(...TriggerFactory.drop(resource, prevRealtime));
       } else if (currRealtime && prevRealtime) {
-        if (
-          JSON.stringify(currRealtime) !== JSON.stringify(prevRealtime)
-        ) {
+        if (JSON.stringify(currRealtime) !== JSON.stringify(prevRealtime)) {
           statements.push(...TriggerFactory.drop(resource, prevRealtime));
           statements.push(...TriggerFactory.create(resource));
         }
@@ -1136,7 +1144,7 @@ export async function writeSnapshotToDb(
     );
   } catch (err) {
     // Table doesn't exist or DB not reachable — warn but don't fail.
-    // eslint-disable-next-line no-console
+
     console.warn(
       `[MigrationGenerator] Could not persist snapshot: ${(err as Error).message} — ` +
         'run the CreateSpecSchemaSnapshotsTable migration first.',
@@ -1148,7 +1156,10 @@ export async function writeSnapshotToDb(
  * Build a full SpecSnapshot from the current spec file (in-memory).
  * Wraps the existing `buildExtensionSnapshot` for CLI use.
  */
-export function buildFullSnapshot(extensionName: string, spec: ExtensionSpec): SpecSnapshot {
+export function buildFullSnapshot(
+  extensionName: string,
+  spec: ExtensionSpec,
+): SpecSnapshot {
   return buildExtensionSnapshot(spec);
 }
 
@@ -1173,7 +1184,8 @@ async function main(): Promise<void> {
   }
 
   const extensionName = args[0];
-  const extensionsDir = args[1] ?? path.resolve(process.cwd(), 'src/extensions');
+  const extensionsDir =
+    args[1] ?? path.resolve(process.cwd(), 'src/extensions');
   const migrationsDir =
     args[2] ??
     path.resolve(process.cwd(), 'src/infrastructure/database/migrations');
@@ -1197,7 +1209,6 @@ async function main(): Promise<void> {
       );
     }
   } catch (err) {
-    // eslint-disable-next-line no-console
     console.warn(
       `[MigrationGenerator] Could not read snapshot: ${(err as Error).message} — treating as first run.`,
     );

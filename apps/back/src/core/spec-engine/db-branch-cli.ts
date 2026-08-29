@@ -62,7 +62,9 @@ export async function runCli(): Promise<void> {
         parentSchema:
           typeof flags.parent === 'string' ? flags.parent : undefined,
       });
-      console.log(`✓ Branch created: ${branch.name} (schema: ${branch.schema})`);
+      console.log(
+        `✓ Branch created: ${branch.name} (schema: ${branch.schema})`,
+      );
       process.exit(0);
       return;
     }

@@ -6,7 +6,10 @@
 import { describe, it, expect } from 'vitest';
 import { EntitySchema } from 'typeorm';
 import { EntityFactory } from '@src/core/spec-engine/entity-factory';
-import type { ResourceSpec, VectorFieldSpec } from '@src/core/spec-engine/spec.types';
+import type {
+  ResourceSpec,
+  VectorFieldSpec,
+} from '@src/core/spec-engine/spec.types';
 
 function makeVectorResource(
   field: Partial<VectorFieldSpec> = {},

@@ -234,15 +234,15 @@ export class SpecEngineModule {
 
           logger.log(
             `✅ Materialized: ${resource.name} → table ${resource.table}, ${resource.fields.length} fields` +
-            (allHooks.beforeCreate ? ', beforeCreate hook' : '') +
-            (allHooks.afterCreate ? ', afterCreate hook' : '') +
-            (resource.notifications?.length
-              ? `, ${resource.notifications.length} notifications`
-              : '') +
-            (resource.jobs?.length ? `, ${resource.jobs.length} jobs` : '') +
-            (resource.webhooks?.length
-              ? `, ${resource.webhooks.length} webhooks`
-              : ''),
+              (allHooks.beforeCreate ? ', beforeCreate hook' : '') +
+              (allHooks.afterCreate ? ', afterCreate hook' : '') +
+              (resource.notifications?.length
+                ? `, ${resource.notifications.length} notifications`
+                : '') +
+              (resource.jobs?.length ? `, ${resource.jobs.length} jobs` : '') +
+              (resource.webhooks?.length
+                ? `, ${resource.webhooks.length} webhooks`
+                : ''),
           );
 
           // Create webhook controllers

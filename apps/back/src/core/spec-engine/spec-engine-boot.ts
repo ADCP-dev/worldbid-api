@@ -84,9 +84,7 @@ export class SpecEngineBootService implements OnModuleInit {
     try {
       await runSpecSeeds(this.loadedSpecs, this.dataSource);
     } catch (err) {
-      this.logger.warn(
-        `Could not run spec seeds: ${(err as Error).message}`,
-      );
+      this.logger.warn(`Could not run spec seeds: ${(err as Error).message}`);
     }
 
     // Schema drift detection (design §12.2/§12.3). Compares a stable hash
@@ -97,10 +95,7 @@ export class SpecEngineBootService implements OnModuleInit {
     try {
       await runSchemaDriftCheck(this.loadedSpecs, this.dataSource);
     } catch (err) {
-      this.logger.error(
-        (err as Error).message,
-        (err as Error).stack,
-      );
+      this.logger.error((err as Error).message, (err as Error).stack);
       throw err;
     }
 

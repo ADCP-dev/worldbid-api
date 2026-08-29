@@ -24,7 +24,9 @@ export interface SimilarityResult<T> {
  * @param limit      Max results (default 5)
  * @returns          Array of { entity, similarity } sorted by most similar first
  */
-export function similaritySearch<T extends ObjectLiteral = Record<string, unknown>>(
+export function similaritySearch<
+  T extends ObjectLiteral = Record<string, unknown>,
+>(
   repo: Repository<T>,
   field: string,
   embedding: number[],
@@ -44,7 +46,9 @@ export function similaritySearch<T extends ObjectLiteral = Record<string, unknow
     .then(({ entities, raw }) =>
       entities.map((entity, i) => ({
         entity,
-        similarity: Number((raw[i] as { similarity?: unknown })?.similarity ?? 0),
+        similarity: Number(
+          (raw[i] as { similarity?: unknown })?.similarity ?? 0,
+        ),
       })),
     );
 }

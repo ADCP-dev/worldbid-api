@@ -56,9 +56,7 @@ function collectSpecTables() {
   const tables = [];
 
   // Search both src/extensions/ and src/custom/ for spec YAML files
-  const searchDirs = [extensionsDir, customDir].filter((d) =>
-    fs.existsSync(d),
-  );
+  const searchDirs = [extensionsDir, customDir].filter((d) => fs.existsSync(d));
 
   for (const searchDir of searchDirs) {
     const isCustom = searchDir === customDir;
@@ -67,91 +65,118 @@ function collectSpecTables() {
       const extDir = path.join(searchDir, ext);
       if (!fs.statSync(extDir).isDirectory()) continue;
 
-    const specFiles = fs
-      .readdirSync(extDir)
-      .filter((f) => f.endsWith('.spec.yaml'))
-      .map((f) => path.join(extDir, f));
+      const specFiles = fs
+        .readdirSync(extDir)
+        .filter((f) => f.endsWith('.spec.yaml'))
+        .map((f) => path.join(extDir, f));
 
-    for (const file of specFiles) {
-      try {
-        const content = fs.readFileSync(file, 'utf-8');
-        const spec = yaml.load(content);
-        const resources = spec.resources || [spec];
-        const extName = spec.name || ext;
+      for (const file of specFiles) {
+        try {
+          const content = fs.readFileSync(file, 'utf-8');
+          const spec = yaml.load(content);
+          const resources = spec.resources || [spec];
+          const extName = spec.name || ext;
 
-        for (const resource of resources) {
-          const rName = resource.name || extName;
-          const table = resource.table || `ext_${extName}_${rName}`;
-          const columns = [];
+          for (const resource of resources) {
+            const rName = resource.name || extName;
+            const table = resource.table || `ext_${extName}_${rName}`;
+            const columns = [];
 
-          for (const field of resource.fields || []) {
-            const col = {
-              name: field.name,
-              type: field.type,
-              sqlType: fieldToSqlType(field),
-              nullable: field.nullable !== false && !field.required,
-              required: !!field.required,
-              default: field.default,
-              length: field.length,
-              precision: field.precision,
-              scale: field.scale,
-              enum: field.enum,
-              ref: field.ref,
-              refOnDelete: field.refOnDelete,
-              validation: field.validation,
-            };
-            columns.push(col);
+            for (const field of resource.fields || []) {
+              const col = {
+                name: field.name,
+                type: field.type,
+                sqlType: fieldToSqlType(field),
+                nullable: field.nullable !== false && !field.required,
+                required: !!field.required,
+                default: field.default,
+                length: field.length,
+                precision: field.precision,
+                scale: field.scale,
+                enum: field.enum,
+                ref: field.ref,
+                refOnDelete: field.refOnDelete,
+                validation: field.validation,
+              };
+              columns.push(col);
+            }
+
+            // Timestamps
+            if (spec.timestamps !== false) {
+              columns.push({
+                name: 'createdAt',
+                type: 'datetime',
+                sqlType: 'TIMESTAMP',
+                nullable: false,
+                default: 'now()',
+              });
+              columns.push({
+                name: 'updatedAt',
+                type: 'datetime',
+                sqlType: 'TIMESTAMP',
+                nullable: false,
+                default: 'now()',
+              });
+            }
+            // Soft delete
+            if (spec.softDelete !== false) {
+              columns.push({
+                name: 'deletedAt',
+                type: 'datetime',
+                sqlType: 'TIMESTAMP',
+                nullable: true,
+              });
+            }
+
+            // Hooks
+            const hooks = resource.hooks ? Object.keys(resource.hooks) : [];
+
+            // Actions
+            const actions = resource.actions
+              ? resource.actions.map((a) => a.name)
+              : [];
+
+            // Jobs
+            const jobs = resource.jobs ? resource.jobs.map((j) => j.name) : [];
+
+            // Notifications
+            const notifications = resource.notifications
+              ? resource.notifications.map((n) => n.name)
+              : [];
+
+            // Seeds
+            const seeds = resource.seeds ? resource.seeds.length : 0;
+
+            // Webhooks
+            const webhooks = resource.webhooks
+              ? resource.webhooks.map((w) => w.name)
+              : [];
+
+            tables.push({
+              source: isCustom ? 'custom' : 'spec-engine',
+              extension: extName,
+              resource: rName,
+              table,
+              specFile: path.basename(file),
+              columns,
+              hooks,
+              actions,
+              jobs,
+              notifications,
+              webhooks,
+              seeds,
+              permissions: resource.permissions
+                ? Object.keys(resource.permissions)
+                : [],
+              rowLevel: resource.permissions?.rowLevel
+                ? Object.keys(resource.permissions.rowLevel)
+                : [],
+            });
           }
-
-          // Timestamps
-          if (spec.timestamps !== false) {
-            columns.push({ name: 'createdAt', type: 'datetime', sqlType: 'TIMESTAMP', nullable: false, default: 'now()' });
-            columns.push({ name: 'updatedAt', type: 'datetime', sqlType: 'TIMESTAMP', nullable: false, default: 'now()' });
-          }
-          // Soft delete
-          if (spec.softDelete !== false) {
-            columns.push({ name: 'deletedAt', type: 'datetime', sqlType: 'TIMESTAMP', nullable: true });
-          }
-
-          // Hooks
-          const hooks = resource.hooks ? Object.keys(resource.hooks) : [];
-
-          // Actions
-          const actions = resource.actions ? resource.actions.map(a => a.name) : [];
-
-          // Jobs
-          const jobs = resource.jobs ? resource.jobs.map(j => j.name) : [];
-
-          // Notifications
-          const notifications = resource.notifications ? resource.notifications.map(n => n.name) : [];
-
-          // Seeds
-          const seeds = resource.seeds ? resource.seeds.length : 0;
-
-          // Webhooks
-          const webhooks = resource.webhooks ? resource.webhooks.map(w => w.name) : [];
-
-          tables.push({
-            source: isCustom ? 'custom' : 'spec-engine',
-            extension: extName,
-            resource: rName,
-            table,
-            specFile: path.basename(file),
-            columns,
-            hooks,
-            actions,
-            jobs,
-            notifications,
-            webhooks,
-            seeds,
-            permissions: resource.permissions ? Object.keys(resource.permissions) : [],
-            rowLevel: resource.permissions?.rowLevel ? Object.keys(resource.permissions.rowLevel) : [],
-          });
+        } catch {
+          // skip parse errors
         }
-      } catch {
-        // skip parse errors
       }
-    }
     }
   }
 
@@ -247,7 +272,9 @@ function collectTraditionalTables() {
         columns.push({
           name: colName,
           type: colType,
-          sqlType: typeMatch ? typeMatch[1].toUpperCase() : inferSqlType(colType),
+          sqlType: typeMatch
+            ? typeMatch[1].toUpperCase()
+            : inferSqlType(colType),
           nullable: isNullable,
           default: defaultMatch ? defaultMatch[1].trim() : undefined,
           length: lengthMatch ? parseInt(lengthMatch[1]) : undefined,
@@ -401,7 +428,9 @@ const specCount = specTables.length;
 const tradCount = traditionalTables.length;
 
 console.log(`\n🗄️  Foundation — ${filtered.length} tables\n`);
-console.log(`Spec-engine: ${specCount} tables | Traditional: ${tradCount} tables\n`);
+console.log(
+  `Spec-engine: ${specCount} tables | Traditional: ${tradCount} tables\n`,
+);
 
 // Sort by table name
 filtered.sort((a, b) => a.table.localeCompare(b.table));
@@ -414,7 +443,9 @@ for (const t of filtered) {
   console.log(`${'─'.repeat(80)}`);
   console.log(`${sourceIcon} ${t.table} (${t.source})`);
   if (t.source === 'spec-engine') {
-    console.log(`   Extension: ${t.extension} | Resource: ${t.resource} | Spec: ${sourceFile}`);
+    console.log(
+      `   Extension: ${t.extension} | Resource: ${t.resource} | Spec: ${sourceFile}`,
+    );
   } else {
     console.log(`   Entity: ${sourceFile}`);
   }
@@ -428,11 +459,12 @@ for (const t of filtered) {
       const pk = col.isPrimary ? ' 🔑' : '';
       const ref = col.ref ? ` → ${col.ref}` : '';
       const enumVals = col.enum ? ` [${col.enum.join(',')}]` : '';
-      const val =
-        col.validation
-          ? ` (min:${col.validation.min ?? '-'}, max:${col.validation.max ?? '-'})`
-          : '';
-      console.log(`     ${col.name}: ${col.sqlType || col.type}${nullable}${def}${pk}${ref}${enumVals}${val}`);
+      const val = col.validation
+        ? ` (min:${col.validation.min ?? '-'}, max:${col.validation.max ?? '-'})`
+        : '';
+      console.log(
+        `     ${col.name}: ${col.sqlType || col.type}${nullable}${def}${pk}${ref}${enumVals}${val}`,
+      );
     }
   }
 

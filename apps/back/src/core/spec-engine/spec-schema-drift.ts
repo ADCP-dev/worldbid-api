@@ -195,5 +195,7 @@ async function upsertHash(
 
 /** Test seam — exported so tests can hash without going through run(). */
 export function computeSchemaHashForTest(loaded: LoadedSpec): string {
-  return createHash('sha256').update(stableStringify(loaded.spec)).digest('hex');
+  return createHash('sha256')
+    .update(stableStringify(loaded.spec))
+    .digest('hex');
 }

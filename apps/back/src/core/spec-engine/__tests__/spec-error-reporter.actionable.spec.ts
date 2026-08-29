@@ -14,32 +14,30 @@ import {
   inferSuggestedFix,
   buildActionableError,
 } from '@src/core/spec-engine/spec-error-reporter';
-import type {
-  SpecError,
-  SpecTrace,
-} from '@src/core/spec-engine/spec.types';
+import type { SpecError, SpecTrace } from '@src/core/spec-engine/spec.types';
 
 // ─── Fixtures ───────────────────────────────────────────────────────────────
 
-const baseTrace = (overrides: Partial<SpecTrace> = {}): SpecTrace => ({
-  requestId: 'req_abc123',
-  resource: 'task',
-  operation: 'create',
-  user: { id: 1, role: 'admin' },
-  stages: [],
-  totalDurationMs: 12,
-  // ─── extended fields (PRD 01) ───
-  extension: 'tasks',
-  specFile: 'extensions/tasks/task.spec.yaml',
-  layer: 'hook_executor',
-  step: 'executing beforeCreate hook',
-  input: {},
-  userId: 1,
-  userRole: 'admin',
-  handlerFile: 'extensions/tasks/hooks/task-before-create.ts',
-  handlerFunction: 'default',
-  ...overrides,
-} as SpecTrace);
+const baseTrace = (overrides: Partial<SpecTrace> = {}): SpecTrace =>
+  ({
+    requestId: 'req_abc123',
+    resource: 'task',
+    operation: 'create',
+    user: { id: 1, role: 'admin' },
+    stages: [],
+    totalDurationMs: 12,
+    // ─── extended fields (PRD 01) ───
+    extension: 'tasks',
+    specFile: 'extensions/tasks/task.spec.yaml',
+    layer: 'hook_executor',
+    step: 'executing beforeCreate hook',
+    input: {},
+    userId: 1,
+    userRole: 'admin',
+    handlerFile: 'extensions/tasks/hooks/task-before-create.ts',
+    handlerFunction: 'default',
+    ...overrides,
+  }) as SpecTrace;
 
 const baseError = (overrides: Partial<SpecError> = {}): SpecError => ({
   message: 'Hook task-before-create failed',
@@ -140,9 +138,12 @@ describe('inferSuggestedFix', () => {
 
   it('FK violation: "violates foreign key constraint" → data_fix', () => {
     const err = baseError({
-      message: 'insert or update on table "ext_tasks_task" violates foreign key constraint "fk_assignee"',
+      message:
+        'insert or update on table "ext_tasks_task" violates foreign key constraint "fk_assignee"',
     });
-    const trace = baseTrace({ layer: 'controller_factory' } as Partial<SpecTrace>);
+    const trace = baseTrace({
+      layer: 'controller_factory',
+    } as Partial<SpecTrace>);
 
     const fix = inferSuggestedFix(err, trace);
 
@@ -197,9 +198,12 @@ describe('inferSuggestedFix', () => {
 
   it('EntityMetadataNotFoundError → migration fix', () => {
     const err = baseError({
-      message: 'EntityMetadataNotFoundError: No metadata for "ext_tasks_task" was found.',
+      message:
+        'EntityMetadataNotFoundError: No metadata for "ext_tasks_task" was found.',
     });
-    const trace = baseTrace({ layer: 'spec_engine_boot' } as Partial<SpecTrace>);
+    const trace = baseTrace({
+      layer: 'spec_engine_boot',
+    } as Partial<SpecTrace>);
 
     const fix = inferSuggestedFix(err, trace);
 
@@ -258,7 +262,9 @@ describe('scrubSensitive', () => {
 describe('shouldTrackAsError', () => {
   it('returns false for permission_guard layer (expected behavior, not a bug)', () => {
     const err = baseError();
-    const trace = baseTrace({ layer: 'permission_guard' } as Partial<SpecTrace>);
+    const trace = baseTrace({
+      layer: 'permission_guard',
+    } as Partial<SpecTrace>);
 
     expect(shouldTrackAsError(err, trace)).toBe(false);
   });

@@ -120,7 +120,8 @@ export class KnowledgeAgentSeedService {
     const data = {
       name: 'Knowledge Agent',
       systemPrompt:
-        'You are a knowledge agent. You help the user research, organize, and reason about their notes. Use the available tools to search and manage the knowledge base. Be concise and cite your sources.',
+        'You are a knowledge agent. You help the user research, organize, and reason about their notes. Use the available tools to search and manage the knowledge base. Be concise and cite your sources.\n\n' +
+        'WIKILINK SYNTAX (important): to link notes together, reference them with double square brackets containing the note TITLE, e.g. [[Note Title]]. A wikilink MUST appear inside the note content on its own markdown structure: write your markdown normally and place [[Note Title]] inline wherever the reference belongs. Example: "related: [[Som-os.dev — Infraestrutura]]". NEVER use markdown link syntax like [text](note://<id>) — wikilinks are plain [[Title]] strings, nothing else. When creating several linked notes, create them first, then verify titles with list_notes, and use the exact titles for the [[...]] links (update the notes if needed).',
       model: 'ollama-cloud:glm-5.3-flash',
       provider: 'ollama-cloud',
       permissions: { allow: ['/vfs/**'], deny: [] },

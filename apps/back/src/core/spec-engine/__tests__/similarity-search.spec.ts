@@ -93,7 +93,7 @@ describe('similaritySearch (PRD 06 — REQ-11)', () => {
   it('should return entities with similarity scores', async () => {
     const qb = makeQueryBuilderMock([
       { similarity: 0.95 },
-      { similarity: 0.80 },
+      { similarity: 0.8 },
     ]);
     const repo = makeRepoMock(qb);
 
@@ -102,7 +102,7 @@ describe('similaritySearch (PRD 06 — REQ-11)', () => {
     expect(results).toHaveLength(2);
     expect(results[0].similarity).toBe(0.95);
     expect(results[0].entity).toEqual({ id: 1 });
-    expect(results[1].similarity).toBe(0.80);
+    expect(results[1].similarity).toBe(0.8);
     expect(results[1].entity).toEqual({ id: 2 });
   });
 

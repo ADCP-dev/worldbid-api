@@ -315,12 +315,12 @@ describe('SpecValidator permissions — strict mode default', () => {
     const result = SpecValidator.validateAll([emptyLoaded(baseResource())]);
 
     expect(result.valid).toBe(true);
-    expect(
-      result.warnings.some((w) => w.code === 'MISSING_PERMISSIONS'),
-    ).toBe(true);
-    expect(
-      result.errors.some((e) => e.code === 'MISSING_PERMISSIONS'),
-    ).toBe(false);
+    expect(result.warnings.some((w) => w.code === 'MISSING_PERMISSIONS')).toBe(
+      true,
+    );
+    expect(result.errors.some((e) => e.code === 'MISSING_PERMISSIONS')).toBe(
+      false,
+    );
   });
 
   it('strict mode when SPEC_ENGINE_STRICT=true produces errors', () => {
@@ -328,8 +328,8 @@ describe('SpecValidator permissions — strict mode default', () => {
     const result = SpecValidator.validateAll([emptyLoaded(baseResource())]);
 
     expect(result.valid).toBe(false);
-    expect(
-      result.errors.some((e) => e.code === 'MISSING_PERMISSIONS'),
-    ).toBe(true);
+    expect(result.errors.some((e) => e.code === 'MISSING_PERMISSIONS')).toBe(
+      true,
+    );
   });
 });

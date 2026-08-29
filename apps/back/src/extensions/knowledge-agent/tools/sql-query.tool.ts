@@ -78,44 +78,59 @@ export class SqlQueryService {
       throw new Error('Only SELECT (or WITH … SELECT) statements are allowed');
     }
     if (this.containsForbiddenKeyword(sql)) {
-      throw new Error(' statement contains a forbidden DML/DDL keyword — read-only tool');
+      throw new Error('Statement contains a forbidden DML/DDL keyword — read-only tool');
     }
     if (!this.isSingleStatement(sql)) {
-      throw new Error('Only a single statement is allowed (no semicolons chaining)');
+      throw new Error('Only a single statement is allowed (no semicolon chaining)');
     }
 
+    const inner = sql.replace(/;+\s*$/, '');
     const wrapped = `
       SELECT * FROM (
-        ${sql.replace(/;+\s*$/, '')}
+        ${inner}
       ) AS ka_readonly_query
       LIMIT ${SqlQueryService.MAX_ROWS + 1}
     `;
 
-    const controller = new AbortController();
-    const timer = setTimeout(
-      () => controller.abort(),
-      SqlQueryService.TIMEOUT_MS,
-    );
-
+    // READ-ONLY enforcement at the DB level: drive ONE pooled client with
+    // plain SQL `BEGIN TRANSACTION READ ONLY` → query → `ROLLBACK`.
+    // Why not TypeORM's runner.startTransaction('READ ONLY'): its
+    // query() ignores AbortSignals, so a slow query left the transaction
+    // open/aborted on the pool and every later statement died with
+    // "current transaction is aborted" (verified live: even SELECT 1
+    // failed afterwards).
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let sqlTimeout: ReturnType<typeof setTimeout> | null = null;
+    const runner = this.dataSource.createQueryRunner();
     try {
-      const runner = this.dataSource.createQueryRunner('slave');
+      await runner.query('BEGIN TRANSACTION READ ONLY');
       try {
-        await runner.startTransaction('READ ONLY');
-        const raw = await runner.query(wrapped, [], controller.signal);
-        await runner.commitTransaction();
-        const rows = raw as Array<Record<string, unknown>>;
-        const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
+        const raw = (await Promise.race([
+          runner.query(wrapped),
+          new Promise<never>((_, reject) => {
+            sqlTimeout = setTimeout(() => {
+              void runner.query('ROLLBACK').catch(() => undefined);
+              reject(new Error(`Query timed out after ${SqlQueryService.TIMEOUT_MS}ms`));
+            }, SqlQueryService.TIMEOUT_MS);
+          }),
+        ])) as Array<Record<string, unknown>>;
+
+        const columns = raw.length > 0 ? Object.keys(raw[0]) : [];
         return {
           columns,
-          rows: rows.slice(0, SqlQueryService.MAX_ROWS),
-          rowCount: rows.length,
-          truncated: rows.length > SqlQueryService.MAX_ROWS,
+          rows: raw.slice(0, SqlQueryService.MAX_ROWS),
+          rowCount: raw.length,
+          truncated: raw.length > SqlQueryService.MAX_ROWS,
         };
       } finally {
-        await runner.release();
+        if (sqlTimeout) clearTimeout(sqlTimeout);
+        // Always roll back (read transaction — nothing to commit, and
+        // ROLLBACK guarantees the connection returns to the pool clean).
+        await runner.query('ROLLBACK').catch(() => undefined);
       }
     } finally {
       clearTimeout(timer);
+      await runner.release();
     }
   }
 
