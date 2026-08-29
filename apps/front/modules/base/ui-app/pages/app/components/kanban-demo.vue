@@ -79,7 +79,7 @@ const tasks = ref<KanbanTask[]>([
     relatedTasks: [
       { id: 'task-1', title: 'Diseñar interfaz del tablero Kanban', stateId: 'todo', relationType: 'blocked_by' },
     ],
-    order: 2,
+    order: 1,
   },
 ]);
 
@@ -114,11 +114,11 @@ const editingCommentId = ref<string | null>(null);
 const editCommentText = ref('');
 
 const availablePeople = [
-  { value: '1', label: 'Juan Pérez' },
-  { value: '2', label: 'María García' },
-  { value: '3', label: 'Carlos López' },
-  { value: '4', label: 'Ana Martínez' },
-  { value: '5', label: 'Pedro Sánchez' },
+  { value: 'user-1', label: 'Ana García' },
+  { value: 'user-2', label: 'Carlos López' },
+  { value: 'user-3', label: 'Juan Pérez' },
+  { value: 'user-4', label: 'María Martínez' },
+  { value: 'user-5', label: 'Pedro Sánchez' },
 ];
 
 const availableTagOptions = [
@@ -141,52 +141,71 @@ const selectedTagValues = computed<(string | number)[]>({
   },
   set(values) {
     if (!selectedTask.value) return;
-      selectedTask.value.tags = values.map(v => {
-        const opt = availableTagOptions.find(o => o.value === v);
-        return {
-          id: crypto.randomUUID(),
-          label: opt?.label ?? String(v),
-          color: opt?.color ?? 'badge-ghost',
-        };
-      });
+    selectedTask.value.tags = values.map(v => {
+      const opt = availableTagOptions.find(o => o.value === v);
+      return {
+        id: crypto.randomUUID(),
+        label: opt?.label ?? String(v),
+        color: opt?.color ?? 'badge-ghost',
+      };
+    });
   },
 });
 
 watch(selectedAssigneeId, (newId) => {
   if (!selectedTask.value) return;
   const person = availablePeople.find(p => p.value === newId);
-  if (person) {
-    selectedTask.value.assignee = { id: person.value, name: person.label, email: '', role: '' };
-  } else {
-    selectedTask.value.assignee = { id: '', name: '', email: '', role: '' };
-  }
+  selectedTask.value.assignee = person
+    ? { id: person.value, name: person.label, email: '', role: '' }
+    : undefined;
 });
 
+function findTask(taskId: string) {
+  return tasks.value.find((t) => t.id === taskId);
+}
+
 function handleUpdateTaskState(payload: { taskId: string; newStateId: string; oldStateId: string }) {
-  const task = tasks.value.find((t) => t.id === payload.taskId);
+  const task = findTask(payload.taskId);
   if (task) {
     task.stateId = payload.newStateId;
   }
-  console.log('Estado actualizado:', payload);
+}
+
+function handleUpdateTaskOrder(payload: { taskId: string; stateId: string; index: number }) {
+  const task = findTask(payload.taskId);
+  if (!task) return;
+  task.stateId = payload.stateId;
+  task.order = payload.index;
+  // Insert-at-index semantics: shift siblings below the insertion point so the
+  // ordering stays total and stable across re-renders.
+  for (const other of tasks.value) {
+    if (other.id === task.id || other.stateId !== payload.stateId) continue;
+    if ((other.order ?? Number.MAX_SAFE_INTEGER) >= payload.index) {
+      other.order = (other.order ?? 0) + 1;
+    }
+  }
 }
 
 function handleCreateTask(stateId: string) {
+  const maxOrder = Math.max(
+    -1,
+    ...tasks.value.filter((t) => t.stateId === stateId).map((t) => t.order ?? -1),
+  );
   const newTask: KanbanTask = {
     id: `task-${Date.now()}`,
     title: 'Nueva tarea',
     stateId,
-    order: tasks.value.filter((t) => t.stateId === stateId).length + 1,
+    order: maxOrder + 1,
   };
   tasks.value.push(newTask);
-  console.log('Tarea creada en estado:', stateId);
+  handleClickTask(newTask.id);
 }
 
 function handleUpdateTaskTitle(payload: { taskId: string; title: string }) {
-  const task = tasks.value.find((t) => t.id === payload.taskId);
+  const task = findTask(payload.taskId);
   if (task) {
     task.title = payload.title;
   }
-  console.log('Título actualizado:', payload);
 }
 
 function handleDeleteTask(taskId: string) {
@@ -194,43 +213,42 @@ function handleDeleteTask(taskId: string) {
   if (index > -1) {
     tasks.value.splice(index, 1);
   }
-  console.log('Tarea eliminada:', taskId);
-}
-
-function handleClickTask(taskId: string) {
-  const task = tasks.value.find((t) => t.id === taskId);
-  if (task) {
-    if (!task.assignee) {
-      task.assignee = { id: '', name: '', email: '', role: '' };
-    }
-    selectedTask.value = task;
-    selectedAssigneeId.value = task.assignee.id ?? '';
-    comments.value = task.comments ? [...task.comments] : [];
-    isEditingTitle.value = false;
-    modalRef.value?.showModal();
-    scrollChatToBottom();
+  if (selectedTask.value?.id === taskId) {
+    selectedTask.value = null;
   }
 }
 
+function handleClickTask(taskId: string) {
+  const task = findTask(taskId);
+  if (!task) return;
+  selectedTask.value = task;
+  selectedAssigneeId.value = task.assignee?.id ?? '';
+  comments.value = task.comments ? [...task.comments] : [];
+  isEditingTitle.value = false;
+  modalRef.value?.showModal();
+  scrollChatToBottom();
+}
+
 function handleToggleChecklist({ taskId, itemId }: { taskId: string; itemId: string }) {
-  const task = tasks.value.find(t => t.id === taskId);
+  const task = findTask(taskId);
   if (!task?.checklist) return;
   const item = task.checklist.find(i => i.id === itemId);
   if (item) item.done = !item.done;
 }
 
 function handleAddChecklistItem({ taskId, text }: { taskId: string; text: string }) {
-  const task = tasks.value.find(t => t.id === taskId);
+  const task = findTask(taskId);
   if (!task) return;
   if (!task.checklist) task.checklist = [];
   task.checklist.push({ id: crypto.randomUUID(), text, done: false });
 }
 
 function handleCreateState() {
+  const maxOrder = states.value.reduce((max, s) => Math.max(max, s.order), 0);
   const newState: KanbanStateConfig = {
     id: crypto.randomUUID(),
     title: 'Nueva columna',
-    order: states.value.length,
+    order: maxOrder + 1,
     color: 'border-base-300',
   };
   states.value.push(newState);
@@ -282,11 +300,13 @@ function startEditComment(commentId: string, currentText: string) {
 }
 
 function saveEditComment(commentId: string) {
-  if (!editCommentText.value.trim()) return;
+  if (!editCommentText.value.trim()) {
+    editingCommentId.value = null;
+    return;
+  }
   const comment = comments.value.find(c => c.id === commentId);
   if (comment) {
     comment.text = editCommentText.value.trim();
-    // Also update in task
     if (selectedTask.value?.comments) {
       const taskComment = selectedTask.value.comments.find(c => c.id === commentId);
       if (taskComment) taskComment.text = editCommentText.value.trim();
@@ -305,6 +325,10 @@ function deleteComment(commentId: string) {
 
 function closeModal() {
   modalRef.value?.close();
+}
+
+// Dialog can also close via ESC — reset state regardless of how it closed.
+function handleDialogClosed() {
   selectedTask.value = null;
   isEditingTitle.value = false;
 }
@@ -323,6 +347,7 @@ function closeModal() {
         :tag-config="tagConfig"
         :state-config="stateConfig"
         @update:task-state="handleUpdateTaskState"
+        @update:task-order="handleUpdateTaskOrder"
         @create-task="handleCreateTask"
         @update-task-title="handleUpdateTaskTitle"
         @delete-task="handleDeleteTask"
@@ -334,7 +359,11 @@ function closeModal() {
     </div>
 
     <!-- Modal de detalle de tarea -->
-    <dialog ref="modalRef" class="modal">
+    <dialog
+      ref="modalRef"
+      class="modal"
+      @close="handleDialogClosed"
+    >
       <div class="modal-box w-[80%] max-w-5xl">
         <h3
           v-if="selectedTask && !isEditingTitle"
@@ -348,7 +377,7 @@ function closeModal() {
           v-model="selectedTask.title"
           class="input input-bordered input-sm w-full mb-4 text-xl font-bold"
           @blur="commitTitle"
-          @keydown.enter="commitTitle"
+          @keydown.enter.prevent="commitTitle"
         >
 
         <div v-if="selectedTask" class="space-y-4">
@@ -440,7 +469,7 @@ function closeModal() {
                     <input
                       v-model="editCommentText"
                       class="input input-bordered input-xs flex-1"
-                      @keydown.enter="saveEditComment(comment.id)"
+                      @keydown.enter.prevent="saveEditComment(comment.id)"
                       @keydown.escape="editingCommentId = null"
                       @blur="saveEditComment(comment.id)"
                     >
@@ -480,23 +509,23 @@ function closeModal() {
                 class="input input-bordered input-sm w-full"
               >
             </div>
-          <div>
-            <h4 class="text-sm font-semibold mb-1">Prioridad</h4>
-            <select
-              v-model="selectedTask.priority"
-              class="select select-bordered select-sm w-full font-medium"
-              :class="{
-                'text-success': selectedTask.priority === 'low',
-                'text-warning': selectedTask.priority === 'medium',
-                'text-error': selectedTask.priority === 'high',
-              }"
-            >
-              <option value="">Ninguna</option>
-              <option value="low" class="text-success">Baja</option>
-              <option value="medium" class="text-warning">Media</option>
-              <option value="high" class="text-error">Alta</option>
-            </select>
-          </div>
+            <div>
+              <h4 class="text-sm font-semibold mb-1">Prioridad</h4>
+              <select
+                v-model="selectedTask.priority"
+                class="select select-bordered select-sm w-full font-medium"
+                :class="{
+                  'text-success': selectedTask.priority === 'low',
+                  'text-warning': selectedTask.priority === 'medium',
+                  'text-error': selectedTask.priority === 'high',
+                }"
+              >
+                <option value="">Ninguna</option>
+                <option value="low" class="text-success">Baja</option>
+                <option value="medium" class="text-warning">Media</option>
+                <option value="high" class="text-error">Alta</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -505,7 +534,7 @@ function closeModal() {
         </div>
       </div>
       <form method="dialog" class="modal-backdrop">
-        <button @click="closeModal">Cerrar</button>
+        <button>Cerrar</button>
       </form>
     </dialog>
   </div>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { Plus, LayoutGrid, List, ChevronDown, Filter } from 'lucide-vue-next';
 import { VueDraggable } from 'vue-draggable-plus';
 import type {
@@ -7,8 +7,8 @@ import type {
   KanbanStateConfig,
   KanbanTagConfig,
   KanbanColumnStyleConfig,
+  KanbanDragEvent,
 } from './types';
-import KanbanColumn from './KanbanColumn.vue';
 import KanbanCard from './KanbanCard.vue';
 
 const props = withDefaults(defineProps<{
@@ -25,18 +25,20 @@ const props = withDefaults(defineProps<{
   /** Show the view toggle + status filter toolbar. Defaults to true. */
   showToolbar?: boolean;
 }>(), {
+  tagConfig: undefined,
+  stateConfig: undefined,
   group: 'kanban',
+  dragOptions: undefined,
   viewMode: 'kanban',
   selectedStateIds: null,
   showToolbar: true,
 });
 
 const emit = defineEmits<{
+  (e: 'create-task' | 'delete-task' | 'click-task', payload: string): void;
   (e: 'update:task-state', payload: { taskId: string; newStateId: string; oldStateId: string }): void;
-  (e: 'create-task', stateId: string): void;
+  (e: 'update:task-order', payload: { taskId: string; stateId: string; index: number }): void;
   (e: 'update-task-title', payload: { taskId: string; title: string }): void;
-  (e: 'delete-task', taskId: string): void;
-  (e: 'click-task', taskId: string): void;
   (e: 'toggle-checklist-item', payload: { taskId: string; itemId: string }): void;
   (e: 'add-checklist-item', payload: { taskId: string; text: string }): void;
   (e: 'create-state'): void;
@@ -49,18 +51,34 @@ const emit = defineEmits<{
 const internalViewMode = ref(props.viewMode);
 const internalSelectedIds = ref<string[] | null>(props.selectedStateIds);
 const showStateFilter = ref(false);
+const filterDropdownRef = ref<HTMLElement | null>(null);
 
 // Collapsed state for list view — keyed by stateId
 const collapsedStates = ref<Record<string, boolean>>({});
 
-function toggleViewMode() {
-  internalViewMode.value = internalViewMode.value === 'kanban' ? 'list' : 'kanban';
-  emit('update:view-mode', internalViewMode.value);
-}
+// While a drag is active SortableJS owns the DOM. Reacting to prop updates
+// mid-drag desyncs the DOM and locks the board; reconcile only after drop.
+const isDraggingList = ref(false);
+
+watch(() => props.viewMode, (mode) => { internalViewMode.value = mode; });
+watch(() => props.selectedStateIds, (ids) => { internalSelectedIds.value = ids; });
 
 function toggleStateFilter() {
   showStateFilter.value = !showStateFilter.value;
 }
+
+function closeStateFilter(event: MouseEvent) {
+  if (
+    showStateFilter.value &&
+    filterDropdownRef.value &&
+    !filterDropdownRef.value.contains(event.target as Node)
+  ) {
+    showStateFilter.value = false;
+  }
+}
+
+onMounted(() => document.addEventListener('click', closeStateFilter));
+onBeforeUnmount(() => document.removeEventListener('click', closeStateFilter));
 
 function toggleStateSelection(stateId: string) {
   if (internalSelectedIds.value === null) {
@@ -106,10 +124,17 @@ const visibleStates = computed(() => {
   return sortedStates.value.filter((s) => internalSelectedIds.value!.includes(s.id));
 });
 
+/** Sort by explicit order; tasks without order keep their relative position. */
+function sortTasks(tasks: KanbanTask[]): KanbanTask[] {
+  return [...tasks].sort(
+    (a, b) => (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER),
+  );
+}
+
 const tasksByState = computed(() => {
   const map: Record<string, KanbanTask[]> = {};
   for (const state of sortedStates.value) {
-    map[state.id] = props.tasks.filter((task) => task.stateId === state.id);
+    map[state.id] = sortTasks(props.tasks.filter((task) => task.stateId === state.id));
   }
   return map;
 });
@@ -121,36 +146,60 @@ const visibleTasksCount = computed(() => {
   }, 0);
 });
 
-// ─── List view: local task lists for drag&drop within collapsed sections ──
+// ─── List view: local task lists for drag&drop across collapsible sections ─
 
 const listTasksByState = ref<Record<string, KanbanTask[]>>({});
 
-function syncListTasks() {
+function rebuildListTasks() {
+  if (isDraggingList.value) return;
+  const map: Record<string, KanbanTask[]> = {};
   for (const state of sortedStates.value) {
-    listTasksByState.value[state.id] = [...(tasksByState.value[state.id] ?? [])];
+    map[state.id] = sortTasks(tasksByState.value[state.id] ?? []);
   }
+  listTasksByState.value = map;
 }
 
-// Re-sync when tasks change
+// Rebuild on membership/state changes (NOT deep: content edits must not clobber).
 watch(
-  () => props.tasks,
-  () => syncListTasks(),
-  { deep: true, immediate: true },
+  [
+    () => props.tasks.map((t) => `${t.id}:${t.stateId}`).join('|'),
+    () => props.states.map((s) => s.id).join('|'),
+    internalViewMode,
+  ],
+  () => {
+    if (internalViewMode.value !== 'list') return;
+    nextTick(rebuildListTasks);
+  },
+  { immediate: true },
 );
 
-function onListDragChange(stateId: string, event: any) {
+const mergedDragOptions = computed(() => ({
+  fallbackTolerance: 3,
+  ...(props.dragOptions ?? {}),
+}));
+
+function onListDragStart() {
+  isDraggingList.value = true;
+}
+
+function onListDragEnd() {
+  isDraggingList.value = false;
+  nextTick(rebuildListTasks);
+}
+
+function onListDragChange(stateId: string, event: KanbanDragEvent) {
   if (event.added) {
-    const task = event.added.element as KanbanTask;
+    const task = event.added.element;
     const oldStateId = task.stateId;
     if (oldStateId !== stateId) {
-      // Update the task's stateId in local list
       task.stateId = stateId;
       emit('update:task-state', { taskId: task.id, newStateId: stateId, oldStateId });
+      emit('update:task-order', { taskId: task.id, stateId, index: event.added.newIndex });
+      return;
     }
   }
   if (event.moved) {
-    const task = event.moved.element as KanbanTask;
-    task.order = event.moved.newIndex;
+    emit('update:task-order', { taskId: event.moved.element.id, stateId, index: event.moved.newIndex });
   }
 }
 
@@ -158,6 +207,10 @@ function onListDragChange(stateId: string, event: any) {
 
 function handleUpdateTaskState(payload: { taskId: string; newStateId: string; oldStateId: string }) {
   emit('update:task-state', payload);
+}
+
+function handleUpdateTaskOrder(payload: { taskId: string; stateId: string; index: number }) {
+  emit('update:task-order', payload);
 }
 
 function handleCreateTask(stateId: string) {
@@ -221,27 +274,27 @@ function handleAddChecklistItem(payload: { taskId: string; text: string }) {
         </span>
 
         <!-- State filter dropdown -->
-        <div class="dropdown dropdown-end">
+        <div ref="filterDropdownRef" class="dropdown dropdown-end">
           <button
             class="btn btn-sm btn-ghost gap-1"
             :class="{ 'btn-active': internalSelectedIds !== null }"
-            @click="toggleStateFilter"
+            @click.stop="toggleStateFilter"
           >
             <Filter class="w-4 h-4" />
             <span class="hidden sm:inline">Filter</span>
             <ChevronDown class="w-3 h-3" />
           </button>
 
-          <!-- Dropdown menu -->
+          <!-- Dropdown menu — v-if removed: must stay mounted for the outside-click check -->
           <div
-            v-if="showStateFilter"
+            v-show="showStateFilter"
             class="dropdown-content z-50 mt-2 p-3 shadow-lg bg-base-100 rounded-lg border border-base-300 w-56"
           >
             <div class="flex items-center justify-between mb-2">
               <span class="text-sm font-medium">States</span>
               <button
                 class="btn btn-xs btn-ghost"
-                @click="selectAllStates"
+                @click.stop="selectAllStates"
               >
                 All
               </button>
@@ -251,6 +304,7 @@ function handleAddChecklistItem(payload: { taskId: string; text: string }) {
                 v-for="state in sortedStates"
                 :key="state.id"
                 class="flex items-center gap-2 cursor-pointer hover:bg-base-200 rounded px-2 py-1"
+                @click.stop
               >
                 <input
                   type="checkbox"
@@ -282,10 +336,11 @@ function handleAddChecklistItem(payload: { taskId: string; text: string }) {
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <!-- KANBAN VIEW (original) -->
+    <!-- KANBAN VIEW -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <div v-if="internalViewMode === 'kanban'" class="flex-1 overflow-hidden">
-      <div class="flex overflow-x-auto gap-4 p-4 h-full">
+      <!-- Board: horizontal scroll for columns, vertical scroll for whole board (columns grow, no inner scroll) -->
+      <div class="flex items-start overflow-x-auto overflow-y-auto h-full gap-4 p-4">
         <KanbanColumn
           v-for="state in visibleStates"
           :key="state.id"
@@ -294,8 +349,10 @@ function handleAddChecklistItem(payload: { taskId: string; text: string }) {
           :tag-config="tagConfig"
           :style-config="stateConfig"
           :group="group"
+          :drag-options="dragOptions"
           @create-task="handleCreateTask"
           @update-task-state="handleUpdateTaskState"
+          @update-task-order="handleUpdateTaskOrder"
           @update-task-title="handleUpdateTaskTitle"
           @delete-task="handleDeleteTask"
           @click-task="handleClickTask"
@@ -305,8 +362,8 @@ function handleAddChecklistItem(payload: { taskId: string; text: string }) {
           <template v-if="$slots['empty-state']" #empty-state="{ stateId }">
             <slot name="empty-state" :state-id="stateId" />
           </template>
-          <template v-if="$slots['column-header']" #column-header="{ state, count }">
-            <slot name="column-header" :state="state" :count="count" />
+          <template v-if="$slots['column-header']" #column-header="{ state: columnState, count }">
+            <slot name="column-header" :state="columnState" :count="count" />
           </template>
           <template v-if="$slots['card-actions']" #card-actions="{ task }">
             <slot name="card-actions" :task="task" />
@@ -363,20 +420,20 @@ function handleAddChecklistItem(payload: { taskId: string; text: string }) {
 
             <button
               class="btn btn-ghost btn-xs"
-              @click.stop="emit('create-task', state.id)"
+              @click.stop="handleCreateTask(state.id)"
             >
               <Plus class="w-3.5 h-3.5" />
             </button>
           </div>
 
-          <!-- Collapsible body with drag&drop -->
+          <!-- Collapsible body with drag&drop (always mounted → empty sections stay droppable) -->
           <div
             v-show="!collapsedStates[state.id]"
             class="p-2 border-t border-base-300"
           >
             <div
               v-if="(listTasksByState[state.id]?.length ?? 0) === 0"
-              class="text-center py-6 text-base-content/40 text-sm"
+              class="text-center py-4 text-base-content/40 text-sm"
             >
               <slot name="empty-state" :state-id="state.id">
                 No tasks
@@ -384,25 +441,28 @@ function handleAddChecklistItem(payload: { taskId: string; text: string }) {
             </div>
 
             <VueDraggable
-              v-else
               v-model="listTasksByState[state.id]"
               :group="group"
+              :options="mergedDragOptions"
               :animation="150"
               ghost-class="kanban-ghost"
               item-key="id"
               class="flex flex-col gap-2"
-              @change="(e: any) => onListDragChange(state.id, e)"
+              :class="{ 'min-h-[56px] rounded-lg border border-dashed border-base-300': (listTasksByState[state.id]?.length ?? 0) === 0 }"
+              @change="(e: KanbanDragEvent) => onListDragChange(state.id, e)"
+              @start="onListDragStart"
+              @end="onListDragEnd"
             >
               <KanbanCard
                 v-for="task in listTasksByState[state.id]"
                 :key="task.id"
                 :task="task"
                 :tag-config="tagConfig"
-                @click="$emit('click-task', $event)"
-                @update-title="$emit('update-task-title', $event)"
-                @delete="$emit('delete-task', $event)"
-                @toggle-checklist-item="$emit('toggle-checklist-item', $event)"
-                @add-checklist-item="$emit('add-checklist-item', $event)"
+                @click="handleClickTask($event)"
+                @update-title="handleUpdateTaskTitle($event)"
+                @delete="handleDeleteTask($event)"
+                @toggle-checklist-item="handleToggleChecklistItem($event)"
+                @add-checklist-item="handleAddChecklistItem($event)"
               />
             </VueDraggable>
           </div>

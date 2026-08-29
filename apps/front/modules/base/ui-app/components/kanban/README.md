@@ -37,10 +37,18 @@ Tablero Kanban tipo Trello agnóstico y configurable para Foundation UI.
 | Emit | Payload | Descripción |
 |------|---------|-------------|
 | `update:task-state` | `{ taskId, newStateId, oldStateId }` | Tarea movida de columna |
+| `update:task-order` | `{ taskId, stateId, index }` | Tarea reordenada (o insertada) dentro de columna — índice final dentro de la columna destino |
 | `create-task` | `stateId` | Crear tarea en columna |
 | `update-task-title` | `{ taskId, title }` | Título editado |
 | `delete-task` | `taskId` | Eliminar tarea |
 | `click-task` | `taskId` | Click en tarjeta |
+
+### Notas de implementación (D&D)
+
+- Las columnas/sectarios mantienen listas **locales** ordenadas por `task.order` (fallback: orden de llegada). Al soltar, el componente emite `update:task-state` (cambio de columna) y/o `update:task-order` (posición final).
+- Durante el drag activo, cualquier actualización de props se ignora y se reconcilia **by-id** al terminar (`@end`), evitando desincronización DOM/v-model que bloqueaba el tablero tras el primer drop.
+- Columnas/sectores **vacíos siguen siendo droppables** (min-height + borde punteado).
+- List view: las secciones colapsan con `v-show` (no `v-if`) para que sigan siendo droppables tras colapsar/expandir.
 
 ## Dependencias
 

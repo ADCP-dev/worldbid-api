@@ -52,6 +52,8 @@ export interface KanbanStateConfig {
 }
 
 export interface KanbanTagConfig {
+  /** Custom tag renderer component (optional). */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   component?: any;
   className?: string;
   maxVisible?: number;
@@ -63,4 +65,28 @@ export interface KanbanColumnStyleConfig {
     borderClass?: string;
     bgClass?: string;
   };
+}
+
+/** SortableJS onExtChange payload ( vue-draggable-plus v-model change event ). */
+export interface KanbanDragEvent<T = KanbanTask> {
+  added?: {
+    element: T;
+    newIndex: number;
+  };
+  removed?: {
+    element: T;
+    oldIndex: number;
+  };
+  moved?: {
+    element: T;
+    oldIndex: number;
+    newIndex: number;
+  };
+}
+
+/** Per-column (or per-section) change payload: only the affected side is set. */
+export interface KanbanColumnDragEvent {
+  from?: KanbanDragEvent;
+  to?: KanbanDragEvent;
+  changed?: KanbanDragEvent;
 }

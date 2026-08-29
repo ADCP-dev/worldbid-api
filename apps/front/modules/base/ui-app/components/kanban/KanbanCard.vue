@@ -11,9 +11,8 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'click', taskId: string): void;
+  (e: 'click' | 'delete', taskId: string): void;
   (e: 'update-title', payload: { taskId: string; title: string }): void;
-  (e: 'delete', taskId: string): void;
   (e: 'toggle-checklist-item', payload: { taskId: string; itemId: string }): void;
   (e: 'add-checklist-item', payload: { taskId: string; text: string }): void;
 }>();
@@ -115,6 +114,8 @@ function cancelEdit() {
 
 function handleKeydown(event: KeyboardEvent) {
   if (event.key === 'Enter') {
+    // prevent default so the input does not blur first (blur would call saveTitle again)
+    event.preventDefault();
     saveTitle();
   } else if (event.key === 'Escape') {
     cancelEdit();

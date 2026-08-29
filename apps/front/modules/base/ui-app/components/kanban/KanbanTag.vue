@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { KanbanTag, KanbanTagConfig } from './types';
 
-const props = defineProps<{
+defineProps<{
   tag: KanbanTag;
   config?: KanbanTagConfig;
 }>();
