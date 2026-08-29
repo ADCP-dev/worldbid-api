@@ -6,6 +6,7 @@ import { AgentConfigRepository } from '../agent-config.repository';
 import { ToolRegistryService } from './tool-registry.service';
 import { McpLoaderService } from './mcp-loader.service';
 import { ModelResolverService } from './model-resolver.service';
+import { SqlQueryService } from '../../tools/sql-query.tool';
 import { SandboxService } from './sandbox.service';
 import { NoteService } from '../../note.service';
 import { VectorStoreService } from '../vector-store.service';
@@ -77,6 +78,13 @@ describe('AgentFactoryService', () => {
       parseModelString: jest.fn(),
       invalidate: jest.fn(),
     };
+    const sqlToolStub = {
+      name: 'sql_query_readonly',
+    };
+    const sqlQueryMock = {
+      run: jest.fn(),
+      createTool: jest.fn().mockReturnValue(sqlToolStub),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -88,6 +96,7 @@ describe('AgentFactoryService', () => {
         { provide: NoteService, useValue: noteServiceMock },
         { provide: VectorStoreService, useValue: vectorStoreServiceMock },
         { provide: ModelResolverService, useValue: modelResolverMock },
+        { provide: SqlQueryService, useValue: sqlQueryMock },
       ],
     }).compile();
     service = module.get<AgentFactoryService>(AgentFactoryService);
@@ -182,10 +191,10 @@ describe('AgentFactoryService', () => {
     const tools = captured.tools as Array<{ name: string }>;
     const names = tools.map((t) => t.name);
     // 7 KB tools (list_categories, list_notes, search_notes_semantic,
-    // get_note, create, update, delete) + 1 native + 1 MCP = 9.
-    // No run_command: deepagents wires the filesystem natively from the
-    // VfsBackend and VfsBackend has no execute() method.
-    expect(tools).toHaveLength(9);
+    // get_note, create, update, delete) + 1 native + 1 MCP + 1 sql_readonly
+    // = 10. No run_command: deepagents wires the filesystem natively from
+    // the VfsBackend and VfsBackend has no execute() method.
+    expect(tools).toHaveLength(10);
     expect(names).toEqual(
       expect.arrayContaining([
         'list_categories',
@@ -197,6 +206,7 @@ describe('AgentFactoryService', () => {
         'delete_note',
         'native_a',
         'get_weather',
+        'sql_query_readonly',
       ]),
     );
     expect(names).not.toContain('run_command');

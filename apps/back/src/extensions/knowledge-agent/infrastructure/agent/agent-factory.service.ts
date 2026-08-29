@@ -7,6 +7,7 @@ import { SandboxService } from './sandbox.service';
 import { NoteService } from '../../note.service';
 import { VectorStoreService } from '../vector-store.service';
 import { ModelResolverService } from './model-resolver.service';
+import { SqlQueryService } from '../../tools/sql-query.tool';
 import { createKnowledgeAgentTools } from '../../agent.tools';
 import type { AgentConfig } from '../../domain/agent-config';
 import type { StructuredTool } from '@langchain/core/tools';
@@ -47,6 +48,7 @@ export class AgentFactoryService {
     private readonly noteService: NoteService,
     private readonly vectorStoreService: VectorStoreService,
     private readonly modelResolver: ModelResolverService,
+    private readonly sqlQueryService: SqlQueryService,
   ) {}
 
   /**
@@ -94,9 +96,10 @@ export class AgentFactoryService {
     });
 
     // Native tools (auto-discovered from agent.tools.ts across extensions)
-    // + MCP tools (external servers declared in config).
+    // + MCP tools (external servers declared in config) + read-only SQL.
     const nativeTools = await this.toolRegistry.collect();
     const mcpTools = await this.mcpLoader.load(config.mcpServerIds);
+    const sqlTool = this.sqlQueryService.createTool();
 
     // NOTE: no custom execute/run_command tool — deepagents wires the full
     // filesystem middleware natively from the VfsBackend (read/write/edit/
@@ -109,6 +112,7 @@ export class AgentFactoryService {
       ...kbTools,
       ...nativeTools,
       ...mcpTools,
+      sqlTool,
     ];
 
     const permissions = this.sandbox.buildPermissions(

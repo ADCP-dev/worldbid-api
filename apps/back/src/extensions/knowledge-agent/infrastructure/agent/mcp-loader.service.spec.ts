@@ -35,6 +35,7 @@ describe('McpLoaderService', () => {
 
     const repoMock = {
       findEnabledByIds: jest.fn(),
+      findAllEnabled: jest.fn().mockResolvedValue([]),
       find: jest.fn().mockResolvedValue([]),
     };
 

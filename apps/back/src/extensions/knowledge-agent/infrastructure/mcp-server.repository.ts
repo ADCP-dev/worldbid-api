@@ -42,6 +42,15 @@ export class McpServerRepository {
     return entities.map((e) => this.toDomain(e));
   }
 
+  /** All enabled servers regardless of agent assignment. */
+  async findAllEnabled(): Promise<McpServer[]> {
+    const entities = await this.repo.find({
+      where: { enabled: true },
+      order: { name: 'ASC' },
+    });
+    return entities.map((e) => this.toDomain(e));
+  }
+
   async find(): Promise<McpServer[]> {
     const entities = await this.repo.find({ order: { name: 'ASC' } });
     return entities.map((e) => this.toDomain(e));

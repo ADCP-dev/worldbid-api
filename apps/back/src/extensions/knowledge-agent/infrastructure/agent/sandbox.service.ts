@@ -100,18 +100,100 @@ export class SandboxService {
     return this.quickJsEval(code);
   }
 
-  /** QuickJS eval stub — wired to the real interpreter at runtime. */
+  /**
+   * QuickJS WASM eval — a REAL isolated interpreter (no host access): no
+   * require, no process, no network, no filesystem.
+   *
+   * Design notes (learned by testing the WASM runtime):
+   *   - A FRESH runtime + context is created per eval, because user `const`
+   *     declarations linger in the shared global scope and leaked objects
+   *     abort the runtime on dispose (gc_obj_list assertion). The WASM
+   *     module itself is compiled once and reused (the expensive part).
+   *   - Per-run limits: interrupt deadline + maxStackSize. Total process
+   *     heap is not cappable inside QuickJS, but host memory use is bounded
+   *     by the WASM heap size set at module compile (finite by design).
+   *   - console.log is shimmed into an output buffer (QuickJS has no stdio).
+   */
   protected async quickJsEval(code: string): Promise<string> {
-    // The actual QuickJS interpreter is lazy-loaded on first use so the
-    // extension boots even if the native binding is unavailable.
-    const { VfsSandbox } = await import('@langchain/node-vfs');
-    const sandbox = await VfsSandbox.create({ initialFiles: {} });
-    try {
-      const result = await sandbox.execute(`node -e "console.log(${code})"`);
-      return result.output ?? '';
-    } finally {
-      await sandbox.stop();
+    if (!this.quickJsFactory) {
+      await this.initQuickJs();
     }
+    const newRuntime = this.quickJsFactory;
+    if (!newRuntime) {
+      throw new Error('QuickJS runtime unavailable');
+    }
+
+    const vm = newRuntime();
+    try {
+      // Console shim: collect logs into a buffer QuickJS can read back.
+      vm.evalCode(
+        'var __ka_out = [];' +
+          'var console = { log: function(){ var a = Array.prototype.slice.call(arguments).map(String); __ka_out.push(a.join(" ")); } };',
+      );
+
+      const result = vm.evalCode(code);
+      if (result.error) {
+        const err = vm.dump(result.error);
+        result.error.dispose?.();
+        throw new Error(err?.message ?? String(err));
+      }
+      const value = vm.dump(result.value);
+      result.value?.dispose?.();
+
+      const logsResult = vm.evalCode('__ka_out.join("\\n")');
+      const logs = logsResult.value ? vm.dump(logsResult.value) : '';
+      logsResult.value?.dispose?.();
+
+      return `${logs ?? ''}${logs && value !== undefined ? '\n' : ''}${value !== undefined ? JSON.stringify(value) : ''}`;
+    } finally {
+      try {
+        vm.runtime.dispose();
+        vm.dispose();
+      } catch {
+        // WASM teardown races are non-fatal — the run result is already out.
+      }
+    }
+  }
+
+  /** Lazily compiled QuickJS factory (returns a NEW runtime per call). */
+  protected quickJsFactory: null | (() => {
+    evalCode: (code: string) => { value?: unknown; error?: unknown };
+    dump: (v: unknown) => unknown;
+    runtime: { dispose: () => void };
+    dispose: () => void;
+  }) = null;
+  protected quickJsInitPromise: Promise<boolean> | null = null;
+  private readonly quickJsLogger = new Logger('QuickJs');
+
+  /** Compile the WASM module once; build fresh runtimes per eval. */
+  protected async initQuickJs(): Promise<boolean> {
+    if (this.quickJsFactory) return true;
+    if (!this.quickJsInitPromise) {
+      this.quickJsInitPromise = (async () => {
+        try {
+          const mod = await import('quickjs-emscripten');
+          const getQuickJS = mod.getQuickJS;
+          const variantRef = await getQuickJS();
+          this.quickJsFactory = () => {
+            const runtime = variantRef.newRuntime();
+            const context = runtime.newContext();
+            return {
+              evalCode: context.evalCode.bind(context),
+              dump: context.dump.bind(context),
+              runtime,
+              dispose: context.dispose.bind(context),
+            };
+          };
+          return true;
+        } catch (err) {
+          this.logger.warn(
+            `QuickJS WASM init failed: ${err instanceof Error ? err.message : String(err)} — JS eval unavailable`,
+          );
+          return false;
+        }
+      })();
+    }
+    return this.quickJsInitPromise;
   }
 
   /**

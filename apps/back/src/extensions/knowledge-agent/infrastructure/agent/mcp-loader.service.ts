@@ -38,7 +38,13 @@ export class McpLoaderService {
    * local McpModule. Returns `[]` if every server is unreachable — never throws.
    */
   async load(mcpServerIds: string[]): Promise<StructuredTool[]> {
-    const servers = await this.mcpServerRepo.findEnabledByIds(mcpServerIds);
+    // Empty assignment list = "use every enabled server" (integration menu
+    // connections like Tavily are globally available, not per-agent grants).
+    // Non-empty list = explicit per-agent selection.
+    const servers =
+      mcpServerIds.length > 0
+        ? await this.mcpServerRepo.findEnabledByIds(mcpServerIds)
+        : await this.mcpServerRepo.findAllEnabled();
     const config = this.buildClientConfig(servers);
     if (Object.keys(config).length === 0) return [];
 
