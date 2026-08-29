@@ -64,6 +64,11 @@ import { HookAbortError } from './spec.types';
 import { SpecEngineBootService } from './spec-engine-boot';
 import { HookContextImpl } from './hook-context';
 import { TraceBuilder } from './spec-trace';
+import {
+  resolveHookModulePath,
+  loadExtensionModule,
+  extractModuleExport,
+} from './extension-module-loader';
 
 /** Signature of an action handler loaded via require(). */
 export type ActionHandler = (
@@ -469,21 +474,16 @@ export class SpecEngineActionFactory {
   ): ActionHandler | null {
     try {
       const absolutePath = path.resolve(extensionDir, action.handler);
-      const normalizedDir = path.resolve(extensionDir) + path.sep;
-      if (!absolutePath.startsWith(normalizedDir)) {
+      const requirePath = resolveHookModulePath(absolutePath, extensionDir);
+      if (!requirePath) {
         this.logger.warn(
           `⚠️  Action handler "${action.handler}" for ${resourceName}.${action.name} escapes extension directory — skipping`,
         );
         return null;
       }
-      const requirePath =
-        process.env.NODE_ENV === 'production'
-          ? absolutePath.replace(/\.ts$/, '.js')
-          : absolutePath;
 
-      const mod = require(requirePath);
-      const handler: unknown =
-        mod && typeof mod === 'object' && 'default' in mod ? mod.default : mod;
+      const mod = loadExtensionModule(requirePath);
+      const handler: unknown = extractModuleExport(mod);
       if (typeof handler !== 'function') {
         this.logger.warn(
           `⚠️  Action "${action.name}" for ${resourceName} has no default export function — skipping`,

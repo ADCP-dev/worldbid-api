@@ -18,6 +18,7 @@ import * as path from 'node:path';
 import { SpecErrorReporter } from './spec-error-reporter';
 import { RoleRegistry } from './role-registry';
 import { runSpecSeeds } from './spec-seed-loader';
+import { runSchemaDriftCheck } from './spec-schema-drift';
 import type { LoadedSpec } from './spec-loader';
 
 @Injectable()
@@ -86,6 +87,21 @@ export class SpecEngineBootService implements OnModuleInit {
       this.logger.warn(
         `Could not run spec seeds: ${(err as Error).message}`,
       );
+    }
+
+    // Schema drift detection (design §12.2/§12.3). Compares a stable hash
+    // of each extension's merged specs against the persisted
+    // spec_schema_version table. Wrapped in try/catch so drift detection
+    // NEVER blocks boot on its own internal errors — fail open with a
+    // warning. In production, detected drift itself throws (SPEC_ENGINE_DRIFT=block).
+    try {
+      await runSchemaDriftCheck(this.loadedSpecs, this.dataSource);
+    } catch (err) {
+      this.logger.error(
+        (err as Error).message,
+        (err as Error).stack,
+      );
+      throw err;
     }
 
     this.logger.log(

@@ -95,7 +95,11 @@ export class SandboxService {
    */
   async createSandbox(sessionId: string): Promise<unknown> {
     const mountPath = this.workingDir(sessionId);
-    return this.createVfsBackend({ mountPath, initialFiles: {} });
+    const backend = await this.createVfsBackend({ mountPath, initialFiles: {} });
+    // Track live backends so artifact endpoints can list/read (VFS is
+    // in-memory — physical /tmp/ka-sandbox-* dirs never materialize).
+    await this.trackBackend(sessionId, backend);
+    return backend;
   }
 
   /** Build the `permissions` array for `createDeepAgent`. */
@@ -129,8 +133,9 @@ export class SandboxService {
 
   /**
    * List files the agent created under `dir` (recursive, sandbox dirs only).
-   * Returns relative paths + size + mtime + detected mime for the chat
-   * file chips / viewer.
+   * For VFS-mode backends (in-memory) we read the live registry instead —
+   * VfsBackend files never touch the physical disk (verified: deepagents
+   * write_file → backend.write with virtual paths, no physical dir created).
    */
   listFiles(dir: string): Array<{
     name: string;
@@ -139,6 +144,11 @@ export class SandboxService {
     mtime: string;
     mime: string;
   }> {
+    const backend = this.activeBackends.get(dir);
+    if (backend) {
+      return this.listVfsFiles(backend);
+    }
+    // Legacy physical-dir fallback (used by tests / future disk backends).
     if (!existsSync(dir)) return [];
     const out: Array<{
       name: string;
@@ -184,13 +194,17 @@ export class SandboxService {
   }
 
   /**
-   * Read one file under `dir` (guarded) — content as Buffer with a detected
-   * mime so the controller can serve it inline or as a download.
+   * Read one file under `dir` (guarded). VFS-mode: read from the live
+   * in-memory backend; physical fallback otherwise.
    */
   readFile(
     dir: string,
     relativePath: string,
   ): { name: string; mime: string; content: Buffer } {
+    const backend = this.activeBackends.get(dir);
+    if (backend) {
+      return this.readVfsFile(backend, relativePath);
+    }
     const name = basename(relativePath);
     // Path traversal guard: the resolved absolute path MUST stay inside dir.
     const abs = resolve(dir, relativePath);
@@ -204,6 +218,71 @@ export class SandboxService {
       throw new NotFoundException('File too large to serve (20MB cap)');
     }
     return { name, mime: detectMime(name), content: readFileSync(abs) };
+  }
+
+  /** Live VfsBackend instances by workingDir namespace. */
+  private readonly activeBackends = new Map<string, unknown>();
+
+  /** Register a backend instance for artifact endpoints (called at create). */
+  private async trackBackend(sessionId: string, backend: unknown): Promise<void> {
+    this.activeBackends.set(this.workingDir(sessionId), backend);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private listVfsFiles(backend: any): Array<{
+    name: string;
+    path: string;
+    size: number;
+    mtime: string;
+    mime: string;
+  }> {
+    try {
+      // VfsBackend.ls returns entries; root-level + nested via recursive ls.
+      const raw = backend.ls?.('/') ?? backend.ls?.('/') ?? [];
+      const rows = Array.isArray(raw) ? raw : [];
+      return rows
+        .map((r: Record<string, unknown>) => {
+          const path = String(r.path ?? r.name ?? '');
+          return {
+            name: String(r.name ?? path.split('/').pop() ?? 'file'),
+            path: path.replace(/^\//, ''),
+            size: Number(r.size ?? 0),
+            mtime: r.modifiedAt
+              ? String(r.modifiedAt)
+              : new Date().toISOString(),
+            mime: detectMime(String(r.name ?? path)),
+          };
+        })
+        .filter((r) => r.path.length > 0);
+    } catch (err) {
+      this.logger.warn(
+        `VFS list failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return [];
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private readVfsFile(backend: any, relativePath: string): {
+    name: string;
+    mime: string;
+    content: Buffer;
+  } {
+    const name = basename(relativePath);
+    try {
+      // VfsBackend.read accepts the virtual absolute path (/vfs/...).
+      const read = backend.read?.bind(backend);
+      const result = read?.(`/${relativePath.replace(/^\//, '')}`);
+      const payload =
+        typeof result === 'string' ? result : (result?.content ?? '');
+      return {
+        name,
+        mime: detectMime(name),
+        content: Buffer.from(String(payload), 'utf8'),
+      };
+    } catch {
+      throw new NotFoundException(`File ${relativePath} not found in sandbox`);
+    }
   }
 
   /**

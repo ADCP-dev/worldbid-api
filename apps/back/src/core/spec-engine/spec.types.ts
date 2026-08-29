@@ -228,6 +228,12 @@ export interface OutboundWebhookSpec {
   subscriptionModel: 'static' | 'dynamic';
   url?: string; // static: URL fija. dynamic: via POST subscribe
   handler?: string; // optional transform before sending
+  /**
+   * Per-webhook HMAC secret (outbound payload signing). Resolution order:
+   * dynamic subscription row secret → this spec field → WEBHOOK_HMAC_SECRET
+   * env fallback → unsigned delivery (with a one-time loud warning).
+   */
+  hmacSecret?: string;
 }
 
 // ─── Custom Action Spec ────────────────────────────────────────────────────
@@ -396,12 +402,12 @@ export interface ExtensionSpec {
 }
 
 // ─── Loaded Spec (with filesystem paths) ────────────────────────────────────
+// Single definition lives in spec-loader.ts. Re-exported here only for
+// import convenience within spec.types consumers — do NOT redeclare.
 
-export interface LoadedSpec {
-  spec: ExtensionSpec;
-  dir: string;
-  specPath: string;
-}
+export type {
+  LoadedSpec,
+} from './spec-loader';
 
 // ─── Trace Types ────────────────────────────────────────────────────────────
 
