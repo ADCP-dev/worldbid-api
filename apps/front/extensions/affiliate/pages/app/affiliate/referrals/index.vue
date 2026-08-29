@@ -1,179 +1,261 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, h } from 'vue';
+import { ref, computed, h } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
+import { Plus } from 'lucide-vue-next';
 import DataTable from '@base/ui-app/components/data-table/DataTable.vue';
 import FormSelect from '@base/ui-app/components/form/FormSelect.vue';
-import { useTableStateStore } from '@base/ui-app/stores/useTableState';
-import type { CellContext, PaginatedResponse, Partner, Referral  } from '@affiliate/types';
+import DeleteButton from '@base/ui-app/components/data-table/buttons/DeleteButton.vue';
+import {
+  useReferralsQuery,
+  usePartnersQuery,
+  useCreateReferralMutation,
+  useUpdateReferralMutation,
+  useDeleteReferralMutation,
+  unwrapList,
+} from '../../../composables/useAffiliate';
+import type { CellContext, Referral } from '../../../types';
 
+definePageMeta({ layout: 'default', middleware: ['auth', 'admin'] });
 
-definePageMeta({
-  layout: 'default',
-  middleware: ['auth', 'admin'],
-});
+const { t, d } = useI18n();
 
-const affiliate = useAffiliate();
-const tableStateStore = useTableStateStore();
+const statusFilter = ref<string | undefined>(undefined);
+const { data: referralsData, isLoading } = useReferralsQuery(undefined, statusFilter);
+const { data: partnersData } = usePartnersQuery();
+const createMut = useCreateReferralMutation();
+const updateMut = useUpdateReferralMutation();
+const deleteMut = useDeleteReferralMutation();
 
-const loading = ref(false);
-const referrals = ref<Referral[]>([]);
-const partners = ref<Partner[]>([]);
-const total = ref(0);
-const partnerId = ref<string>('');
-const status = ref<string>('');
-
-const tableName = 'affiliate-referrals';
-
-const tableState = computed(() => {
-  const raw = (tableStateStore as unknown as Record<string, { pageIndex?: number; pageSize?: number; globalFilter?: string }>)[tableName] || {};
-  return {
-    pageIndex: typeof raw.pageIndex === 'number' ? raw.pageIndex : 0,
-    pageSize: typeof raw.pageSize === 'number' ? raw.pageSize : 10,
-    globalFilter: typeof raw.globalFilter === 'string' ? raw.globalFilter : '',
-  };
-});
-
-const STATUS_LABELS: Record<string, string> = {
-  pending: 'Pendiente',
-  contacted: 'Contactado',
-  qualified: 'Calificado',
-  converted: 'Convertido',
-  lost: 'Perdido',
-};
-
-const STATUS_BADGE: Record<string, string> = {
-  pending: 'badge-warning',
-  contacted: 'badge-info',
-  qualified: 'badge-primary',
-  converted: 'badge-success',
-  lost: 'badge-error',
-};
+const referrals = computed<Referral[]>(() => unwrapList<Referral>(referralsData.value ?? []));
+const partners = computed(() => unwrapList(partnersData.value ?? []));
 
 const statusOptions = computed(() => [
-  { label: 'Todos', value: '' },
-  ...Object.entries(STATUS_LABELS).map(([value, label]) => ({ label, value })),
+  { value: 'pending', label: t('ext.affiliate.status.pending') },
+  { value: 'converted', label: t('ext.affiliate.status.converted') },
+  { value: 'rejected', label: t('ext.affiliate.status.rejected') },
 ]);
 
-const partnerOptions = computed(() => [
-  { label: 'Todos', value: '' },
-  ...partners.value.map((p) => ({ label: p.name, value: String(p.id) })),
-]);
-
-function formatDate(date: string) {
-  return new Date(date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+function formatDate(value: string | null | undefined) {
+  if (!value) return '—';
+  return d(new Date(value), { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
+function statusBadge(status: string) {
+  switch (status) {
+    case 'converted':
+      return 'badge-success';
+    case 'rejected':
+      return 'badge-error';
+    default:
+      return 'badge-warning';
+  }
+}
+
+// ─── Create modal ─────────────────────────────────────────────────────
+
+const showCreate = ref(false);
+const saving = ref(false);
+const createForm = ref({ partnerId: null as number | null, clientId: null as number | null, status: 'pending' });
+
+const partnerOptions = computed(() =>
+  partners.value.map((p: { id: number; name: string }) => ({ value: p.id, label: p.name })),
+);
+
+async function submitCreate() {
+  if (!createForm.value.partnerId || !createForm.value.clientId) {
+    toast.error(t('ext.affiliate.common.error'));
+    return;
+  }
+  try {
+    await createMut.mutateAsync({
+      partnerId: Number(createForm.value.partnerId),
+      clientId: Number(createForm.value.clientId),
+      status: createForm.value.status,
+    });
+    toast.success(t('ext.affiliate.common.created'));
+    showCreate.value = false;
+  } catch (err: unknown) {
+    toast.error(t('ext.affiliate.common.error'), { description: errorMessage(err) });
+  }
+}
+
+async function markConverted(referral: Referral) {
+  try {
+    await updateMut.mutateAsync({ id: referral.id, data: { status: 'converted' } });
+    toast.success(t('ext.affiliate.referrals.converted'));
+  } catch (err: unknown) {
+    toast.error(t('ext.affiliate.common.error'), { description: errorMessage(err) });
+  }
+}
+
+async function reject(referral: Referral) {
+  try {
+    await updateMut.mutateAsync({ id: referral.id, data: { status: 'rejected' } });
+    toast.success(t('ext.affiliate.referrals.reject'));
+  } catch (err: unknown) {
+    toast.error(t('ext.affiliate.common.error'), { description: errorMessage(err) });
+  }
+}
+
+const deleteTarget = ref<Referral | null>(null);
+
+async function confirmDelete() {
+  if (!deleteTarget.value) return;
+  try {
+    await deleteMut.mutateAsync(deleteTarget.value.id);
+    toast.success(t('ext.affiliate.common.saved'));
+    deleteTarget.value = null;
+  } catch (err: unknown) {
+    toast.error(t('ext.affiliate.common.error'), { description: errorMessage(err) });
+  }
+}
 
 const columns = computed(() => [
   {
-    accessorKey: 'partner',
-    headerName: 'Partner',
-    header: 'Partner',
+    accessorKey: 'client.name',
+    headerName: t('ext.affiliate.referrals.client'),
+    header: t('ext.affiliate.referrals.client'),
     filterType: 'string' as const,
-    cell: ({ row }: CellContext<Referral>) => row.original.partner?.name || '—',
+    cell: ({ row }: CellContext<Referral>) =>
+      h(
+        'div',
+        { class: 'flex flex-col' },
+        [
+          h('span', { class: 'font-medium' }, row.original.client?.name ?? row.original.clientName ?? '—'),
+          row.original.client?.companyName
+            ? h('span', { class: 'text-xs text-base-content/50' }, row.original.client.companyName)
+            : null,
+        ],
+      ),
   },
   {
-    accessorKey: 'clientName',
-    headerName: 'Cliente',
-    header: 'Cliente',
-    filterType: 'string' as const,
-    cell: ({ row }: CellContext<Referral>) => h('span', { class: 'font-medium' }, row.original.clientName || '—'),
+    accessorKey: 'partner.name',
+    headerName: t('ext.affiliate.referrals.partner'),
+    header: t('ext.affiliate.referrals.partner'),
+    cell: ({ row }: CellContext<Referral>) => row.original.partner?.name ?? '—',
   },
   {
     accessorKey: 'status',
-    headerName: 'Estado',
-    header: 'Estado',
-    filterType: 'string' as const,
-    cell: ({ row }: CellContext<Referral>) => h(
-      'span',
-      { class: ['badge', 'badge-sm', STATUS_BADGE[row.original.status] || 'badge-ghost'] },
-      STATUS_LABELS[row.original.status] ?? row.original.status,
-    ),
+    headerName: t('ext.affiliate.referrals.status'),
+    header: t('ext.affiliate.referrals.status'),
+    filterType: 'select' as const,
+    options: statusOptions.value,
+    cell: ({ row }: CellContext<Referral>) =>
+      h('span', { class: `badge badge-sm ${statusBadge(row.original.status)}` }, t(`ext.affiliate.status.${row.original.status}`)),
   },
   {
     accessorKey: 'referredAt',
-    headerName: 'Fecha',
-    header: 'Fecha',
-    filterType: 'string' as const,
-    cell: ({ row }: CellContext<Referral>) => formatDate(row.original.referredDate || row.original.createdAt || ''),
+    headerName: t('ext.affiliate.referrals.date'),
+    header: t('ext.affiliate.referrals.date'),
+    cell: ({ row }: CellContext<Referral>) => formatDate(row.original.referredAt ?? row.original.createdAt),
+  },
+  {
+    id: 'actions',
+    headerName: t('ext.affiliate.common.actions'),
+    header: t('ext.affiliate.common.actions'),
+    enableSorting: false,
+    cell: ({ row }: CellContext<Referral>) =>
+      h('div', { class: 'flex items-center gap-1' }, [
+        row.original.status === 'pending'
+          ? h('button', {
+              class: 'btn btn-xs btn-success btn-outline',
+              onClick: (e: Event) => {
+                e.stopPropagation();
+                void markConverted(row.original);
+              },
+            }, t('ext.affiliate.referrals.convert'))
+          : null,
+        row.original.status === 'pending'
+          ? h('button', {
+              class: 'btn btn-xs btn-error btn-outline',
+              onClick: (e: Event) => {
+                e.stopPropagation();
+                void reject(row.original);
+              },
+            }, t('ext.affiliate.referrals.reject'))
+          : null,
+        h(DeleteButton, {
+          onClick: (e: Event) => {
+            e.stopPropagation();
+            deleteTarget.value = row.original;
+          },
+        }),
+      ]),
   },
 ]);
-
-async function loadPartners() {
-  try {
-    const res: PaginatedResponse<Partner> | Partner[] = await affiliate.getPartners(1);
-    partners.value = Array.isArray(res) ? res : (res.data ?? []);
-  } catch (err: unknown) {
-    toast.error('Error cargando partners', { description: errorMessage(err) });
-  }
-}
-
-async function loadReferrals() {
-  loading.value = true;
-  try {
-    const res: PaginatedResponse<Referral> | Referral[] = await affiliate.getReferrals(
-      partnerId.value ? Number(partnerId.value) : undefined,
-      status.value || undefined,
-    );
-    const list = Array.isArray(res) ? res : (res.data ?? []);
-    referrals.value = list;
-    total.value = Array.isArray(res) ? list.length : (res.total ?? list.length);
-  } catch (err: unknown) {
-    toast.error('Error cargando referencias', { description: errorMessage(err) });
-  } finally {
-    loading.value = false;
-  }
-}
-
-function onFilterChange() {
-  loadReferrals();
-}
-
-onMounted(async () => {
-  await loadPartners();
-  await loadReferrals();
-});
-
-watch(tableState, () => {
-  loadReferrals();
-}, { deep: true });
 </script>
 
 <template>
   <div class="p-6 space-y-4">
-    <h1 class="text-2xl font-bold">Referencias</h1>
-
-    <!-- Filters -->
-    <div class="flex flex-wrap gap-3 items-end">
-      <div class="w-56">
-        <FormSelect
-          v-model="partnerId"
-          label="Partner"
-          :options="partnerOptions"
-          @update:model-value="onFilterChange"
-        />
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold">{{ t('ext.affiliate.referrals.title') }}</h1>
+        <p class="text-base-content/60 mt-1 text-sm">{{ t('ext.affiliate.referrals.subtitle') }}</p>
       </div>
-      <div class="w-48">
-        <FormSelect
-          v-model="status"
-          label="Estado"
-          :options="statusOptions"
-          @update:model-value="onFilterChange"
-        />
-      </div>
+      <button class="btn btn-primary btn-sm" @click="showCreate = true">
+        <Plus class="w-4 h-4" /> {{ t('ext.affiliate.referrals.new') }}
+      </button>
     </div>
 
-    <!-- Table -->
     <div class="card bg-base-100 shadow-sm border border-base-300">
       <div class="card-body p-6">
+        <div v-if="statusFilter" class="mb-2 flex items-center gap-2 text-sm">
+          <span class="text-base-content/60">{{ t('ext.affiliate.referrals.status') }}:</span>
+          <span class="badge badge-outline">{{ t(`ext.affiliate.status.${statusFilter}`) }}</span>
+          <button class="btn btn-ghost btn-xs" @click="statusFilter = undefined">✕</button>
+        </div>
         <DataTable
           :columns="columns"
           :data="referrals"
-          :total="total"
+          :loading="isLoading"
           manual
-          :table-name="tableName"
+          table-name="affiliate-referrals"
         />
       </div>
     </div>
+
+    <!-- Create modal -->
+    <dialog v-if="showCreate" class="modal modal-open">
+      <div class="modal-box">
+        <h3 class="text-lg font-bold">{{ t('ext.affiliate.referrals.new') }}</h3>
+        <div class="py-4 space-y-4">
+          <FormSelect
+            v-model="createForm.partnerId"
+            :label="t('ext.affiliate.referrals.selectPartner')"
+            :options="partnerOptions"
+          />
+          <FormInput
+            :model-value="createForm.clientId ?? ''"
+            type="number"
+            :label="t('ext.affiliate.referrals.selectClient')"
+            @update:model-value="createForm.clientId = $event ? Number($event) : null"
+          />
+          <FormSelect
+            v-model="createForm.status"
+            :label="t('ext.affiliate.referrals.status')"
+            :options="statusOptions"
+          />
+        </div>
+        <div class="modal-action">
+          <button class="btn btn-ghost" @click="showCreate = false">{{ t('ext.affiliate.common.cancel') }}</button>
+          <button class="btn btn-primary" @click="submitCreate">{{ t('ext.affiliate.common.create') }}</button>
+        </div>
+      </div>
+      <div class="modal-backdrop" @click="showCreate = false" />
+    </dialog>
+
+    <!-- Delete confirm -->
+    <dialog v-if="deleteTarget" class="modal modal-open">
+      <div class="modal-box">
+        <h3 class="text-lg font-bold">{{ t('ext.affiliate.common.confirmDeleteTitle') }}</h3>
+        <p class="py-4">{{ t('ext.affiliate.common.deleteWarning') }}</p>
+        <div class="modal-action">
+          <button class="btn btn-ghost" @click="deleteTarget = null">{{ t('ext.affiliate.common.cancel') }}</button>
+          <button class="btn btn-error" @click="confirmDelete">{{ t('ext.affiliate.common.delete') }}</button>
+        </div>
+      </div>
+      <div class="modal-backdrop" @click="deleteTarget = null" />
+    </dialog>
   </div>
 </template>

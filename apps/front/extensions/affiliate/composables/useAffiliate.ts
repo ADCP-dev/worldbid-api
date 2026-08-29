@@ -1,16 +1,12 @@
-/**
- * Composable for the Affiliate extension.
- * Wraps all API calls to the backend affiliate extension endpoints.
- * Admin endpoints require admin role; portal endpoints are self-scoped (affiliate).
- */
-
+import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query';
 import type {
   AffiliateDashboardData,
-  ApiFetchOptions,
   Commission,
   CommissionSummary,
   CreateCommissionPayload,
   CreateMyReferralPayload,
+  CreatePartnerFromClientPayload,
+  CreatePartnerFromClientResult,
   CreatePartnerPayload,
   CreateReferralPayload,
   PaginatedResponse,
@@ -24,174 +20,307 @@ import type {
   UpdateReferralPayload,
 } from '../types';
 
-function useApi() {
-  const config = useRuntimeConfig();
-  const authStore = useAuthStore();
-  const baseUrl = config.public.apiUrl as string;
-  const apiPrefix = (config.public.apiPrefix as string) || '/api/v1';
+/**
+ * Affiliate extension — TanStack Query hooks.
+ *
+ * Admin endpoints under /affiliate/*; self-service portal under
+ * /affiliate/portal/* (scoped server-side by the authenticated user).
+ *
+ * All HTTP goes through useApi() (centralized auth + 401-refresh).
+ */
 
-  async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
-    const headers: Record<string, string> = { ...options.headers };
-    if (authStore.token) {
-      headers.Authorization = `Bearer ${authStore.token}`;
-    }
-    const res = await $fetch<T>(`${baseUrl}${apiPrefix}${path}`, {
-      method: options.method,
-      query: options.query,
-      body: options.body as BodyInit | Record<string, unknown> | null | undefined,
-      headers,
-    });
-    return res as T;
-  }
+export const affiliateKeys = {
+  partners: ['affiliate', 'partners'] as const,
+  partner: (id: number | string) => ['affiliate', 'partners', id] as const,
+  referrals: ['affiliate', 'referrals'] as const,
+  commissions: ['affiliate', 'commissions'] as const,
+  commissionSummary: ['affiliate', 'commissions', 'summary'] as const,
+  dashboard: ['affiliate', 'dashboard'] as const,
+  portal: {
+    profile: ['affiliate', 'portal', 'profile'] as const,
+    referrals: ['affiliate', 'portal', 'referrals'] as const,
+    commissions: ['affiliate', 'portal', 'commissions'] as const,
+    summary: ['affiliate', 'portal', 'summary'] as const,
+  },
+};
 
-  return { apiFetch };
+// ─── Partners (Admin) ─────────────────────────────────────────────────
+
+export function usePartnersQuery(page?: MaybeRefOrGetter<number>, search?: MaybeRefOrGetter<string | undefined>) {
+  return useQuery({
+    queryKey: computed(() => [...affiliateKeys.partners, unref(page) ?? 1, unref(search) ?? '']),
+    queryFn: () => {
+      const api = useApi();
+      return api.get<PaginatedResponse<Partner> | Partner[]>('/affiliate/partners', {
+        query: { page: toValue(page), search: toValue(search) },
+      });
+    },
+  });
 }
 
-export function useAffiliate() {
-  const { apiFetch } = useApi();
+export function usePartnerQuery(id: MaybeRefOrGetter<number | string | undefined>) {
+  return useQuery({
+    queryKey: computed(() => affiliateKeys.partner(unref(id) ?? 0)),
+    enabled: computed(() => unref(id) !== undefined),
+    queryFn: () => {
+      const api = useApi();
+      const key = toValue(id) as string | number;
+      return api.get<Partner>(`/affiliate/partners/${key}`);
+    },
+  });
+}
 
-  // ─── Partners (Admin) ──────────────────────────────────────────────────
+export function useCreatePartnerMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreatePartnerPayload) => {
+      const api = useApi();
+      return api.post<Partner>('/affiliate/partners', data);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: affiliateKeys.partners }),
+  });
+}
 
-  async function getPartners(
-    page = 1,
-    search?: string,
-  ): Promise<PaginatedResponse<Partner> | Partner[]> {
-    const query: Record<string, string | number | undefined> = { page };
-    if (search) query.search = search;
-    return apiFetch<PaginatedResponse<Partner> | Partner[]>('/affiliate/partners', { query });
-  }
+export function useUpdatePartnerMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number | string; data: UpdatePartnerPayload }) => {
+      const api = useApi();
+      return api.patch<Partner>(`/affiliate/partners/${id}`, data);
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: affiliateKeys.partners });
+      qc.invalidateQueries({ queryKey: affiliateKeys.partner(vars.id) });
+    },
+  });
+}
 
-  async function getPartner(id: number | string): Promise<Partner> {
-    return apiFetch<Partner>(`/affiliate/partners/${id}`);
-  }
+export function useDeletePartnerMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number | string) => {
+      const api = useApi();
+      return api.delete<void>(`/affiliate/partners/${id}`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: affiliateKeys.partners }),
+  });
+}
 
-  async function createPartner(data: CreatePartnerPayload): Promise<Partner> {
-    return apiFetch<Partner>('/affiliate/partners', { method: 'POST', body: data });
-  }
+export function useInvitePartnerMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number | string) => {
+      const api = useApi();
+      return api.post<Partner>(`/affiliate/partners/${id}/invite`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: affiliateKeys.partners }),
+  });
+}
 
-  async function updatePartner(id: number | string, data: UpdatePartnerPayload): Promise<Partner> {
-    return apiFetch<Partner>(`/affiliate/partners/${id}`, { method: 'PATCH', body: data });
-  }
+export function useCreatePartnerFromClientMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ clientId, data }: { clientId: number; data: CreatePartnerFromClientPayload }) => {
+      const api = useApi();
+      return api.post<CreatePartnerFromClientResult>(
+        `/affiliate/partners/from-client/${clientId}`,
+        data,
+      );
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: affiliateKeys.partners });
+      qc.invalidateQueries({ queryKey: affiliateKeys.dashboard });
+    },
+  });
+}
 
-  async function deletePartner(id: number | string): Promise<void> {
-    return apiFetch<void>(`/affiliate/partners/${id}`, { method: 'DELETE' });
-  }
+// ─── Referrals (Admin) ────────────────────────────────────────────────
 
-  async function invitePartner(id: number | string): Promise<void> {
-    return apiFetch<void>(`/affiliate/partners/${id}/invite`, { method: 'POST' });
-  }
+export function useReferralsQuery(partnerId?: MaybeRefOrGetter<number | string | undefined>, status?: MaybeRefOrGetter<string | undefined>) {
+  return useQuery({
+    queryKey: computed(() => [...affiliateKeys.referrals, unref(partnerId) ?? '', unref(status) ?? '']),
+    queryFn: () => {
+      const api = useApi();
+      return api.get<PaginatedResponse<Referral> | Referral[]>('/affiliate/referrals', {
+        query: { partnerId: toValue(partnerId), status: toValue(status) },
+      });
+    },
+  });
+}
 
-  // ─── Referrals (Admin) ─────────────────────────────────────────────────
+export function useCreateReferralMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateReferralPayload) => {
+      const api = useApi();
+      return api.post<Referral>('/affiliate/referrals', data);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: affiliateKeys.referrals });
+      qc.invalidateQueries({ queryKey: affiliateKeys.dashboard });
+    },
+  });
+}
 
-  async function getReferrals(
-    partnerId?: number | string,
-    status?: string,
-  ): Promise<PaginatedResponse<Referral> | Referral[]> {
-    const query: Record<string, string | number | undefined> = {};
-    if (partnerId) query.partnerId = partnerId;
-    if (status) query.status = status;
-    return apiFetch<PaginatedResponse<Referral> | Referral[]>('/affiliate/referrals', { query });
-  }
+export function useUpdateReferralMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number | string; data: UpdateReferralPayload }) => {
+      const api = useApi();
+      return api.patch<Referral>(`/affiliate/referrals/${id}`, data);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: affiliateKeys.referrals });
+      qc.invalidateQueries({ queryKey: affiliateKeys.dashboard });
+    },
+  });
+}
 
-  async function createReferral(data: CreateReferralPayload): Promise<Referral> {
-    return apiFetch<Referral>('/affiliate/referrals', { method: 'POST', body: data });
-  }
+export function useDeleteReferralMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number | string) => {
+      const api = useApi();
+      return api.delete<void>(`/affiliate/referrals/${id}`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: affiliateKeys.referrals }),
+  });
+}
 
-  async function updateReferral(id: number | string, data: UpdateReferralPayload): Promise<Referral> {
-    return apiFetch<Referral>(`/affiliate/referrals/${id}`, { method: 'PATCH', body: data });
-  }
+// ─── Commissions (Admin) ──────────────────────────────────────────────
 
-  async function deleteReferral(id: number | string): Promise<void> {
-    return apiFetch<void>(`/affiliate/referrals/${id}`, { method: 'DELETE' });
-  }
+export function useCommissionsQuery(partnerId?: MaybeRefOrGetter<number | string | undefined>, status?: MaybeRefOrGetter<string | undefined>) {
+  return useQuery({
+    queryKey: computed(() => [...affiliateKeys.commissions, unref(partnerId) ?? '', unref(status) ?? '']),
+    queryFn: () => {
+      const api = useApi();
+      return api.get<PaginatedResponse<Commission> | Commission[]>('/affiliate/commissions', {
+        query: { partnerId: toValue(partnerId), status: toValue(status) },
+      });
+    },
+  });
+}
 
-  // ─── Commissions (Admin) ──────────────────────────────────────────────
+export function useCommissionSummaryQuery() {
+  return useQuery({
+    queryKey: affiliateKeys.commissionSummary,
+    queryFn: () => {
+      const api = useApi();
+      return api.get<CommissionSummary>('/affiliate/commissions/summary');
+    },
+  });
+}
 
-  async function getCommissions(
-    partnerId?: number | string,
-    status?: string,
-  ): Promise<PaginatedResponse<Commission> | Commission[]> {
-    const query: Record<string, string | number | undefined> = {};
-    if (partnerId) query.partnerId = partnerId;
-    if (status) query.status = status;
-    return apiFetch<PaginatedResponse<Commission> | Commission[]>('/affiliate/commissions', { query });
-  }
+export function useCreateCommissionMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateCommissionPayload) => {
+      const api = useApi();
+      return api.post<Commission>('/affiliate/commissions', data);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: affiliateKeys.commissions });
+      qc.invalidateQueries({ queryKey: affiliateKeys.dashboard });
+      qc.invalidateQueries({ queryKey: affiliateKeys.commissionSummary });
+    },
+  });
+}
 
-  async function createCommission(data: CreateCommissionPayload): Promise<Commission> {
-    return apiFetch<Commission>('/affiliate/commissions', { method: 'POST', body: data });
-  }
+export function useUpdateCommissionMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number | string; data: UpdateCommissionPayload }) => {
+      const api = useApi();
+      return api.patch<Commission>(`/affiliate/commissions/${id}`, data);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: affiliateKeys.commissions });
+      qc.invalidateQueries({ queryKey: affiliateKeys.commissionSummary });
+      qc.invalidateQueries({ queryKey: affiliateKeys.dashboard });
+    },
+  });
+}
 
-  async function updateCommission(id: number | string, data: UpdateCommissionPayload): Promise<Commission> {
-    return apiFetch<Commission>(`/affiliate/commissions/${id}`, { method: 'PATCH', body: data });
-  }
+// ─── Dashboard (Admin) ────────────────────────────────────────────────
 
-  async function getCommissionSummary(): Promise<CommissionSummary> {
-    return apiFetch<CommissionSummary>('/affiliate/commissions/summary');
-  }
+export function useAffiliateDashboardQuery() {
+  return useQuery({
+    queryKey: affiliateKeys.dashboard,
+    queryFn: () => {
+      const api = useApi();
+      return api.get<AffiliateDashboardData>('/affiliate/dashboard');
+    },
+  });
+}
 
-  // ─── Dashboard (Admin) ─────────────────────────────────────────────────
+// ─── Portal (self) ────────────────────────────────────────────────────
 
-  async function getAffiliateDashboard(): Promise<AffiliateDashboardData> {
-    return apiFetch<AffiliateDashboardData>('/affiliate/dashboard');
-  }
+export function useMyProfileQuery() {
+  return useQuery({
+    queryKey: affiliateKeys.portal.profile,
+    queryFn: () => {
+      const api = useApi();
+      return api.get<PortalProfile>('/affiliate/portal/me');
+    },
+  });
+}
 
-  // ─── Portal (self) ─────────────────────────────────────────────────────
+export function useUpdateMyProfileMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: UpdatePortalProfilePayload) => {
+      const api = useApi();
+      return api.patch<PortalProfile>('/affiliate/portal/me', data);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: affiliateKeys.portal.profile }),
+  });
+}
 
-  async function getMyProfile(): Promise<PortalProfile> {
-    return apiFetch<PortalProfile>('/affiliate/portal/profile');
-  }
+export function useMyReferralsQuery() {
+  return useQuery({
+    queryKey: affiliateKeys.portal.referrals,
+    queryFn: () => {
+      const api = useApi();
+      return api.get<PaginatedResponse<Referral> | Referral[]>('/affiliate/portal/referrals');
+    },
+  });
+}
 
-  async function updateMyProfile(data: UpdatePortalProfilePayload): Promise<PortalProfile> {
-    return apiFetch<PortalProfile>('/affiliate/portal/profile', { method: 'PATCH', body: data });
-  }
+export function useCreateMyReferralMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateMyReferralPayload) => {
+      const api = useApi();
+      return api.post<Referral>('/affiliate/portal/referrals', data);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: affiliateKeys.portal.referrals });
+      qc.invalidateQueries({ queryKey: affiliateKeys.portal.summary });
+    },
+  });
+}
 
-  async function getMyReferrals(): Promise<PaginatedResponse<Referral> | Referral[]> {
-    return apiFetch<PaginatedResponse<Referral> | Referral[]>('/affiliate/portal/referrals');
-  }
+export function useMyCommissionsQuery() {
+  return useQuery({
+    queryKey: affiliateKeys.portal.commissions,
+    queryFn: () => {
+      const api = useApi();
+      return api.get<Commission[]>('/affiliate/portal/commissions');
+    },
+  });
+}
 
-  async function createMyReferral(data: CreateMyReferralPayload): Promise<Referral> {
-    return apiFetch<Referral>('/affiliate/portal/referrals', { method: 'POST', body: data });
-  }
+export function useMySummaryQuery() {
+  return useQuery({
+    queryKey: affiliateKeys.portal.summary,
+    queryFn: () => {
+      const api = useApi();
+      return api.get<PortalSummary>('/affiliate/portal/summary');
+    },
+  });
+}
 
-  async function getMyReferral(id: number | string): Promise<Referral> {
-    return apiFetch<Referral>(`/affiliate/portal/referrals/${id}`);
-  }
-
-  async function getMyCommissions(): Promise<PaginatedResponse<Commission> | Commission[]> {
-    return apiFetch<PaginatedResponse<Commission> | Commission[]>('/affiliate/portal/commissions');
-  }
-
-  async function getMySummary(): Promise<PortalSummary> {
-    return apiFetch<PortalSummary>('/affiliate/portal/summary');
-  }
-
-  return {
-    // Partners
-    getPartners,
-    getPartner,
-    createPartner,
-    updatePartner,
-    deletePartner,
-    invitePartner,
-    // Referrals
-    getReferrals,
-    createReferral,
-    updateReferral,
-    deleteReferral,
-    // Commissions
-    getCommissions,
-    createCommission,
-    updateCommission,
-    getCommissionSummary,
-    // Dashboard
-    getAffiliateDashboard,
-    // Portal
-    getMyProfile,
-    updateMyProfile,
-    getMyReferrals,
-    createMyReferral,
-    getMyReferral,
-    getMyCommissions,
-    getMySummary,
-  };
+/** Convenience: unwrap paginated-or-array API responses. */
+export function unwrapList<T>(res: PaginatedResponse<T> | T[]): T[] {
+  return Array.isArray(res) ? res : (res.data ?? []);
 }

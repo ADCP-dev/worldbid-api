@@ -1,155 +1,235 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
-import { toast } from 'vue-sonner';
-import type { AffiliateDashboardData } from '@affiliate/types';
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+import {
+  Users,
+  UserPlus,
+  CheckCircle2,
+  Euro,
+  Wallet,
+} from 'lucide-vue-next';
+import StatCard from '@base/ui-app/components/dashboard/StatCard.vue';
+import BarChart from '@base/ui-app/components/dashboard/BarChart.vue';
+import DonutChart from '@base/ui-app/components/dashboard/DonutChart.vue';
+import TimelineList from '@base/ui-app/components/dashboard/TimelineList.vue';
+import {
+  useAffiliateDashboardQuery,
+  unwrapList,
+} from '../composables/useAffiliate';
+import type { Commission } from '../types';
 
-const affiliate = useAffiliate();
+const { t, d } = useI18n();
+const localePath = useLocalePath();
 
-const loading = ref(false);
-const dashboard = ref<AffiliateDashboardData | null>(null);
+const { data, isLoading } = useAffiliateDashboardQuery();
 
-const kpis = computed(() => {
-  if (!dashboard.value) return [];
-  return [
-    { label: 'Partners activos', value: dashboard.value.activePartners ?? 0, color: 'text-primary' },
-    { label: 'Referencias pendientes', value: dashboard.value.pendingReferrals ?? 0, color: 'text-info' },
-    { label: 'Comisiones pendientes', value: formatCurrency(dashboard.value.pendingCommissions ?? 0), color: 'text-warning' },
-    { label: 'Pagadas este mes', value: formatCurrency(dashboard.value.paidThisMonth ?? 0), color: 'text-success' },
-  ];
+const summary = computed(() => data.value ?? {});
+
+const stats = computed(() => [
+  {
+    label: t('ext.affiliate.dashboard.activePartners'),
+    value: summary.value.activePartners ?? 0,
+    icon: Users,
+    color: 'primary' as const,
+  },
+  {
+    label: t('ext.affiliate.dashboard.pendingReferrals'),
+    value: summary.value.pendingReferrals ?? 0,
+    icon: UserPlus,
+    color: 'warning' as const,
+  },
+  {
+    label: t('ext.affiliate.dashboard.convertedReferrals'),
+    value: summary.value.convertedReferrals ?? 0,
+    icon: CheckCircle2,
+    color: 'success' as const,
+  },
+  {
+    label: t('ext.affiliate.dashboard.paidThisMonth'),
+    value: summary.value.paidThisMonth ?? 0,
+    icon: Euro,
+    color: 'info' as const,
+    isCurrency: true,
+  },
+]);
+
+const monthlyChart = computed(() => {
+  const series = summary.value.monthlySeries ?? [];
+  return {
+    categories: series.map((m) => m.month),
+    series: [
+      {
+        name: t('ext.affiliate.dashboard.paidSeries'),
+        data: series.map((m) => Number((m.paid ?? 0).toFixed(2))),
+      },
+      {
+        name: t('ext.affiliate.dashboard.pendingSeries'),
+        data: series.map((m) => Number((m.pending ?? 0).toFixed(2))),
+      },
+    ],
+  };
 });
 
-const topPartners = computed(() => dashboard.value?.topPartners ?? []);
-const recentCommissions = computed(() => dashboard.value?.recentCommissions ?? []);
+const referralDonut = computed(() => {
+  const pending = summary.value.pendingReferrals ?? 0;
+  const converted = summary.value.convertedReferrals ?? 0;
+  const total = summary.value.totalReferrals ?? pending + converted;
+  const other = Math.max(total - pending - converted, 0);
+  return [
+    { name: t('ext.affiliate.status.pending'), value: pending, color: '#f59e0b' },
+    { name: t('ext.affiliate.status.converted'), value: converted, color: '#10b981' },
+    ...(other > 0
+      ? [{ name: t('ext.affiliate.status.rejected'), value: other, color: '#ef4444' }]
+      : []),
+  ].filter((s) => s.value > 0);
+});
 
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(amount);
+const recent = computed<Commission[]>(() => summary.value.recentCommissions ?? []);
+
+const timelineEvents = computed(() =>
+  recent.value.slice(0, 6).map((c) => ({
+    time: c.createdAt ?? c.paidAt ?? new Date().toISOString(),
+    title: c.partner?.name ?? t('ext.affiliate.common.none'),
+    description: `${t('ext.affiliate.commissions.project')}: ${c.project?.name ?? '—'} · ${formatCurrency(c.commissionAmount)}`,
+    color: (c.status === 'paid'
+      ? 'success'
+      : c.status === 'approved'
+        ? 'info'
+        : 'warning') as 'success' | 'info' | 'warning',
+  })),
+);
+
+function formatCurrency(value: number | undefined) {
+  return new Intl.NumberFormat(undefined, {
+    style: 'currency',
+    currency: 'EUR',
+    maximumFractionDigits: 0,
+  }).format(value ?? 0);
 }
 
-function formatDate(date: string) {
-  return new Date(date).toLocaleDateString('es-ES', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+function formatDate(value: string | undefined | null) {
+  if (!value) return '—';
+  return d(new Date(value), { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-const COMMISSION_STATUS_LABELS: Record<string, string> = {
-  pending: 'Pendiente',
-  approved: 'Aprobada',
-  paid: 'Pagada',
-  rejected: 'Rechazada',
-};
-
-const COMMISSION_STATUS_BADGE: Record<string, string> = {
-  pending: 'badge-warning',
-  approved: 'badge-info',
-  paid: 'badge-success',
-  rejected: 'badge-error',
-};
-
-async function loadDashboard() {
-  loading.value = true;
-  try {
-    dashboard.value = await affiliate.getAffiliateDashboard();
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    toast.error('Error cargando dashboard', { description: msg });
-  } finally {
-    loading.value = false;
-  }
-}
-
-onMounted(loadDashboard);
+const columns = computed(() => [
+  {
+    accessorKey: 'partner.name',
+    headerName: t('ext.affiliate.commissions.partner'),
+  },
+  {
+    accessorKey: 'project.name',
+    headerName: t('ext.affiliate.commissions.project'),
+  },
+  {
+    accessorKey: 'commissionAmount',
+    headerName: t('ext.affiliate.commissions.amount'),
+    cell: ({ row }: { row: { original: Commission } }) =>
+      formatCurrency(row.original.commissionAmount),
+  },
+  {
+    accessorKey: 'status',
+    headerName: t('ext.affiliate.commissions.status'),
+    cell: ({ row }: { row: { original: Commission } }) => t(`ext.affiliate.status.${row.original.status}`),
+  },
+  {
+    accessorKey: 'createdAt',
+    headerName: t('ext.affiliate.referrals.date'),
+    cell: ({ row }: { row: { original: Commission } }) =>
+      formatDate(row.original.createdAt),
+  },
+]);
 </script>
 
 <template>
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <h1 class="text-2xl font-bold">Afiliación Dashboard</h1>
+    <div>
+      <h1 class="text-2xl font-bold">{{ t('ext.affiliate.dashboard.title') }}</h1>
+      <p class="text-base-content/60 mt-1">{{ t('ext.affiliate.dashboard.subtitle') }}</p>
     </div>
 
-    <div v-if="loading" class="flex justify-center py-12">
-      <span class="loading loading-spinner loading-lg text-primary" />
+    <!-- KPI stats -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <StatCard
+        v-for="stat in stats"
+        :key="stat.label"
+        :label="stat.label"
+        :value="stat.isCurrency ? formatCurrency(stat.value as number) : (stat.value as number)"
+        :icon="stat.icon"
+        :color="stat.color"
+        :loading="isLoading"
+      />
     </div>
 
-    <template v-else>
-      <!-- KPIs -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div v-for="kpi in kpis" :key="kpi.label" class="stat bg-base-100 rounded-box shadow-sm border border-base-300">
-          <div class="stat-title">{{ kpi.label }}</div>
-          <div class="stat-value" :class="kpi.color">{{ kpi.value }}</div>
+    <!-- Charts row -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div class="card bg-base-100 shadow-sm border border-base-300 lg:col-span-2">
+        <div class="card-body">
+          <h2 class="card-title text-base">{{ t('ext.affiliate.dashboard.monthlySeries') }}</h2>
+          <BarChart
+            :categories="monthlyChart.categories"
+            :series="monthlyChart.series"
+            height="280px"
+            :alt-text="t('ext.affiliate.dashboard.monthlySeries')"
+            :loading="isLoading"
+          />
         </div>
       </div>
-
-      <!-- Top partners -->
       <div class="card bg-base-100 shadow-sm border border-base-300">
-        <div class="card-body p-0">
-          <div class="p-4 border-b border-base-300">
-            <h2 class="card-title">Top 5 partners por revenue</h2>
+        <div class="card-body">
+          <h2 class="card-title text-base">{{ t('ext.affiliate.dashboard.referralStatus') }}</h2>
+          <DonutChart
+            v-if="referralDonut.length"
+            :data="referralDonut"
+            height="280px"
+            :alt-text="t('ext.affiliate.dashboard.referralStatus')"
+          />
+          <div v-else class="flex items-center justify-center h-70 text-base-content/40 text-sm">
+            {{ t('ext.affiliate.common.none') }}
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top partners + recent commissions -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="card bg-base-100 shadow-sm border border-base-300">
+        <div class="card-body">
+          <h2 class="card-title text-base">{{ t('ext.affiliate.dashboard.topPartners') }}</h2>
           <div class="overflow-x-auto">
             <table class="table table-sm">
               <thead>
                 <tr>
-                  <th>Partner</th>
-                  <th>Empresa</th>
-                  <th class="text-right">Revenue</th>
-                  <th class="text-right">Comisiones</th>
+                  <th>{{ t('ext.affiliate.partners.name') }}</th>
+                  <th class="text-right">{{ t('ext.affiliate.dashboard.revenue') }}</th>
+                  <th class="text-right">{{ t('ext.affiliate.dashboard.commissions') }}</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-if="topPartners.length === 0">
-                  <td colspan="4" class="text-center text-base-content/40 py-6">Sin datos</td>
-                </tr>
-                <tr v-for="p in topPartners" :key="p.id" class="hover cursor-pointer" @click="navigateTo(`/app/affiliate/partners/${p.id}`)">
-                  <td class="font-medium">{{ p.name }}</td>
-                  <td>{{ p.companyName || '—' }}</td>
-                  <td class="text-right font-semibold">{{ formatCurrency(p.revenue ?? 0) }}</td>
-                  <td class="text-right">{{ p.commissionsCount ?? 0 }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- Recent commissions -->
-      <div class="card bg-base-100 shadow-sm border border-base-300">
-        <div class="card-body p-0">
-          <div class="p-4 border-b border-base-300">
-            <h2 class="card-title">Comisiones recientes</h2>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="table table-sm">
-              <thead>
-                <tr>
-                  <th>Partner</th>
-                  <th>Proyecto</th>
-                  <th class="text-right">Importe</th>
-                  <th>Estado</th>
-                  <th>Fecha</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-if="recentCommissions.length === 0">
-                  <td colspan="5" class="text-center text-base-content/40 py-6">Sin comisiones</td>
-                </tr>
-                <tr v-for="c in recentCommissions" :key="c.id">
-                  <td class="font-medium">{{ c.partner?.name || '—' }}</td>
-                  <td>{{ c.project?.name || '—' }}</td>
-                  <td class="text-right font-semibold">{{ formatCurrency(c.commissionAmount ?? 0) }}</td>
-                  <td>
-                    <span class="badge badge-sm" :class="COMMISSION_STATUS_BADGE[c.status]">
-                      {{ COMMISSION_STATUS_LABELS[c.status] ?? c.status }}
-                    </span>
+                <tr v-if="!summary.topPartners?.length">
+                  <td colspan="3" class="text-center text-base-content/40 py-4">
+                    {{ t('ext.affiliate.common.none') }}
                   </td>
-                  <td>{{ formatDate(c.createdAt) }}</td>
+                </tr>
+                <tr v-for="p in summary.topPartners" :key="p.id">
+                  <td class="font-medium">{{ p.name }}</td>
+                  <td class="text-right tabular-nums">{{ formatCurrency(p.revenue) }}</td>
+                  <td class="text-right tabular-nums">{{ p.commissionsCount ?? 0 }}</td>
                 </tr>
               </tbody>
             </table>
           </div>
         </div>
       </div>
-    </template>
+      <div class="card bg-base-100 shadow-sm border border-base-300">
+        <div class="card-body">
+          <h2 class="card-title text-base">{{ t('ext.affiliate.dashboard.recentCommissions') }}</h2>
+          <TimelineList v-if="timelineEvents.length" :events="timelineEvents" />
+          <div v-else class="py-6 text-center text-base-content/40 text-sm">
+            {{ t('ext.affiliate.common.none') }}
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

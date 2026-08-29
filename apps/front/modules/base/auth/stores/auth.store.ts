@@ -47,6 +47,7 @@ export const useAuthStore = defineStore('auth', {
     },
     isAdmin: (state) => state.user?.role?.name === 'admin',
     isCustomer: (state) => state.user?.role?.name === 'customer',
+    isAffiliate: (state) => state.user?.role?.name === 'affiliate',
     fullName: (state) =>
       state.user
         ? `${state.user.firstName} ${state.user.lastName}`.trim()

@@ -1,143 +1,107 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, h } from 'vue';
-import { toast } from 'vue-sonner';
+import { computed, h } from 'vue';
+import { useI18n } from 'vue-i18n';
 import DataTable from '@base/ui-app/components/data-table/DataTable.vue';
-import { useTableStateStore } from '@base/ui-app/stores/useTableState';
-import type { CellContext, Commission, PortalSummary  } from '@affiliate/types';
+import StatCard from '@base/ui-app/components/dashboard/StatCard.vue';
+import { Clock, BadgeCheck, Euro, CalendarCheck } from 'lucide-vue-next';
+import { useMyCommissionsQuery, useMySummaryQuery } from '../../../composables/useAffiliate';
+import type { CellContext, Commission } from '../../../types';
 
+definePageMeta({ layout: 'default', middleware: ['auth', 'affiliate'] });
 
-definePageMeta({
-  layout: 'default',
-  middleware: ['auth'],
-});
+const { t, d } = useI18n();
 
-const affiliate = useAffiliate();
-const tableStateStore = useTableStateStore();
+const { data: commissionsData, isLoading } = useMyCommissionsQuery();
+const { data: summary, isLoading: summaryLoading } = useMySummaryQuery();
 
-const loading = ref(false);
-const commissions = ref<Commission[]>([]);
-const summary = ref<PortalSummary | null>(null);
-const total = ref(0);
+const commissions = computed<Commission[]>(() =>
+  Array.isArray(commissionsData.value) ? commissionsData.value : (commissionsData.value?.data ?? []),
+);
 
-const tableName = 'affiliate-portal-commissions';
-
-const tableState = computed(() => {
-  const raw = (tableStateStore as unknown as Record<string, { pageIndex?: number; pageSize?: number; globalFilter?: string }>)[tableName] || {};
-  return {
-    pageIndex: typeof raw.pageIndex === 'number' ? raw.pageIndex : 0,
-    pageSize: typeof raw.pageSize === 'number' ? raw.pageSize : 10,
-    globalFilter: typeof raw.globalFilter === 'string' ? raw.globalFilter : '',
-  };
-});
-
-const STATUS_LABELS: Record<string, string> = {
-  pending: 'Pendiente',
-  approved: 'Aprobada',
-  paid: 'Pagada',
-  rejected: 'Rechazada',
-};
-
-const STATUS_BADGE: Record<string, string> = {
-  pending: 'badge-warning',
-  approved: 'badge-info',
-  paid: 'badge-success',
-  rejected: 'badge-error',
-};
-
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(amount ?? 0);
+function formatCurrency(value: number | undefined) {
+  return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'EUR' }).format(value ?? 0);
 }
 
-function formatDate(date: string) {
-  return new Date(date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+function formatDate(value: string | null | undefined) {
+  if (!value) return '—';
+  return d(new Date(value), { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-const columns = computed(() => [
-  {
-    accessorKey: 'project',
-    headerName: 'Proyecto',
-    header: 'Proyecto',
-    filterType: 'string' as const,
-    cell: ({ row }: CellContext<Commission>) => h('span', { class: 'font-medium' }, row.original.project?.name || '—'),
-  },
-  {
-    accessorKey: 'commissionAmount',
-    headerName: 'Comisión',
-    header: 'Comisión',
-    filterType: 'string' as const,
-    cell: ({ row }: CellContext<Commission>) => h('span', { class: 'font-semibold' }, formatCurrency(row.original.commissionAmount ?? 0)),
-  },
-  {
-    accessorKey: 'status',
-    headerName: 'Estado',
-    header: 'Estado',
-    filterType: 'string' as const,
-    cell: ({ row }: CellContext<Commission>) => h(
-      'span',
-      { class: ['badge', 'badge-sm', STATUS_BADGE[row.original.status] || 'badge-ghost'] },
-      STATUS_LABELS[row.original.status] ?? row.original.status,
-    ),
-  },
-  {
-    accessorKey: 'paidAt',
-    headerName: 'Pagada',
-    header: 'Pagada',
-    filterType: 'string' as const,
-    cell: ({ row }: CellContext<Commission>) => row.original.paidDate ? formatDate(row.original.paidDate) : '—',
-  },
-]);
-
-async function loadData() {
-  loading.value = true;
-  try {
-    const [comms, sum] = await Promise.all([
-      affiliate.getMyCommissions(),
-      affiliate.getMySummary(),
-    ]);
-    const commsList = Array.isArray(comms) ? comms : (comms.data ?? []);
-    commissions.value = commsList;
-    total.value = Array.isArray(comms) ? commsList.length : (comms.total ?? commsList.length);
-    summary.value = sum;
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    toast.error('Error cargando comisiones', { description: msg });
-  } finally {
-    loading.value = false;
+function statusBadge(status: string) {
+  switch (status) {
+    case 'paid':
+      return 'badge-success';
+    case 'approved':
+      return 'badge-info';
+    default:
+      return 'badge-warning';
   }
 }
 
-onMounted(loadData);
+const stats = computed(() => [
+  { label: t('ext.affiliate.portal.pending'), value: summary.value?.pendingTotal ?? 0, icon: Clock, color: 'warning' as const },
+  { label: t('ext.affiliate.portal.approved'), value: summary.value?.approvedTotal ?? 0, icon: BadgeCheck, color: 'info' as const },
+  { label: t('ext.affiliate.portal.paidTotal'), value: summary.value?.paidTotal ?? 0, icon: Euro, color: 'success' as const },
+  { label: t('ext.affiliate.portal.paidThisMonth'), value: summary.value?.paidThisMonth ?? 0, icon: CalendarCheck, color: 'primary' as const },
+]);
 
-watch(tableState, () => {
-  loadData();
-}, { deep: true });
+const columns = computed(() => [
+  {
+    accessorKey: 'project.name',
+    headerName: t('ext.affiliate.commissions.project'),
+    header: t('ext.affiliate.commissions.project'),
+    filterType: 'string' as const,
+    cell: ({ row }: CellContext<Commission>) => row.original.project?.name ?? '—',
+  },
+  {
+    accessorKey: 'commissionAmount',
+    headerName: t('ext.affiliate.commissions.amount'),
+    header: t('ext.affiliate.commissions.amount'),
+    cell: ({ row }: CellContext<Commission>) =>
+      h('span', { class: 'font-semibold tabular-nums' }, formatCurrency(row.original.commissionAmount)),
+  },
+  {
+    accessorKey: 'status',
+    headerName: t('ext.affiliate.commissions.status'),
+    header: t('ext.affiliate.commissions.status'),
+    cell: ({ row }: CellContext<Commission>) =>
+      h('span', { class: `badge badge-sm ${statusBadge(row.original.status)}` }, t(`ext.affiliate.status.${row.original.status}`)),
+  },
+  {
+    accessorKey: 'paidAt',
+    headerName: t('ext.affiliate.commissions.paidAt'),
+    header: t('ext.affiliate.commissions.paidAt'),
+    cell: ({ row }: CellContext<Commission>) => formatDate(row.original.paidAt),
+  },
+]);
 </script>
 
 <template>
   <div class="p-6 space-y-4">
-    <h1 class="text-2xl font-bold">Mis comisiones</h1>
-
-    <!-- Summary -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <div class="stat bg-base-100 rounded-box shadow-sm border border-base-300">
-        <div class="stat-title">Total pendiente</div>
-        <div class="stat-value text-warning">{{ formatCurrency(summary?.pending ?? 0) }}</div>
-      </div>
-      <div class="stat bg-base-100 rounded-box shadow-sm border border-base-300">
-        <div class="stat-title">Total pagado</div>
-        <div class="stat-value text-success">{{ formatCurrency(summary?.paidTotal ?? 0) }}</div>
-      </div>
+    <div>
+      <h1 class="text-2xl font-bold">{{ t('ext.affiliate.portal.commissionsTitle') }}</h1>
     </div>
 
-    <!-- Table -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <StatCard
+        v-for="stat in stats"
+        :key="stat.label"
+        :label="stat.label"
+        :value="formatCurrency(stat.value as number)"
+        :icon="stat.icon"
+        :color="stat.color"
+        :loading="summaryLoading"
+      />
+    </div>
+
     <div class="card bg-base-100 shadow-sm border border-base-300">
       <div class="card-body p-6">
         <DataTable
           :columns="columns"
           :data="commissions"
-          :total="total"
+          :loading="isLoading"
           manual
-          :table-name="tableName"
+          table-name="portal-commissions"
         />
       </div>
     </div>

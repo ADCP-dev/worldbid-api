@@ -25,6 +25,7 @@ export interface Partner {
   id: number;
   clientId?: number | null;
   userId?: number | null;
+  code?: string | null;
   name: string;
   companyName?: string | null;
   email: string;
@@ -32,6 +33,7 @@ export interface Partner {
   iban?: string | null;
   commissionRate: number;
   isActive: boolean;
+  referralsCount?: number;
   metadata?: Record<string, unknown>;
   createdAt?: string;
   updatedAt?: string;
@@ -40,12 +42,11 @@ export interface Partner {
 export interface CreatePartnerPayload {
   name: string;
   companyName?: string;
-  email?: string;
+  email: string;
   phone?: string;
   iban?: string;
   commissionRate?: number | null;
   isActive?: boolean;
-  metadata?: Record<string, unknown>;
 }
 
 export interface UpdatePartnerPayload {
@@ -56,7 +57,16 @@ export interface UpdatePartnerPayload {
   iban?: string;
   commissionRate?: number | null;
   isActive?: boolean;
-  metadata?: Record<string, unknown>;
+}
+
+export interface CreatePartnerFromClientPayload {
+  commissionRate: number;
+  invite?: boolean;
+}
+
+export interface CreatePartnerFromClientResult {
+  partner: Partner;
+  created: boolean;
 }
 
 // ─── Referrals ────────────────────────────────────────────────────────
@@ -72,7 +82,7 @@ export interface Referral {
   clientName?: string;
   companyName?: string;
   partner?: { id: number; name: string } | null;
-  client?: { id: number; name?: string } | null;
+  client?: { id: number; name?: string; companyName?: string | null } | null;
   origin?: { id: number; label?: string } | null;
   metadata?: Record<string, unknown>;
   createdAt?: string;
@@ -84,15 +94,10 @@ export interface CreateReferralPayload {
   clientId: number;
   originId?: number;
   status?: string;
-  metadata?: Record<string, unknown>;
 }
 
 export interface UpdateReferralPayload {
-  partnerId?: number;
-  clientId?: number;
-  originId?: number;
   status?: string;
-  metadata?: Record<string, unknown>;
 }
 
 // ─── Commissions ──────────────────────────────────────────────────────
@@ -109,6 +114,7 @@ export interface Commission {
   paidDate?: string | null;
   partner?: { id: number; name: string } | null;
   project?: { id: number; name: string } | null;
+  referral?: { id: number; partnerId: number } | null;
   metadata?: Record<string, unknown>;
   createdAt?: string;
   updatedAt?: string;
@@ -117,21 +123,24 @@ export interface Commission {
 export interface CreateCommissionPayload {
   referralId: number;
   projectId: number;
-  status?: string;
-  metadata?: Record<string, unknown>;
 }
 
 export interface UpdateCommissionPayload {
-  referralId?: number;
-  projectId?: number;
   status?: string;
-  metadata?: Record<string, unknown>;
+}
+
+export interface CommissionSummary {
+  pendingTotal?: number;
+  approvedTotal?: number;
+  paidTotal?: number;
+  paidThisMonth?: number;
 }
 
 // ─── Portal (self-service) ────────────────────────────────────────────
 
 export interface PortalProfile {
   id?: number;
+  code?: string | null;
   name: string;
   email?: string;
   phone?: string | null;
@@ -141,39 +150,37 @@ export interface PortalProfile {
 }
 
 export interface UpdatePortalProfilePayload {
-  name?: string;
   phone?: string;
   iban?: string;
+  companyName?: string;
 }
 
 export interface CreateMyReferralPayload {
   clientName: string;
   companyName?: string;
-  email?: string;
+  email: string;
   phone?: string;
   notes?: string;
-  metadata?: Record<string, unknown>;
 }
 
-// ─── Summaries / Dashboard ────────────────────────────────────────────
-
-export interface CommissionSummary {
-  pending?: number;
-  approved?: number;
-  paidThisMonth?: number;
-}
+// ─── Dashboard ────────────────────────────────────────────────────────
 
 export interface PortalSummary {
-  pending?: number;
-  approved?: number;
+  pendingTotal?: number;
+  approvedTotal?: number;
   paidTotal?: number;
+  paidThisMonth?: number;
 }
 
 export interface AffiliateDashboardData {
   activePartners?: number;
+  totalReferrals?: number;
   pendingReferrals?: number;
+  convertedReferrals?: number;
   pendingCommissions?: number;
+  approvedCommissions?: number;
   paidThisMonth?: number;
+  totalPaid?: number;
   topPartners?: Array<{
     id: number;
     name: string;
@@ -181,18 +188,6 @@ export interface AffiliateDashboardData {
     revenue?: number;
     commissionsCount?: number;
   }>;
+  monthlySeries?: Array<{ month: string; paid: number; pending: number }>;
   recentCommissions?: Commission[];
-}
-
-// ─── DataTable cell context ───────────────────────────────────────────
-// Minimal TanStack-like row context passed to DataTable column `cell`
-// renderers. Mirrors the pattern used by other extensions.
-
-export interface DataTableRow<T = Record<string, unknown>> {
-  original: T;
-  id?: string;
-}
-
-export interface CellContext<T = Record<string, unknown>> {
-  row: DataTableRow<T>;
 }

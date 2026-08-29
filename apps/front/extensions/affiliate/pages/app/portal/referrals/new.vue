@@ -1,97 +1,113 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { z } from 'zod';
 import { toast } from 'vue-sonner';
+import { RouterLink } from 'vue-router';
 import FormInput from '@base/ui-app/components/form/FormInput.vue';
 import FormTextArea from '@base/ui-app/components/form/FormTextArea.vue';
+import { useCreateMyReferralMutation } from '../../../composables/useAffiliate';
 
-definePageMeta({
-  layout: 'default',
-  middleware: ['auth'],
+definePageMeta({ layout: 'default', middleware: ['auth', 'affiliate'] });
+
+const { t } = useI18n();
+
+const schema = z.object({
+  clientName: z.string().min(2),
+  companyName: z.string().optional(),
+  email: z.string().email(),
+  phone: z.string().optional(),
+  notes: z.string().optional(),
 });
 
-const affiliate = useAffiliate();
+const form = ref({
+  clientName: '',
+  companyName: '',
+  email: '',
+  phone: '',
+  notes: '',
+});
 
-const saving = ref(false);
+const errors = ref<Record<string, string>>({});
+const createMut = useCreateMyReferralMutation();
+const submitting = ref(false);
 
-const clientName = ref('');
-const companyName = ref('');
-const email = ref('');
-const phone = ref('');
-const notes = ref('');
-
-async function submit() {
-  if (!clientName.value.trim()) {
-    toast.error('El nombre del cliente es obligatorio');
+async function onSubmit() {
+  errors.value = {};
+  const parsed = schema.safeParse(form.value);
+  if (!parsed.success) {
+    parsed.error.issues.forEach((issue) => {
+      errors.value[String(issue.path[0])] = issue.message;
+    });
     return;
   }
-  saving.value = true;
+  submitting.value = true;
   try {
-    await affiliate.createMyReferral({
-      clientName: clientName.value,
-      companyName: companyName.value,
-      email: email.value,
-      phone: phone.value,
-      notes: notes.value,
+    await createMut.mutateAsync({
+      clientName: parsed.data.clientName,
+      companyName: parsed.data.companyName || undefined,
+      email: parsed.data.email,
+      phone: parsed.data.phone || undefined,
+      notes: parsed.data.notes || undefined,
     });
-    toast.success('Referencia enviada');
-    navigateTo('/app/portal/referrals');
+    toast.success(t('ext.affiliate.referralForm.success'));
+    await navigateTo('/app/portal/referrals');
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    toast.error('Error creando referencia', { description: msg });
+    toast.error(t('ext.affiliate.common.error'), { description: errorMessage(err) });
   } finally {
-    saving.value = false;
+    submitting.value = false;
   }
 }
 </script>
 
 <template>
-  <div class="p-6 space-y-4">
-    <div class="flex items-center gap-3">
-      <NuxtLink to="/app/portal/referrals" class="btn btn-ghost btn-sm">← Volver</NuxtLink>
-      <h1 class="text-2xl font-bold">Nueva referencia</h1>
+  <div class="p-6 max-w-2xl mx-auto space-y-4">
+    <div>
+      <NuxtLink to="/app/portal/referrals" class="btn btn-ghost btn-sm btn-circle mb-2">←</NuxtLink>
+      <h1 class="text-2xl font-bold">{{ t('ext.affiliate.portal.newReferral') }}</h1>
     </div>
 
     <div class="card bg-base-100 shadow-sm border border-base-300">
       <div class="card-body">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <form class="space-y-4" @submit.prevent="onSubmit">
           <FormInput
-            v-model="clientName"
-            label="Nombre del cliente"
-            placeholder="Nombre del cliente"
+            v-model="form.clientName"
+            :label="t('ext.affiliate.referralForm.clientName')"
             required
+            :error="errors.clientName"
           />
           <FormInput
-            v-model="companyName"
-            label="Empresa"
-            placeholder="Empresa"
+            v-model="form.companyName"
+            :label="t('ext.affiliate.referralForm.companyName')"
+            :error="errors.companyName"
           />
           <FormInput
-            v-model="email"
-            label="Email"
-            placeholder="email@ejemplo.com"
+            v-model="form.email"
+            :label="t('ext.affiliate.referralForm.email')"
             type="email"
+            required
+            :error="errors.email"
           />
           <FormInput
-            v-model="phone"
-            label="Teléfono"
-            placeholder="Teléfono"
+            v-model="form.phone"
+            :label="t('ext.affiliate.referralForm.phone')"
+            :error="errors.phone"
           />
-          <div class="md:col-span-2">
-            <FormTextArea
-              v-model="notes"
-              label="Notas"
-              placeholder="Información adicional sobre el cliente..."
-              :rows="4"
-            />
+          <FormTextArea
+            v-model="form.notes"
+            :label="t('ext.affiliate.referralForm.notes')"
+            :rows="3"
+          />
+          <div class="flex justify-end gap-2">
+            <NuxtLink to="/app/portal/referrals" class="btn btn-ghost">
+              {{ t('ext.affiliate.common.cancel') }}
+            </NuxtLink>
+            <button type="submit" class="btn btn-primary" :disabled="submitting">
+              <span v-if="submitting" class="loading loading-spinner loading-xs" />
+              {{ t('ext.affiliate.referralForm.submit') }}
+            </button>
           </div>
-        </div>
-        <div class="card-actions justify-end mt-4">
-          <NuxtLink to="/app/portal/referrals" class="btn btn-ghost">Cancelar</NuxtLink>
-          <button class="btn btn-primary" :disabled="saving" @click="submit">
-            <span v-if="saving" class="loading loading-spinner loading-xs"/>
-            Enviar referencia
-          </button>
-        </div>
+        </form>
       </div>
     </div>
   </div>
