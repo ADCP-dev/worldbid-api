@@ -23,7 +23,7 @@ import { z } from 'zod';
 @Injectable()
 export class SqlQueryService {
   private static readonly MAX_ROWS = 200;
-  private static readonly TIMEOUT_MS = 10_000;
+  private static readonly TIMEOUT_MS = 30_000;
 
   private readonly logger = new Logger(SqlQueryService.name);
 

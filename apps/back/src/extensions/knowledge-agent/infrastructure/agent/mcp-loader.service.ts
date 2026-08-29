@@ -51,22 +51,39 @@ export class McpLoaderService {
     if (Object.keys(config).length === 0) return [];
 
     const client = this.createMcpClient(config);
-    try {
-      // Remote MCPs (Tavily) regularly need >5s for the streamable HTTP
-      // handshake; 3s starved them into invisible tools. Also close the
-      // client: a raced (timed-out) connect leaks the socket otherwise.
-      return await Promise.race([
-        client.getTools(),
-        this.timeout(MCP_TIMEOUT_MS),
-      ]);
-    } catch (err) {
-      this.logger.warn(
-        `MCP load failed: ${err instanceof Error ? err.message : String(err)}`,
-      );
-      return [];
-    } finally {
+    // Remote MCPs (Tavily) regularly need >5s for the streamable HTTP
+    // handshake; 3s starved them into invisible tools.
+    const tools = await new Promise<StructuredTool[]>((resolve) => {
+      const timer = setTimeout(() => {
+        this.logger.warn(`MCP load timed out after ${MCP_TIMEOUT_MS}ms`);
+        resolve([]);
+      }, MCP_TIMEOUT_MS);
+      void client
+        .getTools()
+        .then((loaded) => {
+          clearTimeout(timer);
+          resolve(loaded);
+        })
+        .catch((err: unknown) => {
+          clearTimeout(timer);
+          this.logger.warn(
+            `MCP load failed: ${err instanceof Error ? err.message : String(err)}`,
+          );
+          resolve([]);
+        });
+    });
+
+    if (tools.length === 0) {
+      // Nothing usable — release the (never-connected) client.
       void client.close?.().catch(() => undefined);
+      return [];
     }
+
+    // SUCCESS path: keep the client ALIVE. getTools() returns lazy wrappers
+    // bound to the client session — closing here made every later tool
+    // invocation fail with "Error: Not connected" (verified live with
+    // Tavily: tools listed fine, each call errored).
+    return tools;
   }
 
   /** Build the config map consumed by MultiServerMCPClient. */
