@@ -177,7 +177,13 @@ const sessionsList = computed<ChatSession[]>(() => sessions.value ?? []);
           </span>
         </div>
         <div v-if="activeSessionId" class="flex-1 overflow-hidden">
-          <ChatStream :session-id="activeSessionId" :agent-model="activeAgentModel" />
+          <ChatStream
+            :session-id="activeSessionId"
+            :agent-model="activeAgentModel"
+            :agent-id="selectedAgentConfigId"
+            :agent-options="agentOptions"
+            @update:agent-id="selectedAgentConfigId = $event"
+          />
         </div>
         <div v-else class="flex-1 flex items-center justify-center text-base-content/50 px-4">
           <div class="text-center">
@@ -251,7 +257,13 @@ const sessionsList = computed<ChatSession[]>(() => sessions.value ?? []);
       </div>
 
       <div v-if="activeSessionId" class="flex-1 overflow-hidden">
-        <ChatStream :session-id="activeSessionId" :agent-model="activeAgentModel" />
+        <ChatStream
+            :session-id="activeSessionId"
+            :agent-model="activeAgentModel"
+            :agent-id="selectedAgentConfigId"
+            :agent-options="agentOptions"
+            @update:agent-id="selectedAgentConfigId = $event"
+          />
       </div>
       <div v-else class="flex-1 flex items-center justify-center text-base-content/50">
         <div class="text-center">

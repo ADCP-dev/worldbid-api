@@ -3,6 +3,8 @@ import { computed, nextTick, ref } from 'vue';
 import { toast } from 'vue-sonner';
 import {
   ArrowUp,
+  Bot,
+  ChevronDown,
   Paperclip,
   X,
   FileText,
@@ -17,16 +19,25 @@ interface PendingAttachment {
   data: string;
 }
 
+export interface AgentChipOption {
+  label: string;
+  value: string;
+}
+
 const props = defineProps<{
   disabled?: boolean;
   placeholder?: string;
   canImage?: boolean;
   canPdf?: boolean;
   canAudio?: boolean;
+  agentId?: string | null;
+  agents?: AgentChipOption[];
+  modelId?: string | null;
 }>();
 
 const emit = defineEmits<{
   send: [content: string, attachments: PendingAttachment[]];
+  'update:agentId': [value: string];
 }>();
 
 const { t } = useI18n();
@@ -142,6 +153,22 @@ const canSubmit = computed(
   () => !props.disabled && !reading.value && (text.value.trim().length > 0 || files.value.length > 0),
 );
 
+const currentAgentLabel = computed(() => {
+  const found = props.agents?.find((a) => a.value === props.agentId);
+  if (found) {
+    // Show the short agent name (before the " (provider:model)" suffix).
+    return found.label.split(' (')[0] ?? found.label;
+  }
+  return props.agents?.[0]?.label.split(' (')[0] ?? t('ext.ka.chat.agentFallback', 'Agente');
+});
+
+/** Pick an agent from the dropdown; close it by blurring the button. */
+function onPickAgent(value: string): void {
+  emit('update:agentId', value);
+  const el = document.activeElement as HTMLElement | null;
+  el?.blur();
+}
+
 async function submit(): Promise<void> {
   const content = text.value.trim();
   if (!canSubmit.value) return;
@@ -241,6 +268,40 @@ function onKeydown(e: KeyboardEvent): void {
           >
             <Paperclip :size="18" />
           </button>
+
+          <!-- Agent selector chip (OpenCode-style, inside the pill) -->
+          <div v-if="agents && agents.length > 0" class="dropdown dropdown-top shrink-0">
+            <button
+              type="button"
+              tabindex="0"
+              class="btn btn-ghost btn-sm gap-1 rounded-full text-base-content/70 hover:text-primary normal-case px-2"
+              :disabled="disabled"
+            >
+              <Bot :size="15" />
+              <span class="max-w-[130px] truncate text-xs font-medium">
+                {{ currentAgentLabel }}
+              </span>
+              <ChevronDown :size="12" class="opacity-60" />
+            </button>
+            <ul
+              tabindex="0"
+              class="dropdown-content z-50 menu menu-sm rounded-xl bg-base-100 border border-base-300 shadow-xl w-64 mb-1"
+            >
+              <li
+                v-for="opt in agents"
+                :key="opt.value"
+              >
+                <button
+                  type="button"
+                  :class="{ active: opt.value === agentId }"
+                  @click="onPickAgent(opt.value)"
+                >
+                  <Bot :size="14" class="opacity-60" />
+                  <span class="truncate">{{ opt.label }}</span>
+                </button>
+              </li>
+            </ul>
+          </div>
 
           <textarea
             ref="textareaRef"

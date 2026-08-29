@@ -15,6 +15,8 @@ import { useModelCapabilities } from '@ka/composables/useModelCapabilities';
 import ChatMessage from './ChatMessage.vue';
 import ChatInput from './ChatInput.vue';
 
+import type { AgentChipOption } from './ChatInput.vue';
+
 interface OutgoingAttachment {
   name: string;
   mimeType: string;
@@ -24,6 +26,12 @@ interface OutgoingAttachment {
 const props = defineProps<{
   sessionId: string;
   agentModel?: string | null;
+  agentId?: string | null;
+  agentOptions?: AgentChipOption[];
+}>();
+
+const emit = defineEmits<{
+  'update:agentId': [value: string];
 }>();
 
 const { t } = useI18n();
@@ -201,24 +209,24 @@ defineExpose({ resetMessages });
           </div>
 
           <template v-else>
-            <!-- Thinking indicator: sits exactly where the assistant reply
-                 will appear (below the last user message), same box metrics
-                 as a message row so there is no layout jump. -->
-            <div
-              v-if="showThinking"
-              class="flex justify-start py-3 px-2"
-            >
-              <div class="max-w-[85%] rounded-2xl rounded-bl-md bg-base-200/70 border border-base-300/50 px-4 py-3 flex items-center gap-2.5">
-                <span class="loading loading-dots loading-sm text-primary" />
-                <span class="text-sm text-base-content/60">{{ t('ext.ka.chat.thinking') }}</span>
-              </div>
-            </div>
             <ChatMessage
               v-for="msg in visibleMessages"
               :key="msg.id"
               :message="msg"
               :is-streaming="isStreaming && msg.role === 'assistant' && isLastMessage(msg.id)"
             />
+            <!-- Thinking indicator: renders AFTER the last message, exactly
+                 where the assistant reply will land (same bubble shape so
+                 there is no layout jump when tokens start flowing). -->
+            <div
+              v-if="showThinking"
+              class="flex justify-start py-2 px-2"
+            >
+              <div class="max-w-[85%] rounded-2xl rounded-bl-md bg-base-200/70 border border-base-300/50 px-4 py-3 flex items-center gap-2.5">
+                <span class="loading loading-dots loading-sm text-primary" />
+                <span class="text-sm text-base-content/60">{{ t('ext.ka.chat.thinking') }}</span>
+              </div>
+            </div>
           </template>
         </div>
       </div>
@@ -271,7 +279,11 @@ defineExpose({ resetMessages });
       :can-image="canImage"
       :can-pdf="canPdf"
       :can-audio="canAudio"
+      :agents="agentOptions"
+      :agent-id="agentId"
+      :model-id="modelId"
       @send="onSend"
+      @update:agent-id="emit('update:agentId', $event)"
     />
   </div>
 </template>
