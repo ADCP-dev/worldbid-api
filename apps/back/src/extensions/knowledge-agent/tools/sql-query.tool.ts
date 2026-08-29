@@ -25,7 +25,7 @@ export class SqlQueryService {
   private static readonly MAX_ROWS = 200;
   private static readonly TIMEOUT_MS = 10_000;
 
-  private readonly logger = new Logger(SqlQueryTool.name);
+  private readonly logger = new Logger(SqlQueryService.name);
 
   /** Standalone DML/DDL words — rejected anywhere in the statement. */
   private static readonly FORBIDDEN =
@@ -51,7 +51,7 @@ export class SqlQueryService {
       .replace(/"(?:[^"]|"")*"/g, '""')
       .replace(/--[^\n]*/g, ' ')
       .replace(/\/\*[\s\S]*?\*\//g, ' ');
-    return SqlQueryTool.FORBIDDEN.test(stripped);
+    return SqlQueryService.FORBIDDEN.test(stripped);
   }
 
   /** Reject multi-statement input (trailing semicolon + more content). */
@@ -88,13 +88,13 @@ export class SqlQueryService {
       SELECT * FROM (
         ${sql.replace(/;+\s*$/, '')}
       ) AS ka_readonly_query
-      LIMIT ${SqlQueryTool.MAX_ROWS + 1}
+      LIMIT ${SqlQueryService.MAX_ROWS + 1}
     `;
 
     const controller = new AbortController();
     const timer = setTimeout(
       () => controller.abort(),
-      SqlQueryTool.TIMEOUT_MS,
+      SqlQueryService.TIMEOUT_MS,
     );
 
     try {
@@ -107,9 +107,9 @@ export class SqlQueryService {
         const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
         return {
           columns,
-          rows: rows.slice(0, SqlQueryTool.MAX_ROWS),
+          rows: rows.slice(0, SqlQueryService.MAX_ROWS),
           rowCount: rows.length,
-          truncated: rows.length > SqlQueryTool.MAX_ROWS,
+          truncated: rows.length > SqlQueryService.MAX_ROWS,
         };
       } finally {
         await runner.release();
