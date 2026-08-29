@@ -790,11 +790,25 @@ interface TraceStage {
 
 | Modo | Cómo |
 |---|---|
-| Dev | `X-Spec-Trace` response header (base64 JSON) |
+| Dev | `X-Spec-Trace` response header (base64 JSON) — dev only |
 | Dev | `?_trace=true` → response incluye `__trace` |
+| Prod + Dev | Ring buffer en memoria → `GET /_spec/trace/:requestId` (admin) o CLI `spec:trace` |
 | Prod | Logueado estructurado (JSON) a debug level |
-| Prod (error) | Enviado a ErrorTrackerService con contexto completo |
-| CLI | `pnpm spec:trace task create --body '{...}' --user admin` |
+| Prod (error) | Trace completo adjuntado al record de ErrorTracker |
+| CLI | `pnpm spec:trace <requestId>` / `pnpm spec:trace-test` |
+
+### TraceBuilder y TraceStore
+
+Desde el hardening (2026-08):
+
+- `TraceBuilder` registra **todos** los stages en **dev y prod** (antes solo dev). Bounded buffer → sin leak.
+- **requestId**: se adopta el header entrante `x-request-id` si viene; si no, se genera `req_<timestamp36>_<random>`. Así los traces se joinean con rows de error-tracker que ya registran ese header.
+- `TraceBuilder.finish()` pushea el trace al `TraceStore` — ring buffer en memoria, default **500** entradas, eviction oldest-first automática. Refetch del mismo `requestId` refresca su posición.
+- `GET /api/v1/_spec/trace/:requestId` (JWT + admin):
+  - `{"found": true, "trace": {...}}` — trace completo
+  - `{"found": false, "requestId": "...", "message": "..."}` — id desconocido, evictado (buffer lleno) o proceso reiniciado
+- **5xx**: los factories adjuntan el trace (sanitizado, via Symbol marker invisible a JSON) al error; el global exception filter lo extrae y persiste con el record de ErrorTracker — la history real de stages llega a la error DB, no un placeholder.
+- `X-Spec-Trace` header sigue siendo **dev-only**.
 
 ---
 
@@ -1122,7 +1136,7 @@ type WorkerConfig = {
 | `GET /api/v1/_spec/resources` | JWT + admin | Todos los recursos con fields, permissions, UI hints |
 | `GET /api/v1/_spec/resources/:name` | JWT + admin | Un recurso específico |
 | `GET /api/v1/_spec/views` | JWT + admin | Todas las views/dashboards |
-| `GET /api/v1/_spec/trace/:requestId` | JWT + admin | Trace por ID (stub) |
+| `GET /api/v1/_spec/trace/:requestId` | JWT + admin | Trace desde el ring buffer (500 entradas, evict oldest-first): `{found, trace}` o `{found: false, requestId, message}` |
 
 ### Response shape
 
@@ -1187,9 +1201,69 @@ pnpm spec:list                 # lista plugins instalados (spec-registry.json)
 ### Trace CLI
 
 ```bash
-pnpm spec:trace task create --body '{"title":"test","priority":"urgent"}' --user admin
-# Imprime trace con colores en consola
+pnpm spec:trace <requestId> [--host http://localhost:3010]
+# GET /api/v1/_spec/trace/<requestId> (admin JWT) y imprime el trace
+# con colores en consola. Comportamiento sin cambios en el hardening.
 ```
+
+### Trace test CLI (`spec:trace-test`)
+
+Verificación end-to-end del trace loop contra un backend corriendo: ejecuta la operación, decodifica `X-Spec-Trace` (dev), fetch del trace desde `GET /api/v1/_spec/trace/<requestId>` (admin) y verifica que ambas vistas coincidan (mismo `requestId`, mismos stage names, mismo verdict final). Exit codes: `0` = verificado, `1` = cualquier fallo (connect, auth, op, header ausente, store mismatch, verdict inesperado). Requiere **dev mode** (el header `X-Spec-Trace` no existe en prod).
+
+```bash
+pnpm spec:trace-test --resource task --op list --token <jwt>
+pnpm spec:trace-test --resource task --op create --body '{"title":"x"}' \
+  --login admin@example.com --password secret
+pnpm spec:trace-test --resource task --op delete --id 1 --expect error --token <jwt>
+```
+
+Flags:
+
+| Flag | Descripción |
+|---|---|
+| `--host <url>` | Backend base URL (default `http://localhost:3010`) |
+| `--login <email>` | Email pa login (vía `POST /api/v1/auth/email/login`); alternativo a `--token` |
+| `--password <pw>` | Password pa login |
+| `--token <jwt>` | JWT directo; si se pasa, skip login |
+| `--resource <name>` | **Requerido.** Nombre del recurso (singular, ej `task`) |
+| `--op <op>` | `create` \| `update` \| `delete` \| `list` (default `list`). `update`/`delete` requieren `--id`; `create`/`update` requieren `--body` |
+| `--body '<json>'` | Payload JSON (create/update) |
+| `--id <id>` | ID del recurso (update/delete) |
+| `--expect <v>` | `success` (default) \| `error`. Con `error`: HTTP 4xx/5xx esperado y algún stage con `fail` |
+
+Ejemplo + output esperado (stage table + verdict):
+
+```text
+$ pnpm spec:trace-test --resource task --op create --body '{"title":"x"}' \
+    --login admin@example.com --password secret
+
+🔑 Authenticated as admin@example.com
+
+🚀 POST http://localhost:3010/api/v1/tasks → HTTP 201
+
+📋 requestId: req_lz3f2k_a8b9c1
+
+📊 Stage table (server store):
+STAGE           STATUS     DURATION
+──────────────────────────────────────
+auth            ✅             2ms
+validation      ✅             1ms
+beforeHook      ⏭️             0ms
+db              ✅             14ms
+afterHook       ⏭️             0ms
+notifications   ⏭️             0ms
+response        ✅             0ms
+
+✅ Trace matches server store (requestId + stage names).
+```
+
+### Variables de entorno del spec engine
+
+| Variable | Default | Efecto |
+|---|---|---|
+| `SPEC_ENGINE_WEBHOOK_TIMEOUT_MS` | `10000` | Timeout (ms) de cada outbound POST (webhooks/notificaciones) via `AbortSignal.timeout`. Valor inválido → warning + default. |
+| `SPEC_ENGINE_DRIFT` | `warn` en non-prod / `block` en prod | Reacción ante schema drift detectado en boot: `warn` (log + seguir), `block` (throw, aborta startup), `off` (skip completo). Valor inválido → warning + default. Puede setearse por deploy pa override. |
+| `SPEC_ENGINE_STRICT` | `false` | Modo strict del SpecValidator (warnings → errors). Comportamiento sin cambios en el hardening. |
 
 ---
 

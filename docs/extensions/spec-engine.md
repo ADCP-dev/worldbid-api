@@ -22,7 +22,7 @@ Runtime interpreter that turns YAML specs into a complete backend: dynamic TypeO
 | Version | 0.1.0 (spike) |
 | Dependencies | `auth`, `storage`, `translations` |
 | Location | `apps/back/src/core/spec-engine/` |
-| Status | Backend core implemented on `feat/spec-engine`, 12 passing unit tests |
+| Status | Backend core implemented; runtime hardened (2026-08, commit `e40c50f`), 34 tests files / 347 tests green (vitest) |
 | Config key | `'spec-engine'` (reserved for future use) |
 
 ## What it does
@@ -35,7 +35,7 @@ Runtime interpreter that turns YAML specs into a complete backend: dynamic TypeO
 6. **HookExecutor** loads and runs `beforeCreate`, `afterCreate`, `beforeUpdate`, `afterUpdate`, `beforeDelete`, `afterDelete`, and `beforeQuery` hooks with a typed `HookContext`.
 7. **NotificationDispatcher** evaluates triggers and dispatches email/webhook notifications.
 8. **MigrationGenerator** diffs a spec against a previous snapshot and emits TypeORM migrations, including join tables.
-9. **SpecTrace** records every pipeline stage per request for observability.
+9. **SpecTrace** records every pipeline stage per request (dev and prod) into an in-memory ring buffer, queryable via `GET /_spec/trace/:requestId` (admin).
 
 ## Core files
 
@@ -48,7 +48,15 @@ Runtime interpreter that turns YAML specs into a complete backend: dynamic TypeO
 | `validation-factory.ts` | Builds Zod schemas from field specs. |
 | `spec-validator.ts` | Validates specs and accepts `computed`, `beforeQuery`, `many-to-many`. |
 | `migration-generator.ts` | Spec diff → TypeORM migration, including `CREATE TABLE` for join tables. |
-| `__tests__/spec-engine.spec.ts` | 12 unit tests for transactions, many-to-many, validation, spec-validator. |
+| `naming.ts` | Shared `joinTableName()` — single source of truth for m:n join-table names (entity factory + controller factory). |
+| `trace-store.ts` | In-memory ring buffer (default 500) of finished traces keyed by `requestId`, with automatic oldest-first eviction. |
+| `spec-trace.ts` | `TraceBuilder` — records all pipeline stages per request (dev and prod) and pushes finished traces into the ring buffer. |
+| `error-trace.ts` | Attaches a sanitized `SpecTrace` to thrown errors via a Symbol marker; the global exception filter extracts it when persisting 5xx errors to the ErrorTracker. |
+| `meta-controller.ts` | `_spec` metadata API, including the admin-only trace lookup `GET /_spec/trace/:requestId`. |
+| `outbound-http.ts` | Outbound POST helper: abort-signal timeout, per-webhook HMAC secret resolution (spec → env → unsigned + warn-once), bounded failure logging. |
+| `spec-schema-drift.ts` | Boot-time schema drift detection: sha256 of each extension's merged spec vs the persisted `spec_schema_version` table. |
+| `extension-module-loader.ts` | Centralized loading of hook/action/webhook handler modules (path containment + `.ts` → `.js` production resolution). |
+| `spec-trace-test.ts` | CLI (`pnpm spec:trace-test`) that exercises the full trace loop — operation → `X-Spec-Trace` header → trace endpoint → verdict. |
 
 ## Spec format
 
@@ -82,6 +90,17 @@ See the detailed reference docs:
 - [SPEC-ENGINE-REFERENCE.md](../SPEC-ENGINE-REFERENCE.md) — complete spec format, types, HookContext API
 - [SPEC-ENGINE-GUIDE.md](../SPEC-ENGINE-GUIDE.md) — step-by-step guide to build a spec-driven app
 - [SPEC-ENGINE-FEATURES.md](../SPEC-ENGINE-FEATURES.md) — 10+ advanced features
+
+## Runtime hardening (2026-08)
+
+Commit `e40c50f` tightened runtime correctness, resilience, and observability:
+
+- **Validation gate** — resources with validation errors are skipped at materialization, not just warned; only errored resources are dropped.
+- **Transaction-per-request** — the singleton dynamic controller no longer shares a `DataSource`/manager across concurrent requests; each request opens its own transaction so one request can never see another's in-flight writes.
+- **Hook abort → HTTP 400** — `HookAbortError` from a `before*` hook maps to `BadRequestException` (HTTP 400) instead of a 200/201 body with `{error}`.
+- **Shared `joinTableName()`** — entity factory and controller factory previously disagreed on m:n join-table names (doubled `ext_` prefix, e.g. `ext_tasks_ext_tasks_task_tags`); both sides now call the shared helper in `naming.ts`.
+- **Outbound HTTP hardening** — every outbound webhook/notification POST gets an `AbortSignal.timeout` (`SPEC_ENGINE_WEBHOOK_TIMEOUT_MS`, default `10000`); HMAC secret precedence is per-webhook spec secret → `WEBHOOK_HMAC_SECRET` env → unsigned delivery with a loud warn-once per webhook.
+- **Boot schema-drift detection** — each extension's merged spec is hashed (sha256, canonical JSON) and compared against the persisted `spec_schema_version` table; drift reacts per `SPEC_ENGINE_DRIFT` (`warn` non-prod default / `block` prod default / `off`), and never blocks boot on its own internal errors (fail open).
 
 ## Multi-tenant note
 
