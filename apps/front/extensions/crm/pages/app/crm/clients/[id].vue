@@ -1,48 +1,35 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
+import { Handshake, RefreshCw } from 'lucide-vue-next';
 import FormInput from '@base/ui-app/components/form/FormInput.vue';
 import FormSelect from '@base/ui-app/components/form/FormSelect.vue';
-import FormTextArea from '@base/ui-app/components/form/FormTextArea.vue';
 import FormSwitch from '@base/ui-app/components/form/FormSwitch.vue';
-import type {
-  Client,
-  ClientPayload,
-  Contact,
-  ContactPayload,
-  Interaction,
-  InteractionPayload,
-  InteractionType,
-  Origin,
-  PaginatedResponse,
-  Project,
-  ProjectPayload,
-  ProjectStatus,
-  ProjectType,
-  PaymentStatus,
-  Status,
-} from '@crm/types';
+import ContactsCard from '../../../components/ContactsCard.vue';
+import InteractionsCard from '../../../components/InteractionsCard.vue';
+import ProjectsCard from '../../../components/ProjectsCard.vue';
+import {
+  useClientQuery,
+  useStatusesQuery,
+  useOriginsQuery,
+  useUpdateClientMutation,
+} from '../../../composables/useCrm';
 
-definePageMeta({
-  layout: 'default',
-  middleware: ['auth', 'admin'],
-});
+definePageMeta({ layout: 'default', middleware: ['auth', 'admin'] });
 
+const { t } = useI18n();
 const route = useRoute();
-const crm = useCrm();
-
 const clientId = computed(() => route.params.id as string);
 
-const loading = ref(false);
+const { data: client, isLoading } = useClientQuery(clientId);
+const { data: statuses } = useStatusesQuery();
+const { data: origins } = useOriginsQuery();
+const updateMut = useUpdateClientMutation();
+
 const saving = ref(false);
-const client = ref<Client | null>(null);
-const statuses = ref<Status[]>([]);
-const origins = ref<Origin[]>([]);
 
-const activeTab = ref<'data' | 'contacts' | 'interactions' | 'projects'>('data');
-
-// Edit form
-const form = ref({
+const edit = ref({
   name: '',
   companyName: '',
   nif: '',
@@ -51,577 +38,189 @@ const form = ref({
   address: '',
   city: '',
   region: '',
-  country: '',
-  statusId: '' as string | number,
-  originId: '' as string | number,
-  originDetail: '',
-  metadata: '',
+  country: 'España',
+  statusId: null as number | null,
+  originId: null as number | null,
+  isActive: true,
 });
 
-// Contacts
-const contacts = ref<Contact[]>([]);
-const contactForm = ref({
-  name: '',
-  position: '',
-  email: '',
-  phone: '',
-  isPrimary: false,
-});
-
-// Interactions
-const interactions = ref<Interaction[]>([]);
-const interactionForm = ref({
-  type: 'call' as InteractionType,
-  subject: '',
-  body: '',
-  interactionDate: new Date().toISOString().split('T')[0],
-});
-
-// Projects
-const projects = ref<Project[]>([]);
-const projectForm = ref({
-  name: '',
-  type: 'consulting' as ProjectType,
-  price: '' as string | number,
-  status: 'pending' as ProjectStatus,
-  paymentStatus: 'pending' as PaymentStatus,
-});
-
-const PROJECT_STATUS_LABELS: Record<string, string> = {
-  active: 'Activo',
-  paused: 'Pausado',
-  completed: 'Completado',
-  cancelled: 'Cancelado',
-  pending: 'Pendiente',
-};
-
-const PROJECT_TYPE_LABELS: Record<string, string> = {
-  consulting: 'Consultoría',
-  design: 'Diseño',
-  development: 'Desarrollo',
-  marketing: 'Marketing',
-  other: 'Otro',
-};
-
-const PAYMENT_STATUS_LABELS: Record<string, string> = {
-  pending: 'Pendiente',
-  paid: 'Pagado',
-  partial: 'Parcial',
-  overdue: 'Vencido',
-};
-
-const INTERACTION_TYPE_LABELS: Record<string, string> = {
-  call: 'Llamada',
-  email: 'Email',
-  meeting: 'Reunión',
-  note: 'Nota',
-  proposal: 'Propuesta',
-  other: 'Otro',
-};
-
-const statusOptions = computed(() => [
-  { label: 'Sin estado', value: '' },
-  ...statuses.value.map((s) => ({ label: s.label, value: s.id })),
-]);
-
-const originOptions = computed(() => [
-  { label: 'Sin origen', value: '' },
-  ...origins.value.map((o) => ({ label: o.label, value: o.id })),
-]);
-
-const interactionTypeOptions = computed(() =>
-  Object.entries(INTERACTION_TYPE_LABELS).map(([value, label]) => ({ value, label })),
-);
-
-const projectTypeOptions = computed(() =>
-  Object.entries(PROJECT_TYPE_LABELS).map(([value, label]) => ({ value, label })),
-);
-
-const projectStatusOptions = computed(() =>
-  Object.entries(PROJECT_STATUS_LABELS).map(([value, label]) => ({ value, label })),
-);
-
-const paymentStatusOptions = computed(() =>
-  Object.entries(PAYMENT_STATUS_LABELS).map(([value, label]) => ({ value, label })),
-);
-
-
-async function loadClient() {
-  loading.value = true;
-  try {
-    const data = await crm.getClient(clientId.value);
-    client.value = data;
-    form.value = {
-      name: data.name || '',
-      companyName: data.companyName || '',
-      nif: data.nif || '',
-      email: data.email || '',
-      phone: data.phone || '',
-      address: data.address || '',
-      city: data.city || '',
-      region: data.region || '',
-      country: data.country || '',
-      statusId: data.statusId ?? '',
-      originId: data.originId ?? '',
-      originDetail: data.originDetail || '',
-      metadata: data.metadata ? JSON.stringify(data.metadata, null, 2) : '',
+watchEffect(() => {
+  if (client.value) {
+    edit.value = {
+      name: client.value.name ?? '',
+      companyName: client.value.companyName ?? '',
+      nif: client.value.nif ?? '',
+      email: client.value.email ?? '',
+      phone: client.value.phone ?? '',
+      address: client.value.address ?? '',
+      city: client.value.city ?? '',
+      region: client.value.region ?? '',
+      country: client.value.country ?? 'España',
+      statusId: client.value.statusId ?? null,
+      originId: client.value.originId ?? null,
+      isActive: client.value.isActive,
     };
-  } catch (err: unknown) {
-    toast.error('Error cargando cliente', { description: errorMessage(err) });
-  } finally {
-    loading.value = false;
   }
-}
+});
 
-async function loadFilters() {
-  try {
-    const [stat, orig] = await Promise.all([crm.getStatuses(), crm.getOrigins()]);
-    statuses.value = stat;
-    origins.value = orig;
-  } catch (err: unknown) {
-    toast.error('Error cargando filtros', { description: errorMessage(err) });
-  }
-}
-
-async function loadContacts() {
-  try {
-    contacts.value = await crm.getContacts(clientId.value);
-  } catch (err: unknown) {
-    toast.error('Error cargando contactos', { description: errorMessage(err) });
-  }
-}
-
-async function loadInteractions() {
-  try {
-    const res: PaginatedResponse<Interaction> | Interaction[] = await crm.getInteractions(clientId.value, 1, 100);
-    interactions.value = Array.isArray(res) ? res : (res.data ?? []);
-  } catch (err: unknown) {
-    toast.error('Error cargando interacciones', { description: errorMessage(err) });
-  }
-}
-
-async function loadProjects() {
-  try {
-    const all: Project[] = await crm.getProjects(clientId.value);
-    projects.value = all ?? [];
-  } catch (err: unknown) {
-    toast.error('Error cargando proyectos', { description: errorMessage(err) });
-  }
-}
-
-async function saveClient() {
-  if (!form.value.name.trim()) {
-    toast.error('El nombre es obligatorio');
-    return;
-  }
+async function save() {
   saving.value = true;
   try {
-    const payload: ClientPayload = { ...form.value };
-    if (payload.statusId === '') payload.statusId = null;
-    if (payload.originId === '') payload.originId = null;
-    if (form.value.metadata) {
-      try {
-        payload.metadata = JSON.parse(form.value.metadata);
-      } catch {
-        toast.error('Metadata JSON inválido');
-        saving.value = false;
-        return;
-      }
-    } else {
-      payload.metadata = null;
-    }
-    const updated = await crm.updateClient(clientId.value, payload);
-    client.value = updated;
-    toast.success('Cliente actualizado');
+    await updateMut.mutateAsync({
+      id: clientId.value,
+      data: {
+        name: edit.value.name,
+        companyName: edit.value.companyName || undefined,
+        nif: edit.value.nif || undefined,
+        email: edit.value.email || undefined,
+        phone: edit.value.phone || undefined,
+        address: edit.value.address || undefined,
+        city: edit.value.city || undefined,
+        region: edit.value.region || undefined,
+        country: edit.value.country || 'España',
+        statusId: edit.value.statusId ?? undefined,
+        originId: edit.value.originId ?? undefined,
+        isActive: edit.value.isActive,
+      },
+    });
+    toast.success(t('ext.crm.clients.updated'));
   } catch (err: unknown) {
-    toast.error('Error guardando cliente', { description: errorMessage(err) });
+    toast.error(t('ext.crm.common.error'), { description: errorMessage(err) });
   } finally {
     saving.value = false;
   }
 }
 
-async function addContact() {
-  if (!contactForm.value.name.trim()) {
-    toast.error('El nombre del contacto es obligatorio');
-    return;
-  }
+// ─── Convert to affiliate ─────────────────────────────────────────────
+
+const converting = ref(false);
+
+async function convertToAffiliate() {
+  if (!client.value?.id) return;
+  converting.value = true;
   try {
-    const payload: ContactPayload = { ...contactForm.value };
-    await crm.createContact(clientId.value, payload);
-    toast.success('Contacto creado');
-    contactForm.value = { name: '', position: '', email: '', phone: '', isPrimary: false };
-    await loadContacts();
+    const api = useApi();
+    await api.post(`/affiliate/partners/from-client/${client.value.id}`, {
+      commissionRate: 0.05,
+      invite: true,
+    });
+    toast.success(t('ext.affiliate.partners.convertedOk'));
   } catch (err: unknown) {
-    toast.error('Error creando contacto', { description: errorMessage(err) });
+    toast.error(t('ext.crm.common.error'), { description: errorMessage(err) });
+  } finally {
+    converting.value = false;
   }
 }
 
-async function removeContact(id: number | string) {
-  if (!confirm('¿Eliminar contacto?')) return;
-  try {
-    await crm.deleteContact(id);
-    toast.success('Contacto eliminado');
-    await loadContacts();
-  } catch (err: unknown) {
-    toast.error('Error eliminando contacto', { description: errorMessage(err) });
-  }
-}
+const statusOptions = computed(() =>
+  (statuses.value ?? []).map((s) => ({ value: s.id, label: s.label || s.name })),
+);
 
-async function addInteraction() {
-  if (!interactionForm.value.subject.trim()) {
-    toast.error('El asunto es obligatorio');
-    return;
-  }
-  try {
-    const payload: InteractionPayload = {
-      ...interactionForm.value,
-      interactionDate: new Date(interactionForm.value.interactionDate).toISOString(),
-    };
-    await crm.createInteraction(clientId.value, payload);
-    toast.success('Interacción creada');
-    interactionForm.value = {
-      type: 'call',
-      subject: '',
-      body: '',
-      interactionDate: new Date().toISOString().split('T')[0],
-    };
-    await loadInteractions();
-  } catch (err: unknown) {
-    toast.error('Error creando interacción', { description: errorMessage(err) });
-  }
-}
-
-async function removeInteraction(id: number | string) {
-  if (!confirm('¿Eliminar interacción?')) return;
-  try {
-    await crm.deleteInteraction(id);
-    toast.success('Interacción eliminada');
-    await loadInteractions();
-  } catch (err: unknown) {
-    toast.error('Error eliminando interacción', { description: errorMessage(err) });
-  }
-}
-
-async function addProject() {
-  if (!projectForm.value.name.trim()) {
-    toast.error('El nombre del proyecto es obligatorio');
-    return;
-  }
-  try {
-    const payload: ProjectPayload = {
-      ...projectForm.value,
-      clientId: Number(clientId.value),
-      price: projectForm.value.price ? Number(projectForm.value.price) : null,
-    };
-    await crm.createProject(payload);
-    toast.success('Proyecto creado');
-    projectForm.value = { name: '', type: 'consulting', price: '', status: 'pending', paymentStatus: 'pending' };
-    await loadProjects();
-  } catch (err: unknown) {
-    toast.error('Error creando proyecto', { description: errorMessage(err) });
-  }
-}
-
-async function removeProject(id: number | string) {
-  if (!confirm('¿Eliminar proyecto?')) return;
-  try {
-    await crm.deleteProject(id);
-    toast.success('Proyecto eliminado');
-    await loadProjects();
-  } catch (err: unknown) {
-    toast.error('Error eliminando proyecto', { description: errorMessage(err) });
-  }
-}
-
-function formatDate(date: string) {
-  return new Date(date).toLocaleDateString('es-ES', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
-}
-
-// Track which tabs have already been loaded to avoid duplicate fetches
-const loadedTabs = ref<Set<string>>(new Set());
-
-onMounted(async () => {
-  await Promise.all([loadClient(), loadFilters()]);
-  // Only load the default tab data on mount; others load lazily on demand
-  loadedTabs.value.add('data');
-});
-
-watch(activeTab, async (tab) => {
-  if (loadedTabs.value.has(tab)) return;
-  loadedTabs.value.add(tab);
-  if (tab === 'contacts') await loadContacts();
-  else if (tab === 'interactions') await loadInteractions();
-  else if (tab === 'projects') await loadProjects();
+const statusInfo = computed(() => {
+  if (!client.value?.status) return null;
+  return {
+    label: client.value.status.label || client.value.status.name,
+    color: client.value.status.color,
+  };
 });
 </script>
 
 <template>
-  <div class="p-6 space-y-4">
-    <div v-if="loading" class="flex justify-center py-12">
+  <div class="p-6 space-y-6">
+    <!-- Header -->
+    <div class="flex items-start justify-between">
+      <div>
+        <div class="flex items-center gap-3">
+          <NuxtLink to="/app/crm/clients" class="btn btn-ghost btn-sm btn-circle">←</NuxtLink>
+          <h1 class="text-2xl font-bold">{{ client?.name ?? t('ext.crm.common.loading') }}</h1>
+          <span
+            v-if="statusInfo"
+            class="badge"
+            :style="statusInfo.color ? { backgroundColor: `${statusInfo.color}22`, color: statusInfo.color } : undefined"
+          >
+            {{ statusInfo.label }}
+          </span>
+          <span v-if="client && !client.isActive" class="badge badge-ghost">✕</span>
+        </div>
+        <p v-if="client?.companyName" class="text-base-content/60 mt-1 text-sm">{{ client.companyName }}</p>
+      </div>
+      <button
+        class="btn btn-outline btn-sm"
+        :disabled="converting || isLoading"
+        :title="t('ext.affiliate.partners.fromClientTitle')"
+        @click="convertToAffiliate"
+      >
+        <RefreshCw v-if="converting" class="w-4 h-4 animate-spin" />
+        <Handshake v-else class="w-4 h-4" />
+        {{ t('ext.affiliate.partners.fromClient') }}
+      </button>
+    </div>
+
+    <div v-if="isLoading" class="flex justify-center py-12">
       <span class="loading loading-spinner loading-lg text-primary" />
     </div>
 
-    <template v-else>
-      <!-- Header -->
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <NuxtLink to="/app/crm/clients" class="btn btn-ghost btn-sm">
-            ← Volver
-          </NuxtLink>
-          <div>
-            <h1 class="text-2xl font-bold">{{ client?.name }}</h1>
-            <div class="flex items-center gap-2 mt-1">
-              <span v-if="client?.companyName" class="text-sm text-base-content/60">{{ client.companyName }}</span>
-              <span
-                v-if="client?.status"
-                class="badge badge-sm"
-                :style="{ backgroundColor: client.status.color, color: '#fff' }"
-              >{{ client.status.label }}</span>
-              <span v-if="client?.origin" class="badge badge-sm badge-ghost">{{ client.origin.label }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Tabs -->
-      <div role="tablist" class="tabs tabs-bordered">
-        <button
-          role="tab"
-          class="tab"
-          :class="{ 'tab-active': activeTab === 'data' }"
-          @click="activeTab = 'data'"
-        >Datos</button>
-        <button
-          role="tab"
-          class="tab"
-          :class="{ 'tab-active': activeTab === 'contacts' }"
-          @click="activeTab = 'contacts'"
-        >Contactos</button>
-        <button
-          role="tab"
-          class="tab"
-          :class="{ 'tab-active': activeTab === 'interactions' }"
-          @click="activeTab = 'interactions'"
-        >Interacciones</button>
-        <button
-          role="tab"
-          class="tab"
-          :class="{ 'tab-active': activeTab === 'projects' }"
-          @click="activeTab = 'projects'"
-        >Proyectos</button>
-      </div>
-
-      <!-- Tab: Datos -->
-      <div v-if="activeTab === 'data'" class="card bg-base-100 shadow-sm border border-base-300">
-        <div class="card-body">
-          <h2 class="card-title">Datos del cliente</h2>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormInput v-model="form.name" label="Nombre" required />
-            <FormInput v-model="form.companyName" label="Empresa" />
-            <FormInput v-model="form.nif" label="NIF" />
-            <FormInput v-model="form.email" label="Email" type="email" />
-            <FormInput v-model="form.phone" label="Teléfono" />
-            <FormInput v-model="form.address" label="Dirección" />
-            <FormInput v-model="form.city" label="Ciudad" />
-            <FormInput v-model="form.region" label="Región" />
-            <FormInput v-model="form.country" label="País" />
-            <FormSelect v-model="form.statusId" label="Estado" :options="statusOptions" />
-            <FormSelect v-model="form.originId" label="Origen" :options="originOptions" />
-            <FormInput v-model="form.originDetail" label="Detalle de origen" />
-            <div class="md:col-span-2">
-              <FormTextArea v-model="form.metadata" label="Metadata (JSON opcional)" :rows="4" />
-            </div>
-          </div>
-          <div class="card-actions justify-end mt-4">
-            <button class="btn btn-primary" :disabled="saving" @click="saveClient">
-              <span v-if="saving" class="loading loading-spinner loading-xs"/>
-              Guardar
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Tab: Contactos -->
-      <div v-if="activeTab === 'contacts'" class="space-y-4">
-        <div class="card bg-base-100 shadow-sm border border-base-300">
+    <template v-else-if="client">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Data form -->
+        <div class="card bg-base-100 shadow-sm border border-base-300 lg:col-span-2">
           <div class="card-body">
-            <h2 class="card-title">Nuevo contacto</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormInput v-model="contactForm.name" label="Nombre" required />
-              <FormInput v-model="contactForm.position" label="Cargo" />
-              <FormInput v-model="contactForm.email" label="Email" type="email" />
-              <FormInput v-model="contactForm.phone" label="Teléfono" />
+            <h2 class="card-title text-base">{{ t('ext.crm.clients.data') }}</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+              <FormInput v-model="edit.name" :label="t('ext.crm.clients.name')" required />
+              <FormInput v-model="edit.companyName" :label="t('ext.crm.clients.company')" />
+              <FormInput v-model="edit.nif" :label="t('ext.crm.clients.nif')" />
+              <FormInput v-model="edit.email" :label="t('ext.crm.clients.email')" type="email" />
+              <FormInput v-model="edit.phone" :label="t('ext.crm.clients.phone')" />
+              <FormSelect v-model="edit.statusId" :label="t('ext.crm.clients.status')" :options="statusOptions" />
+              <FormSelect
+                v-model="edit.originId"
+                :label="t('ext.crm.clients.origin')"
+                :options="(origins ?? []).map((o) => ({ value: o.id, label: o.label || o.name }))"
+              />
+              <FormInput v-model="edit.address" :label="t('ext.crm.clients.address')" />
+              <FormInput v-model="edit.city" :label="t('ext.crm.clients.city')" />
+              <FormInput v-model="edit.region" :label="t('ext.crm.clients.region')" />
+              <FormInput v-model="edit.country" :label="t('ext.crm.clients.country')" />
+              <FormSwitch v-model="edit.isActive" :label="t('ext.crm.clients.active')" />
             </div>
-            <div class="mt-2">
-              <FormSwitch v-model="contactForm.isPrimary" label="Contacto principal" />
-            </div>
-            <div class="card-actions justify-end mt-2">
-              <button class="btn btn-primary btn-sm" @click="addContact">Añadir contacto</button>
+            <div class="card-actions justify-end mt-4">
+              <button class="btn btn-primary btn-sm" :disabled="saving" @click="save">
+                <span v-if="saving" class="loading loading-spinner loading-xs" />
+                {{ t('ext.crm.common.save') }}
+              </button>
             </div>
           </div>
         </div>
 
-        <div class="card bg-base-100 shadow-sm border border-base-300">
-          <div class="card-body p-0">
-            <div class="overflow-x-auto">
-              <table class="table table-sm">
-                <thead>
-                  <tr>
-                    <th>Nombre</th>
-                    <th>Cargo</th>
-                    <th>Email</th>
-                    <th>Teléfono</th>
-                    <th>Principal</th>
-                    <th/>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-if="contacts.length === 0">
-                    <td colspan="6" class="text-center text-base-content/40 py-6">Sin contactos</td>
-                  </tr>
-                  <tr v-for="contact in contacts" :key="contact.id">
-                    <td class="font-medium">{{ contact.name }}</td>
-                    <td>{{ contact.position || '—' }}</td>
-                    <td>{{ contact.email || '—' }}</td>
-                    <td>{{ contact.phone || '—' }}</td>
-                    <td>
-                      <span v-if="contact.isPrimary" class="badge badge-xs badge-primary">Sí</span>
-                      <span v-else class="text-base-content/40">—</span>
-                    </td>
-                    <td>
-                      <button class="btn btn-ghost btn-xs text-error" @click="removeContact(contact.id)">
-                        Eliminar
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Tab: Interacciones -->
-      <div v-if="activeTab === 'interactions'" class="space-y-4">
-        <div class="card bg-base-100 shadow-sm border border-base-300">
-          <div class="card-body">
-            <h2 class="card-title">Nueva interacción</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormSelect v-model="interactionForm.type" label="Tipo" :options="interactionTypeOptions" />
-              <FormInput v-model="interactionForm.interactionDate" label="Fecha" type="text" />
-              <div class="md:col-span-2">
-                <FormInput v-model="interactionForm.subject" label="Asunto" required />
-              </div>
-              <div class="md:col-span-2">
-                <FormTextArea v-model="interactionForm.body" label="Descripción" :rows="3" />
+        <!-- Side info -->
+        <div class="space-y-4">
+          <div class="card bg-base-100 shadow-sm border border-base-300">
+            <div class="card-body">
+              <h2 class="card-title text-base">{{ t('ext.crm.dashboard.recentTitle') }}</h2>
+              <div class="text-sm space-y-2">
+                <div class="flex justify-between">
+                  <span class="text-base-content/50">{{ t('ext.crm.clients.origin') }}</span>
+                  <span>{{ client?.origin?.label ?? '—' }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-base-content/50">{{ t('ext.crm.clients.created') }}</span>
+                  <span>{{ client?.createdAt?.slice(0, 10) ?? '—' }}</span>
+                </div>
               </div>
             </div>
-            <div class="card-actions justify-end mt-2">
-              <button class="btn btn-primary btn-sm" @click="addInteraction">Añadir interacción</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="card bg-base-100 shadow-sm border border-base-300">
-          <div class="card-body">
-            <h2 class="card-title">Historial</h2>
-            <div v-if="interactions.length === 0" class="text-sm text-base-content/40 py-6 text-center">
-              Sin interacciones
-            </div>
-            <ul v-else class="timeline timeline-vertical">
-              <li v-for="item in interactions" :key="item.id">
-                <div class="timeline-start">
-                  <span class="badge badge-sm badge-primary">{{ INTERACTION_TYPE_LABELS[item.type] ?? item.type }}</span>
-                </div>
-                <div class="timeline-middle">
-                  <span class="w-2 h-2 rounded-full bg-primary" />
-                </div>
-                <div class="timeline-end mb-4">
-                  <div class="flex items-center justify-between">
-                    <span class="text-sm font-medium">{{ item.subject }}</span>
-                    <button class="btn btn-ghost btn-xs text-error" @click="removeInteraction(item.id)">
-                      Eliminar
-                    </button>
-                  </div>
-                  <div class="text-xs text-base-content/60">{{ formatDate(item.interactionDate) }}</div>
-                  <p v-if="item.body" class="text-sm text-base-content/70 mt-1">{{ item.body }}</p>
-                </div>
-              </li>
-            </ul>
           </div>
         </div>
       </div>
 
-      <!-- Tab: Proyectos -->
-      <div v-if="activeTab === 'projects'" class="space-y-4">
-        <div class="card bg-base-100 shadow-sm border border-base-300">
-          <div class="card-body">
-            <h2 class="card-title">Nuevo proyecto</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormInput v-model="projectForm.name" label="Nombre" required />
-              <FormSelect v-model="projectForm.type" label="Tipo" :options="projectTypeOptions" />
-              <FormInput v-model="projectForm.price" label="Precio" type="number" />
-              <FormSelect v-model="projectForm.status" label="Estado" :options="projectStatusOptions" />
-              <FormSelect v-model="projectForm.paymentStatus" label="Estado de pago" :options="paymentStatusOptions" />
-            </div>
-            <div class="card-actions justify-end mt-2">
-              <button class="btn btn-primary btn-sm" @click="addProject">Añadir proyecto</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="card bg-base-100 shadow-sm border border-base-300">
-          <div class="card-body p-0">
-            <div class="overflow-x-auto">
-              <table class="table table-sm">
-                <thead>
-                  <tr>
-                    <th>Nombre</th>
-                    <th>Tipo</th>
-                    <th>Precio</th>
-                    <th>Estado</th>
-                    <th>Pago</th>
-                    <th/>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-if="projects.length === 0">
-                    <td colspan="6" class="text-center text-base-content/40 py-6">Sin proyectos</td>
-                  </tr>
-                  <tr v-for="project in projects" :key="project.id">
-                    <td class="font-medium">{{ project.name }}</td>
-                    <td>{{ PROJECT_TYPE_LABELS[project.type] ?? project.type }}</td>
-                    <td>{{ project.price != null ? `€${project.price}` : '—' }}</td>
-                    <td>
-                      <span class="badge badge-sm badge-outline">{{ PROJECT_STATUS_LABELS[project.status] ?? project.status }}</span>
-                    </td>
-                    <td>
-                      <span
-class="badge badge-sm" :class="{
-                        'badge-success': project.paymentStatus === 'paid',
-                        'badge-warning': project.paymentStatus === 'partial',
-                        'badge-error': project.paymentStatus === 'overdue',
-                        'badge-ghost': project.paymentStatus === 'pending',
-                      }">
-                        {{ PAYMENT_STATUS_LABELS[project.paymentStatus] ?? project.paymentStatus }}
-                      </span>
-                    </td>
-                    <td>
-                      <button class="btn btn-ghost btn-xs text-error" @click="removeProject(project.id)">
-                        Eliminar
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+      <!-- Contacts + Interactions -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ContactsCard :client-id="Number(clientId)" />
+        <InteractionsCard :client-id="Number(clientId)" />
       </div>
+
+      <!-- Projects -->
+      <ProjectsCard :client-id="Number(clientId)" />
     </template>
   </div>
 </template>

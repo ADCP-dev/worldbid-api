@@ -5,6 +5,10 @@
 
 // ─── API fetch helpers ────────────────────────────────────────────────
 
+// ─── App shell integration (plugins) ──────────────────────────────────
+// Shapes pushed into the shared app/nav useState by CRM plugins.
+// Re-exported from the shared typed contract in ~/types/*.
+
 export interface ApiFetchOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
   query?: Record<string, string | number | boolean | undefined>;
@@ -241,12 +245,6 @@ export interface DataTableRow<T = Record<string, unknown>> {
 export interface CellContext<T = Record<string, unknown>> {
   row: DataTableRow<T>;
 }
-
-// ─── App shell integration (plugins) ──────────────────────────────────
-// Shapes pushed into the shared app/nav useState by CRM plugins.
-// Re-exported from the shared typed contract in ~/types/*.
-
-import type { NavMenuItem, NavMenu } from '~/types/nav';
 
 export type { DashboardEntry } from '~/types/dashboard';
 export type { NavMenuItem, NavMenu } from '~/types/nav';

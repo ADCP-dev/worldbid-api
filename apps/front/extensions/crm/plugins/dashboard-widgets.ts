@@ -9,7 +9,7 @@ export default defineNuxtPlugin(() => {
     if (dashboards.value.find(d => d.id === 'crm')) return;
     dashboards.value.push({
       id: 'crm',
-      title: 'CRM',
+      title: 'ext.crm.nav.crm',
       componentName: 'CrmDashboard',
       order: 10,
     });

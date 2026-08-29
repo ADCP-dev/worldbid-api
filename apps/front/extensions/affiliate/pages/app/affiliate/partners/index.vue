@@ -6,7 +6,6 @@ import { Plus, UserPlus, Building2 } from 'lucide-vue-next';
 import DataTable from '@base/ui-app/components/data-table/DataTable.vue';
 import FormInput from '@base/ui-app/components/form/FormInput.vue';
 import FormSwitch from '@base/ui-app/components/form/FormSwitch.vue';
-import FormSelect from '@base/ui-app/components/form/FormSelect.vue';
 import ViewButton from '@base/ui-app/components/data-table/buttons/ViewButton.vue';
 import EditButton from '@base/ui-app/components/data-table/buttons/EditButton.vue';
 import DeleteButton from '@base/ui-app/components/data-table/buttons/DeleteButton.vue';
@@ -320,6 +319,16 @@ const columns = computed(() => [
             openEdit(row.original);
           },
         }),
+        row.original.userId
+          ? null
+          : h(UserPlus, {
+              class: 'w-4 h-4 text-info cursor-pointer',
+              'aria-label': t('ext.affiliate.partners.invite'),
+              onClick: (e: Event) => {
+                e.stopPropagation();
+                void invitePartner(row.original);
+              },
+            }),
         h(DeleteButton, {
           onClick: (e: Event) => {
             e.stopPropagation();
@@ -350,6 +359,9 @@ const columns = computed(() => [
 
     <div class="card bg-base-100 shadow-sm border border-base-300">
       <div class="card-body p-6">
+        <div v-if="isLoading" class="flex justify-center py-8">
+          <span class="loading loading-spinner loading-md text-primary" />
+        </div>
         <DataTable
           :columns="columns"
           :data="partners"

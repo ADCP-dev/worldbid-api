@@ -6,20 +6,15 @@ import {
   UserPlus,
   CheckCircle2,
   Euro,
-  Wallet,
 } from 'lucide-vue-next';
 import StatCard from '@base/ui-app/components/dashboard/StatCard.vue';
 import BarChart from '@base/ui-app/components/dashboard/BarChart.vue';
 import DonutChart from '@base/ui-app/components/dashboard/DonutChart.vue';
 import TimelineList from '@base/ui-app/components/dashboard/TimelineList.vue';
-import {
-  useAffiliateDashboardQuery,
-  unwrapList,
-} from '../composables/useAffiliate';
+import { useAffiliateDashboardQuery } from '../composables/useAffiliate';
 import type { Commission } from '../types';
 
-const { t, d } = useI18n();
-const localePath = useLocalePath();
+const { t } = useI18n();
 
 const { data, isLoading } = useAffiliateDashboardQuery();
 
@@ -107,38 +102,6 @@ function formatCurrency(value: number | undefined) {
   }).format(value ?? 0);
 }
 
-function formatDate(value: string | undefined | null) {
-  if (!value) return '—';
-  return d(new Date(value), { year: 'numeric', month: 'short', day: 'numeric' });
-}
-
-const columns = computed(() => [
-  {
-    accessorKey: 'partner.name',
-    headerName: t('ext.affiliate.commissions.partner'),
-  },
-  {
-    accessorKey: 'project.name',
-    headerName: t('ext.affiliate.commissions.project'),
-  },
-  {
-    accessorKey: 'commissionAmount',
-    headerName: t('ext.affiliate.commissions.amount'),
-    cell: ({ row }: { row: { original: Commission } }) =>
-      formatCurrency(row.original.commissionAmount),
-  },
-  {
-    accessorKey: 'status',
-    headerName: t('ext.affiliate.commissions.status'),
-    cell: ({ row }: { row: { original: Commission } }) => t(`ext.affiliate.status.${row.original.status}`),
-  },
-  {
-    accessorKey: 'createdAt',
-    headerName: t('ext.affiliate.referrals.date'),
-    cell: ({ row }: { row: { original: Commission } }) =>
-      formatDate(row.original.createdAt),
-  },
-]);
 </script>
 
 <template>

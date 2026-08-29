@@ -55,7 +55,6 @@ function statusBadge(status: string) {
 // ─── Create modal ─────────────────────────────────────────────────────
 
 const showCreate = ref(false);
-const saving = ref(false);
 const createForm = ref({ partnerId: null as number | null, clientId: null as number | null, status: 'pending' });
 
 const partnerOptions = computed(() =>

@@ -3,7 +3,6 @@ import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { z } from 'zod';
 import { toast } from 'vue-sonner';
-import { RouterLink } from 'vue-router';
 import FormInput from '@base/ui-app/components/form/FormInput.vue';
 import FormTextArea from '@base/ui-app/components/form/FormTextArea.vue';
 import { useCreateMyReferralMutation } from '../../../composables/useAffiliate';

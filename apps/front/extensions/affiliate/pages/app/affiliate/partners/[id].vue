@@ -13,7 +13,7 @@ import {
   useInvitePartnerMutation,
   unwrapList,
 } from '../../../composables/useAffiliate';
-import type { CellContext, Commission, Referral } from '../../../types';
+import type { Commission, Referral } from '../../../types';
 
 definePageMeta({ layout: 'default', middleware: ['auth', 'admin'] });
 
@@ -30,16 +30,6 @@ const commissions = computed<Commission[]>(() => unwrapList<Commission>(commissi
 
 const saving = ref(false);
 const inviting = ref(false);
-
-const form = computed(() => ({
-  name: partner.value?.name ?? '',
-  companyName: partner.value?.companyName ?? '',
-  email: partner.value?.email ?? '',
-  phone: partner.value?.phone ?? '',
-  iban: partner.value?.iban ?? '',
-  ratePct: partner.value ? Math.round((partner.value.commissionRate ?? 0) * 100) : 0,
-  isActive: partner.value?.isActive ?? true,
-}));
 
 const edit = ref({
   name: '',
@@ -126,18 +116,6 @@ function statusBadge(status: string) {
   }
 }
 
-const referralColumns = computed(() => [
-  { accessorKey: 'client.name', headerName: t('ext.affiliate.referrals.client'), header: t('ext.affiliate.referrals.client'), cell: ({ row }: CellContext<Referral>) => row.original.client?.name ?? row.original.clientName ?? '—' },
-  { accessorKey: 'status', headerName: t('ext.affiliate.referrals.status'), header: t('ext.affiliate.referrals.status'), cell: ({ row }: CellContext<Referral>) => t(`ext.affiliate.status.${row.original.status}`) },
-  { accessorKey: 'referredAt', headerName: t('ext.affiliate.referrals.date'), header: t('ext.affiliate.referrals.date'), cell: ({ row }: CellContext<Referral>) => formatDate(row.original.referredAt ?? row.original.createdAt) },
-]);
-
-const commissionColumns = computed(() => [
-  { accessorKey: 'project.name', headerName: t('ext.affiliate.commissions.project'), header: t('ext.affiliate.commissions.project'), cell: ({ row }: CellContext<Commission>) => row.original.project?.name ?? '—' },
-  { accessorKey: 'commissionAmount', headerName: t('ext.affiliate.commissions.amount'), header: t('ext.affiliate.commissions.amount'), cell: ({ row }: CellContext<Commission>) => formatCurrency(row.original.commissionAmount) },
-  { accessorKey: 'status', headerName: t('ext.affiliate.commissions.status'), header: t('ext.affiliate.commissions.status'), cell: ({ row }: CellContext<Commission>) => t(`ext.affiliate.status.${row.original.status}`) },
-  { accessorKey: 'paidAt', headerName: t('ext.affiliate.commissions.paidAt'), header: t('ext.affiliate.commissions.paidAt'), cell: ({ row }: CellContext<Commission>) => formatDate(row.original.paidAt) },
-]);
 </script>
 
 <template>

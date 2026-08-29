@@ -1,203 +1,144 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
-import { toast } from 'vue-sonner';
-import type { DashboardData, OriginCount, Status, StatusCount } from '@crm/types';
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { Users, UserCheck, FolderKanban, Trophy } from 'lucide-vue-next';
+import StatCard from '@base/ui-app/components/dashboard/StatCard.vue';
+import BarChart from '@base/ui-app/components/dashboard/BarChart.vue';
+import DonutChart from '@base/ui-app/components/dashboard/DonutChart.vue';
+import TimelineList from '@base/ui-app/components/dashboard/TimelineList.vue';
+import { useCrmDashboardQuery } from '../composables/useCrm';
+import type { DaisyVariant } from '@base/ui-app/components/dashboard/types';
 
-const crm = useCrm();
+const { t } = useI18n();
+const { data, isLoading } = useCrmDashboardQuery();
 
-const loading = ref(false);
-const dashboard = ref<DashboardData | null>(null);
-const statuses = ref<Status[]>([]);
+const stats = computed(() => [
+  { label: t('ext.crm.dashboard.totalClients'), value: data.value?.totalClients ?? 0, icon: Users, color: 'primary' as DaisyVariant },
+  { label: t('ext.crm.dashboard.activeClients'), value: data.value?.activeClients ?? 0, icon: UserCheck, color: 'success' as DaisyVariant },
+  { label: t('ext.crm.dashboard.activeProjects'), value: data.value?.activeProjects ?? 0, icon: FolderKanban, color: 'info' as DaisyVariant },
+  {
+    label: t('ext.crm.dashboard.closedWon'),
+    value: data.value?.projectsByStatus?.find((p) => p.status === 'delivered')?.count ?? 0,
+    icon: Trophy,
+    color: 'warning' as DaisyVariant,
+  },
+]);
 
-const kpis = computed(() => {
-  if (!dashboard.value) return [];
-  return [
-    { label: 'Total clientes', value: dashboard.value.totalClients ?? 0, color: 'text-primary' },
-    {
-      label: 'En discovery',
-      value: (dashboard.value.clientsByStatus ?? []).find((s: StatusCount) => s.statusName === 'discovery')?.count ?? 0,
-      color: 'text-info',
-    },
-    {
-      label: 'Propuestas',
-      value: (dashboard.value.clientsByStatus ?? []).find((s: StatusCount) => s.statusName === 'proposal')?.count ?? 0,
-      color: 'text-warning',
-    },
-    { label: 'Clientes activos', value: dashboard.value.activeClients ?? 0, color: 'text-success' },
-  ];
+const statusDonut = computed(() => {
+  const byStatus = data.value?.clientsByStatus ?? [];
+  return byStatus
+    .filter((s) => s.count > 0)
+    .map((s) => ({
+      name: s.label || s.statusName || `#${s.statusId}`,
+      value: s.count,
+      color: s.color || undefined,
+    }));
 });
 
-const pipeline = computed(() => dashboard.value?.clientsByStatus ?? []);
-
-const originsList = computed(() => {
-  const list: OriginCount[] = dashboard.value?.clientsByOrigin ?? [];
-  const max = Math.max(...list.map((o: OriginCount) => o.count), 1);
-  return list.map((o: OriginCount) => ({ ...o, pct: Math.round((o.count / max) * 100) }));
+const originChart = computed(() => {
+  const byOrigin = data.value?.clientsByOrigin ?? [];
+  return {
+    categories: byOrigin.map((o) => o.label ?? `#${o.originId}`),
+    series: [
+      {
+        name: t('ext.crm.dashboard.byOrigin'),
+        data: byOrigin.map((o) => o.count),
+      },
+    ],
+  };
 });
 
-const projectsByStatus = computed(() => dashboard.value?.projectsByStatus ?? []);
-const activeProjects = computed(() => dashboard.value?.activeProjects ?? 0);
-const recentInteractions = computed(() => dashboard.value?.recentInteractions ?? []);
-
-async function loadDashboard() {
-  loading.value = true;
-  try {
-    const [dash, stat] = await Promise.all([crm.getDashboard(), crm.getStatuses()]);
-    dashboard.value = dash;
-    statuses.value = stat;
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    toast.error('Error cargando dashboard', { description: msg });
-  } finally {
-    loading.value = false;
-  }
-}
-
-onMounted(async () => {
-  await loadDashboard();
+const projectsChart = computed(() => {
+  const byStatus = data.value?.projectsByStatus ?? [];
+  return {
+    categories: byStatus.map((p) => t(`ext.crm.projects.statusOptions.${p.status}`, p.status)),
+    series: [{ name: t('ext.crm.dashboard.projectsByStatus'), data: byStatus.map((p) => p.count) }],
+  };
 });
 
-function formatDate(date: string) {
-  return new Date(date).toLocaleDateString('es-ES', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
-}
-
-const PROJECT_STATUS_LABELS: Record<string, string> = {
-  active: 'Activo',
-  paused: 'Pausado',
-  completed: 'Completado',
-  cancelled: 'Cancelado',
-  pending: 'Pendiente',
-};
+const recentEvents = computed(() =>
+  (data.value?.recentInteractions ?? []).slice(0, 6).map((i) => ({
+    time: i.interactionDate || i.createdAt || new Date().toISOString(),
+    title: t(`ext.crm.interactions.${i.type}`, i.type),
+    description: i.subject ?? i.body ?? '',
+    color: 'info' as DaisyVariant,
+  })),
+);
 </script>
 
 <template>
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <h1 class="text-2xl font-bold">CRM Dashboard</h1>
-      <NuxtLink to="/app/crm/clients/new" class="btn btn-primary btn-sm">
-        Nuevo cliente
-      </NuxtLink>
+    <div>
+      <h1 class="text-2xl font-bold">{{ t('ext.crm.dashboard.title') }}</h1>
+      <p class="text-base-content/60 mt-1">{{ t('ext.crm.dashboard.subtitle') }}</p>
     </div>
 
-    <div v-if="loading" class="flex justify-center py-12">
-      <span class="loading loading-spinner loading-lg text-primary" />
+    <!-- KPI stats -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <StatCard
+        v-for="stat in stats"
+        :key="stat.label"
+        :label="stat.label"
+        :value="stat.value"
+        :icon="stat.icon"
+        :color="stat.color"
+        :loading="isLoading"
+      />
     </div>
 
-    <template v-else>
-      <!-- KPIs -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div v-for="kpi in kpis" :key="kpi.label" class="stat bg-base-100 rounded-box shadow-sm border border-base-300">
-          <div class="stat-title">{{ kpi.label }}</div>
-          <div class="stat-value" :class="kpi.color">{{ kpi.value }}</div>
-        </div>
-      </div>
-
-      <!-- Pipeline -->
+    <!-- Charts -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div class="card bg-base-100 shadow-sm border border-base-300">
         <div class="card-body">
-          <h2 class="card-title">Pipeline de clientes</h2>
-          <div class="flex flex-wrap gap-3">
-            <div
-              v-for="stage in pipeline"
-              :key="stage.statusId"
-              class="card card-compact flex-1 min-w-[140px] bg-base-200"
-            >
-              <div class="card-body">
-                <div class="flex items-center justify-between">
-                  <span class="text-sm font-medium">{{ stage.label }}</span>
-                  <span class="badge badge-sm" :style="{ backgroundColor: stage.color, color: '#fff' }">
-                    {{ stage.count }}
-                  </span>
-                </div>
-                <div class="text-2xl font-bold">{{ stage.count }}</div>
-              </div>
-            </div>
-          </div>
+          <h2 class="card-title text-base">{{ t('ext.crm.dashboard.byOrigin') }}</h2>
+          <BarChart
+            :categories="originChart.categories"
+            :series="originChart.series"
+            height="260px"
+            :alt-text="t('ext.crm.dashboard.byOrigin')"
+            :loading="isLoading"
+          />
         </div>
       </div>
-
-      <!-- Orígenes -->
       <div class="card bg-base-100 shadow-sm border border-base-300">
         <div class="card-body">
-          <h2 class="card-title">Clientes por origen</h2>
-          <div v-if="originsList.length === 0" class="text-sm text-base-content/40">
-            Sin datos
-          </div>
-          <div v-else class="space-y-2">
-            <div v-for="origin in originsList" :key="origin.originId" class="flex items-center gap-3">
-              <span class="w-32 text-sm truncate">{{ origin.label }}</span>
-              <div class="flex-1 bg-base-200 rounded-full h-6 overflow-hidden">
-                <div
-                  class="h-full bg-primary rounded-full flex items-center justify-end pr-2 transition-all"
-                  :style="{ width: `${origin.pct}%` }"
-                >
-                  <span class="text-xs text-primary-content font-semibold">{{ origin.count }}</span>
-                </div>
-              </div>
-            </div>
+          <h2 class="card-title text-base">{{ t('ext.crm.dashboard.byStatus') }}</h2>
+          <DonutChart
+            v-if="statusDonut.length"
+            :data="statusDonut"
+            height="260px"
+            :alt-text="t('ext.crm.dashboard.byStatus')"
+            :loading="isLoading"
+          />
+          <div v-else class="flex items-center justify-center h-60 text-base-content/40 text-sm">
+            {{ t('ext.crm.common.none') }}
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- Proyectos por status -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div class="card bg-base-100 shadow-sm border border-base-300">
         <div class="card-body">
-          <h2 class="card-title">Proyectos por estado ({{ activeProjects }} activos)</h2>
-          <div class="overflow-x-auto">
-            <table class="table table-sm">
-              <thead>
-                <tr>
-                  <th>Estado</th>
-                  <th class="text-right">Cantidad</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="ps in projectsByStatus" :key="ps.status">
-                  <td>
-                    <span class="badge badge-outline capitalize">{{ PROJECT_STATUS_LABELS[ps.status] ?? ps.status }}</span>
-                  </td>
-                  <td class="text-right font-semibold">{{ ps.count }}</td>
-                </tr>
-                <tr v-if="projectsByStatus.length === 0">
-                  <td colspan="2" class="text-base-content/40 text-center">Sin proyectos</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <h2 class="card-title text-base">{{ t('ext.crm.dashboard.projectsByStatus') }}</h2>
+          <BarChart
+            :categories="projectsChart.categories"
+            :series="projectsChart.series"
+            height="260px"
+            :alt-text="t('ext.crm.dashboard.projectsByStatus')"
+            :loading="isLoading"
+          />
         </div>
       </div>
-
-      <!-- Interacciones recientes -->
       <div class="card bg-base-100 shadow-sm border border-base-300">
         <div class="card-body">
-          <h2 class="card-title">Interacciones recientes</h2>
-          <div v-if="recentInteractions.length === 0" class="text-sm text-base-content/40">
-            Sin interacciones
+          <h2 class="card-title text-base">{{ t('ext.crm.dashboard.recentTitle') }}</h2>
+          <TimelineList v-if="recentEvents.length" :events="recentEvents" />
+          <div v-else class="py-6 text-center text-base-content/40 text-sm">
+            {{ t('ext.crm.clients.noInteractions') }}
           </div>
-          <ul v-else class="timeline timeline-vertical">
-            <li v-for="item in recentInteractions" :key="item.id">
-              <div class="timeline-start">
-                <span class="badge badge-sm badge-primary">{{ item.type }}</span>
-              </div>
-              <div class="timeline-middle">
-                <span class="w-2 h-2 rounded-full bg-primary" />
-              </div>
-              <div class="timeline-end mb-4">
-                <div class="text-sm font-medium">{{ item.subject }}</div>
-                <div class="text-xs text-base-content/60">
-                  {{ formatDate(item.interactionDate) }}
-                  <span v-if="item.client"> · {{ item.client.name }}</span>
-                </div>
-                <p v-if="item.body" class="text-xs text-base-content/50 mt-1 line-clamp-2">{{ item.body }}</p>
-              </div>
-            </li>
-          </ul>
         </div>
       </div>
-    </template>
+    </div>
   </div>
 </template>

@@ -9,7 +9,7 @@ export default defineNuxtPlugin(() => {
     if (dashboards.value.find(d => d.id === 'affiliate')) return;
     dashboards.value.push({
       id: 'affiliate',
-      title: 'Afiliación',
+      title: 'ext.affiliate.nav.admin',
       componentName: 'AffiliateDashboard',
       order: 30,
     });

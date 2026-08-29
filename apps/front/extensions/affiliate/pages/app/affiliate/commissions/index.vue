@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, h } from 'vue';
+import { computed, h } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import DataTable from '@base/ui-app/components/data-table/DataTable.vue';

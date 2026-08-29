@@ -100,7 +100,7 @@ export function useDeletePartnerMutation() {
   return useMutation({
     mutationFn: (id: number | string) => {
       const api = useApi();
-      return api.delete<void>(`/affiliate/partners/${id}`);
+      return api.delete(`/affiliate/partners/${id}`);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: affiliateKeys.partners }),
   });
@@ -181,7 +181,7 @@ export function useDeleteReferralMutation() {
   return useMutation({
     mutationFn: (id: number | string) => {
       const api = useApi();
-      return api.delete<void>(`/affiliate/referrals/${id}`);
+      return api.delete(`/affiliate/referrals/${id}`);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: affiliateKeys.referrals }),
   });

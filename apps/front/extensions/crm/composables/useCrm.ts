@@ -1,11 +1,5 @@
-/**
- * Composable for the CRM extension.
- * Wraps all API calls to the backend CRM extension endpoints.
- * All endpoints require admin role — backend enforces @Roles(RoleEnum.admin).
- */
-
+import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query';
 import type {
-  ApiFetchOptions,
   Client,
   ClientPayload,
   Contact,
@@ -22,207 +16,393 @@ import type {
   StatusPayload,
 } from '../types';
 
-function useApi() {
-  const config = useRuntimeConfig();
-  const authStore = useAuthStore();
-  const baseUrl = config.public.apiUrl as string;
-  const apiPrefix = (config.public.apiPrefix as string) || '/api/v1';
+/**
+ * CRM extension — TanStack Query hooks.
+ *
+ * All endpoints are admin-only (backend enforces RolesGuard). HTTP goes
+ * through useApi() (central auth + 401 refresh). Query keys are namespaced
+ * under ['crm', ...] and invalidated after each mutation.
+ */
 
-  async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
-    const headers: Record<string, string> = { ...options.headers };
-    if (authStore.token) {
-      headers.Authorization = `Bearer ${authStore.token}`;
-    }
-    const res = await $fetch<T>(`${baseUrl}${apiPrefix}${path}`, {
-      method: options.method,
-      query: options.query,
-      body: options.body as BodyInit | Record<string, unknown> | null | undefined,
-      headers,
-    });
-    return res as T;
-  }
+export const crmKeys = {
+  clients: ['crm', 'clients'] as const,
+  client: (id: number | string) => ['crm', 'clients', id] as const,
+  contacts: (clientId: number | string) => ['crm', 'clients', clientId, 'contacts'] as const,
+  interactions: (clientId: number | string) => ['crm', 'clients', clientId, 'interactions'] as const,
+  projects: ['crm', 'projects'] as const,
+  project: (id: number | string) => ['crm', 'projects', id] as const,
+  statuses: ['crm', 'statuses'] as const,
+  origins: ['crm', 'origins'] as const,
+  dashboard: ['crm', 'dashboard'] as const,
+};
 
-  return { apiFetch };
+function asList<T>(res: PaginatedResponse<T> | T[]): T[] {
+  return Array.isArray(res) ? res : (res.data ?? []);
 }
 
-export function useCrm() {
-  const { apiFetch } = useApi();
+// ─── Clients ──────────────────────────────────────────────────────────
 
-  // ─── Clients ─────────────────────────────────────────────────────────
-
-  async function getClients(
-    page = 1,
-    limit = 20,
-    search?: string,
-    statusId?: number,
-    originId?: number,
-  ): Promise<PaginatedResponse<Client> | Client[]> {
-    const query: Record<string, string | number | undefined> = { page, limit };
-    if (search) query.search = search;
-    if (statusId) query.statusId = statusId;
-    if (originId) query.originId = originId;
-    return apiFetch<PaginatedResponse<Client> | Client[]>('/crm/clients', { query });
-  }
-
-  async function getClient(id: number | string): Promise<Client> {
-    return apiFetch<Client>(`/crm/clients/${id}`);
-  }
-
-  async function createClient(data: ClientPayload): Promise<Client> {
-    return apiFetch<Client>('/crm/clients', { method: 'POST', body: data });
-  }
-
-  async function updateClient(id: number | string, data: ClientPayload): Promise<Client> {
-    return apiFetch<Client>(`/crm/clients/${id}`, { method: 'PATCH', body: data });
-  }
-
-  async function deleteClient(id: number | string): Promise<void> {
-    return apiFetch<void>(`/crm/clients/${id}`, { method: 'DELETE' });
-  }
-
-  // ─── Contacts ────────────────────────────────────────────────────────
-
-  async function getContacts(clientId: number | string): Promise<Contact[]> {
-    return apiFetch<Contact[]>(`/crm/clients/${clientId}/contacts`);
-  }
-
-  async function createContact(clientId: number | string, data: ContactPayload): Promise<Contact> {
-    return apiFetch<Contact>(`/crm/clients/${clientId}/contacts`, { method: 'POST', body: data });
-  }
-
-  async function updateContact(id: number | string, data: ContactPayload): Promise<Contact> {
-    return apiFetch<Contact>(`/crm/clients/0/contacts/${id}`, { method: 'PATCH', body: data });
-  }
-
-  async function deleteContact(id: number | string): Promise<void> {
-    return apiFetch<void>(`/crm/clients/0/contacts/${id}`, { method: 'DELETE' });
-  }
-
-  // ─── Interactions ────────────────────────────────────────────────────
-
-  async function getInteractions(
-    clientId: number | string,
-    page = 1,
-    limit = 20,
-  ): Promise<PaginatedResponse<Interaction> | Interaction[]> {
-    return apiFetch<PaginatedResponse<Interaction> | Interaction[]>(
-      `/crm/clients/${clientId}/interactions`,
-      { query: { page, limit } },
-    );
-  }
-
-  async function createInteraction(clientId: number | string, data: InteractionPayload): Promise<Interaction> {
-    return apiFetch<Interaction>(`/crm/clients/${clientId}/interactions`, { method: 'POST', body: data });
-  }
-
-  async function updateInteraction(id: number | string, data: InteractionPayload): Promise<Interaction> {
-    return apiFetch<Interaction>(`/crm/clients/0/interactions/${id}`, { method: 'PATCH', body: data });
-  }
-
-  async function deleteInteraction(id: number | string): Promise<void> {
-    return apiFetch<void>(`/crm/clients/0/interactions/${id}`, { method: 'DELETE' });
-  }
-
-  // ─── Projects ────────────────────────────────────────────────────────
-
-  async function getProjects(clientId?: number | string): Promise<Project[]> {
-    const query: Record<string, string | number | undefined> = {};
-    if (clientId) query.clientId = clientId;
-    return apiFetch<Project[]>('/crm/projects', { query });
-  }
-
-  async function getProject(id: number | string): Promise<Project> {
-    return apiFetch<Project>(`/crm/projects/${id}`);
-  }
-
-  async function createProject(data: ProjectPayload): Promise<Project> {
-    return apiFetch<Project>('/crm/projects', { method: 'POST', body: data });
-  }
-
-  async function updateProject(id: number | string, data: ProjectPayload): Promise<Project> {
-    return apiFetch<Project>(`/crm/projects/${id}`, { method: 'PATCH', body: data });
-  }
-
-  async function deleteProject(id: number | string): Promise<void> {
-    return apiFetch<void>(`/crm/projects/${id}`, { method: 'DELETE' });
-  }
-
-  // ─── Statuses ─────────────────────────────────────────────────────────
-
-  async function getStatuses(): Promise<Status[]> {
-    return apiFetch<Status[]>('/crm/statuses');
-  }
-
-  async function createStatus(data: StatusPayload): Promise<Status> {
-    return apiFetch<Status>('/crm/statuses', { method: 'POST', body: data });
-  }
-
-  async function updateStatus(id: number | string, data: StatusPayload): Promise<Status> {
-    return apiFetch<Status>(`/crm/statuses/${id}`, { method: 'PATCH', body: data });
-  }
-
-  async function deleteStatus(id: number | string): Promise<void> {
-    return apiFetch<void>(`/crm/statuses/${id}`, { method: 'DELETE' });
-  }
-
-  // ─── Origins ─────────────────────────────────────────────────────────
-
-  async function getOrigins(): Promise<Origin[]> {
-    return apiFetch<Origin[]>('/crm/origins');
-  }
-
-  async function createOrigin(data: OriginPayload): Promise<Origin> {
-    return apiFetch<Origin>('/crm/origins', { method: 'POST', body: data });
-  }
-
-  async function updateOrigin(id: number | string, data: OriginPayload): Promise<Origin> {
-    return apiFetch<Origin>(`/crm/origins/${id}`, { method: 'PATCH', body: data });
-  }
-
-  async function deleteOrigin(id: number | string): Promise<void> {
-    return apiFetch<void>(`/crm/origins/${id}`, { method: 'DELETE' });
-  }
-
-  // ─── Dashboard ───────────────────────────────────────────────────────
-
-  async function getDashboard(): Promise<DashboardData> {
-    return apiFetch<DashboardData>('/crm/dashboard');
-  }
-
-  return {
-    // Clients
-    getClients,
-    getClient,
-    createClient,
-    updateClient,
-    deleteClient,
-    // Contacts
-    getContacts,
-    createContact,
-    updateContact,
-    deleteContact,
-    // Interactions
-    getInteractions,
-    createInteraction,
-    updateInteraction,
-    deleteInteraction,
-    // Projects
-    getProjects,
-    getProject,
-    createProject,
-    updateProject,
-    deleteProject,
-    // Statuses
-    getStatuses,
-    createStatus,
-    updateStatus,
-    deleteStatus,
-    // Origins
-    getOrigins,
-    createOrigin,
-    updateOrigin,
-    deleteOrigin,
-    // Dashboard
-    getDashboard,
-  };
+export function useClientsQuery(params?: {
+  page?: MaybeRefOrGetter<number>;
+  search?: MaybeRefOrGetter<string | undefined>;
+  statusId?: MaybeRefOrGetter<number | undefined>;
+  originId?: MaybeRefOrGetter<number | undefined>;
+}) {
+  return useQuery({
+    queryKey: computed(() => [
+      ...crmKeys.clients,
+      toValue(params?.page) ?? 1,
+      toValue(params?.search) ?? '',
+      toValue(params?.statusId) ?? '',
+      toValue(params?.originId) ?? '',
+    ]),
+    queryFn: () => {
+      const api = useApi();
+      return api.get<PaginatedResponse<Client> | Client[]>('/crm/clients', {
+        query: {
+          page: toValue(params?.page) ?? 1,
+          limit: 20,
+          search: toValue(params?.search),
+          statusId: toValue(params?.statusId),
+          originId: toValue(params?.originId),
+        },
+      });
+    },
+  });
 }
+
+export function useClientQuery(id: MaybeRefOrGetter<number | string | undefined>) {
+  return useQuery({
+    queryKey: computed(() => crmKeys.client(toValue(id) ?? 0)),
+    enabled: computed(() => toValue(id) !== undefined),
+    queryFn: () => {
+      const api = useApi();
+      return api.get<Client>(`/crm/clients/${toValue(id)}`);
+    },
+  });
+}
+
+export function useCreateClientMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: ClientPayload) => {
+      const api = useApi();
+      return api.post<Client>('/crm/clients', data);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: crmKeys.clients });
+      qc.invalidateQueries({ queryKey: crmKeys.dashboard });
+    },
+  });
+}
+
+export function useUpdateClientMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number | string; data: ClientPayload }) => {
+      const api = useApi();
+      return api.patch<Client>(`/crm/clients/${id}`, data);
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: crmKeys.clients });
+      qc.invalidateQueries({ queryKey: crmKeys.client(vars.id) });
+      qc.invalidateQueries({ queryKey: crmKeys.dashboard });
+    },
+  });
+}
+
+export function useDeleteClientMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number | string) => {
+      const api = useApi();
+      return api.delete(`/crm/clients/${id}`);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: crmKeys.clients });
+      qc.invalidateQueries({ queryKey: crmKeys.dashboard });
+    },
+  });
+}
+
+// ─── Contacts (nested under client) ───────────────────────────────────
+
+export function useContactsQuery(clientId: MaybeRefOrGetter<number | string | undefined>) {
+  return useQuery({
+    queryKey: computed(() => crmKeys.contacts(toValue(clientId) ?? 0)),
+    enabled: computed(() => toValue(clientId) !== undefined),
+    queryFn: () => {
+      const api = useApi();
+      return api.get<Contact[]>(`/crm/clients/${toValue(clientId)}/contacts`);
+    },
+  });
+}
+
+export function useCreateContactMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ clientId, data }: { clientId: number | string; data: ContactPayload }) => {
+      const api = useApi();
+      return api.post<Contact>(`/crm/clients/${clientId}/contacts`, data);
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: crmKeys.contacts(vars.clientId) });
+    },
+  });
+}
+
+export function useUpdateContactMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ clientId, id, data }: { clientId: number | string; id: number | string; data: ContactPayload }) => {
+      const api = useApi();
+      return api.patch<Contact>(`/crm/clients/${clientId}/contacts/${id}`, data);
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: crmKeys.contacts(vars.clientId) });
+    },
+  });
+}
+
+export function useDeleteContactMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ clientId, id }: { clientId: number | string; id: number | string }) => {
+      const api = useApi();
+      return api.delete(`/crm/clients/${clientId}/contacts/${id}`);
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: crmKeys.contacts(vars.clientId) });
+    },
+  });
+}
+
+// ─── Interactions (nested under client) ───────────────────────────────
+
+export function useInteractionsQuery(clientId: MaybeRefOrGetter<number | string | undefined>) {
+  return useQuery({
+    queryKey: computed(() => crmKeys.interactions(toValue(clientId) ?? 0)),
+    enabled: computed(() => toValue(clientId) !== undefined),
+    queryFn: () => {
+      const api = useApi();
+      return api.get<PaginatedResponse<Interaction> | Interaction[]>(
+        `/crm/clients/${toValue(clientId)}/interactions`,
+        { query: { limit: 50 } },
+      );
+    },
+  });
+}
+
+export function useCreateInteractionMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ clientId, data }: { clientId: number | string; data: InteractionPayload }) => {
+      const api = useApi();
+      return api.post<Interaction>(`/crm/clients/${clientId}/interactions`, data);
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: crmKeys.interactions(vars.clientId) });
+      qc.invalidateQueries({ queryKey: crmKeys.dashboard });
+    },
+  });
+}
+
+export function useUpdateInteractionMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ clientId, id, data }: { clientId: number | string; id: number | string; data: InteractionPayload }) => {
+      const api = useApi();
+      return api.patch<Interaction>(`/crm/clients/${clientId}/interactions/${id}`, data);
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: crmKeys.interactions(vars.clientId) });
+    },
+  });
+}
+
+export function useDeleteInteractionMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ clientId, id }: { clientId: number | string; id: number | string }) => {
+      const api = useApi();
+      return api.delete(`/crm/clients/${clientId}/interactions/${id}`);
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: crmKeys.interactions(vars.clientId) });
+    },
+  });
+}
+
+// ─── Projects ─────────────────────────────────────────────────────────
+
+export function useProjectsQuery(clientId?: MaybeRefOrGetter<number | string | undefined>) {
+  return useQuery({
+    queryKey: computed(() => [...crmKeys.projects, toValue(clientId) ?? '']),
+    queryFn: () => {
+      const api = useApi();
+      return api.get<Project[]>('/crm/projects', { query: { clientId: toValue(clientId) } });
+    },
+  });
+}
+
+export function useProjectQuery(id: MaybeRefOrGetter<number | string | undefined>) {
+  return useQuery({
+    queryKey: computed(() => crmKeys.project(toValue(id) ?? 0)),
+    enabled: computed(() => toValue(id) !== undefined),
+    queryFn: () => {
+      const api = useApi();
+      return api.get<Project>(`/crm/projects/${toValue(id)}`);
+    },
+  });
+}
+
+export function useCreateProjectMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: ProjectPayload) => {
+      const api = useApi();
+      return api.post<Project>('/crm/projects', data);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: crmKeys.projects });
+      qc.invalidateQueries({ queryKey: crmKeys.dashboard });
+    },
+  });
+}
+
+export function useUpdateProjectMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number | string; data: ProjectPayload }) => {
+      const api = useApi();
+      return api.patch<Project>(`/crm/projects/${id}`, data);
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: crmKeys.projects });
+      qc.invalidateQueries({ queryKey: crmKeys.project(vars.id) });
+      qc.invalidateQueries({ queryKey: crmKeys.dashboard });
+    },
+  });
+}
+
+export function useDeleteProjectMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number | string) => {
+      const api = useApi();
+      return api.delete(`/crm/projects/${id}`);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: crmKeys.projects });
+      qc.invalidateQueries({ queryKey: crmKeys.dashboard });
+    },
+  });
+}
+
+// ─── Statuses / Origins (settings) ────────────────────────────────────
+
+export function useStatusesQuery() {
+  return useQuery({
+    queryKey: crmKeys.statuses,
+    queryFn: () => {
+      const api = useApi();
+      return api.get<Status[]>('/crm/statuses');
+    },
+  });
+}
+
+export function useCreateStatusMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: StatusPayload) => {
+      const api = useApi();
+      return api.post<Status>('/crm/statuses', data);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: crmKeys.statuses });
+      qc.invalidateQueries({ queryKey: crmKeys.clients });
+    },
+  });
+}
+
+export function useUpdateStatusMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number | string; data: StatusPayload }) => {
+      const api = useApi();
+      return api.patch<Status>(`/crm/statuses/${id}`, data);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: crmKeys.statuses });
+      qc.invalidateQueries({ queryKey: crmKeys.clients });
+    },
+  });
+}
+
+export function useDeleteStatusMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number | string) => {
+      const api = useApi();
+      return api.delete(`/crm/statuses/${id}`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: crmKeys.statuses }),
+  });
+}
+
+export function useOriginsQuery() {
+  return useQuery({
+    queryKey: crmKeys.origins,
+    queryFn: () => {
+      const api = useApi();
+      return api.get<Origin[]>('/crm/origins');
+    },
+  });
+}
+
+export function useCreateOriginMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: OriginPayload) => {
+      const api = useApi();
+      return api.post<Origin>('/crm/origins', data);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: crmKeys.origins }),
+  });
+}
+
+export function useUpdateOriginMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number | string; data: OriginPayload }) => {
+      const api = useApi();
+      return api.patch<Origin>(`/crm/origins/${id}`, data);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: crmKeys.origins }),
+  });
+}
+
+export function useDeleteOriginMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number | string) => {
+      const api = useApi();
+      return api.delete(`/crm/origins/${id}`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: crmKeys.origins }),
+  });
+}
+
+// ─── Dashboard ────────────────────────────────────────────────────────
+
+export function useCrmDashboardQuery() {
+  return useQuery({
+    queryKey: crmKeys.dashboard,
+    queryFn: () => {
+      const api = useApi();
+      return api.get<DashboardData>('/crm/dashboard');
+    },
+  });
+}
+
+export { asList as crmAsList };

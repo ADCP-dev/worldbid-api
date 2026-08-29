@@ -14,7 +14,7 @@ const authStore = useAuthStore();
 
 const { data: profile, isLoading: profileLoading } = useMyProfileQuery();
 const { data: summary, isLoading: summaryLoading } = useMySummaryQuery();
-const { data: referralsData, isLoading: referralsLoading } = useMyReferralsQuery();
+const { data: referralsData } = useMyReferralsQuery();
 
 const partnerName = computed(() => profile.value?.name || authStore.user?.firstName || '—');
 const recentReferrals = computed<Referral[]>(() => {

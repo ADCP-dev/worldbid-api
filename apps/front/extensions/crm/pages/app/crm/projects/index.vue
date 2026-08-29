@@ -1,290 +1,349 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, h } from 'vue';
+import { ref, computed, h } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
-import { Eye, Pencil, Trash2 } from 'lucide-vue-next';
+import { Plus } from 'lucide-vue-next';
 import DataTable from '@base/ui-app/components/data-table/DataTable.vue';
-import type { CellContext, Client, Project, ProjectStatus  } from '@crm/types';
+import ViewButton from '@base/ui-app/components/data-table/buttons/ViewButton.vue';
+import EditButton from '@base/ui-app/components/data-table/buttons/EditButton.vue';
+import DeleteButton from '@base/ui-app/components/data-table/buttons/DeleteButton.vue';
+import FormInput from '@base/ui-app/components/form/FormInput.vue';
+import FormSelect from '@base/ui-app/components/form/FormSelect.vue';
+import {
+  useProjectsQuery,
+  useClientsQuery,
+  useCreateProjectMutation,
+  useUpdateProjectMutation,
+  useDeleteProjectMutation,
+  crmAsList,
+} from '../../../composables/useCrm';
+import type { CellContext, Project, ProjectType, ProjectStatus, PaymentStatus } from '../../../types';
+
+definePageMeta({ layout: 'default', middleware: ['auth', 'admin'] });
+
+const { t, d } = useI18n();
+const tableName = 'crm-projects';
+const clientFilter = ref<number | undefined>(undefined);
 
 
-definePageMeta({
-  layout: 'default',
-  middleware: ['auth', 'admin'],
-});
 
-const crm = useCrm();
+const { data: clientsData } = useClientsQuery();
+const clients = computed(() => crmAsList(clientsData.value ?? []));
 
-const loading = ref(false);
-const projects = ref<Project[]>([]);
-const clients = ref<Client[]>([]);
-const clientMap = computed(() => {
-  const map = new Map<number, Client>();
-  for (const c of clients.value) map.set(c.id, c);
-  return map;
-});
+const { data: projectsData, isLoading } = useProjectsQuery(clientFilter);
+const createMut = useCreateProjectMutation();
+const updateMut = useUpdateProjectMutation();
+const deleteMut = useDeleteProjectMutation();
 
-// Filters
-const filterClientId = ref<string | number>('');
-const filterStatus = ref<string>('');
+const projects = computed<Project[]>(() => crmAsList<Project>(projectsData.value ?? []));
+const total = computed(() => projects.value.length);
 
-const PROJECT_STATUS_LABELS: Record<string, string> = {
-  quoted: 'Presupuestado',
-  approved: 'Aprobado',
-  in_progress: 'En progreso',
-  delivered: 'Entregado',
-  cancelled: 'Cancelado',
-  active: 'Activo',
-  paused: 'Pausado',
-  completed: 'Completado',
-  pending: 'Pendiente',
-};
-
-const PAYMENT_STATUS_LABELS: Record<string, string> = {
-  pending: 'Pendiente',
-  partial: 'Parcial',
-  paid: 'Pagado',
-  refunded: 'Reembolsado',
-  overdue: 'Vencido',
-};
-
-const clientOptions = computed(() => [
-  { label: 'Todos', value: '' },
-  ...clients.value.map((c) => ({ label: c.name, value: String(c.id) })),
-]);
-
-const statusOptions = computed(() => [
-  { label: 'Todos', value: '' },
-  ...Object.entries(PROJECT_STATUS_LABELS).map(([value, label]) => ({ value, label })),
-]);
-
-
-function formatDate(date?: string | null): string {
-  if (!date) return '—';
-  return new Date(date).toLocaleDateString('es-ES', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
+function formatCurrency(value: number | null | undefined) {
+  if (value === null || value === undefined) return '—';
+  return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'EUR' }).format(value);
 }
 
-function formatPrice(price?: number | null): string {
-  if (price === null || price === undefined) return '—';
-  return new Intl.NumberFormat('es-ES', {
-    style: 'currency',
-    currency: 'EUR',
-  }).format(price);
+const STATUS_BADGE: Record<string, string> = {
+  quoted: 'badge-warning',
+  approved: 'badge-info',
+  in_progress: 'badge-primary',
+  delivered: 'badge-success',
+  cancelled: 'badge-error',
+};
+
+const PAYMENT_BADGE: Record<string, string> = {
+  pending: 'badge-warning',
+  partial: 'badge-info',
+  paid: 'badge-success',
+  refunded: 'badge-error',
+};
+
+// ─── Create/Edit modal ────────────────────────────────────────────────
+
+const showModal = ref(false);
+const editingId = ref<number | null>(null);
+const saving = ref(false);
+
+const TYPE_OPTIONS = computed(() =>
+  (['pack_1', 'pack_2', 'pack_3', 'pack_4', 'custom'] as ProjectType[]).map((v) => ({
+    value: v,
+    label: t(`ext.crm.projects.types.${v}`),
+  })),
+);
+
+const STATUS_OPTIONS = computed(() =>
+  (['quoted', 'approved', 'in_progress', 'delivered', 'cancelled'] as ProjectStatus[]).map((v) => ({
+    value: v,
+    label: t(`ext.crm.projects.statusOptions.${v}`),
+  })),
+);
+
+const PAYMENT_OPTIONS = computed(() =>
+  (['pending', 'partial', 'paid', 'refunded'] as PaymentStatus[]).map((v) => ({
+    value: v,
+    label: t(`ext.crm.projects.paymentOptions.${v}`),
+  })),
+);
+
+const clientOptions = computed(() =>
+  clients.value.map((c) => ({ value: c.id, label: c.companyName ? `${c.name} (${c.companyName})` : c.name })),
+);
+
+const emptyForm = () => ({
+  clientId: null as number | null,
+  name: '',
+  type: 'pack_1' as ProjectType,
+  price: '' as string | number,
+  status: 'quoted' as ProjectStatus,
+  paymentStatus: 'pending' as PaymentStatus,
+  startDate: '',
+  endDate: '',
+});
+
+const form = ref(emptyForm());
+
+function openCreate() {
+  editingId.value = null;
+  form.value = emptyForm();
+  showModal.value = true;
 }
 
-const filteredProjects = computed(() => {
-  let list = projects.value;
-  if (filterClientId.value) {
-    const id = Number(filterClientId.value);
-    list = list.filter((p) => p.clientId === id);
+function openEdit(project: Project) {
+  editingId.value = project.id;
+  form.value = {
+    clientId: project.clientId,
+    name: project.name || '',
+    type: (project.type as ProjectType) || 'pack_1',
+    price: project.price ?? '',
+    status: project.status || 'quoted',
+    paymentStatus: project.paymentStatus || 'pending',
+    startDate: project.startDate?.slice(0, 10) || '',
+    endDate: project.endDate?.slice(0, 10) || '',
+  };
+  showModal.value = true;
+}
+
+async function submit() {
+  if (!form.value.name.trim() || !form.value.clientId) {
+    toast.error(t('ext.crm.common.error'));
+    return;
   }
-  if (filterStatus.value) {
-    list = list.filter((p) => p.status === filterStatus.value);
+  saving.value = true;
+  const payload = {
+    clientId: Number(form.value.clientId),
+    name: form.value.name.trim(),
+    type: form.value.type,
+    price: form.value.price === '' ? undefined : Number(form.value.price),
+    status: form.value.status,
+    paymentStatus: form.value.paymentStatus,
+    startDate: form.value.startDate || undefined,
+    endDate: form.value.endDate || undefined,
+  };
+  try {
+    if (editingId.value) {
+      await updateMut.mutateAsync({ id: editingId.value, data: payload });
+      toast.success(t('ext.crm.common.saved'));
+    } else {
+      await createMut.mutateAsync(payload);
+      toast.success(t('ext.crm.common.created'));
+    }
+    showModal.value = false;
+  } catch (err: unknown) {
+    toast.error(t('ext.crm.common.error'), { description: errorMessage(err) });
+  } finally {
+    saving.value = false;
   }
-  return list;
-});
+}
+
+const deleteTarget = ref<Project | null>(null);
+
+async function confirmDelete() {
+  if (!deleteTarget.value) return;
+  try {
+    await deleteMut.mutateAsync(deleteTarget.value.id);
+    toast.success(t('ext.crm.common.deleted'));
+    deleteTarget.value = null;
+  } catch (err: unknown) {
+    toast.error(t('ext.crm.common.error'), { description: errorMessage(err) });
+  }
+}
 
 const columns = computed(() => [
   {
     accessorKey: 'name',
-    headerName: 'Nombre',
-    header: 'Nombre',
+    headerName: t('ext.crm.projects.name'),
+    header: t('ext.crm.projects.name'),
     filterType: 'string' as const,
+    cell: ({ row }: CellContext<Project>) => h('span', { class: 'font-medium' }, row.original.name),
+  },
+  {
+    accessorKey: 'clientId',
+    headerName: t('ext.crm.projects.client'),
+    header: t('ext.crm.projects.client'),
     cell: ({ row }: CellContext<Project>) =>
-      h('span', { class: 'font-medium' }, row.original.name),
+      h(
+        'button',
+        {
+          class: 'link link-hover link-primary text-sm',
+          onClick: (e: Event) => {
+            e.stopPropagation();
+            navigateTo(`/app/crm/clients/${row.original.clientId}`);
+          },
+        },
+        `#${row.original.clientId}`,
+      ),
   },
   {
-    id: 'clientName',
-    headerName: 'Cliente',
-    header: 'Cliente',
-    filterType: 'string' as const,
-    cell: ({ row }: CellContext<Project>) => {
-      const client = clientMap.value.get(row.original.clientId);
-      return client
-        ? h(
-            'a',
-            {
-              class: 'link link-hover',
-              onClick: (e: Event) => {
-                e.stopPropagation();
-                navigateTo(`/app/crm/clients/${client.id}`);
-              },
-            },
-            client.name,
-          )
-        : h('span', { class: 'text-base-content/40' }, '—');
-    },
-  },
-  {
-    accessorKey: 'status',
-    headerName: 'Estado',
-    header: 'Estado',
+    accessorKey: 'type',
+    headerName: t('ext.crm.projects.type'),
+    header: t('ext.crm.projects.type'),
     filterType: 'select' as const,
-    options: statusOptions.value,
-    cell: ({ row }: CellContext<Project>) => {
-      const label = PROJECT_STATUS_LABELS[row.original.status] ?? row.original.status;
-      return h('span', { class: 'badge badge-sm badge-ghost' }, label);
-    },
-  },
-  {
-    accessorKey: 'paymentStatus',
-    headerName: 'Pago',
-    header: 'Pago',
-    filterType: 'string' as const,
-    cell: ({ row }: CellContext<Project>) => {
-      const label = PAYMENT_STATUS_LABELS[row.original.paymentStatus] ?? row.original.paymentStatus;
-      return h('span', { class: 'badge badge-sm badge-outline' }, label);
-    },
+    options: TYPE_OPTIONS.value,
+    cell: ({ row }: CellContext<Project>) =>
+      row.original.type ? t(`ext.crm.projects.types.${row.original.type}`, row.original.type) : '—',
   },
   {
     accessorKey: 'price',
-    headerName: 'Presupuesto',
-    header: 'Presupuesto',
-    filterType: 'string' as const,
-    cell: ({ row }: CellContext<Project>) => formatPrice(row.original.price),
+    headerName: t('ext.crm.projects.price'),
+    header: t('ext.crm.projects.price'),
+    cell: ({ row }: CellContext<Project>) =>
+      h('span', { class: 'tabular-nums' }, formatCurrency(row.original.price)),
+  },
+  {
+    accessorKey: 'status',
+    headerName: t('ext.crm.projects.status'),
+    header: t('ext.crm.projects.status'),
+    filterType: 'select' as const,
+    options: STATUS_OPTIONS.value,
+    cell: ({ row }: CellContext<Project>) =>
+      h('span', { class: `badge badge-sm ${STATUS_BADGE[row.original.status] ?? 'badge-outline'}` },
+        t(`ext.crm.projects.statusOptions.${row.original.status}`, row.original.status)),
+  },
+  {
+    accessorKey: 'paymentStatus',
+    headerName: t('ext.crm.projects.paymentStatus'),
+    header: t('ext.crm.projects.paymentStatus'),
+    filterType: 'select' as const,
+    options: PAYMENT_OPTIONS.value,
+    cell: ({ row }: CellContext<Project>) =>
+      h('span', { class: `badge badge-sm ${PAYMENT_BADGE[row.original.paymentStatus] ?? 'badge-outline'}` },
+        t(`ext.crm.projects.paymentOptions.${row.original.paymentStatus}`, row.original.paymentStatus)),
   },
   {
     accessorKey: 'startDate',
-    headerName: 'Inicio',
-    header: 'Inicio',
-    filterType: 'date' as const,
-    cell: ({ row }: CellContext<Project>) => formatDate(row.original.startDate),
-  },
-  {
-    accessorKey: 'endDate',
-    headerName: 'Fin',
-    header: 'Fin',
-    filterType: 'date' as const,
-    cell: ({ row }: CellContext<Project>) => formatDate(row.original.endDate),
+    headerName: t('ext.crm.projects.startDate'),
+    header: t('ext.crm.projects.startDate'),
+    cell: ({ row }: CellContext<Project>) =>
+      row.original.startDate ? d(new Date(row.original.startDate), { year: 'numeric', month: 'short', day: 'numeric' }) : '—',
   },
   {
     id: 'actions',
-    headerName: 'Acciones',
-    header: 'Acciones',
+    headerName: t('ext.crm.common.actions'),
+    header: t('ext.crm.common.actions'),
     enableSorting: false,
     cell: ({ row }: CellContext<Project>) =>
       h('div', { class: 'flex items-center gap-1' }, [
-        h(
-          'button',
-          {
-            class: 'btn btn-ghost btn-xs btn-square',
-            title: 'Ver',
-            onClick: (e: Event) => {
-              e.stopPropagation();
-              navigateTo(`/app/crm/projects/${row.original.id}`);
-            },
+        h(EditButton, {
+          onClick: (e: Event) => {
+            e.stopPropagation();
+            openEdit(row.original);
           },
-          h(Eye, { class: 'w-4 h-4' }),
-        ),
-        h(
-          'button',
-          {
-            class: 'btn btn-ghost btn-xs btn-square',
-            title: 'Editar',
-            onClick: (e: Event) => {
-              e.stopPropagation();
-              navigateTo(`/app/crm/projects/${row.original.id}`);
-            },
+        }),
+        h(DeleteButton, {
+          onClick: (e: Event) => {
+            e.stopPropagation();
+            deleteTarget.value = row.original;
           },
-          h(Pencil, { class: 'w-4 h-4' }),
-        ),
-        h(
-          'button',
-          {
-            class: 'btn btn-ghost btn-xs btn-square text-error',
-            title: 'Eliminar',
-            onClick: async (e: Event) => {
-              e.stopPropagation();
-              await removeProject(row.original.id);
-            },
+        }),
+        h(ViewButton, {
+          ariaLabel: row.original.name,
+          onClick: (e: Event) => {
+            e.stopPropagation();
+            navigateTo(`/app/crm/projects/${row.original.id}`);
           },
-          h(Trash2, { class: 'w-4 h-4' }),
-        ),
+        }),
       ]),
   },
 ]);
-
-async function loadProjects() {
-  loading.value = true;
-  try {
-    const data = await crm.getProjects();
-    projects.value = Array.isArray(data) ? data : [];
-  } catch (err: unknown) {
-    toast.error('Error cargando proyectos', { description: errorMessage(err) });
-  } finally {
-    loading.value = false;
-  }
-}
-
-async function loadClients() {
-  try {
-    const res = await crm.getClients(1, 1000);
-    clients.value = Array.isArray(res) ? res : (res.data ?? []);
-  } catch (err: unknown) {
-    toast.error('Error cargando clientes', { description: errorMessage(err) });
-  }
-}
-
-async function removeProject(id: number | string) {
-  if (!confirm('¿Eliminar proyecto?')) return;
-  try {
-    await crm.deleteProject(id);
-    toast.success('Proyecto eliminado');
-    await loadProjects();
-  } catch (err: unknown) {
-    toast.error('Error eliminando proyecto', { description: errorMessage(err) });
-  }
-}
-
-onMounted(() => {
-  loadClients();
-  loadProjects();
-});
 </script>
 
 <template>
   <div class="p-6 space-y-4">
     <div class="flex items-center justify-between">
-      <h1 class="text-2xl font-bold">Proyectos</h1>
-      <NuxtLink to="/app/crm/projects/new" class="btn btn-primary btn-sm">
-        Nuevo proyecto
-      </NuxtLink>
-    </div>
-
-    <!-- Filters -->
-    <div class="card bg-base-100 shadow-sm border border-base-300">
-      <div class="card-body p-4">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormSelect
-            v-model="filterClientId"
-            label="Cliente"
-            :options="clientOptions"
-          />
-          <FormSelect
-            v-model="filterStatus"
-            label="Estado"
-            :options="statusOptions"
-          />
-        </div>
+      <div>
+        <h1 class="text-2xl font-bold">{{ t('ext.crm.projects.title') }}</h1>
+        <p class="text-base-content/60 mt-1 text-sm">{{ t('ext.crm.projects.subtitle') }}</p>
       </div>
+      <button class="btn btn-primary btn-sm" @click="openCreate">
+        <Plus class="w-4 h-4" /> {{ t('ext.crm.projects.new') }}
+      </button>
     </div>
 
     <div class="card bg-base-100 shadow-sm border border-base-300">
       <div class="card-body p-6">
-        <div v-if="loading" class="flex justify-center py-12">
-          <span class="loading loading-spinner loading-lg text-primary" />
+        <div class="mb-3 max-w-xs">
+          <select v-model="clientFilter" class="select select-sm select-bordered w-full">
+            <option :value="undefined">{{ t('ext.crm.projects.allClients') }}</option>
+            <option v-for="c in clients" :key="c.id" :value="c.id">{{ c.name }}</option>
+          </select>
         </div>
         <DataTable
-          v-else
           :columns="columns"
-          :data="filteredProjects"
-          :total="filteredProjects.length"
-          table-name="crm-projects"
+          :data="projects"
+          :total="total"
+          :loading="isLoading"
+          manual
+          :table-name="tableName"
           @row-click="(row: Project) => navigateTo(`/app/crm/projects/${row.id}`)"
         />
       </div>
     </div>
+
+    <!-- Create/Edit modal -->
+    <dialog v-if="showModal" class="modal modal-open">
+      <div class="modal-box max-w-2xl">
+        <h3 class="text-lg font-bold">
+          {{ editingId ? t('ext.crm.projects.editTitle') : t('ext.crm.projects.newTitle') }}
+        </h3>
+        <div class="py-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormSelect
+            :model-value="form.clientId"
+            :label="t('ext.crm.projects.client')"
+            :options="clientOptions"
+            @update:model-value="form.clientId = $event as number"
+          />
+          <FormInput v-model="form.name" :label="t('ext.crm.projects.name')" required />
+          <FormSelect v-model="form.type" :label="t('ext.crm.projects.type')" :options="TYPE_OPTIONS" />
+          <FormInput v-model="form.price" :label="t('ext.crm.projects.price')" type="number" />
+          <FormSelect v-model="form.status" :label="t('ext.crm.projects.status')" :options="STATUS_OPTIONS" />
+          <FormSelect v-model="form.paymentStatus" :label="t('ext.crm.projects.paymentStatus')" :options="PAYMENT_OPTIONS" />
+          <FormInput v-model="form.startDate" :label="t('ext.crm.projects.startDate')" type="date" />
+          <FormInput v-model="form.endDate" :label="t('ext.crm.projects.endDate')" type="date" />
+        </div>
+        <div class="modal-action">
+          <button class="btn btn-ghost" @click="showModal = false">{{ t('ext.crm.common.cancel') }}</button>
+          <button class="btn btn-primary" :disabled="saving" @click="submit">
+            <span v-if="saving" class="loading loading-spinner loading-xs" />
+            {{ editingId ? t('ext.crm.common.save') : t('ext.crm.common.create') }}
+          </button>
+        </div>
+      </div>
+      <div class="modal-backdrop" @click="showModal = false" />
+    </dialog>
+
+    <!-- Delete confirm -->
+    <dialog v-if="deleteTarget" class="modal modal-open">
+      <div class="modal-box">
+        <h3 class="text-lg font-bold">{{ t('ext.crm.common.confirmDeleteTitle') }}</h3>
+        <p class="py-4">
+          <strong>{{ deleteTarget.name }}</strong> — {{ t('ext.crm.common.deleteWarning') }}
+        </p>
+        <div class="modal-action">
+          <button class="btn btn-ghost" @click="deleteTarget = null">{{ t('ext.crm.common.cancel') }}</button>
+          <button class="btn btn-error" @click="confirmDelete">{{ t('ext.crm.common.delete') }}</button>
+        </div>
+      </div>
+      <div class="modal-backdrop" @click="deleteTarget = null" />
+    </dialog>
   </div>
 </template>
