@@ -7,13 +7,10 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { ErrorTrackerService } from '../error-tracker.service';
-import {
-  buildActionableError,
-} from '@src/core/spec-engine/spec-error-reporter';
-import {
-  HookAbortError,
-} from '@src/core/spec-engine/spec.types';
-import type { ActionableError, SpecError, SpecTrace } from '@src/core/spec-engine/spec.types';
+import { buildActionableError } from '@src/core/spec-engine/spec-error-reporter';
+import { HookAbortError } from '@src/core/spec-engine/spec.types';
+import { extractTraceFromError } from '@src/core/spec-engine/error-trace';
+import type { SpecError, SpecTrace } from '@src/core/spec-engine/spec.types';
 
 /**
  * Detect whether an error originates from the spec engine. The spec engine
@@ -27,7 +24,10 @@ function isSpecEngineError(err: unknown): err is Error & {
   statusCode?: number;
 } {
   if (err instanceof HookAbortError) return true;
-  if (err instanceof Error && (err as { specError?: boolean }).specError === true) {
+  if (
+    err instanceof Error &&
+    (err as { specError?: boolean }).specError === true
+  ) {
     return true;
   }
   return false;
@@ -46,13 +46,17 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       exception instanceof HttpException
         ? exception.getStatus()
         : isSpecEngineError(exception)
-          ? exception.statusCode ?? HttpStatus.BAD_REQUEST
+          ? (exception.statusCode ?? HttpStatus.BAD_REQUEST)
           : HttpStatus.INTERNAL_SERVER_ERROR;
 
     if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
       const message =
         exception instanceof Error ? exception.message : String(exception);
       const stack = exception instanceof Error ? exception.stack : null;
+
+      // Real trace from the pipeline (attached via SPEC_TRACE_MARKER) beats
+      // any synthesized placeholder — it carries the full stage history.
+      const attachedTrace = extractTraceFromError(exception);
 
       this.errorTrackerService
         .logError({
@@ -65,6 +69,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
             ip: request.ip,
             method: request.method,
             url: request.url,
+            ...(attachedTrace ? { trace: attachedTrace } : {}),
           },
         })
         .catch((err) =>
@@ -74,7 +79,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     // ─── Spec-engine errors → ActionableError body (PRD 01) ───────────
     if (isSpecEngineError(exception)) {
-      const trace: SpecTrace = {
+      // Use the real pipeline trace when the error carries one; otherwise
+      // fall back to a minimal synthesized trace (legacy shape).
+      const realTrace = extractTraceFromError(exception);
+      const trace: SpecTrace = realTrace ?? {
         requestId:
           (request.headers['x-request-id'] as string | undefined) ??
           `req_${Date.now().toString(36)}`,

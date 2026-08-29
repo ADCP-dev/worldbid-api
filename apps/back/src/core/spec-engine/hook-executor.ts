@@ -22,7 +22,6 @@ import * as path from 'path';
 
 import type {
   BeforeHook,
-  BeforeHookResult,
   BeforeQueryHook,
   AfterHook,
   HookContext,
@@ -293,7 +292,7 @@ export class HookExecutor {
       if (this.errorReporter) {
         try {
           // Use the static import of computeSpecErrorHash (top of file)
-          this.errorReporter.report({
+          void this.errorReporter.report({
             message: `After hook failed: ${(err as Error).message}`,
             source: `spec-engine:${ctx.resource}:${ctx.operation}`,
             stack: (err as Error).stack,

@@ -124,6 +124,9 @@ export class SpecEngineModule {
 
     // Wire error reporter into hook executor (for Telegram + GitHub issues)
     hookExecutor.setErrorReporter(specErrorReporter);
+    // Wire it into the spec loader too — parse/merge failures after this
+    // point (reload paths) reach the ErrorTracker, not just the logs.
+    SpecLoader.setErrorReporter(specErrorReporter);
 
     // Phase 4: Materialize entities + controllers + webhooks
     const entitySchemas: EntitySchema<any>[] = [];

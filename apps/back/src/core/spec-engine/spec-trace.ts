@@ -17,6 +17,7 @@ import type {
   TraceStageStatus,
   TraceWriter,
 } from './spec.types';
+import { traceStore } from './trace-store';
 
 /**
  * TraceBuilder — builds a SpecTrace as the request flows through the pipeline.
@@ -29,6 +30,10 @@ import type {
  *   // ... more stages ...
  *   trace.finish();
  *   const result = trace.toJSON();
+ *
+ * Every finished trace is pushed into the process-wide traceStore ring
+ * buffer (dev AND prod) so it can be fetched later by requestId. Dev-only
+ * extras (X-Spec-Trace header) are unchanged.
  */
 export class TraceBuilder implements TraceWriter {
   private trace: SpecTrace;
@@ -49,11 +54,17 @@ export class TraceBuilder implements TraceWriter {
     user: { id: number; role: string } | null,
     private readonly logger: Logger,
     isDev: boolean,
+    requestId?: string,
   ) {
     this._active = isDev;
     this.startTime = Date.now();
     this.trace = {
-      requestId: `req_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+      // Adopt the incoming x-request-id when provided so traces join with
+      // error-tracker rows that already record it.
+      requestId:
+        requestId && requestId.trim().length > 0
+          ? requestId.trim()
+          : `req_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
       resource,
       operation,
       user,
@@ -66,7 +77,8 @@ export class TraceBuilder implements TraceWriter {
    * Start timing a stage
    */
   startStage(stage: TraceStageName): void {
-    if (!this._active) return;
+    // Stage timing is cheap — always record it so prod traces carry the
+    // full stage history in the ring buffer (bounded, so no leak).
     this.stageStartTimes.set(stage, Date.now());
   }
 
@@ -81,8 +93,9 @@ export class TraceBuilder implements TraceWriter {
     output?: unknown,
     error?: { message: string; code: string },
   ): void {
-    if (!this._active && status !== 'fail') return;
-
+    // All stages are always recorded (dev AND prod): the ring buffer is
+    // bounded, and full stage history on prod failures is the point. The
+    // X-Spec-Trace header remains dev-only via isActive() in attachTrace.
     const startTime = this.stageStartTimes.get(stage) ?? Date.now();
     const durationMs = Date.now() - startTime;
 
@@ -97,10 +110,7 @@ export class TraceBuilder implements TraceWriter {
     if (output !== undefined) traceStage.output = this.sanitize(output);
     if (error) traceStage.error = error;
 
-    // Always record failures even in prod (for error reporting)
-    if (this._active || status === 'fail') {
-      this.trace.stages.push(traceStage);
-    }
+    this.trace.stages.push(traceStage);
 
     this.stageStartTimes.delete(stage);
   }
@@ -109,7 +119,6 @@ export class TraceBuilder implements TraceWriter {
    * Skip a stage (no work to do)
    */
   skipStage(stage: TraceStageName, reason: string): void {
-    if (!this._active) return;
     this.trace.stages.push({
       stage,
       status: 'skip',
@@ -150,17 +159,25 @@ export class TraceBuilder implements TraceWriter {
   }
 
   /**
-   * Force activate trace (e.g. when an error occurs in prod)
+   * Deprecated no-op. Traces are now always stored in the bounded ring
+   * buffer (traceStore) regardless of mode, so forcing activation for
+   * error capture is unnecessary. Kept for backwards compatibility with
+   * any code that calls it.
    */
   activate(): void {
-    this._active = true;
+    // no-op
   }
 
   /**
-   * Finalize the trace
+   * Finalize the trace and store it in the process-wide ring buffer.
    */
   finish(): void {
     this.trace.totalDurationMs = Date.now() - this.startTime;
+    try {
+      traceStore.add(this.trace);
+    } catch {
+      // Storing must never break the request pipeline.
+    }
   }
 
   /**

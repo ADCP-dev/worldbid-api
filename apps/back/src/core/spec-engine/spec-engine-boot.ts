@@ -14,11 +14,11 @@ import { Injectable, OnModuleInit, Logger, Inject } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
-import * as path from 'node:path';
 import { SpecErrorReporter } from './spec-error-reporter';
 import { RoleRegistry } from './role-registry';
 import { runSpecSeeds } from './spec-seed-loader';
 import { runSchemaDriftCheck } from './spec-schema-drift';
+import { attachTraceToError } from './error-trace';
 import type { LoadedSpec } from './spec-loader';
 
 @Injectable()
@@ -59,9 +59,19 @@ export class SpecEngineBootService implements OnModuleInit {
       this.logger.warn(
         `Could not wire ErrorTrackerService: ${(err as Error).message}`,
       );
-      // Trace enrichment (PRD 01): localize boot failures.
-      const _trace = { layer: 'spec_engine_boot' };
-      void _trace;
+      // Trace enrichment (PRD 01): localize boot failures. The marker is
+      // picked up by the global exception filter if this failure ever
+      // surfaces as a thrown 5xx (defensive — boot usually logs only).
+      attachTraceToError(err instanceof Error ? err : new Error(String(err)), {
+        requestId: `req_boot_${Date.now().toString(36)}`,
+        resource: '',
+        operation: 'read',
+        user: null,
+        stages: [],
+        totalDurationMs: 0,
+        layer: 'spec_engine_boot',
+        step: 'wiring ErrorTrackerService',
+      });
     }
 
     // Build the RoleRegistry from loaded specs + the RoleEntity table so
@@ -96,6 +106,19 @@ export class SpecEngineBootService implements OnModuleInit {
       await runSchemaDriftCheck(this.loadedSpecs, this.dataSource);
     } catch (err) {
       this.logger.error((err as Error).message, (err as Error).stack);
+      // Trace enrichment (PRD 01): tag the drift failure with the boot
+      // layer before rethrowing, so the global filter persists the real
+      // origin instead of a generic 500.
+      attachTraceToError(err instanceof Error ? err : new Error(String(err)), {
+        requestId: `req_boot_${Date.now().toString(36)}`,
+        resource: '',
+        operation: 'read',
+        user: null,
+        stages: [],
+        totalDurationMs: 0,
+        layer: 'spec_engine_boot',
+        step: 'schema drift check',
+      });
       throw err;
     }
 

@@ -327,11 +327,11 @@ export class NotificationDispatcher {
     // in BOTH pipelines (core MailService AND dispatcher). app.notificationEmail
     // remains a recipient (for admin alerts), NOT the sender.
     const fromName =
-      this.configService?.get<string>('mail.defaultName') ??
+      this.configService?.get<string>('mail.defaultName', { infer: true }) ??
       appConfig.name ??
       '';
     const fromEmail =
-      this.configService?.get<string>('mail.defaultEmail') ??
+      this.configService?.get<string>('mail.defaultEmail', { infer: true }) ??
       appConfig.notificationEmail ??
       '';
     await ctx.sendEmail({

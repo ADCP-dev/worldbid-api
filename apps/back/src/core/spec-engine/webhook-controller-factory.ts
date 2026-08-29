@@ -34,6 +34,7 @@ import type { HookContext as SpecHookContext } from './spec.types';
 import { SpecEngineBootService } from './spec-engine-boot';
 import { HookContextImpl } from './hook-context';
 import { TraceBuilder } from './spec-trace';
+import { attachTraceToError } from './error-trace';
 
 /* -------------------------------------------------------------------------- */
 /* Types                                                                       */
@@ -117,16 +118,18 @@ export class WebhookControllerFactory {
 
         // Build full HookContext via SpecEngineBootService
         let ctx: SpecHookContext;
+        let trace: TraceBuilder | null = null;
         try {
           const moduleRef = SpecEngineBootService.getModuleRef();
           const configService = SpecEngineBootService.getConfigService();
           const user = (req as any).user ?? null;
-          const trace = new TraceBuilder(
+          trace = new TraceBuilder(
             this.resourceName,
             'webhook',
             user ? { id: user.id, role: user.role?.name || '' } : null,
             this.logger,
             process.env.NODE_ENV !== 'production',
+            req.headers?.['x-request-id'] as string | undefined,
           );
 
           ctx = new HookContextImpl(
@@ -141,23 +144,38 @@ export class WebhookControllerFactory {
           this.logger.error(
             `Failed to build HookContext: ${(err as Error).message}`,
           );
-          // Trace enrichment (PRD 01): localize to the webhook controller.
-          const _trace = {
-            layer: 'webhook_controller',
-            webhookName: this.webhookName,
-          };
-          void _trace;
           throw new InternalServerErrorException('Internal context error');
         }
 
         // Invoke the handler
         try {
           await this.handler(body, ctx);
+          trace.finish();
           this.logger.log(
             `Webhook '${this.webhookName}' processed successfully`,
           );
           return { status: 'ok' };
         } catch (err) {
+          trace.endStage(
+            'response',
+            'fail',
+            { error: err instanceof Error ? err.message : String(err) },
+            undefined,
+            undefined,
+            {
+              message: err instanceof Error ? err.message : String(err),
+              code: 'WEBHOOK_HANDLER_ERROR',
+            },
+          );
+          trace.finish();
+          attachTraceToError(
+            err instanceof Error ? err : new Error(String(err)),
+            {
+              ...trace.toJSON(),
+              layer: 'webhook_controller',
+              step: `webhook ${this.webhookName} handler`,
+            },
+          );
           const message = err instanceof Error ? err.message : String(err);
           this.logger.error(
             `Handler error for webhook '${this.webhookName}': ${message}`,
@@ -280,6 +298,7 @@ export class WebhookControllerFactory {
           ? handlerFilePath.replace(/\.ts$/, '.js')
           : handlerFilePath;
 
+      // eslint-disable-next-line @typescript-eslint/no-require-imports -- dynamic extension handler load (cached at materialization time)
       const mod = require(requirePath);
 
       const handlerFn: unknown =

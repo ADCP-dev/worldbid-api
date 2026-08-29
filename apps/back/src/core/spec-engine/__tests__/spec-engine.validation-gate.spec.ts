@@ -121,6 +121,8 @@ vi.mock('@src/core/spec-engine/spec-loader', () => {
     SpecLoader: {
       // Real signature: load(extensionsDir) — resources injected per-test.
       load: () => mockSpecState.loaded,
+      // Module wiring calls setErrorReporter after creating the reporter.
+      setErrorReporter: () => undefined,
     },
     // spec.types re-exports this type from spec-loader — keep the name
     // available for type-only consumers at runtime.

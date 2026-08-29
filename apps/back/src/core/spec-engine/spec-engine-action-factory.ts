@@ -64,6 +64,7 @@ import { HookAbortError } from './spec.types';
 import { SpecEngineBootService } from './spec-engine-boot';
 import { HookContextImpl } from './hook-context';
 import { TraceBuilder } from './spec-trace';
+import { attachTraceToError } from './error-trace';
 import {
   resolveHookModulePath,
   loadExtensionModule,
@@ -174,6 +175,7 @@ export class SpecEngineActionFactory {
         input: Record<string, unknown>,
         user: AuthenticatedUser | null,
         res: Response | undefined,
+        requestId?: string,
       ): Promise<unknown> {
         const { action, handler } = loaded;
         const trace = new TraceBuilder(
@@ -182,6 +184,7 @@ export class SpecEngineActionFactory {
           user ? { id: user.id, role: user.role?.name || '' } : null,
           this.logger,
           isDev,
+          requestId,
         );
 
         trace.startStage('auth');
@@ -288,14 +291,14 @@ export class SpecEngineActionFactory {
             `Action "${action.name}" failed: ${message}`,
             err instanceof Error ? err.stack : undefined,
           );
-          // Trace enrichment (PRD 01): localize to the action factory.
-          const _trace = {
+          // Trace enrichment (PRD 01): attach the finished trace so the
+          // global filter persists the real stage history with the
+          // action-factory layer marker.
+          attachTraceToError(err instanceof Error ? err : new Error(message), {
+            ...trace.toJSON(),
             layer: 'action_factory',
-            actionName: action.name,
-            handler: action.handler,
-            input,
-          };
-          void _trace;
+            step: `action ${action.name}`,
+          });
           trace.endStage(
             'afterHook',
             'fail',
@@ -361,7 +364,7 @@ export class SpecEngineActionFactory {
       const hasId = actionPath.includes(':id');
 
       // Define the handler function with the correct NestJS signature.
-      const routeHandler = async function (
+      const routeHandler = function (
         this: any,
         paramId: string | undefined,
         body: unknown,
@@ -375,7 +378,14 @@ export class SpecEngineActionFactory {
           body && typeof body === 'object'
             ? (body as Record<string, unknown>)
             : {};
-        return this.runAction(loaded, entityId, input, user, res);
+        return this.runAction(
+          loaded,
+          entityId,
+          input,
+          user,
+          res,
+          req?.headers?.['x-request-id'] as string | undefined,
+        );
       };
 
       // Build the parameter list matching the decorators we'll apply.

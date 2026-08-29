@@ -172,7 +172,7 @@ export async function runSchemaDriftCheck(
 }
 
 export class DriftDetectedError extends Error {
-  constructor(extension: string, previousHash: string, currentHash: string) {
+  constructor(extension: string, _previousHash: string, _currentHash: string) {
     super(
       `Spec schema drift detected for extension "${extension}" — run spec:generate-migration and apply migrations before deploying.`,
     );

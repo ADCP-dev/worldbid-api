@@ -31,7 +31,6 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import * as yaml from 'js-yaml';
 import type {
   ExtensionSpec,
   ResourceSpec,
@@ -870,12 +869,33 @@ export class MigrationGenerator {
    * @param options Optional: previous snapshot for diffing
    * @returns Generation result with metadata about what was generated
    */
-  static async generate(
+  static generate(
     extensionName: string,
     extensionsDir: string,
     migrationsDir: string,
     options?: GenerateOptions,
   ): Promise<GenerationResult> {
+    return Promise.resolve(
+      MigrationGenerator.generateSync(
+        extensionName,
+        extensionsDir,
+        migrationsDir,
+        options,
+      ),
+    );
+  }
+
+  /**
+   * Synchronous core of generate(). Kept separate so the public generate()
+   * keeps its async signature (callers await it) while eslint's
+   * require-await stays clean — the body performs no I/O awaits.
+   */
+  private static generateSync(
+    extensionName: string,
+    extensionsDir: string,
+    migrationsDir: string,
+    options?: GenerateOptions,
+  ): GenerationResult {
     const spec = readSpecFile(extensionName, extensionsDir);
     const previous = options?.previousSnapshot;
 
@@ -1251,5 +1271,8 @@ async function main(): Promise<void> {
 
 // Run main only when executed directly (not when imported)
 if (require.main === module) {
-  main();
+  main().catch((err: unknown) => {
+    console.error(`[MigrationGenerator] Fatal: ${(err as Error).message}`);
+    process.exit(1);
+  });
 }

@@ -218,7 +218,7 @@ export class OutboundWebhookDispatcher {
   private static async resolveTargets(
     webhook: OutboundWebhookSpec,
     event: string,
-    ctx: HookContext,
+    _ctx: HookContext,
   ): Promise<Array<{ url: string; secret?: string | null }>> {
     if (webhook.subscriptionModel === 'static') {
       if (!webhook.url) {
@@ -241,7 +241,7 @@ export class OutboundWebhookDispatcher {
    */
   private static async querySubscriptions(
     event: string,
-    ctx: HookContext,
+    _ctx: HookContext,
   ): Promise<Array<{ url: string; secret?: string | null }>> {
     try {
       const moduleRef = SpecEngineBootService.getModuleRef();
@@ -299,7 +299,9 @@ export class OutboundWebhookDispatcher {
     if (!webhook.handler) return payload;
     let transform = this.transformCache.get(webhook.handler);
     if (transform === undefined) {
-      transform = this.loadTransform(webhook.handler, ctx);
+      transform = await Promise.resolve(
+        this.loadTransform(webhook.handler, ctx),
+      );
       this.transformCache.set(webhook.handler, transform);
     }
     if (!transform) return payload; // load failure → use base payload
@@ -315,7 +317,7 @@ export class OutboundWebhookDispatcher {
 
   private static loadTransform(
     handlerPath: string,
-    ctx: HookContext,
+    _ctx: HookContext,
   ):
     | ((
         payload: Record<string, unknown>,

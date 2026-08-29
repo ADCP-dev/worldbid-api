@@ -4,13 +4,12 @@
  * This controller lets the front-end (and tooling) discover what the spec
  * engine has materialized at runtime: which resources exist, their fields,
  * permissions, hooks, notifications, jobs, and webhooks. It also exposes a
- * trace lookup endpoint (admin-only) that is currently a stub pending a trace
- * store backend.
+ * trace lookup endpoint (admin-only) backed by the in-memory trace store.
  *
  * Routes (all under the global api prefix + URI versioning → /api/v1/_spec/*):
  *   GET /_spec/resources        — all resources
  *   GET /_spec/resources/:name  — a single resource spec
- *   GET /_spec/trace/:requestId — trace by request ID (admin only, stub)
+ *   GET /_spec/trace/:requestId — trace lookup by request ID (admin only)
  *
  * The loaded specs are injected via the 'SPEC_LOADED_SPECS' provider token,
  * which is registered in SpecEngineModule.register().
@@ -40,8 +39,10 @@ import type {
   NotificationSpec,
   JobSpec,
   WebhookSpec,
+  SpecTrace,
 } from './spec.types';
 import type { LoadedSpec } from './spec-loader';
+import { traceStore } from './trace-store';
 
 /**
  * Shape returned for a single resource in the metadata payload.
@@ -70,14 +71,26 @@ export interface SpecResourcesResponse {
 }
 
 /**
- * Trace lookup result (stub). The real shape will come from the trace
- * store backend once implemented; for now we return a placeholder.
+ * Trace lookup result: found traces carry the full SpecTrace.
  */
-export interface SpecTraceStubResponse {
+export interface SpecTraceFoundResponse {
+  found: true;
+  trace: SpecTrace;
+}
+
+/**
+ * Trace lookup result when the requestId is not in the ring buffer
+ * (unknown id, evicted oldest-first, or store restarted after boot).
+ */
+export interface SpecTraceNotFoundResponse {
   requestId: string;
   found: false;
   message: string;
 }
+
+export type SpecTraceLookupResponse =
+  | SpecTraceFoundResponse
+  | SpecTraceNotFoundResponse;
 
 @ApiTags('Spec Engine')
 @ApiBearerAuth()
@@ -118,25 +131,24 @@ export class SpecMetaController {
 
   // ─── GET /_spec/trace/:requestId ───────────────────────────────────────
   /**
-   * Returns the trace for a given request ID. Admin-only.
-   *
-   * This is a stub: the trace store backend is not yet wired up, so we
-   * always report `found: false`. Once a TraceStore provider exists,
-   * inject it here and delegate the lookup.
+   * Returns the trace for a given request ID from the in-memory ring
+   * buffer. Admin-only.
    */
   @Get('trace/:requestId')
   @Roles(RoleEnum.admin)
-  getTrace(@Param('requestId') requestId: string): SpecTraceStubResponse {
-    this.logger.debug(
-      `Trace lookup requested for requestId="${requestId}" (stub)`,
-    );
-    return {
-      requestId,
-      found: false,
-      message:
-        'Trace store is not yet implemented. Traces are currently emitted ' +
-        'via the X-Spec-Trace response header in dev mode only.',
-    };
+  getTrace(@Param('requestId') requestId: string): SpecTraceLookupResponse {
+    const trace = traceStore.get(requestId);
+    if (!trace) {
+      return {
+        requestId,
+        found: false,
+        message:
+          'Trace not found — the requestId may be unknown, the ring buffer ' +
+          'may have evicted it (bounded, oldest-first), or the process may ' +
+          'have restarted since the request ran.',
+      };
+    }
+    return { found: true, trace };
   }
 
   // ─── Helpers ───────────────────────────────────────────────────────────

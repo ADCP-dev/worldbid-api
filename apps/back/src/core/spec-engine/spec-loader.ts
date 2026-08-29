@@ -20,6 +20,10 @@ import { EventEmitter } from 'node:events';
 import * as yaml from 'js-yaml';
 import type { ExtensionSpec, ResourceSpec } from './spec.types';
 import { mergeSpecs, SpecMergeError } from './spec-loader.merge';
+import { attachTraceToError } from './error-trace';
+import type { SpecErrorReporter } from './spec-error-reporter';
+import { computeSpecErrorHash } from './spec-error-reporter';
+import type { SpecTrace } from './spec.types';
 
 const logger = new Logger('SpecLoader');
 
@@ -42,6 +46,57 @@ export const specLoaderEvents = new EventEmitter();
 specLoaderEvents.setMaxListeners(50);
 
 export class SpecLoader {
+  /**
+   * SpecErrorReporter injected lazily by SpecEngineModule.register() (same
+   * pattern as HookExecutor) to avoid module-graph cycles. While unbound,
+   * spec load failures are log-only (pre-existing behavior).
+   */
+  private static errorReporter: SpecErrorReporter | null = null;
+
+  static setErrorReporter(reporter: SpecErrorReporter): void {
+    SpecLoader.errorReporter = reporter;
+  }
+
+  /**
+   * Report a spec load failure through SpecErrorReporter when bound.
+   * Never throws — reporting must not mask the original failure.
+   */
+  private static reportLoadFailure(
+    message: string,
+    specFile: string,
+    err: unknown,
+  ): void {
+    const reporter = SpecLoader.errorReporter;
+    if (!reporter) return;
+
+    const stack = err instanceof Error ? err.stack : undefined;
+    const source = `spec-engine/loader:${specFile}`;
+    const trace: SpecTrace = {
+      requestId: `req_loader_${Date.now().toString(36)}`,
+      resource: '',
+      operation: 'read',
+      user: null,
+      stages: [],
+      totalDurationMs: 0,
+      layer: 'spec_loader',
+      step: 'parsing spec file',
+      specFile,
+    };
+    try {
+      void reporter.report({
+        message,
+        source,
+        stack,
+        stage: 'spec_load',
+        specFile,
+        hash: computeSpecErrorHash(message, source, stack),
+        occurrences: 1,
+        trace,
+      });
+    } catch {
+      // Best effort — never mask the original error.
+    }
+  }
   /**
    * Scan extensions/ for *.spec.yaml files.
    *
@@ -110,8 +165,11 @@ export class SpecLoader {
             `❌ Failed to parse ${specFile}: ${(err as Error).message}`,
           );
           // Trace enrichment (PRD 01): localize spec parse failures.
-          const _trace = { layer: 'spec_loader', specFile };
-          void _trace;
+          this.reportLoadFailure(
+            `Failed to parse spec file ${specFile}`,
+            specFile,
+            err,
+          );
         }
       }
 
@@ -133,6 +191,24 @@ export class SpecLoader {
         if (err instanceof SpecMergeError) {
           logger.error(
             `❌ Merge conflict in extension "${dir.name}": ${(err as Error).message}`,
+          );
+          // Trace enrichment (PRD 01): the global filter picks this up
+          // through the error-trace marker when the exception surfaces.
+          attachTraceToError(err, {
+            requestId: `req_loader_${Date.now().toString(36)}`,
+            resource: '',
+            operation: 'read',
+            user: null,
+            stages: [],
+            totalDurationMs: 0,
+            layer: 'spec_loader',
+            step: 'merging split spec files',
+            specFile: primaryPath,
+          });
+          this.reportLoadFailure(
+            `Spec merge conflict in extension "${dir.name}"`,
+            primaryPath,
+            err,
           );
           throw err;
         }
@@ -226,7 +302,7 @@ export class SpecLoader {
    */
   static validateResource(
     spec: ResourceSpec,
-    allResources: Map<string, ResourceSpec>,
+    _allResources: Map<string, ResourceSpec>,
   ): string[] {
     const errors: string[] = [];
 

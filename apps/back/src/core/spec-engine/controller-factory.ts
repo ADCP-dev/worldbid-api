@@ -43,7 +43,6 @@ import {
   In,
 } from 'typeorm';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { z } from 'zod';
 import type { Request, Response } from 'express';
 
 import { Roles } from '@iam/roles/roles.decorator';
@@ -62,6 +61,7 @@ import type {
 import { HookAbortError } from './spec.types';
 import { ValidationFactory } from './validation-factory';
 import { TraceBuilder } from './spec-trace';
+import { attachTraceToError } from './error-trace';
 import { HookExecutor, LoadedHook } from './hook-executor';
 import { NotificationDispatcher } from './notification-dispatcher';
 import { HookContextImpl } from './hook-context';
@@ -587,7 +587,6 @@ export class ControllerFactory {
         user: AuthenticatedUser | null,
       ): Record<string, unknown> {
         if (!user || Object.keys(fieldPerms).length === 0) return entity;
-        const roleName = this.roleIdToName(user.role?.id);
         const result: Record<string, unknown> = {};
         for (const [key, value] of Object.entries(entity)) {
           const fieldRule = fieldPerms[key];
@@ -629,6 +628,7 @@ export class ControllerFactory {
           user ? { id: user.id, role: user.role?.name || '' } : null,
           this.logger,
           isDev,
+          req?.headers?.['x-request-id'] as string | undefined,
         );
 
         trace.startStage('auth');
@@ -756,6 +756,7 @@ export class ControllerFactory {
           user ? { id: user.id, role: user.role?.name || '' } : null,
           this.logger,
           isDev,
+          req?.headers?.['x-request-id'] as string | undefined,
         );
 
         trace.startStage('auth');
@@ -838,6 +839,7 @@ export class ControllerFactory {
           user ? { id: user.id, role: user.role?.name || '' } : null,
           this.logger,
           isDev,
+          req?.headers?.['x-request-id'] as string | undefined,
         );
 
         // Stage 1: Auth (already passed via guard)
@@ -926,15 +928,14 @@ export class ControllerFactory {
               id: saved.id,
             });
           } catch (err) {
-            // Trace enrichment (PRD 01): localize the DB failure to the
-            // controller factory pipeline so ActionableError can point at
-            // the resource + operation.
-            const _trace = {
+            // Trace enrichment (PRD 01): mark the DB failure with the layer
+            // + resource context, and attach the in-progress trace so the
+            // global filter persists the full stage history.
+            attachTraceToError(err as Error, {
+              ...trace.toJSON(),
               layer: 'controller_factory',
-              operation: 'create',
-              resource: resourceName,
-            };
-            void _trace;
+              step: 'create → db insert',
+            });
             trace.endStage('db', 'fail', { error: (err as Error).message });
             throw err;
           }
@@ -993,6 +994,11 @@ export class ControllerFactory {
             trace.endStage('db', 'fail', { error: (err as Error).message });
             trace.finish();
             this.attachTrace(res, trace);
+            attachTraceToError(err as Error, {
+              ...trace.toJSON(),
+              layer: 'controller_factory',
+              step: 'create → transaction',
+            });
             throw err;
           }
         } else {
@@ -1073,6 +1079,7 @@ export class ControllerFactory {
           user ? { id: user.id, role: user.role?.name || '' } : null,
           this.logger,
           isDev,
+          req?.headers?.['x-request-id'] as string | undefined,
         );
 
         trace.startStage('auth');
@@ -1194,6 +1201,11 @@ export class ControllerFactory {
               id: numericId,
             });
           } catch (err) {
+            attachTraceToError(err as Error, {
+              ...trace.toJSON(),
+              layer: 'controller_factory',
+              step: 'update → db update',
+            });
             trace.endStage('db', 'fail', { error: (err as Error).message });
             throw err;
           }
@@ -1259,6 +1271,11 @@ export class ControllerFactory {
             trace.endStage('db', 'fail', { error: (err as Error).message });
             trace.finish();
             this.attachTrace(res, trace);
+            attachTraceToError(err as Error, {
+              ...trace.toJSON(),
+              layer: 'controller_factory',
+              step: 'update → transaction',
+            });
             throw err;
           }
         } else {
@@ -1357,6 +1374,7 @@ export class ControllerFactory {
           user ? { id: user.id, role: user.role?.name || '' } : null,
           this.logger,
           isDev,
+          req?.headers?.['x-request-id'] as string | undefined,
         );
 
         trace.startStage('auth');
@@ -1434,6 +1452,11 @@ export class ControllerFactory {
             trace.endStage('db', 'fail', { error: (err as Error).message });
             trace.finish();
             this.attachTrace(res, trace);
+            attachTraceToError(err as Error, {
+              ...trace.toJSON(),
+              layer: 'controller_factory',
+              step: 'delete → transaction',
+            });
             throw err;
           }
         } else {
@@ -1517,13 +1540,13 @@ export class ControllerFactory {
        * SpecAuditLogger. Respects AuditSpec.fields (allow-list) and
        * AuditSpec.exclude (deny-list). Fire-and-forget at the call site.
        */
-      private async maybeAudit(
+      private maybeAudit(
         existing: Record<string, unknown>,
         newValues: Record<string, unknown>,
         spec: ResourceSpec,
         user: AuthenticatedUser | null,
       ): Promise<void> {
-        if (!spec.audit) return;
+        if (!spec.audit) return Promise.resolve();
 
         // Resolve the audit logger lazily from the DI container via the
         // boot service's ModuleRef. If it isn't available, silently bail.
@@ -1532,9 +1555,9 @@ export class ControllerFactory {
           const moduleRef = SpecEngineBootService.getModuleRef();
           auditLogger = moduleRef.get(SpecAuditLogger, { strict: false });
         } catch {
-          return; // SpecAuditLogger not registered — auditing disabled.
+          return Promise.resolve(); // SpecAuditLogger not registered — auditing disabled.
         }
-        if (!auditLogger) return;
+        if (!auditLogger) return Promise.resolve();
 
         // Determine which fields to audit.
         const auditSpec = spec.audit === true ? {} : spec.audit;
@@ -1594,7 +1617,7 @@ export class ControllerFactory {
        * Fire outbound webhooks for an entity event, and schedule any
        * entity-level scheduled actions. Fire-and-forget: never throws.
        */
-      private async dispatchOutboundAndScheduled(
+      private dispatchOutboundAndScheduled(
         event: string,
         entity: Record<string, unknown>,
         spec: ResourceSpec,
@@ -1635,6 +1658,7 @@ export class ControllerFactory {
             });
           }
         }
+        return Promise.resolve();
       }
 
       private afterEntityCreate(
