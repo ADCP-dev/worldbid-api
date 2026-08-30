@@ -8,6 +8,11 @@ import { useLocalPostsQuery, type UpPostRecord } from '../../composables/useUplo
 
 const { t } = useI18n();
 
+definePageMeta({
+  layout: 'default',
+  middleware: ['auth', 'admin'],
+});
+
 const activeTab = ref<'compose' | 'history'>('compose');
 
 const localQuery = useLocalPostsQuery();
