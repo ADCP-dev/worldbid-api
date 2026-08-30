@@ -17,8 +17,8 @@ import {
 
 const { t } = useI18n();
 
-provideComposer();
-const composer = useComposer();
+const composerState = provideComposer();
+const composer = useComposer(composerState);
 const state = composer.state;
 
 const stepIndex = computed(() => composer.steps.indexOf(state.step));

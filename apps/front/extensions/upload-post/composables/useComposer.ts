@@ -124,8 +124,10 @@ export function provideComposer(): ComposerState {
   return state;
 }
 
-export function useComposer() {
-  const injected = inject(COMPOSER_KEY);
+export function useComposer(stateOverride?: ComposerState) {
+  // provide() is only visible to DESCENDANTS, so the owner component that
+  // called provideComposer() must pass its own state back in here.
+  const injected = stateOverride ?? inject(COMPOSER_KEY);
   if (!injected) {
     throw new Error('useComposer must be used within a provided composer');
   }
