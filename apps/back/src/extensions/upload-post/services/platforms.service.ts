@@ -20,6 +20,9 @@ export class PlatformsService {
   async selectGoogleBusinessLocation(locationId: string) {
     return this.client.selectGoogleBusinessLocation(locationId);
   }
+  async getCurrentUser() {
+    return this.client.getCurrentUser();
+  }
   async getRedditDetailedPost(postId: string) {
     return this.client.getRedditDetailedPost(postId);
   }

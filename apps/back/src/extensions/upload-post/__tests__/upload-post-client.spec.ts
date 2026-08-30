@@ -230,6 +230,24 @@ describe('UploadPostClientService — WU1 additions', () => {
       expect(fetchSpy).not.toHaveBeenCalled();
     });
   });
+
+  describe('account /me (W2 remediation)', () => {
+    it('should GET /api/uploadposts/me with auth header and return payload', async () => {
+      fetchSpy.mockResolvedValueOnce(
+        new Response(JSON.stringify({ plan: 'pro', usage: { used: 3 } }), {
+          status: 200,
+        }),
+      );
+      const res = await client.getCurrentUser();
+      expect(res).toEqual({ plan: 'pro', usage: { used: 3 } });
+      const { url, init } = lastCall();
+      expect(url.pathname).toBe('/api/uploadposts/me');
+      expect(init.method).toBe('GET');
+      expect((init.headers as Record<string, string>).Authorization).toMatch(
+        /^Apikey /,
+      );
+    });
+  });
 });
 
 function url_pathOfLast(fetchMock: { mock: { calls: unknown[][] } }): string {

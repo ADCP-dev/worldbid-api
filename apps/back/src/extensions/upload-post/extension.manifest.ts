@@ -61,6 +61,8 @@ const manifest: ExtensionManifest = {
       // Weekly report
       { method: 'GET', path: 'upload-post/weekly-report' },
       { method: 'POST', path: 'upload-post/weekly-report/send' },
+      // Account (upstream /me passthrough)
+      { method: 'GET', path: 'upload-post/me' },
       // Platforms
       { method: 'GET', path: 'upload-post/platforms/facebook/pages' },
       { method: 'GET', path: 'upload-post/platforms/linkedin/pages' },

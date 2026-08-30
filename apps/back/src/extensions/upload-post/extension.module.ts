@@ -37,6 +37,7 @@ import {
   PlatformsController,
   InstagramController,
 } from '@ext/upload-post/controllers/platforms-instagram.controller';
+import { AccountController } from '@ext/upload-post/controllers/account.controller';
 import { ContentIdeasController } from '@ext/upload-post/controllers/content-ideas.controller';
 import { MonthlyAnalyticsController } from '@ext/upload-post/controllers/monthly-analytics.controller';
 
@@ -63,6 +64,7 @@ import { MonthlyAnalyticsController } from '@ext/upload-post/controllers/monthly
     WeeklyReportController,
     PlatformsController,
     InstagramController,
+    AccountController,
     ContentIdeasController,
     MonthlyAnalyticsController,
   ],
