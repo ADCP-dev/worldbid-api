@@ -127,6 +127,8 @@ export default defineNuxtConfig(
             'es/ext/cms.json',
             'es/ext/ka.json',
             'es/ext/upload-post.json',
+            'es/ext/crm.json',
+            'es/ext/affiliate.json',
           ],
         },
         {
@@ -148,6 +150,8 @@ export default defineNuxtConfig(
             'en/ext/cms.json',
             'en/ext/ka.json',
             'en/ext/upload-post.json',
+            'en/ext/crm.json',
+            'en/ext/affiliate.json',
           ],
         },
       ].filter((l) => SUPPORTED_LOCALES.includes(l.code as typeof SUPPORTED_LOCALES[number])),

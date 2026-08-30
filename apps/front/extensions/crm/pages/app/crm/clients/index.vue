@@ -7,6 +7,7 @@ import DataTable from '@base/ui-app/components/data-table/DataTable.vue';
 import ViewButton from '@base/ui-app/components/data-table/buttons/ViewButton.vue';
 import EditButton from '@base/ui-app/components/data-table/buttons/EditButton.vue';
 import DeleteButton from '@base/ui-app/components/data-table/buttons/DeleteButton.vue';
+import { useTableStateStore } from '@base/ui-app/stores/useTableState';
 import FormInput from '@base/ui-app/components/form/FormInput.vue';
 import FormSelect from '@base/ui-app/components/form/FormSelect.vue';
 import FormSwitch from '@base/ui-app/components/form/FormSwitch.vue';
@@ -24,6 +25,7 @@ import type { CellContext, Client } from '../../../types';
 definePageMeta({ layout: 'default', middleware: ['auth', 'admin'] });
 
 const { t } = useI18n();
+const tableStateStore = useTableStateStore();
 
 const tableName = 'crm-clients';
 
