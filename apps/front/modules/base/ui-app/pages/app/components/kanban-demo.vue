@@ -174,7 +174,6 @@ function handleUpdateTaskState(payload: { taskId: string; newStateId: string; ol
 function handleUpdateTaskOrder(payload: { taskId: string; stateId: string; index: number }) {
   const task = findTask(payload.taskId);
   if (!task) return;
-  task.stateId = payload.stateId;
   task.order = payload.index;
   // Insert-at-index semantics: shift siblings below the insertion point so the
   // ordering stays total and stable across re-renders.
@@ -183,6 +182,18 @@ function handleUpdateTaskOrder(payload: { taskId: string; stateId: string; index
     if ((other.order ?? Number.MAX_SAFE_INTEGER) >= payload.index) {
       other.order = (other.order ?? 0) + 1;
     }
+  }
+}
+
+/** List-view bulk commit: the DOM order the user sees becomes the source of truth. */
+function handleUpdateTasksOrder(
+  commit: Array<{ taskId: string; stateId: string; order: number }>,
+) {
+  for (const entry of commit) {
+    const task = findTask(entry.taskId);
+    if (!task) continue;
+    task.stateId = entry.stateId;
+    task.order = entry.order;
   }
 }
 
@@ -348,6 +359,7 @@ function handleDialogClosed() {
         :state-config="stateConfig"
         @update:task-state="handleUpdateTaskState"
         @update:task-order="handleUpdateTaskOrder"
+        @update:tasks-order="handleUpdateTasksOrder"
         @create-task="handleCreateTask"
         @update-task-title="handleUpdateTaskTitle"
         @delete-task="handleDeleteTask"

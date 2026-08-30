@@ -38,6 +38,8 @@ const emit = defineEmits<{
   (e: 'create-task' | 'delete-task' | 'click-task', payload: string): void;
   (e: 'update:task-state', payload: { taskId: string; newStateId: string; oldStateId: string }): void;
   (e: 'update:task-order', payload: { taskId: string; stateId: string; index: number }): void;
+  /** Bulk commit of the full visual order after a list-view drop. */
+  (e: 'update:tasks-order', tasks: Array<{ taskId: string; stateId: string; order: number }>): void;
   (e: 'update-task-title', payload: { taskId: string; title: string }): void;
   (e: 'toggle-checklist-item', payload: { taskId: string; itemId: string }): void;
   (e: 'add-checklist-item', payload: { taskId: string; text: string }): void;
@@ -182,9 +184,26 @@ function onListDragStart() {
   isDraggingList.value = true;
 }
 
+/**
+ * Commit the exact visual state the user sees after a list-view drop.
+ * Emits one bulk event (stateId + order per task, across ALL visible sections)
+ * so the parent can apply it atomically and rebuild won't fight the drop.
+ */
 function onListDragEnd() {
   isDraggingList.value = false;
-  nextTick(rebuildListTasks);
+  nextTick(() => {
+    const commit: Array<{ taskId: string; stateId: string; order: number }> = [];
+    for (const state of sortedStates.value) {
+      const list = listTasksByState.value[state.id] ?? [];
+      list.forEach((task, index) => {
+        task.stateId = state.id;
+        task.order = index;
+        commit.push({ taskId: task.id, stateId: state.id, order: index });
+      });
+    }
+    emit('update:tasks-order', commit);
+    nextTick(rebuildListTasks);
+  });
 }
 
 function onListDragChange(stateId: string, event: KanbanDragEvent) {
@@ -194,12 +213,8 @@ function onListDragChange(stateId: string, event: KanbanDragEvent) {
     if (oldStateId !== stateId) {
       task.stateId = stateId;
       emit('update:task-state', { taskId: task.id, newStateId: stateId, oldStateId });
-      emit('update:task-order', { taskId: task.id, stateId, index: event.added.newIndex });
       return;
     }
-  }
-  if (event.moved) {
-    emit('update:task-order', { taskId: event.moved.element.id, stateId, index: event.moved.newIndex });
   }
 }
 
