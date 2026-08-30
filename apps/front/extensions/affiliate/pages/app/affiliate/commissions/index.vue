@@ -16,7 +16,7 @@ import {
   useUpdateCommissionMutation,
   unwrapList,
 } from '@affiliate/composables/useAffiliate';
-import type { CellContext, Commission } from '../../../types';
+import type { CellContext, Commission } from '../../../../types';
 
 definePageMeta({ layout: 'default', middleware: ['auth', 'admin'] });
 

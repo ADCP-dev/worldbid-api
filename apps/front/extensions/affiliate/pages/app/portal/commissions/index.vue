@@ -5,7 +5,7 @@ import DataTable from '@base/ui-app/components/data-table/DataTable.vue';
 import StatCard from '@base/ui-app/components/dashboard/StatCard.vue';
 import { Clock, BadgeCheck, Euro, CalendarCheck } from 'lucide-vue-next';
 import { useMyCommissionsQuery, useMySummaryQuery } from '@affiliate/composables/useAffiliate';
-import type { CellContext, Commission } from '../../../types';
+import type { CellContext, Commission } from '../../../../types';
 
 definePageMeta({ layout: 'default', middleware: ['auth', 'affiliate'] });
 

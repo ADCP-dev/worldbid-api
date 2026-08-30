@@ -18,7 +18,7 @@ import {
   useCreatePartnerFromClientMutation,
   unwrapList,
 } from '@affiliate/composables/useAffiliate';
-import type { CellContext, Partner } from '../../../types';
+import type { CellContext, Partner } from '../../../../types';
 
 definePageMeta({ layout: 'default', middleware: ['auth', 'admin'] });
 

@@ -14,8 +14,8 @@ import {
   usePartnerPipelineQuery,
   unwrapList,
 } from '@affiliate/composables/useAffiliate';
-import PartnerPipeline from '../../../components/PartnerPipeline.vue';
-import type { Commission, Referral } from '../../../types';
+import PartnerPipeline from '../../../../components/PartnerPipeline.vue';
+import type { Commission, Referral } from '../../../../types';
 
 definePageMeta({ layout: 'default', middleware: ['auth', 'admin'] });
 

@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { Plus } from 'lucide-vue-next';
 import DataTable from '@base/ui-app/components/data-table/DataTable.vue';
 import { useMyReferralsQuery } from '@affiliate/composables/useAffiliate';
-import type { CellContext, Referral } from '../../../types';
+import type { CellContext, Referral } from '../../../../types';
 
 definePageMeta({ layout: 'default', middleware: ['auth', 'affiliate'] });
 

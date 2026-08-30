@@ -14,7 +14,7 @@ import {
   useDeleteReferralMutation,
   unwrapList,
 } from '@affiliate/composables/useAffiliate';
-import type { CellContext, Referral } from '../../../types';
+import type { CellContext, Referral } from '../../../../types';
 
 definePageMeta({ layout: 'default', middleware: ['auth', 'admin'] });
 
