@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { toast } from 'vue-sonner';
 import FormInput from '@base/ui-app/components/form/FormInput.vue';
 import FormTextArea from '@base/ui-app/components/form/FormTextArea.vue';
-import { useCreateMyReferralMutation } from '../../../composables/useAffiliate';
+import { useCreateMyReferralMutation } from '@affiliate/composables/useAffiliate';
 
 definePageMeta({ layout: 'default', middleware: ['auth', 'affiliate'] });
 

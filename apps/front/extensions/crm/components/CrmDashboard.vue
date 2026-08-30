@@ -6,7 +6,7 @@ import StatCard from '@base/ui-app/components/dashboard/StatCard.vue';
 import BarChart from '@base/ui-app/components/dashboard/BarChart.vue';
 import DonutChart from '@base/ui-app/components/dashboard/DonutChart.vue';
 import TimelineList from '@base/ui-app/components/dashboard/TimelineList.vue';
-import { useCrmDashboardQuery } from '../composables/useCrm';
+import { useCrmDashboardQuery } from '@crm/composables/useCrm';
 import type { DaisyVariant } from '@base/ui-app/components/dashboard/types';
 
 const { t } = useI18n();

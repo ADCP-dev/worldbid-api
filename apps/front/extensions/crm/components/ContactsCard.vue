@@ -13,7 +13,7 @@ import {
   useUpdateContactMutation,
   useDeleteContactMutation,
   crmAsList,
-} from '../composables/useCrm';
+} from '@crm/composables/useCrm';
 import type { Contact, ContactPayload } from '../types';
 
 const props = defineProps<{ clientId: number }>();

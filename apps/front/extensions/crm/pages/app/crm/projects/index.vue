@@ -16,7 +16,7 @@ import {
   useUpdateProjectMutation,
   useDeleteProjectMutation,
   crmAsList,
-} from '../../../composables/useCrm';
+} from '@crm/composables/useCrm';
 import type { CellContext, Project, ProjectType, ProjectStatus, PaymentStatus } from '../../../types';
 
 definePageMeta({ layout: 'default', middleware: ['auth', 'admin'] });

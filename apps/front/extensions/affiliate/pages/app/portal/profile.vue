@@ -3,7 +3,7 @@ import { ref, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import FormInput from '@base/ui-app/components/form/FormInput.vue';
-import { useMyProfileQuery, useUpdateMyProfileMutation } from '../../../composables/useAffiliate';
+import { useMyProfileQuery, useUpdateMyProfileMutation } from '@affiliate/composables/useAffiliate';
 
 definePageMeta({ layout: 'default', middleware: ['auth', 'affiliate'] });
 

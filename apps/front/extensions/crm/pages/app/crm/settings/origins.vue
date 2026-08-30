@@ -14,7 +14,7 @@ import {
   useUpdateOriginMutation,
   useDeleteOriginMutation,
   crmAsList,
-} from '../../../composables/useCrm';
+} from '@crm/composables/useCrm';
 import type { CellContext, Origin } from '../../../types';
 
 definePageMeta({ layout: 'default', middleware: ['auth', 'admin'] });

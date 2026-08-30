@@ -12,7 +12,7 @@ import {
   useUpdatePartnerMutation,
   useInvitePartnerMutation,
   unwrapList,
-} from '../../../composables/useAffiliate';
+} from '@affiliate/composables/useAffiliate';
 import type { Commission, Referral } from '../../../types';
 
 definePageMeta({ layout: 'default', middleware: ['auth', 'admin'] });

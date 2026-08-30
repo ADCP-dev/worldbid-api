@@ -6,7 +6,7 @@ import { Handshake, RefreshCw } from 'lucide-vue-next';
 import FormInput from '@base/ui-app/components/form/FormInput.vue';
 import FormSelect from '@base/ui-app/components/form/FormSelect.vue';
 import FormSwitch from '@base/ui-app/components/form/FormSwitch.vue';
-import ContactsCard from '../../../components/ContactsCard.vue';
+import ContactsCard from '@crm/components/ContactsCard.vue';
 import InteractionsCard from '../../../components/InteractionsCard.vue';
 import ProjectsCard from '../../../components/ProjectsCard.vue';
 import {
@@ -14,7 +14,7 @@ import {
   useStatusesQuery,
   useOriginsQuery,
   useUpdateClientMutation,
-} from '../../../composables/useCrm';
+} from '@crm/composables/useCrm';
 
 definePageMeta({ layout: 'default', middleware: ['auth', 'admin'] });
 

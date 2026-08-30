@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { Clock, BadgeCheck, Euro, CalendarCheck, Plus, Copy } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
 import StatCard from '@base/ui-app/components/dashboard/StatCard.vue';
-import { useMyProfileQuery, useMySummaryQuery, useMyReferralsQuery } from '../../../composables/useAffiliate';
+import { useMyProfileQuery, useMySummaryQuery, useMyReferralsQuery } from '@affiliate/composables/useAffiliate';
 import type { Referral } from '../../../types';
 
 definePageMeta({ layout: 'default', middleware: ['auth', 'affiliate'] });

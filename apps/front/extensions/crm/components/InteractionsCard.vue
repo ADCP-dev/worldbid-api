@@ -15,7 +15,7 @@ import {
   useUpdateInteractionMutation,
   useDeleteInteractionMutation,
   crmAsList,
-} from '../composables/useCrm';
+} from '@crm/composables/useCrm';
 import type { Interaction, InteractionPayload, InteractionType } from '../types';
 
 const props = defineProps<{ clientId: number }>();

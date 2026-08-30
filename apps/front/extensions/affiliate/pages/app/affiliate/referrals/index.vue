@@ -13,7 +13,7 @@ import {
   useUpdateReferralMutation,
   useDeleteReferralMutation,
   unwrapList,
-} from '../../../composables/useAffiliate';
+} from '@affiliate/composables/useAffiliate';
 import type { CellContext, Referral } from '../../../types';
 
 definePageMeta({ layout: 'default', middleware: ['auth', 'admin'] });

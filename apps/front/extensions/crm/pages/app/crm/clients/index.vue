@@ -18,7 +18,7 @@ import {
   useUpdateClientMutation,
   useDeleteClientMutation,
   crmAsList,
-} from '../../../composables/useCrm';
+} from '@crm/composables/useCrm';
 import type { CellContext, Client } from '../../../types';
 
 definePageMeta({ layout: 'default', middleware: ['auth', 'admin'] });

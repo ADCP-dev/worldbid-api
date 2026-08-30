@@ -14,7 +14,7 @@ import {
   useUpdateStatusMutation,
   useDeleteStatusMutation,
   crmAsList,
-} from '../../../composables/useCrm';
+} from '@crm/composables/useCrm';
 import type { CellContext, Status } from '../../../types';
 
 definePageMeta({ layout: 'default', middleware: ['auth', 'admin'] });

@@ -11,7 +11,7 @@ import StatCard from '@base/ui-app/components/dashboard/StatCard.vue';
 import BarChart from '@base/ui-app/components/dashboard/BarChart.vue';
 import DonutChart from '@base/ui-app/components/dashboard/DonutChart.vue';
 import TimelineList from '@base/ui-app/components/dashboard/TimelineList.vue';
-import { useAffiliateDashboardQuery } from '../composables/useAffiliate';
+import { useAffiliateDashboardQuery } from '@affiliate/composables/useAffiliate';
 import type { Commission } from '../types';
 
 const { t } = useI18n();

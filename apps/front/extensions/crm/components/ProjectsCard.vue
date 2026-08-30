@@ -13,7 +13,7 @@ import {
   useUpdateProjectMutation,
   useDeleteProjectMutation,
   crmAsList,
-} from '../composables/useCrm';
+} from '@crm/composables/useCrm';
 import type { Project, ProjectPayload, ProjectType, ProjectStatus, PaymentStatus } from '../types';
 
 const props = defineProps<{ clientId: number }>();

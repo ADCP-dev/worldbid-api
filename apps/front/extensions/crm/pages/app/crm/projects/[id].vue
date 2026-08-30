@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
   useProjectQuery,
-} from '../../../composables/useCrm';
+} from '@crm/composables/useCrm';
 
 definePageMeta({ layout: 'default', middleware: ['auth', 'admin'] });
 
