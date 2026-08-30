@@ -129,6 +129,7 @@ export default defineNuxtConfig(
             'es/ext/upload-post.json',
             'es/ext/crm.json',
             'es/ext/affiliate.json',
+            'es/ext/tasks.json',
           ],
         },
         {
@@ -152,6 +153,7 @@ export default defineNuxtConfig(
             'en/ext/upload-post.json',
             'en/ext/crm.json',
             'en/ext/affiliate.json',
+            'en/ext/tasks.json',
           ],
         },
       ].filter((l) => SUPPORTED_LOCALES.includes(l.code as typeof SUPPORTED_LOCALES[number])),

@@ -29,8 +29,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'drop', payload: { taskId: number; newStatus: TaskStatus }): void;
-  (e: 'click', taskId: number): void;
-  (e: 'edit', taskId: number): void;
+  (e: 'click' | 'edit', taskId: number): void;
   (e: 'add', status: TaskStatus): void;
 }>();
 
@@ -101,9 +100,14 @@ function matchesFilters(task: Task): boolean {
 }
 
 // ─── Columns data ─────────────────────────────────────────────────────
-const columns = ref<Record<TaskStatus, Task[]>>(
-  () => ({ pending: [], in_progress: [], review: [], done: [], blocked: [] }) as Record<TaskStatus, Task[]>,
-);
+// ─── Columns data ─────────────────────────────────────────────────────
+const columns = ref<Record<TaskStatus, Task[]>>({
+  pending: [],
+  in_progress: [],
+  review: [],
+  done: [],
+  blocked: [],
+});
 
 function syncFromProps() {
   const map: Record<TaskStatus, Task[]> = {
@@ -147,8 +151,6 @@ const totalVisible = computed(() =>
   TASK_STATUSES.reduce((sum, s) => sum + filteredColumns.value[s].length, 0),
 );
 
-const visibleColumns = computed(() => COLUMNS.filter((c) => visible.value[c.id]));
-
 // ─── User resolution ──────────────────────────────────────────────────
 const userMap = computed<Record<number, UserLight>>(() => {
   const m: Record<number, UserLight> = {};
@@ -162,9 +164,10 @@ const userMap = computed<Record<number, UserLight>>(() => {
 // ─── Drag handling ────────────────────────────────────────────────────
 const dragOverColumn = ref<TaskStatus | null>(null);
 
-function onColumnChange(status: TaskStatus, evt: { added?: { element: Task } }) {
-  if (evt?.added?.element) {
-    const task = evt.added.element;
+function onColumnChange(status: TaskStatus, evt: unknown) {
+  const ev = evt as { added?: { element: Task } } | undefined;
+  if (ev?.added?.element) {
+    const task = ev.added.element;
     if (task.status !== status) {
       emit('drop', { taskId: task.id, newStatus: status });
     }
@@ -181,10 +184,6 @@ function onDragLeave(status: TaskStatus) {
     dragOverColumn.value = null;
   }
 }
-
-const loadingColumn = computed(() =>
-  props.loading ? Array.from({ length: 4 }, (_, i) => ({ id: -i - 1 })) : [],
-);
 </script>
 
 <template>
@@ -302,7 +301,7 @@ const loadingColumn = computed(() =>
               drag-class="rotate-3"
               item-key="id"
               class="flex flex-col gap-2 min-h-[40px]"
-              @change="(e: { added?: { element: Task } }) => onColumnChange(col.id, e)"
+              @change="(e: unknown) => onColumnChange(col.id, e)"
             >
               <template v-for="task in filteredColumns[col.id]" :key="task.id">
                 <TaskCard

@@ -3,7 +3,7 @@
  * TaskCommentList — list of comments + input to add new comments.
  * Used inside the task detail "Comments" tab.
  */
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed } from 'vue';
 import { toast } from 'vue-sonner';
 import { Send } from 'lucide-vue-next';
 import type { TaskComment, UserLight } from '../types';

@@ -12,7 +12,7 @@
  * Emits @submit(payload) with a TaskPayload. Parent handles the API call +
  * redirect.
  */
-import { ref, watch } from 'vue';
+import { ref, shallowRef, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import { Check } from 'lucide-vue-next';
 import FormInput from '@base/ui-app/components/form/FormInput.vue';
@@ -22,7 +22,8 @@ import FormSwitch from '@base/ui-app/components/form/FormSwitch.vue';
 import FormPassword from '@base/ui-app/components/form/FormPassword.vue';
 import FormFile from '@base/ui-app/components/form/FormFile.vue';
 import KeyValueEditor from '@base/ui-app/components/form/KeyValueEditor.vue';
-import type { CalendarDate, DateValue } from '@internationalized/date';
+import { CalendarDate } from '@internationalized/date';
+import type { DateValue } from '@internationalized/date';
 import type { Task, TaskPayload, TaskStatus, TaskPriority, UserLight } from '../types';
 import { TASK_STATUSES, TASK_PRIORITIES } from '../types';
 
@@ -39,6 +40,10 @@ const emit = defineEmits<{
 }>();
 
 // ─── Form state ───────────────────────────────────────────────────────
+// dueDate is a shallowRef: vue's deep ref() UnwrapRef mangles the
+// DateValue class union and breaks the FormDate v-model type.
+const dueDate = shallowRef<DateValue | null>(null);
+
 const form = ref({
   title: '',
   description: '',
@@ -46,7 +51,6 @@ const form = ref({
   priority: 'medium' as TaskPriority,
   assigneeId: '' as string | number,
   reporterId: '' as string | number,
-  dueDate: null as DateValue | null,
   position: 0,
   estimateHours: '' as string | number,
   isRecurring: false,
@@ -69,6 +73,7 @@ watch(
       const d = new Date(t.dueDate);
       due = new CalendarDate(d.getFullYear(), d.getMonth() + 1, d.getDate());
     }
+    dueDate.value = due;
     form.value = {
       title: t.title || '',
       description: t.description || '',
@@ -76,7 +81,6 @@ watch(
       priority: (t.priority || 'medium') as TaskPriority,
       assigneeId: t.assigneeId ?? '',
       reporterId: t.reporterId ?? '',
-      dueDate: due,
       position: t.position ?? 0,
       estimateHours: t.estimateHours ?? '',
       isRecurring: !!t.isRecurring,
@@ -117,7 +121,7 @@ function validate(): boolean {
 }
 
 function buildPayload(): TaskPayload {
-  const due = form.value.dueDate;
+  const due = dueDate.value;
   const dueStr = due
     ? `${(due as CalendarDate).year}-${String((due as CalendarDate).month).padStart(2, '0')}-${String((due as CalendarDate).day).padStart(2, '0')}T00:00:00.000Z`
     : null;
@@ -251,7 +255,7 @@ function submit() {
         </div>
 
         <FormDate
-          v-model="form.dueDate"
+          v-model="dueDate"
           label="Due date"
           placeholder="Pick a due date"
         />

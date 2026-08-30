@@ -1,0 +1,79 @@
+{
+  "ext": {
+    "tasks": {
+      "board": {
+        "title": "Tasks",
+        "search": "Search tasks…",
+        "newTask": "New task",
+        "viewBoard": "Board",
+        "viewList": "List",
+        "allStatuses": "All",
+        "statsTotal": "Total",
+        "statsInProgress": "In progress",
+        "statsDone": "Completed",
+        "statsOverdue": "Overdue",
+        "statsLink": "View stats",
+        "empty": "No tasks yet",
+        "emptySearch": "No results for this search",
+        "error": "Failed to load tasks",
+        "retry": "Retry",
+        "movedTo": "Task moved to {status}",
+        "moveFailed": "Failed to move task",
+        "deleted": "Task deleted",
+        "deleteFailed": "Failed to delete task",
+        "noPermission": "You don't have permission for this action"
+      },
+      "detail": {
+        "createTitle": "New task",
+        "editTitle": "Task detail",
+        "tabOverview": "Overview",
+        "tabActivity": "Activity",
+        "close": "Close",
+        "fieldTitle": "Title",
+        "titlePlaceholder": "e.g. Refactor auth module",
+        "fieldDescription": "Description",
+        "descriptionPlaceholder": "Add context, acceptance criteria, links…",
+        "fieldStatus": "Status",
+        "fieldPriority": "Priority",
+        "fieldDueDate": "Due date",
+        "fieldEstimate": "Estimate (hours)",
+        "estimatePlaceholder": "8.5",
+        "fieldTags": "Tags",
+        "tagsPlaceholder": "Type a tag and press Enter…",
+        "addTag": "Add",
+        "removeTag": "Remove tag",
+        "save": "Save",
+        "cancel": "Cancel",
+        "saved": "Task updated",
+        "created": "Task created",
+        "saveFailed": "Failed to save task",
+        "createFailed": "Failed to create task",
+        "validationTitle": "Title must be at least 2 characters",
+        "loadFailed": "Failed to load task",
+        "retry": "Retry"
+      },
+      "notes": {
+        "title": "Notes"
+      },
+      "status": {
+        "pending": "Pending",
+        "in_progress": "In Progress",
+        "review": "Review",
+        "done": "Done",
+        "blocked": "Blocked"
+      },
+      "priority": {
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High",
+        "urgent": "Urgent"
+      },
+      "nav": {
+        "heading": "Tasks",
+        "board": "Board",
+        "comments": "Comments",
+        "activities": "Activity"
+      }
+    }
+  }
+}

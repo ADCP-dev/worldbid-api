@@ -66,6 +66,12 @@ export interface Task {
   updatedAt: string;
 }
 
+/**
+ * Alias used by the TanStack hooks layer (useTasksQueries.ts) and the kanban
+ * mapping composables. Same shape as Task — spec-engine resource naming.
+ */
+export type SpecTask = Task;
+
 export interface TaskPayload {
   title?: string;
   description?: string | null;
@@ -105,9 +111,9 @@ export interface TaskNotePayload {
 
 export type StatsRange = '7d' | '30d' | '90d';
 
-export interface TaskStatsByStatus extends Record<string, number> {}
+export type TaskStatsByStatus = Record<string, number>;
 
-export interface TaskStatsByPriority extends Record<string, number> {}
+export type TaskStatsByPriority = Record<string, number>;
 
 export interface TaskStatsAssignee {
   id: number;

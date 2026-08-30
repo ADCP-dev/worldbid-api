@@ -46,6 +46,7 @@ export const useAuthStore = defineStore('auth', {
       return Date.now() >= state.tokenExpires
     },
     isAdmin: (state) => state.user?.role?.name === 'admin',
+    isManager: (state) => state.user?.role?.name === 'manager',
     isCustomer: (state) => state.user?.role?.name === 'customer',
     isAffiliate: (state) => state.user?.role?.name === 'affiliate',
     fullName: (state) =>

@@ -11,8 +11,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'click', id: number): void;
-  (e: 'edit', id: number): void;
+  (e: 'click' | 'edit', id: number): void;
 }>();
 
 const initials = computed(() => {

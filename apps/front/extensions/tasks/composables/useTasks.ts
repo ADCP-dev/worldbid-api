@@ -77,7 +77,7 @@ export function useTasks() {
   }
 
   async function deleteTask(id: number | string): Promise<void> {
-    return apiFetch<void>(`/tasks/${id}`, { method: 'DELETE' });
+    await apiFetch(`/tasks/${id}`, { method: 'DELETE' });
   }
 
   // ─── Task Actions (stats / reorder / bulk-status) ────────────────────
@@ -137,7 +137,7 @@ export function useTasks() {
   }
 
   async function deleteTaskNote(id: number | string): Promise<void> {
-    return apiFetch<void>(`/task-notes/${id}`, { method: 'DELETE' });
+    await apiFetch(`/task-notes/${id}`, { method: 'DELETE' });
   }
 
   // ─── Task Activities ──────────────────────────────────────────────────

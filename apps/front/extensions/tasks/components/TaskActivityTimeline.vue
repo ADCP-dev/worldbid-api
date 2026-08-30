@@ -6,6 +6,7 @@
  */
 import { computed } from 'vue';
 import { Plus, Pencil, Trash2, MessageSquare } from 'lucide-vue-next';
+import type { LucideIcon } from 'lucide-vue-next';
 import type { TaskActivity, UserLight } from '../types';
 
 const props = defineProps<{
@@ -14,7 +15,7 @@ const props = defineProps<{
   loading?: boolean;
 }>();
 
-const ACTION_META: Record<string, { icon: any; color: string; label: string }> = {
+const ACTION_META: Record<string, { icon: LucideIcon; color: string; label: string }> = {
   created: { icon: Plus, color: 'border-success', label: 'Created' },
   updated: { icon: Pencil, color: 'border-info', label: 'Updated' },
   deleted: { icon: Trash2, color: 'border-error', label: 'Deleted' },

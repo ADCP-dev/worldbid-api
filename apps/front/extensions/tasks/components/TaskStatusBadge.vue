@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { TaskStatus, TaskPriority } from '../types';
+import type { TaskStatus } from '../types';
 
 const props = defineProps<{
   status: TaskStatus | string;

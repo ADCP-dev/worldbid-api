@@ -25,8 +25,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'drop', payload: { taskId: number; newStatus: TaskStatus }): void;
-  (e: 'click', taskId: number): void;
-  (e: 'edit', taskId: number): void;
+  (e: 'click' | 'edit', taskId: number): void;
 }>();
 
 const GROUPS: Array<{ id: TaskStatus; title: string }> = [
@@ -117,9 +116,10 @@ function isOverdue(t: Task): boolean {
 }
 
 // Drag handler — mirrors TaskKanbanBoard.onColumnChange.
-function onGroupChange(status: TaskStatus, evt: { added?: { element: Task } }) {
-  if (evt?.added?.element) {
-    const task = evt.added.element;
+function onGroupChange(status: TaskStatus, evt: unknown) {
+  const ev = evt as { added?: { element: Task } } | undefined;
+  if (ev?.added?.element) {
+    const task = ev.added.element;
     if (task.status !== status) {
       emit('drop', { taskId: task.id, newStatus: status });
     }
@@ -181,7 +181,7 @@ const STATUS_OPTIONS: Array<{ value: TaskStatus; label: string }> = TASK_STATUSE
           chosen-class="ring-2 ring-primary"
           item-key="id"
           class="flex flex-col gap-2 min-h-[40px] px-4 pb-4"
-          @change="(e: { added?: { element: Task } }) => onGroupChange(group.id, e)"
+          @change="(e: unknown) => onGroupChange(group.id, e)"
         >
           <template v-for="task in groups[group.id]" :key="task.id">
             <div
