@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { useRouter } from 'vue-router';
 import { Lightbulb } from 'lucide-vue-next';
-import PageShell from '../../components/PageShell.vue';
+import PageShell from '@upload-post/components/PageShell.vue';
 import EmptyState from '@base/ui-app/components/dashboard/EmptyState.vue';
 import Kanban from '@base/ui-app/components/kanban/Kanban.vue';
 import type { KanbanTask, KanbanStateConfig } from '@base/ui-app/components/kanban/types';
@@ -14,7 +14,7 @@ import {
   useUpdateIdeaStatusMutation,
   useDeleteIdeaMutation,
   type UpIdea,
-} from '../../composables/useUploadPostApi';
+} from '@upload-post/composables/useUploadPostApi';
 
 definePageMeta({
   layout: 'default',

@@ -3,7 +3,7 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { BarChart3, Mail, Users, Eye, MousePointerClick, Heart } from 'lucide-vue-next';
-import PageShell from '../../components/PageShell.vue';
+import PageShell from '@upload-post/components/PageShell.vue';
 import StatCard from '@base/ui-app/components/dashboard/StatCard.vue';
 import LineChart from '@base/ui-app/components/dashboard/LineChart.vue';
 import BarChart from '@base/ui-app/components/dashboard/BarChart.vue';
@@ -15,7 +15,7 @@ import {
   useWeeklyReportQuery,
   useSendWeeklyReportMutation,
   type UpAnalyticsPlatform,
-} from '../../composables/useUploadPostApi';
+} from '@upload-post/composables/useUploadPostApi';
 
 definePageMeta({
   layout: 'default',

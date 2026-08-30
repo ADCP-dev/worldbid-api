@@ -2,9 +2,9 @@
 import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { LayoutDashboard } from 'lucide-vue-next';
-import PageShell from '../../components/PageShell.vue';
-import ComposeView from '../../components/composer/ComposeView.vue';
-import { useLocalPostsQuery, type UpPostRecord } from '../../composables/useUploadPostApi';
+import PageShell from '@upload-post/components/PageShell.vue';
+import ComposeView from '@upload-post/components/composer/ComposeView.vue';
+import { useLocalPostsQuery, type UpPostRecord } from '@upload-post/composables/useUploadPostApi';
 
 const { t } = useI18n();
 

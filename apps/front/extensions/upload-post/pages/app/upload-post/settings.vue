@@ -3,11 +3,11 @@ import { computed, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { Settings as SettingsIcon, Webhook } from 'lucide-vue-next';
-import PageShell from '../../components/PageShell.vue';
+import PageShell from '@upload-post/components/PageShell.vue';
 import {
   useConfigureWebhooksMutation,
   useMeQuery,
-} from '../../composables/useUploadPostApi';
+} from '@upload-post/composables/useUploadPostApi';
 
 definePageMeta({
   layout: 'default',

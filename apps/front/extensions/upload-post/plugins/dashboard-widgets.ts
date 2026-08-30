@@ -12,7 +12,7 @@ export default defineNuxtPlugin(() => {
     if (dashboards.value.find((d) => d.id === 'upload-post')) return;
     dashboards.value.push({
       id: 'upload-post',
-      title: 'ext.upload-post.nav.heading',
+      title: 'Upload-Post',
       componentName: 'UploadPostDashboard',
       order: 70,
     });

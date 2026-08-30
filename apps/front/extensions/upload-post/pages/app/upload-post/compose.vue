@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 import { PenLine } from 'lucide-vue-next';
-import PageShell from '../../components/PageShell.vue';
-import ComposeView from '../../components/composer/ComposeView.vue';
+import PageShell from '@upload-post/components/PageShell.vue';
+import ComposeView from '@upload-post/components/composer/ComposeView.vue';
 
 definePageMeta({
   layout: 'default',

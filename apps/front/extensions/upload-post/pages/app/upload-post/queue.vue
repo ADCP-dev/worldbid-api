@@ -3,7 +3,7 @@ import { computed, reactive, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { ListOrdered } from 'lucide-vue-next';
-import PageShell from '../../components/PageShell.vue';
+import PageShell from '@upload-post/components/PageShell.vue';
 import FormInput from '@base/ui-app/components/form/FormInput.vue';
 import FormSwitch from '@base/ui-app/components/form/FormSwitch.vue';
 import WeekdayPicker from '@base/ui-app/components/form/WeekdayPicker.vue';
@@ -13,7 +13,7 @@ import {
   useQueuePreviewQuery,
   useQueueNextSlotQuery,
   type UpQueueSettings,
-} from '../../composables/useUploadPostApi';
+} from '@upload-post/composables/useUploadPostApi';
 
 definePageMeta({
   layout: 'default',

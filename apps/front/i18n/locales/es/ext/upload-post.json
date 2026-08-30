@@ -1,250 +1,254 @@
 {
-  "nav": {
-    "heading": "Upload-Post",
-    "dashboard": "Dashboard",
-    "compose": "Componer",
-    "analytics": "Analíticas",
-    "inbox": "Bandeja",
-    "queue": "Cola",
-    "weekly": "Reporte semanal",
-    "ideas": "Ideas",
-    "settings": "Configuración"
-  },
-  "common": {
-    "save": "Guardar",
-    "cancel": "Cancelar",
-    "delete": "Eliminar",
-    "close": "Cerrar",
-    "back": "Volver",
-    "continue": "Continuar",
-    "remove": "Quitar",
-    "saved": "Cambios guardados",
-    "created": "Creado",
-    "deleted": "Eliminado",
-    "noData": "Sin datos",
-    "requestFailed": "Ocurrió un error",
-    "loading": "Cargando…"
-  },
-  "widget": {
-    "dashboardTitle": "Upload-Post",
-    "subtitle": "Publicación multiplataforma con Upload-Post",
-    "composeTitle": "Componer",
-    "composeDesc": "Nuevo post: video, fotos, texto o documento",
-    "analyticsTitle": "Analíticas",
-    "analyticsDesc": "Alcance, impresiones y reporte semanal",
-    "inboxTitle": "Bandeja de Instagram",
-    "inboxDesc": "DMs, comentarios y AutoDM",
-    "ideasTitle": "Ideas",
-    "ideasDesc": "Tablero de ideas de contenido"
-  },
-  "platforms": {
-    "tiktok": "TikTok",
-    "instagram": "Instagram",
-    "youtube": "YouTube",
-    "facebook": "Facebook",
-    "linkedin": "LinkedIn",
-    "x": "X",
-    "threads": "Threads",
-    "pinterest": "Pinterest",
-    "reddit": "Reddit",
-    "bluesky": "Bluesky"
-  },
-  "composer": {
-    "steps": {
-      "format": "Formato",
-      "media": "Medio",
-      "platforms": "Plataformas",
-      "caption": "Texto",
-      "schedule": "Programar"
-    },
-    "aspectRatio": "Relación de aspecto",
-    "mediaType": "Tipo de contenido",
-    "mediaTypes": {
-      "video": "Video",
-      "photos": "Fotos",
-      "text": "Texto",
-      "document": "Documento"
-    },
-    "documentLinkedinOnly": "Los documentos solo se publican en LinkedIn",
-    "noPlatformsForSelection": "Ninguna plataforma soporta esa combinación",
-    "selectPhotos": "Seleccioná fotos",
-    "selectFile": "Seleccioná archivo",
-    "orUrl": "o usá URLs públicas",
-    "mediaUrlPlaceholder": "https://…",
-    "addUrl": "Agregar",
-    "mediaHint": "Los archivos se suben primero al storage interno y se envía la URL pública.",
-    "destinations": {
-      "facebookPage": "Página de Facebook",
-      "linkedinPage": "Página de LinkedIn",
-      "pinterestBoard": "Tablero de Pinterest"
-    },
-    "titleLabel": "Título",
-    "titlePlaceholder": "Título interno (opcional)",
-    "captionLabel": "Texto del post",
-    "captionPlaceholder": "¿Qué querés publicar?",
-    "hashtagHint": "Podés incluir #hashtags directamente en el texto.",
-    "scheduleModes": {
-      "now": "Ahora",
-      "queue": "Cola",
-      "schedule": "Programar"
-    },
-    "scheduleDateTime": "Fecha y hora",
-    "queueHint": "El post entra a la cola y se publica en el próximo slot disponible.",
-    "publish": "Publicar",
-    "dispatchAccepted": "Despachado. Esperando resultados por plataforma…",
-    "resultsTitle": "Resultado del envío",
-    "newPost": "Nuevo post",
-    "pollingHint": "Consultando estado cada 4 segundos…",
-    "viewPost": "Ver post",
-    "textNoMedia": "Los posts de texto no llevan archivos.",
-    "overall": {
-      "processing": "Procesando",
-      "success": "Publicado",
-      "error": "Con errores",
-      "pending": "Pendiente"
+  "ext": {
+    "upload-post": {
+      "nav": {
+        "heading": "Upload-Post",
+        "dashboard": "Dashboard",
+        "compose": "Componer",
+        "analytics": "Analíticas",
+        "inbox": "Bandeja",
+        "queue": "Cola",
+        "weekly": "Reporte semanal",
+        "ideas": "Ideas",
+        "settings": "Configuración"
+      },
+      "common": {
+        "save": "Guardar",
+        "cancel": "Cancelar",
+        "delete": "Eliminar",
+        "close": "Cerrar",
+        "back": "Volver",
+        "continue": "Continuar",
+        "remove": "Quitar",
+        "saved": "Cambios guardados",
+        "created": "Creado",
+        "deleted": "Eliminado",
+        "noData": "Sin datos",
+        "requestFailed": "Ocurrió un error",
+        "loading": "Cargando…"
+      },
+      "widget": {
+        "dashboardTitle": "Upload-Post",
+        "subtitle": "Publicación multiplataforma con Upload-Post",
+        "composeTitle": "Componer",
+        "composeDesc": "Nuevo post: video, fotos, texto o documento",
+        "analyticsTitle": "Analíticas",
+        "analyticsDesc": "Alcance, impresiones y reporte semanal",
+        "inboxTitle": "Bandeja de Instagram",
+        "inboxDesc": "DMs, comentarios y AutoDM",
+        "ideasTitle": "Ideas",
+        "ideasDesc": "Tablero de ideas de contenido"
+      },
+      "platforms": {
+        "tiktok": "TikTok",
+        "instagram": "Instagram",
+        "youtube": "YouTube",
+        "facebook": "Facebook",
+        "linkedin": "LinkedIn",
+        "x": "X",
+        "threads": "Threads",
+        "pinterest": "Pinterest",
+        "reddit": "Reddit",
+        "bluesky": "Bluesky"
+      },
+      "composer": {
+        "steps": {
+          "format": "Formato",
+          "media": "Medio",
+          "platforms": "Plataformas",
+          "caption": "Texto",
+          "schedule": "Programar"
+        },
+        "aspectRatio": "Relación de aspecto",
+        "mediaType": "Tipo de contenido",
+        "mediaTypes": {
+          "video": "Video",
+          "photos": "Fotos",
+          "text": "Texto",
+          "document": "Documento"
+        },
+        "documentLinkedinOnly": "Los documentos solo se publican en LinkedIn",
+        "noPlatformsForSelection": "Ninguna plataforma soporta esa combinación",
+        "selectPhotos": "Seleccioná fotos",
+        "selectFile": "Seleccioná archivo",
+        "orUrl": "o usá URLs públicas",
+        "mediaUrlPlaceholder": "https://…",
+        "addUrl": "Agregar",
+        "mediaHint": "Los archivos se suben primero al storage interno y se envía la URL pública.",
+        "destinations": {
+          "facebookPage": "Página de Facebook",
+          "linkedinPage": "Página de LinkedIn",
+          "pinterestBoard": "Tablero de Pinterest"
+        },
+        "titleLabel": "Título",
+        "titlePlaceholder": "Título interno (opcional)",
+        "captionLabel": "Texto del post",
+        "captionPlaceholder": "¿Qué querés publicar?",
+        "hashtagHint": "Podés incluir #hashtags directamente en el texto.",
+        "scheduleModes": {
+          "now": "Ahora",
+          "queue": "Cola",
+          "schedule": "Programar"
+        },
+        "scheduleDateTime": "Fecha y hora",
+        "queueHint": "El post entra a la cola y se publica en el próximo slot disponible.",
+        "publish": "Publicar",
+        "dispatchAccepted": "Despachado. Esperando resultados por plataforma…",
+        "resultsTitle": "Resultado del envío",
+        "newPost": "Nuevo post",
+        "pollingHint": "Consultando estado cada 4 segundos…",
+        "viewPost": "Ver post",
+        "textNoMedia": "Los posts de texto no llevan archivos.",
+        "overall": {
+          "processing": "Procesando",
+          "success": "Publicado",
+          "error": "Con errores",
+          "pending": "Pendiente"
+        }
+      },
+      "history": {
+        "date": "Fecha",
+        "media": "Medio",
+        "platforms": "Plataformas",
+        "status": "Estado",
+        "results": "Resultados"
+      },
+      "analytics": {
+        "followers": "Seguidores",
+        "reach": "Alcance",
+        "impressions": "Impresiones",
+        "interactions": "Interacciones",
+        "views": "Vistas",
+        "likes": "Me gusta",
+        "reachOverTime": "Alcance en el tiempo",
+        "perPlatform": "Por plataforma",
+        "statusDistribution": "Distribución por estado",
+        "weeklyReport": "Reporte semanal",
+        "totalImpressions": "Impresiones totales",
+        "topPlatform": "Top plataforma",
+        "sendReport": "Generar y enviar por email",
+        "reportSent": "Reporte enviado"
+      },
+      "inbox": {
+        "dmsTab": "Mensajes directos",
+        "commentsTab": "Comentarios",
+        "autodmTab": "AutoDM",
+        "noConversations": "Sin conversaciones",
+        "noConversationsDesc": "Cuando lleguen DMs van a aparecer acá",
+        "noMessages": "Sin mensajes en esta conversación",
+        "selectConversation": "Elegí una conversación",
+        "sendPlaceholder": "Escribí un mensaje…",
+        "send": "Enviar",
+        "dmSent": "Mensaje enviado",
+        "replySent": "Respuesta publicada",
+        "reply": "Responder",
+        "window24hNotice": "Ventana de 24 horas: solo podés responder dentro de las 24h del último mensaje del usuario.",
+        "commentPosted": "Respuesta publicada",
+        "replyPublic": "Responder",
+        "replyDm": "Responder por DM",
+        "postUrl": "URL del post",
+        "postUrlPlaceholder": "https://instagram.com/p/…",
+        "loadComments": "Cargar comentarios",
+        "startAutodm": "Iniciar AutoDM",
+        "autodmStarted": "AutoDM iniciado",
+        "replyMessage": "Mensaje de respuesta",
+        "keywords": "Palabras clave (separadas por coma)",
+        "interval": "Intervalo de monitoreo (segundos)",
+        "monitors": "Monitores",
+        "status": "Estado",
+        "dmsSent": "DMs enviados",
+        "actions": "Acciones",
+        "pause": "Pausar",
+        "resume": "Reanudar",
+        "stop": "Detener",
+        "logs": "Registros",
+        "noLogs": "Sin registros",
+        "pickConversation": "Elegí una conversación"
+      },
+      "pages": {
+        "index": {
+          "title": "Upload-Post",
+          "subtitle": "Historial y compositor de publicaciones",
+          "composeTab": "Compositor",
+          "historyTab": "Historial",
+          "openComposer": "Abrir compositor"
+        },
+        "compose": {
+          "title": "Componer",
+          "subtitle": "Nuevo post multiplataforma"
+        },
+        "analytics": {
+          "title": "Analíticas",
+          "subtitle": "Alcance e impresiones por plataforma"
+        },
+        "inbox": {
+          "title": "Bandeja de Instagram",
+          "subtitle": "DMs, comentarios y AutoDM"
+        },
+        "queue": {
+          "settingsTitle": "Configuración de cola",
+          "publishTime": "Hora de publicación",
+          "publishDays": "Días de publicación",
+          "maxPerWeek": "Máximo por semana",
+          "skipWeekends": "Saltar fines de semana",
+          "timezone": "Zona horaria",
+          "nextSlot": "Próximo slot",
+          "preview": "Vista previa de la cola",
+          "title": "Cola",
+          "subtitle": "Slots de publicación automáticos"
+        },
+        "ideas": {
+          "title": "Ideas",
+          "subtitle": "Tablero de ideas de contenido"
+        },
+        "settings": {
+          "title": "Configuración",
+          "subtitle": "Webhooks y cuenta Upload-Post",
+          "accountTitle": "Cuenta",
+          "plan": "Plan",
+          "apiUsage": "de uso de API",
+          "platformStatus": "Estado de plataformas",
+          "webhookUrl": "URL del webhook",
+          "telegramChatId": "Telegram chat ID (opcional)",
+          "webhooksTitle": "Webhooks",
+          "eventUploadCompleted": "Publicación completada"
+        }
+      },
+      "queue": {
+        "settingsTitle": "Configuración de cola",
+        "publishTime": "Hora de publicación",
+        "publishDays": "Días de publicación",
+        "maxPerWeek": "Máximo por semana",
+        "skipWeekends": "Saltar fines de semana",
+        "timezone": "Zona horaria",
+        "nextSlot": "Próximo slot",
+        "preview": "Vista previa de la cola"
+      },
+      "ideas": {
+        "newIdea": "Nueva idea",
+        "newIdeaTitle": "Título de la idea",
+        "sendToComposer": "Enviar al composer",
+        "boardTitle": "Ideas de contenido",
+        "newIdeaPrompt": "Título de la nueva idea:"
+      },
+      "settings": {
+        "webhooksTitle": "Webhooks",
+        "webhookUrl": "URL del webhook",
+        "telegramChatId": "Telegram chat ID (opcional)",
+        "accountTitle": "Cuenta",
+        "plan": "Plan",
+        "apiUsage": "de uso de API",
+        "connectionStatus": "Estado de conexión de plataformas",
+        "raw": "Respuesta completa"
+      },
+      "errors": {
+        "composer.formatRequired": "Elegí relación de aspecto y tipo de contenido",
+        "composer.mediaRequired": "Falta seleccionar el medio",
+        "composer.platformsRequired": "Elegí al menos una plataforma",
+        "composer.captionRequired": "El texto del post es obligatorio",
+        "composer.incompleteStep": "Completá el paso actual antes de continuar",
+        "upstream": "Error del proveedor"
+      }
     }
-  },
-  "history": {
-    "date": "Fecha",
-    "media": "Medio",
-    "platforms": "Plataformas",
-    "status": "Estado",
-    "results": "Resultados"
-  },
-  "analytics": {
-    "followers": "Seguidores",
-    "reach": "Alcance",
-    "impressions": "Impresiones",
-    "interactions": "Interacciones",
-    "views": "Vistas",
-    "likes": "Me gusta",
-    "reachOverTime": "Alcance en el tiempo",
-    "perPlatform": "Por plataforma",
-    "statusDistribution": "Distribución por estado",
-    "weeklyReport": "Reporte semanal",
-    "totalImpressions": "Impresiones totales",
-    "topPlatform": "Top plataforma",
-    "sendReport": "Generar y enviar por email",
-    "reportSent": "Reporte enviado"
-  },
-  "inbox": {
-    "dmsTab": "Mensajes directos",
-    "commentsTab": "Comentarios",
-    "autodmTab": "AutoDM",
-    "noConversations": "Sin conversaciones",
-    "noConversationsDesc": "Cuando lleguen DMs van a aparecer acá",
-    "noMessages": "Sin mensajes en esta conversación",
-    "selectConversation": "Elegí una conversación",
-    "sendPlaceholder": "Escribí un mensaje…",
-    "send": "Enviar",
-    "dmSent": "Mensaje enviado",
-    "replySent": "Respuesta publicada",
-    "reply": "Responder",
-    "window24hNotice": "Ventana de 24 horas: solo podés responder dentro de las 24h del último mensaje del usuario.",
-    "commentPosted": "Respuesta publicada",
-    "replyPublic": "Responder",
-    "replyDm": "Responder por DM",
-    "postUrl": "URL del post",
-    "postUrlPlaceholder": "https://instagram.com/p/…",
-    "loadComments": "Cargar comentarios",
-    "startAutodm": "Iniciar AutoDM",
-    "autodmStarted": "AutoDM iniciado",
-    "replyMessage": "Mensaje de respuesta",
-    "keywords": "Palabras clave (separadas por coma)",
-    "interval": "Intervalo de monitoreo (segundos)",
-    "monitors": "Monitores",
-    "status": "Estado",
-    "dmsSent": "DMs enviados",
-    "actions": "Acciones",
-    "pause": "Pausar",
-    "resume": "Reanudar",
-    "stop": "Detener",
-    "logs": "Registros",
-    "noLogs": "Sin registros",
-    "pickConversation": "Elegí una conversación"
-  },
-  "pages": {
-    "index": {
-      "title": "Upload-Post",
-      "subtitle": "Historial y compositor de publicaciones",
-      "composeTab": "Compositor",
-      "historyTab": "Historial",
-      "openComposer": "Abrir compositor"
-    },
-    "compose": {
-      "title": "Componer",
-      "subtitle": "Nuevo post multiplataforma"
-    },
-    "analytics": {
-      "title": "Analíticas",
-      "subtitle": "Alcance e impresiones por plataforma"
-    },
-    "inbox": {
-      "title": "Bandeja de Instagram",
-      "subtitle": "DMs, comentarios y AutoDM"
-    },
-    "queue": {
-      "settingsTitle": "Configuración de cola",
-      "publishTime": "Hora de publicación",
-      "publishDays": "Días de publicación",
-      "maxPerWeek": "Máximo por semana",
-      "skipWeekends": "Saltar fines de semana",
-      "timezone": "Zona horaria",
-      "nextSlot": "Próximo slot",
-      "preview": "Vista previa de la cola",
-      "title": "Cola",
-      "subtitle": "Slots de publicación automáticos"
-    },
-    "ideas": {
-      "title": "Ideas",
-      "subtitle": "Tablero de ideas de contenido"
-    },
-    "settings": {
-      "title": "Configuración",
-      "subtitle": "Webhooks y cuenta Upload-Post",
-      "accountTitle": "Cuenta",
-      "plan": "Plan",
-      "apiUsage": "de uso de API",
-      "platformStatus": "Estado de plataformas",
-      "webhookUrl": "URL del webhook",
-      "telegramChatId": "Telegram chat ID (opcional)",
-      "webhooksTitle": "Webhooks",
-      "eventUploadCompleted": "Publicación completada"
-    }
-  },
-  "queue": {
-    "settingsTitle": "Configuración de cola",
-    "publishTime": "Hora de publicación",
-    "publishDays": "Días de publicación",
-    "maxPerWeek": "Máximo por semana",
-    "skipWeekends": "Saltar fines de semana",
-    "timezone": "Zona horaria",
-    "nextSlot": "Próximo slot",
-    "preview": "Vista previa de la cola"
-  },
-  "ideas": {
-    "newIdea": "Nueva idea",
-    "newIdeaTitle": "Título de la idea",
-    "sendToComposer": "Enviar al composer",
-    "boardTitle": "Ideas de contenido",
-    "newIdeaPrompt": "Título de la nueva idea:"
-  },
-  "settings": {
-    "webhooksTitle": "Webhooks",
-    "webhookUrl": "URL del webhook",
-    "telegramChatId": "Telegram chat ID (opcional)",
-    "accountTitle": "Cuenta",
-    "plan": "Plan",
-    "apiUsage": "de uso de API",
-    "connectionStatus": "Estado de conexión de plataformas",
-    "raw": "Respuesta completa"
-  },
-  "errors": {
-    "composer.formatRequired": "Elegí relación de aspecto y tipo de contenido",
-    "composer.mediaRequired": "Falta seleccionar el medio",
-    "composer.platformsRequired": "Elegí al menos una plataforma",
-    "composer.captionRequired": "El texto del post es obligatorio",
-    "composer.incompleteStep": "Completá el paso actual antes de continuar",
-    "upstream": "Error del proveedor"
   }
 }
