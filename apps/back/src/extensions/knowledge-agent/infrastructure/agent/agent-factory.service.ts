@@ -1,4 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { AgentConfigRepository } from '../agent-config.repository';
 import { ToolRegistryService } from './tool-registry.service';
@@ -8,6 +10,7 @@ import { NoteService } from '../../note.service';
 import { VectorStoreService } from '../vector-store.service';
 import { ModelResolverService } from './model-resolver.service';
 import { SqlQueryService } from '../../tools/sql-query.tool';
+import { createShellExecTool } from '../../tools/shell-exec.tool';
 import { UsersService } from '@users/users.service';
 import { RoleEnum } from '@iam/roles/roles.enum';
 import { createJsEvalTool } from '../../tools/js-eval.tool';
@@ -29,8 +32,8 @@ interface CachedAgent {
  *   2. Hash the mutable config fields → cache key.
  *   3. Cache hit with matching hash → return cached agent (<1s).
  *   4. Cache miss → collect KB tools (global, no user scoping) + native tools
- *      (ToolRegistry) + MCP tools (McpLoader) + read-only SQL tool (ADMIN
- *      USERS ONLY — see below) + the
+ *      (ToolRegistry) + MCP tools (McpLoader) + the ADMIN-ONLY tools
+ *      (`sql_query_readonly` + `run_command` — see below) + the
  *      `execute_js` tool (isolated QuickJS eval via SandboxService) + the
  *      `get_current_datetime` clock tool, create a
  *      VfsBackend, call
@@ -42,11 +45,14 @@ interface CachedAgent {
  * in the cache key so per-user ChatSession isolation is preserved even
  * though notes + configs are now global.
  *
- * SQL tool gating (security): `sql_query_readonly` is NOT user-scoped — its
- * SELECTs can read rows from ext_ka_notes, ext_ka_chat_sessions, users, etc.
- * regardless of which user is chatting. To prevent cross-user exposure the
- * tool is included ONLY when the requesting user has RoleEnum.admin.
- * Non-admin agents never see the tool. The isAdmin verdict participates in
+ * Admin tool gating (security): `sql_query_readonly` and `run_command` are
+ * NOT user-scoped — SQL SELECTs can read rows from ext_ka_notes,
+ * ext_ka_chat_sessions, users, etc., and the shell tool executes commands
+ * inside the backend container (with a stripped environment — it is NOT a
+ * hard security boundary; the trust boundary is the admin role). To prevent
+ * cross-user exposure and untrusted code execution, both tools are included
+ * ONLY when the requesting user has RoleEnum.admin.
+ * Non-admin agents never see them. The isAdmin verdict participates in
  * the cache hash so a role change (admin ↔ non-admin) invalidates the cached
  * agent. Resolution failures are fail-closed (treated as non-admin).
  */
@@ -114,10 +120,11 @@ export class AgentFactoryService {
   }
 
   /**
-   * Whether the requesting user is an admin. `sql_query_readonly` is
-   * admin-only because its SELECTs are NOT user-scoped (cross-user
-   * exposure: ext_ka_notes, ext_ka_chat_sessions, users, ...). FAIL-CLOSED:
-   * missing user/role or lookup errors → non-admin (SQL tool withheld).
+   * Whether the requesting user is an admin. `sql_query_readonly` and
+   * `run_command` are admin-only because they are NOT user-scoped (cross-user
+   * exposure: ext_ka_notes, ext_ka_chat_sessions, users, ...; plus in-container
+   * shell execution). FAIL-CLOSED:
+   * missing user/role or lookup errors → non-admin (both tools withheld).
    * Role comparison mirrors RolesGuard: compare role ids as strings, since
    * Role.id is `number | string`.
    */
@@ -158,31 +165,45 @@ export class AgentFactoryService {
     });
 
     // Native tools (auto-discovered from agent.tools.ts across extensions)
-    // + MCP tools (external servers declared in config) + read-only SQL
-    // (ADMIN ONLY — the query is not user-scoped, so non-admin agents never
-    // receive the tool; see resolveIsAdmin) + isolated JS execution +
-    // server clock (get_current_datetime).
+    // + MCP tools (external servers declared in config) + ADMIN-ONLY tools
+    // (read-only SQL + shell execution — see resolveIsAdmin) + isolated JS
+    // execution + server clock (get_current_datetime).
     const nativeTools = await this.toolRegistry.collect();
     const mcpTools = await this.mcpLoader.load(config.mcpServerIds);
     const jsEvalTool = createJsEvalTool(this.sandbox);
     const currentDatetimeTool = createCurrentDatetimeTool();
 
+    // Stable per-build scratch dir for shell commands (run_command cwd).
+    // Derived from config id + user id so the same agent/user pair reuses
+    // the same dir across rebuilds, while different users stay isolated.
+    const shellWorkDir = join(
+      tmpdir(),
+      `ka-exec-${createHash('sha1')
+        .update(`${config.id}:${userId}`)
+        .digest('hex')
+        .slice(0, 12)}`,
+    );
+    const shellExecTool = createShellExecTool({ workDir: shellWorkDir });
+
     // NOTE on command execution: deepagents wires the full filesystem
     // middleware natively from the VfsBackend (read/write/edit/ls/grep/glob),
     // but VfsBackend has NO execute() method (verified: VfsBackend API =
-    // read, readRaw, write, edit, delete, ls, grep, glob) — so shell/command
-    // execution is intentionally absent (run_command was a dead-end tool).
-    // JS execution is provided instead by the isolated QuickJS `execute_js`
-    // tool (SandboxService.evalJs — no require/process/network/fs).
+    // read, readRaw, write, edit, delete, ls, grep, glob) — so shell
+    // execution is provided by the dedicated `run_command` tool
+    // (spawn /bin/sh -c in the shellWorkDir scratch dir, stripped
+    // environment, 30s timeout). JS execution is provided by the isolated
+    // QuickJS `execute_js` tool (SandboxService.evalJs — no
+    // require/process/network/fs).
 
     const tools: StructuredTool[] = [
       ...kbTools,
       ...nativeTools,
       ...mcpTools,
-      // SECURITY: sql_query_readonly is admin-only — its SELECTs are NOT
-      // user-scoped, so including it for non-admin agents would let the
-      // chat agent read other users' rows (cross-user exposure).
-      ...(isAdmin ? [this.sqlQueryService.createTool()] : []),
+      // SECURITY: admin-only gate — sql_query_readonly's SELECTs are NOT
+      // user-scoped (cross-user exposure) and run_command executes sh
+      // inside the backend container (stripped env, but NOT an OS-level
+      // security boundary — admin trust, consistent with the SQL gate).
+      ...(isAdmin ? [this.sqlQueryService.createTool(), shellExecTool] : []),
       jsEvalTool,
       currentDatetimeTool,
     ];
@@ -204,8 +225,9 @@ export class AgentFactoryService {
    * Hash the mutable fields that should invalidate the cache. The MCP
    * snapshot signature covers row-level MCP changes (url/headers/enabled/
    * apiKeyRef) that the config object alone cannot see. `isAdmin` is part
-   * of the hash because it gates sql_query_readonly — a role change must
-   * rebuild the agent with (or without) the SQL tool.
+   * of the hash because it gates the admin-only tools (sql_query_readonly,
+   * run_command) — a role change must rebuild the agent with (or without)
+   * them.
    */
   private hashConfig(
     config: AgentConfig,

@@ -220,11 +220,10 @@ describe('AgentFactoryService', () => {
     const names = tools.map((t) => t.name);
     // 7 KB tools (list_categories, list_notes, search_notes_semantic,
     // get_note, create, update, delete) + 1 native + 1 MCP + 1 sql_readonly
-    // (ADMIN ONLY — default mock user is admin) + 1 execute_js (isolated
-    // QuickJS eval) + 1 get_current_datetime (server clock) = 12. No
-    // run_command: deepagents wires the filesystem natively from the
-    // VfsBackend and VfsBackend has no execute() method.
-    expect(tools).toHaveLength(12);
+    // (ADMIN ONLY — default mock user is admin) + 1 run_command (shell,
+    // ADMIN ONLY, same gate) + 1 execute_js (isolated
+    // QuickJS eval) + 1 get_current_datetime (server clock) = 13.
+    expect(tools).toHaveLength(13);
     expect(names).toEqual(
       expect.arrayContaining([
         'list_categories',
@@ -237,11 +236,11 @@ describe('AgentFactoryService', () => {
         'native_a',
         'get_weather',
         'sql_query_readonly',
+        'run_command',
         'execute_js',
         'get_current_datetime',
       ]),
     );
-    expect(names).not.toContain('run_command');
   });
 
   it('should NOT include sql_query_readonly for non-admin users (SQL tool is admin-only)', async () => {
@@ -255,12 +254,14 @@ describe('AgentFactoryService', () => {
 
     const tools = captured.tools as Array<{ name: string }>;
     const names = tools.map((t) => t.name);
-    // sql_query_readonly withheld: its SELECTs are NOT user-scoped, so a
-    // non-admin agent could read other users' rows (cross-user exposure).
+    // Admin-gated tools withheld: sql_query_readonly's SELECTs are NOT
+    // user-scoped (cross-user exposure) and run_command executes sh inside
+    // the backend container. Non-admin agents never see either.
     // 7 KB tools + execute_js + get_current_datetime = 9 (no native/mcp stubs
     // registered in this scenario).
     expect(tools).toHaveLength(9);
     expect(names).not.toContain('sql_query_readonly');
+    expect(names).not.toContain('run_command');
     expect(sqlQuery.createTool).not.toHaveBeenCalled();
     // The non-SQL utility tools are still available to non-admins.
     expect(names).toEqual(
@@ -268,7 +269,7 @@ describe('AgentFactoryService', () => {
     );
   });
 
-  it('should fail closed when the user cannot be found (no sql tool)', async () => {
+  it('should fail closed when the user cannot be found (no admin tools)', async () => {
     agentConfigRepo.findById.mockResolvedValue(makeConfig());
     toolRegistry.collect.mockResolvedValue([]);
     mcpLoader.load.mockResolvedValue([]);
@@ -279,10 +280,11 @@ describe('AgentFactoryService', () => {
 
     const tools = captured.tools as Array<{ name: string }>;
     expect(tools.map((t) => t.name)).not.toContain('sql_query_readonly');
+    expect(tools.map((t) => t.name)).not.toContain('run_command');
     expect(tools).toHaveLength(9);
   });
 
-  it('should fail closed when the role lookup errors (no sql tool)', async () => {
+  it('should fail closed when the role lookup errors (no admin tools)', async () => {
     agentConfigRepo.findById.mockResolvedValue(makeConfig());
     toolRegistry.collect.mockResolvedValue([]);
     mcpLoader.load.mockResolvedValue([]);
@@ -293,6 +295,7 @@ describe('AgentFactoryService', () => {
 
     const tools = captured.tools as Array<{ name: string }>;
     expect(tools.map((t) => t.name)).not.toContain('sql_query_readonly');
+    expect(tools.map((t) => t.name)).not.toContain('run_command');
     expect(tools).toHaveLength(9);
   });
 
@@ -430,7 +433,7 @@ describe('AgentFactoryService', () => {
     const second = await service.buildAgent('cfg-1', 1);
 
     // Same config + same user, but the role verdict changed → the cached
-    // agent must be invalidated and rebuilt WITHOUT the sql tool.
+    // agent must be rebuilt WITHOUT the admin-gated tools (sql + shell).
     expect(first).not.toBe(second);
     expect(createDeepAgent).toHaveBeenCalledTimes(2);
     const firstTools = (
@@ -440,7 +443,9 @@ describe('AgentFactoryService', () => {
       createDeepAgent.mock.calls[1][0].tools as Array<{ name: string }>
     ).map((t) => t.name);
     expect(firstTools).toContain('sql_query_readonly');
+    expect(firstTools).toContain('run_command');
     expect(secondTools).not.toContain('sql_query_readonly');
+    expect(secondTools).not.toContain('run_command');
   });
 
   it('should keep the cached agent when the role verdict is unchanged (still admin)', async () => {
