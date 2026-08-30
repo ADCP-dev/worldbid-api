@@ -5,12 +5,13 @@ import {
   ArrowUp,
   Bot,
   ChevronDown,
-  Paperclip,
+  Plus,
   X,
   FileText,
   FileAudio,
   Image as ImageIcon,
 } from 'lucide-vue-next';
+import ChatModelPicker from './ChatModelPicker.vue';
 
 /** Attachment payload sent to the backend (base64 WITHOUT the data: prefix). */
 interface PendingAttachment {
@@ -38,6 +39,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   send: [content: string, attachments: PendingAttachment[]];
   'update:agentId': [value: string];
+  'update:modelId': [value: string];
+  manageModels: [];
 }>();
 
 const { t } = useI18n();
@@ -207,7 +210,7 @@ function onKeydown(e: KeyboardEvent): void {
 </script>
 
 <template>
-  <!-- OpenCode-style floating composer pill -->
+  <!-- OpenCode-style floating composer pill: input on top, control row below -->
   <div class="px-3 pb-3 pt-1 bg-gradient-to-t from-base-100 via-base-100 to-transparent">
     <div class="max-w-4xl mx-auto">
       <!-- Attachment chips: inside the pill, above the text row -->
@@ -249,7 +252,8 @@ function onKeydown(e: KeyboardEvent): void {
       <div
         class="ka-composer rounded-3xl border border-base-300 bg-base-200/80 shadow-lg focus-within:border-primary/60 transition-colors"
       >
-        <div class="flex items-end gap-1 px-2 py-1.5">
+        <!-- TOP: full-width text input -->
+        <div class="px-4 pt-3 pb-1">
           <input
             ref="fileInputRef"
             type="file"
@@ -258,6 +262,25 @@ function onKeydown(e: KeyboardEvent): void {
             class="hidden"
             @change="onPickFiles"
           >
+          <textarea
+            ref="textareaRef"
+            v-model="text"
+            :placeholder="placeholder ?? t('ext.ka.chat.inputPlaceholder', 'Escribe al agente…')"
+            :disabled="disabled"
+            rows="1"
+            class="ka-composer-input w-full bg-transparent border-none outline-none resize-none leading-relaxed py-1 min-h-[24px] text-sm placeholder:text-base-content/40 focus:outline-none"
+            style="max-height: 180px;"
+            @input="autoResize"
+            @keydown="onKeydown"
+          />
+        </div>
+
+        <!-- Thin separation between input and control row -->
+        <div class="mx-3 border-t border-base-300/60" />
+
+        <!-- BOTTOM: controls row -->
+        <div class="flex items-center gap-0.5 px-2 py-1.5">
+          <!-- "+" attachments button (same logic as the old paperclip) -->
           <button
             type="button"
             class="btn btn-ghost btn-sm btn-circle shrink-0 text-base-content/70 hover:text-primary"
@@ -266,10 +289,10 @@ function onKeydown(e: KeyboardEvent): void {
             :title="t('ext.ka.chat.attach')"
             @click="fileInputRef?.click()"
           >
-            <Paperclip :size="18" />
+            <Plus :size="18" />
           </button>
 
-          <!-- Agent selector chip (OpenCode-style, inside the pill) -->
+          <!-- Agent selector chip -->
           <div v-if="agents && agents.length > 0" class="dropdown dropdown-top shrink-0">
             <button
               type="button"
@@ -303,21 +326,18 @@ function onKeydown(e: KeyboardEvent): void {
             </ul>
           </div>
 
-          <textarea
-            ref="textareaRef"
-            v-model="text"
-            :placeholder="placeholder ?? t('ext.ka.chat.inputPlaceholder', 'Escribe al agente…')"
+          <!-- Model + provider selector chip -->
+          <ChatModelPicker
+            :model-id="modelId"
             :disabled="disabled"
-            rows="1"
-            class="ka-composer-input flex-1 bg-transparent border-none outline-none resize-none leading-relaxed py-2 min-h-[38px] text-sm placeholder:text-base-content/40 focus:outline-none"
-            style="max-height: 180px;"
-            @input="autoResize"
-            @keydown="onKeydown"
+            @update:model-id="emit('update:modelId', $event)"
+            @manage="emit('manageModels')"
           />
 
+          <!-- Send button: pinned to the far right of the row -->
           <button
             type="button"
-            class="ka-send btn btn-circle btn-sm shrink-0 border-none text-primary-content shadow-md transition-all"
+            class="ka-send btn btn-circle btn-sm ml-auto shrink-0 border-none text-primary-content shadow-md transition-all"
             :class="canSubmit ? 'bg-primary hover:bg-primary/90' : 'bg-base-300 text-base-content/40 cursor-not-allowed'"
             :disabled="disabled || reading || !canSubmit"
             :aria-label="t('ext.ka.chat.send', 'Send message')"

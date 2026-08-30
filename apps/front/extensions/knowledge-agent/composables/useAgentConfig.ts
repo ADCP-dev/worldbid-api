@@ -95,7 +95,7 @@ function useApi() {
   async function apiFetch<T>(
     path: string,
     options: {
-      method?: string;
+      method?: 'GET' | 'POST' | 'PATCH' | 'DELETE' | 'PUT';
       query?: Record<string, unknown>;
       body?: unknown;
     } = {},
@@ -105,7 +105,7 @@ function useApi() {
       headers.Authorization = `Bearer ${authStore.token}`;
     }
     return (await $fetch(`${baseUrl}${apiPrefix}${path}`, {
-      method: options.method,
+      method: options.method as 'GET' | 'POST' | 'PATCH' | 'DELETE' | 'PUT',
       query: options.query,
       body: options.body as BodyInit | Record<string, unknown> | null | undefined,
       headers,
@@ -203,6 +203,20 @@ export function useModelProviders() {
     return apiFetch<Model>('/ka/models', { method: 'POST', body: payload });
   }
 
+  async function updateModel(
+    id: string,
+    payload: Partial<CreateModelPayload>,
+  ): Promise<Model> {
+    return apiFetch<Model>(`/ka/models/${id}`, {
+      method: 'PATCH',
+      body: payload,
+    });
+  }
+
+  async function deleteModel(id: string): Promise<void> {
+    await apiFetch(`/ka/models/${id}`, { method: 'DELETE' });
+  }
+
   return {
     getProviders,
     createProvider,
@@ -211,6 +225,8 @@ export function useModelProviders() {
     getModels,
     getActiveModels,
     createModel,
+    updateModel,
+    deleteModel,
   };
 }
 

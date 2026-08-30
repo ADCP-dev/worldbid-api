@@ -160,7 +160,12 @@
         "saveAsPdf": "Save as PDF",
         "downloadFile": "Download",
         "noPreview": "No preview for this format",
-        "printUnavailable": "Print unavailable"
+        "printUnavailable": "Print unavailable",
+        "searchModels": "Search models…",
+        "manageModels": "Manage models",
+        "modelSelector": "Select model",
+        "modelFallback": "Model",
+        "agentFallback": "Agent"
       },
       "settings": {
         "agents": "Agent Configs",
@@ -171,6 +176,7 @@
         "mcpDescription": "Configure external Model Context Protocol servers.",
         "newProvider": "New Provider",
         "newModel": "New Model",
+        "editModel": "Edit model",
         "newAgent": "New Agent Config",
         "editAgent": "Edit Agent Config",
         "newMcpServer": "New MCP Server",
@@ -225,6 +231,12 @@
         "existingProviders": "Existing providers",
         "apiKeyRefHint": "Env var name or the literal API key.",
         "modelSaved": "Model saved",
+        "modelUpdated": "Model updated",
+        "modelDeleted": "Model deleted",
+        "deleteModelTitle": "Delete model?",
+        "deleteModelBody": "\"{name}\" will be permanently deleted.",
+        "modelsSection": "Registered Models",
+        "modelIdHint": "Identifier the provider API expects for this model.",
         "saveError": "Save failed",
         "deleteError": "Delete failed",
         "closeModal": "Close",
@@ -262,6 +274,7 @@
         "chat": "Chat",
         "config": "Config",
         "agents": "Agents",
+        "providersAndModels": "Providers & Models",
         "models": "Models",
         "mcpServers": "MCP Servers"
       },

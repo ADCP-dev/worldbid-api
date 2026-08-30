@@ -1,5 +1,5 @@
 import type { Component } from 'vue';
-import { Bot, Plug } from 'lucide-vue-next';
+import { Bot, Database, Plug } from 'lucide-vue-next';
 
 export interface KaConfigSection {
   key: string;
@@ -17,6 +17,12 @@ export function KA_SETTINGS_SECTIONS(
       label: t('ext.ka.nav.agents'),
       icon: Bot,
       url: '/app/settings/agents',
+    },
+    {
+      key: 'providers',
+      label: t('ext.ka.nav.providersAndModels'),
+      icon: Database,
+      url: '/app/settings/providers',
     },
     {
       key: 'mcp',

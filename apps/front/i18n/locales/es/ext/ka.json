@@ -160,7 +160,12 @@
         "saveAsPdf": "Guardar como PDF",
         "downloadFile": "Descargar",
         "noPreview": "Sin vista previa para este formato",
-        "printUnavailable": "Impresión no disponible"
+        "printUnavailable": "Impresión no disponible",
+        "searchModels": "Buscar modelos…",
+        "manageModels": "Gestionar modelos",
+        "modelSelector": "Seleccionar modelo",
+        "modelFallback": "Modelo",
+        "agentFallback": "Agente"
       },
       "settings": {
         "agents": "Configs de Agente",
@@ -171,6 +176,7 @@
         "mcpDescription": "Configurá servidores Model Context Protocol externos.",
         "newProvider": "Nuevo Proveedor",
         "newModel": "Nuevo Modelo",
+        "editModel": "Editar modelo",
         "newAgent": "Nueva Config de Agente",
         "editAgent": "Editar Config de Agente",
         "newMcpServer": "Nuevo Servidor MCP",
@@ -225,6 +231,12 @@
         "existingProviders": "Proveedores existentes",
         "apiKeyRefHint": "Nombre de variable de entorno o la key literal.",
         "modelSaved": "Modelo guardado",
+        "modelUpdated": "Modelo actualizado",
+        "modelDeleted": "Modelo eliminado",
+        "deleteModelTitle": "¿Eliminar modelo?",
+        "deleteModelBody": "\"{name}\" se eliminará permanentemente.",
+        "modelsSection": "Modelos registrados",
+        "modelIdHint": "Identificador que la API del proveedor espera para este modelo.",
         "saveError": "Error al guardar",
         "deleteError": "Error al eliminar",
         "closeModal": "Cerrar",
@@ -262,6 +274,7 @@
         "chat": "Chat",
         "config": "Config",
         "agents": "Agentes",
+        "providersAndModels": "Proveedores y Modelos",
         "models": "Modelos",
         "mcpServers": "MCP Servers"
       },

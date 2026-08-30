@@ -142,6 +142,10 @@ async function onDelete(id: string) {
 
 const sidebarOpen = ref(false);
 
+function openModelSettings(): void {
+  void navigateTo('/app/settings/providers');
+}
+
 const sessionsList = computed<ChatSession[]>(() => sessions.value ?? []);
 </script>
 
@@ -183,6 +187,7 @@ const sessionsList = computed<ChatSession[]>(() => sessions.value ?? []);
             :agent-id="selectedAgentConfigId"
             :agent-options="agentOptions"
             @update:agent-id="selectedAgentConfigId = $event"
+            @manage-models="openModelSettings"
           />
         </div>
         <div v-else class="flex-1 flex items-center justify-center text-base-content/50 px-4">
@@ -263,6 +268,7 @@ const sessionsList = computed<ChatSession[]>(() => sessions.value ?? []);
             :agent-id="selectedAgentConfigId"
             :agent-options="agentOptions"
             @update:agent-id="selectedAgentConfigId = $event"
+            @manage-models="openModelSettings"
           />
       </div>
       <div v-else class="flex-1 flex items-center justify-center text-base-content/50">

@@ -34,6 +34,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:agentId': [value: string];
+  manageModels: [];
 }>();
 
 const { t } = useI18n();
@@ -358,6 +359,7 @@ defineExpose({ resetMessages });
       :model-id="modelId"
       @send="onSend"
       @update:agent-id="emit('update:agentId', $event)"
+      @manage-models="emit('manageModels')"
     />
   </div>
 </template>
