@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsArray, IsOptional } from 'class-validator';
+import { IsString, IsArray, IsOptional, IsBoolean } from 'class-validator';
 
 export class UploadVideoDto {
   @ApiProperty({ example: 'Mi video título' })
@@ -106,9 +106,13 @@ export class UploadPhotosDto {
 }
 
 export class UploadTextDto {
-  @ApiProperty()
+  @ApiProperty({
+    required: false,
+    description: 'Profile username (defaults to configured profile)',
+  })
+  @IsOptional()
   @IsString()
-  user: string;
+  user?: string;
 
   @ApiProperty({ example: ['x', 'threads', 'bluesky'] })
   @IsArray()
@@ -124,10 +128,63 @@ export class UploadTextDto {
   @IsString()
   title?: string;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({ required: false, description: 'ISO 8601 datetime' })
   @IsOptional()
   @IsString()
   scheduledDate?: string;
+
+  @ApiProperty({
+    required: false,
+    description: 'Add to queue instead of fixed schedule',
+  })
+  @IsOptional()
+  @IsBoolean()
+  addToQueue?: boolean;
+}
+
+export class UploadDocumentDto {
+  @ApiProperty({
+    required: false,
+    description: 'Profile username (defaults to configured profile)',
+  })
+  @IsOptional()
+  @IsString()
+  user?: string;
+
+  @ApiProperty({
+    example: ['linkedin'],
+    description: 'Only linkedin supported',
+  })
+  @IsArray()
+  @IsString({ each: true })
+  platforms: string[];
+
+  @ApiProperty({
+    required: false,
+    description: 'Public document URL (alternative to file upload)',
+  })
+  @IsOptional()
+  @IsString()
+  documentUrl?: string;
+
+  @ApiProperty()
+  @IsString()
+  title: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  caption?: string;
+
+  @ApiProperty({ required: false, description: 'ISO 8601 datetime' })
+  @IsOptional()
+  @IsString()
+  scheduledDate?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsBoolean()
+  addToQueue?: boolean;
 }
 
 export class UploadStatusDto {

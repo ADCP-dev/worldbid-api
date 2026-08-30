@@ -20,6 +20,14 @@ const manifest: ExtensionManifest = {
       { method: 'POST', path: 'upload-post/upload/video' },
       { method: 'POST', path: 'upload-post/upload/photo' },
       { method: 'POST', path: 'upload-post/upload/text' },
+      { method: 'POST', path: 'upload-post/upload/document' },
+      { method: 'POST', path: 'upload-post/upload/actions/retry' },
+      { method: 'POST', path: 'upload-post/upload/actions/unpublish' },
+      // Unified comments (multi-platform)
+      { method: 'GET', path: 'upload-post/comments' },
+      { method: 'POST', path: 'upload-post/comments' },
+      { method: 'DELETE', path: 'upload-post/comments' },
+      { method: 'GET', path: 'upload-post/comments/conversations' },
       { method: 'GET', path: 'upload-post/upload/status' },
       { method: 'GET', path: 'upload-post/history' },
       // Schedule

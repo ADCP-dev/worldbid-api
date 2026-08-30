@@ -10,6 +10,7 @@ import { UpPostContentIdeaEntity } from '@ext/upload-post/infrastructure/persist
 
 import { uploadPostProvider } from '@ext/upload-post/upload-post.provider';
 import { UploadPostClientService } from '@ext/upload-post/services/upload-post-client.service';
+import { UploadPostPublisherService } from '@ext/upload-post/services/publisher.service';
 import { UploadService } from '@ext/upload-post/services/upload.service';
 import { ScheduleService } from '@ext/upload-post/services/schedule.service';
 import { AnalyticsService } from '@ext/upload-post/services/analytics.service';
@@ -23,6 +24,7 @@ import { ContentIdeasService } from '@ext/upload-post/services/content-ideas.ser
 import { MonthlyAnalyticsService } from '@ext/upload-post/services/monthly-analytics.service';
 
 import { UploadController } from '@ext/upload-post/controllers/upload.controller';
+import { UploadPostCommentsController } from '@ext/upload-post/controllers/upload-post-actions.controller';
 import { ScheduleController } from '@ext/upload-post/controllers/schedule.controller';
 import { AnalyticsController } from '@ext/upload-post/controllers/analytics.controller';
 import { AutodmController } from '@ext/upload-post/controllers/autodm.controller';
@@ -52,6 +54,7 @@ import { MonthlyAnalyticsController } from '@ext/upload-post/controllers/monthly
   ],
   controllers: [
     UploadController,
+    UploadPostCommentsController,
     ScheduleController,
     AnalyticsController,
     AutodmController,
@@ -66,6 +69,7 @@ import { MonthlyAnalyticsController } from '@ext/upload-post/controllers/monthly
   providers: [
     uploadPostProvider,
     UploadPostClientService,
+    UploadPostPublisherService,
     UploadService,
     ScheduleService,
     AnalyticsService,
@@ -80,6 +84,7 @@ import { MonthlyAnalyticsController } from '@ext/upload-post/controllers/monthly
   ],
   exports: [
     UploadPostClientService,
+    UploadPostPublisherService,
     UploadService,
     AnalyticsService,
     AutodmService,

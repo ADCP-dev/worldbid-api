@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, type DeepPartial } from 'typeorm';
 import { UploadPostClientService } from '@ext/upload-post/services/upload-post-client.service';
 import { UpPostEntity } from '@ext/upload-post/infrastructure/persistence/entities/up-post.entity';
+import { PublisherValidationError } from '@ext/upload-post/services/publisher.service';
 
 @Injectable()
 export class UploadService {
@@ -90,6 +91,9 @@ export class UploadService {
     caption?: string;
     profileUsername?: string;
     scheduledDate?: string;
+    addToQueue?: boolean;
+    timezone?: string;
+    pinterestBoard?: string;
   }) {
     const user = params.profileUsername ?? this.client.profileUsername;
     if (!user) throw new Error('profileUsername is required (not configured)');
@@ -117,6 +121,8 @@ export class UploadService {
         caption: params.caption,
         scheduledDate: params.scheduledDate,
         asyncUpload: true,
+        addToQueue: params.addToQueue,
+        timezone: params.timezone,
       });
 
       saved.requestId = result.request_id;
@@ -132,13 +138,126 @@ export class UploadService {
   }
 
   async uploadText(params: {
-    user: string;
+    user?: string;
     platforms: string[];
     text: string;
     title?: string;
     scheduledDate?: string;
+    addToQueue?: boolean;
   }) {
-    return this.client.uploadText(params);
+    const user = params.user ?? this.client.profileUsername;
+    if (!user) throw new Error('user is required (not configured)');
+    const entity = this.postRepo.create({
+      mediaType: 'text',
+      title: params.title,
+      caption: params.text,
+      platforms: params.platforms,
+      profileUsername: user,
+      status: params.scheduledDate ? 'scheduled' : 'pending',
+      scheduledAt: params.scheduledDate
+        ? new Date(params.scheduledDate)
+        : undefined,
+    } as DeepPartial<UpPostEntity>);
+    const saved = await this.postRepo.save(entity);
+
+    try {
+      const result = (await this.client.uploadText({
+        user,
+        platforms: params.platforms,
+        text: params.text,
+        title: params.title,
+        scheduledDate: params.scheduledDate,
+        asyncUpload: true,
+        addToQueue: params.addToQueue,
+      })) as { request_id?: string | null; job_id?: string | null };
+
+      saved.requestId = result.request_id ?? null;
+      saved.jobId = result.job_id ?? null;
+      saved.status = 'processing';
+      await this.postRepo.save(saved);
+
+      return {
+        localId: saved.id,
+        success: true,
+        request_id: result.request_id ?? null,
+        requestId: result.request_id ?? null,
+      };
+    } catch (err: unknown) {
+      saved.status = 'error';
+      saved.errorMessage = err instanceof Error ? err.message : String(err);
+      await this.postRepo.save(saved);
+      throw err;
+    }
+  }
+
+  /** Document upload (LinkedIn carousel). Creates + persists local record. */
+  async uploadDocument(params: {
+    user?: string;
+    platforms: string[];
+    documentUrl?: string;
+    documentBuffer?: Buffer;
+    documentFilename?: string;
+    title: string;
+    caption?: string;
+    scheduledDate?: string;
+    addToQueue?: boolean;
+  }) {
+    const nonLinkedin = params.platforms.filter((p) => p !== 'linkedin');
+    if (nonLinkedin.length > 0 || params.platforms.length === 0) {
+      throw new PublisherValidationError(
+        'INVALID_PLATFORMS',
+        'Document uploads are only supported for platform "linkedin"',
+      );
+    }
+
+    const user = params.user ?? this.client.profileUsername;
+    if (!user) throw new Error('profileUsername is required (not configured)');
+
+    const entity = this.postRepo.create({
+      mediaType: 'document',
+      title: params.title,
+      caption: params.caption,
+      platforms: params.platforms,
+      profileUsername: user,
+      mediaUrl: params.documentUrl,
+      status: params.scheduledDate ? 'scheduled' : 'pending',
+      scheduledAt: params.scheduledDate
+        ? new Date(params.scheduledDate)
+        : undefined,
+    } as unknown as DeepPartial<UpPostEntity>);
+    const saved = await this.postRepo.save(entity);
+
+    try {
+      const result = await this.client.uploadDocument({
+        user,
+        platforms: params.platforms,
+        documentUrl: params.documentUrl,
+        documentBuffer: params.documentBuffer,
+        documentFilename: params.documentFilename,
+        title: params.title,
+        caption: params.caption,
+        scheduledDate: params.scheduledDate,
+        asyncUpload: true,
+        addToQueue: params.addToQueue,
+      });
+
+      saved.requestId = result.request_id ?? null;
+      saved.jobId = result.job_id ?? null;
+      saved.status = 'processing';
+      await this.postRepo.save(saved);
+
+      return {
+        localId: saved.id,
+        success: true,
+        request_id: result.request_id ?? null,
+        requestId: result.request_id ?? null,
+      };
+    } catch (err: unknown) {
+      saved.status = 'error';
+      saved.errorMessage = err instanceof Error ? err.message : String(err);
+      await this.postRepo.save(saved);
+      throw err;
+    }
   }
 
   async checkStatus(identifier: { requestId?: string; jobId?: string }) {

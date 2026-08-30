@@ -1,7 +1,7 @@
-import { defineConfig } from 'vitest/config'
-import path from 'node:path'
+import { defineConfig } from 'vitest/config';
+import path from 'node:path';
 
-const root = process.cwd()
+const root = process.cwd();
 
 export default defineConfig({
   test: {
@@ -11,6 +11,7 @@ export default defineConfig({
       'src/extensions/tasks/__tests__/**/*.spec.ts',
       'src/extensions/affiliate/__tests__/**/*.spec.ts',
       'src/extensions/knowledge-agent/**/*.spec.ts',
+      'src/extensions/upload-post/__tests__/**/*.spec.ts',
       'src/modules/error-tracker/__tests__/**/*.spec.ts',
       'src/modules/communications/mail/__tests__/**/*.spec.ts',
       'src/modules/communications/email-queue/__tests__/**/*.spec.ts',
@@ -41,4 +42,4 @@ export default defineConfig({
       '@emails': path.resolve(root, '../../packages/emails/emails'),
     },
   },
-})
+});

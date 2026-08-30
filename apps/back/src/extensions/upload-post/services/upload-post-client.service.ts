@@ -87,6 +87,52 @@ export interface AutodmLogsResponse {
   [key: string]: unknown;
 }
 
+export const DOCUMENT_PLATFORMS = ['linkedin'] as const;
+
+export interface UploadDocumentParams {
+  user: string;
+  platforms: string[];
+  documentUrl?: string;
+  documentBuffer?: Buffer;
+  documentFilename?: string;
+  title: string;
+  caption?: string;
+  scheduledDate?: string;
+  asyncUpload?: boolean;
+  addToQueue?: boolean;
+  linkedinPageId?: string;
+}
+
+export type UploadDocumentResponse = UploadResponse & {
+  results?: Record<string, { success: boolean; document_urn?: string }>;
+};
+
+export type PostActionResponse = {
+  success?: boolean;
+  request_id?: string;
+  message?: string;
+  [key: string]: unknown;
+};
+
+export type UnifiedCommentsResponse = {
+  comments?: Array<Record<string, unknown>>;
+  pagination?: { next_cursor?: string };
+  [key: string]: unknown;
+};
+
+export type UnifiedCommentPlatform =
+  | 'instagram'
+  | 'facebook'
+  | 'youtube'
+  | 'linkedin';
+
+export type UnpublishPlatform =
+  | 'facebook'
+  | 'youtube'
+  | 'x'
+  | 'linkedin'
+  | 'threads';
+
 /**
  * Thin HTTP wrapper around the Upload-Post REST API.
  * Every method maps 1:1 to an endpoint documented in https://docs.upload-post.com/llm.txt.
@@ -190,6 +236,8 @@ export class UploadPostClientService {
     caption?: string;
     scheduledDate?: string;
     asyncUpload?: boolean;
+    addToQueue?: boolean;
+    timezone?: string;
     thumbUrl?: string;
     facebookMediaType?: string;
     youtubeCategory?: string;
@@ -206,6 +254,8 @@ export class UploadPostClientService {
     if (params.caption) fd.append('caption', params.caption);
     if (params.scheduledDate) fd.append('scheduled_date', params.scheduledDate);
     if (params.asyncUpload) fd.append('async_upload', 'true');
+    if (params.addToQueue) fd.append('add_to_queue', 'true');
+    if (params.timezone) fd.append('timezone', params.timezone);
     if (params.thumbUrl) fd.append('thumb_url', params.thumbUrl);
     if (params.facebookMediaType)
       fd.append('facebook_media_type', params.facebookMediaType);
@@ -245,6 +295,8 @@ export class UploadPostClientService {
     caption?: string;
     scheduledDate?: string;
     asyncUpload?: boolean;
+    addToQueue?: boolean;
+    timezone?: string;
   }): Promise<UploadResponse> {
     const fd = new FormData();
     if (params.title) fd.append('title', params.title);
@@ -253,6 +305,8 @@ export class UploadPostClientService {
     if (params.caption) fd.append('caption', params.caption);
     if (params.scheduledDate) fd.append('scheduled_date', params.scheduledDate);
     if (params.asyncUpload) fd.append('async_upload', 'true');
+    if (params.addToQueue) fd.append('add_to_queue', 'true');
+    if (params.timezone) fd.append('timezone', params.timezone);
 
     if (params.photoUrls) {
       for (const url of params.photoUrls) fd.append('photos[]', url);
@@ -278,17 +332,182 @@ export class UploadPostClientService {
     title?: string;
     scheduledDate?: string;
     asyncUpload?: boolean;
-  }): Promise<unknown> {
-    return this.request('POST', '/api/upload_text', {
-      body: {
-        user: params.user,
-        platform: params.platforms,
-        text: params.text,
-        title: params.title,
-        scheduled_date: params.scheduledDate,
-        async_upload: params.asyncUpload ?? false,
-      },
+    addToQueue?: boolean;
+    timezone?: string;
+  }): Promise<UploadResponse> {
+    const fd = new FormData();
+    fd.append('user', params.user);
+    for (const p of params.platforms) fd.append('platform[]', p);
+    fd.append('title', params.text);
+    if (params.scheduledDate) fd.append('scheduled_date', params.scheduledDate);
+    if (params.asyncUpload !== false) fd.append('async_upload', 'true');
+    if (params.addToQueue) fd.append('add_to_queue', 'true');
+    if (params.timezone) fd.append('timezone', params.timezone);
+    return this.request<UploadResponse>('POST', '/api/upload_text', {
+      formData: fd,
     });
+  }
+
+  /**
+   * Upload a document (PDF/PPT/DOC) as a LinkedIn native document post.
+   * Upstream: POST /api/upload_document — LinkedIn-only (validated here).
+   */
+  async uploadDocument(
+    params: UploadDocumentParams,
+  ): Promise<UploadDocumentResponse> {
+    const nonLinkedin = params.platforms.filter(
+      (p) => !(DOCUMENT_PLATFORMS as readonly string[]).includes(p),
+    );
+    if (nonLinkedin.length > 0 || params.platforms.length === 0) {
+      throw new HttpException(
+        'Document uploads are only supported for platform "linkedin"',
+        400,
+      );
+    }
+
+    const fd = new FormData();
+    fd.append('user', params.user);
+    for (const p of params.platforms) fd.append('platform[]', p);
+    fd.append('title', params.title);
+    if (params.caption) fd.append('description', params.caption);
+    if (params.scheduledDate) fd.append('scheduled_date', params.scheduledDate);
+    if (params.asyncUpload) fd.append('async_upload', 'true');
+    if (params.addToQueue) fd.append('add_to_queue', 'true');
+    if (params.linkedinPageId)
+      fd.append('target_linkedin_page_id', params.linkedinPageId);
+
+    if (params.documentUrl) {
+      fd.append('document', params.documentUrl);
+    } else if (params.documentBuffer && params.documentFilename) {
+      fd.append(
+        'document',
+        new Blob([params.documentBuffer], {
+          type: 'application/octet-stream',
+        }),
+        params.documentFilename,
+      );
+    }
+
+    return this.request<UploadDocumentResponse>(
+      'POST',
+      '/api/upload_document',
+      {
+        formData: fd,
+      },
+    );
+  }
+
+  /** Retry failed platforms of a previous upload. POST /api/uploadposts/posts/retry */
+  async retryUpload(identifier: {
+    requestId?: string;
+    jobId?: string;
+  }): Promise<PostActionResponse> {
+    return this.request<PostActionResponse>(
+      'POST',
+      '/api/uploadposts/posts/retry',
+      {
+        body: {
+          request_id: identifier.requestId,
+          job_id: identifier.jobId,
+        },
+      },
+    );
+  }
+
+  /** Unpublish (delete) a published post. POST /api/uploadposts/posts/unpublish */
+  async unpublishPost(params: {
+    platform: UnpublishPlatform;
+    postId: string;
+    user?: string;
+  }): Promise<PostActionResponse> {
+    const user = params.user ?? this.cfg?.profileUsername;
+    if (!user) {
+      throw new HttpException(
+        'user is required for unpublish (no profileUsername configured)',
+        400,
+      );
+    }
+    return this.request<PostActionResponse>(
+      'POST',
+      '/api/uploadposts/posts/unpublish',
+      {
+        body: {
+          platform: params.platform,
+          user,
+          post_id: params.postId,
+        },
+      },
+    );
+  }
+
+  // ─── Unified comments (multi-platform) ────────────────────────────────
+
+  async listComments(params: {
+    user: string;
+    platform?: string;
+    postId?: string;
+    postUrl?: string;
+    limit?: number;
+    after?: string;
+  }): Promise<UnifiedCommentsResponse> {
+    return this.request<UnifiedCommentsResponse>(
+      'GET',
+      '/api/uploadposts/comments',
+      {
+        query: {
+          user: params.user,
+          platform: params.platform,
+          post_id: params.postId,
+          post_url: params.postUrl,
+          limit: params.limit,
+          after: params.after,
+        },
+      },
+    );
+  }
+
+  async createComment(params: {
+    platform: UnifiedCommentPlatform;
+    user: string;
+    message: string;
+    commentId?: string;
+    postId?: string;
+    postUrl?: string;
+  }): Promise<PostActionResponse> {
+    return this.request<PostActionResponse>(
+      'POST',
+      '/api/uploadposts/comments/create',
+      {
+        body: {
+          platform: params.platform,
+          user: params.user,
+          message: params.message,
+          comment_id: params.commentId,
+          post_id: params.postId,
+          post_url: params.postUrl,
+        },
+      },
+    );
+  }
+
+  async deleteComment(params: {
+    platform: UnifiedCommentPlatform;
+    user: string;
+    commentId: string;
+    postId?: string;
+  }): Promise<PostActionResponse> {
+    return this.request<PostActionResponse>(
+      'POST',
+      '/api/uploadposts/comments/delete',
+      {
+        body: {
+          platform: params.platform,
+          user: params.user,
+          comment_id: params.commentId,
+          post_id: params.postId,
+        },
+      },
+    );
   }
 
   async getUploadStatus(identifier: {
