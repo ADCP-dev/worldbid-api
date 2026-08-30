@@ -1,0 +1,250 @@
+{
+  "nav": {
+    "heading": "Upload-Post",
+    "dashboard": "Dashboard",
+    "compose": "Compose",
+    "analytics": "Analytics",
+    "inbox": "Inbox",
+    "queue": "Queue",
+    "weekly": "Weekly report",
+    "ideas": "Ideas",
+    "settings": "Settings"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "close": "Close",
+    "back": "Back",
+    "continue": "Continue",
+    "remove": "Remove",
+    "saved": "Changes saved",
+    "created": "Created",
+    "deleted": "Deleted",
+    "noData": "No data",
+    "requestFailed": "Something went wrong",
+    "loading": "Loading…"
+  },
+  "widget": {
+    "dashboardTitle": "Upload-Post",
+    "subtitle": "Multi-platform publishing powered by Upload-Post",
+    "composeTitle": "Compose",
+    "composeDesc": "New post: video, photos, text or document",
+    "analyticsTitle": "Analytics",
+    "analyticsDesc": "Reach, impressions and weekly report",
+    "inboxTitle": "Instagram inbox",
+    "inboxDesc": "DMs, comments and AutoDM",
+    "ideasTitle": "Ideas",
+    "ideasDesc": "Content idea board"
+  },
+  "platforms": {
+    "tiktok": "TikTok",
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook",
+    "linkedin": "LinkedIn",
+    "x": "X",
+    "threads": "Threads",
+    "pinterest": "Pinterest",
+    "reddit": "Reddit",
+    "bluesky": "Bluesky"
+  },
+  "composer": {
+    "steps": {
+      "format": "Format",
+      "media": "Media",
+      "platforms": "Platforms",
+      "caption": "Caption",
+      "schedule": "Schedule"
+    },
+    "aspectRatio": "Aspect ratio",
+    "mediaType": "Media type",
+    "mediaTypes": {
+      "video": "Video",
+      "photos": "Photos",
+      "text": "Text",
+      "document": "Document"
+    },
+    "documentLinkedinOnly": "Documents can only be published to LinkedIn",
+    "noPlatformsForSelection": "No platform supports that combination",
+    "selectPhotos": "Select photos",
+    "selectFile": "Select file",
+    "orUrl": "or use public URLs",
+    "mediaUrlPlaceholder": "https://…",
+    "addUrl": "Add",
+    "mediaHint": "Files are uploaded to internal storage first and the public URL is sent.",
+    "destinations": {
+      "facebookPage": "Facebook page",
+      "linkedinPage": "LinkedIn page",
+      "pinterestBoard": "Pinterest board"
+    },
+    "titleLabel": "Title",
+    "titlePlaceholder": "Internal title (optional)",
+    "captionLabel": "Caption",
+    "captionPlaceholder": "What do you want to publish?",
+    "hashtagHint": "You can include #hashtags directly in the caption.",
+    "scheduleModes": {
+      "now": "Now",
+      "queue": "Queue",
+      "schedule": "Schedule"
+    },
+    "scheduleDateTime": "Date and time",
+    "queueHint": "The post enters the queue and is published on the next available slot.",
+    "publish": "Publish",
+    "dispatchAccepted": "Dispatched. Waiting for per-platform results…",
+    "resultsTitle": "Delivery results",
+    "newPost": "New post",
+    "pollingHint": "Polling status every 4 seconds…",
+    "viewPost": "View post",
+    "textNoMedia": "Text posts don't need files.",
+    "overall": {
+      "processing": "Processing",
+      "success": "Published",
+      "error": "With errors",
+      "pending": "Pending"
+    }
+  },
+  "history": {
+    "date": "Date",
+    "media": "Media",
+    "platforms": "Platforms",
+    "status": "Status",
+    "results": "Results"
+  },
+  "analytics": {
+    "followers": "Followers",
+    "reach": "Reach",
+    "impressions": "Impressions",
+    "interactions": "Interactions",
+    "views": "Views",
+    "likes": "Likes",
+    "reachOverTime": "Reach over time",
+    "perPlatform": "Per platform",
+    "statusDistribution": "Status distribution",
+    "weeklyReport": "Weekly report",
+    "totalImpressions": "Total impressions",
+    "topPlatform": "Top platform",
+    "sendReport": "Generate and send by email",
+    "reportSent": "Report sent"
+  },
+  "inbox": {
+    "dmsTab": "Direct messages",
+    "commentsTab": "Comments",
+    "autodmTab": "AutoDM",
+    "noConversations": "No conversations",
+    "noConversationsDesc": "Incoming DMs will appear here",
+    "noMessages": "No messages in this conversation",
+    "selectConversation": "Pick a conversation",
+    "sendPlaceholder": "Write a message…",
+    "send": "Send",
+    "commentPosted": "Reply posted",
+    "replyPublic": "Reply",
+    "replyDm": "Reply via DM",
+    "postUrl": "Post URL",
+    "postUrlPlaceholder": "https://instagram.com/p/…",
+    "loadComments": "Load comments",
+    "startAutodm": "Start AutoDM",
+    "autodmStarted": "AutoDM started",
+    "replyMessage": "Reply message",
+    "keywords": "Trigger keywords (comma separated)",
+    "interval": "Monitoring interval (seconds)",
+    "monitors": "Monitors",
+    "actions": "Actions",
+    "pause": "Pause",
+    "resume": "Resume",
+    "stop": "Stop",
+    "logs": "Logs",
+    "noLogs": "No logs",
+    "dmSent": "Message sent",
+    "replySent": "Reply posted",
+    "reply": "Reply",
+    "window24hNotice": "24-hour window: you can only reply within 24h of the user's last message.",
+    "status": "Status",
+    "dmsSent": "DMs sent",
+    "pickConversation": "Pick a conversation"
+  },
+  "queue": {
+    "settingsTitle": "Queue settings",
+    "publishTime": "Publish time",
+    "publishDays": "Publish days",
+    "maxPerWeek": "Max per week",
+    "skipWeekends": "Skip weekends",
+    "timezone": "Timezone",
+    "nextSlot": "Next slot",
+    "preview": "Queue preview"
+  },
+  "ideas": {
+    "newIdea": "New idea",
+    "newIdeaTitle": "Idea title",
+    "sendToComposer": "Send to composer",
+    "boardTitle": "Content ideas",
+    "newIdeaPrompt": "New idea title:"
+  },
+  "settings": {
+    "webhooksTitle": "Webhooks",
+    "webhookUrl": "Webhook URL",
+    "telegramChatId": "Telegram chat ID (optional)",
+    "accountTitle": "Account",
+    "plan": "Plan",
+    "apiUsage": "of API usage",
+    "connectionStatus": "Platform connection status",
+    "raw": "Raw response"
+  },
+  "errors": {
+    "composer.formatRequired": "Pick an aspect ratio and media type",
+    "composer.mediaRequired": "Media is missing",
+    "composer.platformsRequired": "Pick at least one platform",
+    "composer.captionRequired": "Caption is required",
+    "composer.incompleteStep": "Complete the current step before continuing",
+    "upstream": "Upstream error"
+  },
+  "pages": {
+    "index": {
+      "title": "Upload-Post",
+      "subtitle": "History and composer",
+      "composeTab": "Composer",
+      "historyTab": "History",
+      "openComposer": "Open composer"
+    },
+    "compose": {
+      "title": "Compose",
+      "subtitle": "New multi-platform post"
+    },
+    "analytics": {
+      "title": "Analytics",
+      "subtitle": "Reach and impressions per platform"
+    },
+    "inbox": {
+      "title": "Instagram inbox",
+      "subtitle": "DMs, comments and AutoDM"
+    },
+    "queue": {
+      "settingsTitle": "Queue settings",
+      "publishTime": "Publish time",
+      "publishDays": "Publish days",
+      "maxPerWeek": "Max per week",
+      "skipWeekends": "Skip weekends",
+      "timezone": "Timezone",
+      "nextSlot": "Next slot",
+      "preview": "Queue preview",
+      "title": "Queue",
+      "subtitle": "Automatic publishing slots"
+    },
+    "ideas": {
+      "title": "Ideas",
+      "subtitle": "Content idea board"
+    },
+    "settings": {
+      "title": "Settings",
+      "subtitle": "Webhooks and Upload-Post account",
+      "accountTitle": "Account",
+      "plan": "Plan",
+      "apiUsage": "of API usage",
+      "platformStatus": "Platform status",
+      "webhookUrl": "Webhook URL",
+      "telegramChatId": "Telegram chat ID (optional)",
+      "webhooksTitle": "Webhooks",
+      "eventUploadCompleted": "Upload completed"
+    }
+  }
+}
