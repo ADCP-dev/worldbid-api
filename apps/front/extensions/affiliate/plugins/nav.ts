@@ -5,15 +5,15 @@ export default defineNuxtPlugin(() => {
   // ─── Admin section (admins only) ────────────────────────────────────────
   const addAdminMenu = () => {
     if (!authStore.isAdmin) return;
-    if (menuItems.value.find((item) => item.heading === 'affiliate.nav.admin')) return;
+    if (menuItems.value.find((item) => item.heading === 'ext.affiliate.nav.admin')) return;
     menuItems.value.push({
-      heading: 'affiliate.nav.admin',
+      heading: 'ext.affiliate.nav.admin',
       order: 30,
       items: [
-        { title: 'affiliate.nav.dashboard', icon: 'TrendingUp', link: '/app/affiliate', order: 0 },
-        { title: 'affiliate.nav.partners', icon: 'UserCheck', link: '/app/affiliate/partners', order: 10 },
-        { title: 'affiliate.nav.referrals', icon: 'Share2', link: '/app/affiliate/referrals', order: 20 },
-        { title: 'affiliate.nav.commissions', icon: 'Euro', link: '/app/affiliate/commissions', order: 30 },
+        { title: 'ext.affiliate.nav.dashboard', icon: 'TrendingUp', link: '/app/affiliate', order: 0 },
+        { title: 'ext.affiliate.nav.partners', icon: 'UserCheck', link: '/app/affiliate/partners', order: 10 },
+        { title: 'ext.affiliate.nav.referrals', icon: 'Share2', link: '/app/affiliate/referrals', order: 20 },
+        { title: 'ext.affiliate.nav.commissions', icon: 'Euro', link: '/app/affiliate/commissions', order: 30 },
       ],
     });
   };
@@ -21,16 +21,16 @@ export default defineNuxtPlugin(() => {
   // ─── Portal section (affiliates only) ───────────────────────────────────
   const addPortalMenu = () => {
     if (!authStore.isAffiliate) return;
-    if (menuItems.value.find((item) => item.heading === 'affiliate.nav.portal')) return;
+    if (menuItems.value.find((item) => item.heading === 'ext.affiliate.nav.portal')) return;
     menuItems.value.push({
-      heading: 'affiliate.nav.portal',
+      heading: 'ext.affiliate.nav.portal',
       order: 35,
       items: [
-        { title: 'affiliate.nav.dashboard', icon: 'LayoutDashboard', link: '/app/portal', order: 0 },
-        { title: 'affiliate.nav.pipeline', icon: 'GitBranch', link: '/app/portal/pipeline', order: 5 },
-        { title: 'affiliate.nav.myReferrals', icon: 'Share2', link: '/app/portal/referrals', order: 10 },
-        { title: 'affiliate.nav.myCommissions', icon: 'Euro', link: '/app/portal/commissions', order: 20 },
-        { title: 'affiliate.nav.myProfile', icon: 'User', link: '/app/portal/profile', order: 100 },
+        { title: 'ext.affiliate.nav.dashboard', icon: 'LayoutDashboard', link: '/app/portal', order: 0 },
+        { title: 'ext.affiliate.nav.pipeline', icon: 'GitBranch', link: '/app/portal/pipeline', order: 5 },
+        { title: 'ext.affiliate.nav.myReferrals', icon: 'Share2', link: '/app/portal/referrals', order: 10 },
+        { title: 'ext.affiliate.nav.myCommissions', icon: 'Euro', link: '/app/portal/commissions', order: 20 },
+        { title: 'ext.affiliate.nav.myProfile', icon: 'User', link: '/app/portal/profile', order: 100 },
       ],
     });
   };
@@ -44,12 +44,12 @@ export default defineNuxtPlugin(() => {
       if (isAdmin) {
         addAdminMenu();
       } else {
-        menuItems.value = menuItems.value.filter(item => item.heading !== 'affiliate.nav.admin');
+        menuItems.value = menuItems.value.filter(item => item.heading !== 'ext.affiliate.nav.admin');
       }
       if (isAffiliate) {
         addPortalMenu();
       } else {
-        menuItems.value = menuItems.value.filter(item => item.heading !== 'affiliate.nav.portal');
+        menuItems.value = menuItems.value.filter(item => item.heading !== 'ext.affiliate.nav.portal');
       }
     },
   );
