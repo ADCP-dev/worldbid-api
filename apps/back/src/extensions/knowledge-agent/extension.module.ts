@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { ConfigModule } from '@nestjs/config';
+import { UsersModule } from '@users/users.module';
 import { NoteService } from './note.service';
 import { NoteController } from './note.controller';
 import { GraphService } from './graph.service';
@@ -30,6 +31,8 @@ import { KnowledgeAgentSeedModule } from './seeds/knowledge-agent-seed.module';
   imports: [
     ConfigModule.forFeature(kaConfig),
     NotePersistenceModule,
+    // UsersService powers the admin check that gates sql_query_readonly.
+    UsersModule,
     BullModule.registerQueue({ name: 'ka-embedding' }),
     KnowledgeAgentSeedModule,
   ],
