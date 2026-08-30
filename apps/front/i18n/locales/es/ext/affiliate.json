@@ -103,7 +103,10 @@
         "selectClient": "Cliente (CRM)",
         "converted": "Convertido",
         "reject": "Rechazar",
-        "convert": "Marcar convertido"
+        "convert": "Marcar convertido",
+        "clientSource": "Cliente",
+        "existingClient": "Existente en CRM",
+        "newClient": "Nuevo"
       },
       "commissions": {
         "title": "Comisiones",

@@ -75,6 +75,8 @@ const emptyForm = () => ({
 });
 
 const form = ref(emptyForm());
+const editingId = ref<number | null>(null);
+const saving = ref(false);
 
 function openCreate() {
   editingId.value = null;

@@ -10,6 +10,7 @@ import { AffiliateReferralEntity } from '../infrastructure/persistence/entities/
 import { AffiliatePartnerEntity } from '../infrastructure/persistence/entities/affiliate-partner.entity';
 import { CrmClientEntity } from '@ext/crm/infrastructure/persistence/entities/crm-client.entity';
 import { CrmOriginEntity } from '@ext/crm/infrastructure/persistence/entities/crm-origin.entity';
+import { CrmStatusEntity } from '@ext/crm/infrastructure/persistence/entities/crm-status.entity';
 import { CreateReferralDto } from '../dto/create-referral.dto';
 import { UpdateReferralDto } from '../dto/update-referral.dto';
 
@@ -28,6 +29,8 @@ export class AffiliateReferralService {
     private readonly clientRepository: Repository<CrmClientEntity>,
     @InjectRepository(CrmOriginEntity)
     private readonly originRepository: Repository<CrmOriginEntity>,
+    @InjectRepository(CrmStatusEntity)
+    private readonly statusRepository: Repository<CrmStatusEntity>,
   ) {}
 
   async findAll(
@@ -89,22 +92,40 @@ export class AffiliateReferralService {
       throw new NotFoundException(`Partner with ID ${dto.partnerId} not found`);
     }
 
-    // Verify client exists
-    const client = await this.clientRepository.findOne({
-      where: { id: dto.clientId },
-    });
-    if (!client) {
-      throw new NotFoundException(`Client with ID ${dto.clientId} not found`);
+    // Exactly one of clientId | newClient must be provided
+    if (!dto.clientId && !dto.newClient) {
+      throw new BadRequestException(
+        'Provide either clientId or newClient data',
+      );
     }
 
-    // Ensure the client isn't already referred
-    const existing = await this.repository.findOne({
-      where: { clientId: dto.clientId },
-    });
-    if (existing) {
-      throw new BadRequestException(
-        `Client ${dto.clientId} already has a referral`,
-      );
+    // Ensure the target client isn't already referred (existing or inline)
+    if (dto.clientId) {
+      const existing = await this.repository.findOne({
+        where: { clientId: dto.clientId },
+      });
+      if (existing) {
+        throw new BadRequestException(
+          `Client ${dto.clientId} already has a referral`,
+        );
+      }
+    } else if (dto.newClient) {
+      const existingByEmail = await this.clientRepository.findOne({
+        where: { email: dto.newClient.email },
+      });
+      if (existingByEmail) {
+        const alreadyReferred = await this.repository.findOne({
+          where: { clientId: existingByEmail.id },
+        });
+        if (alreadyReferred) {
+          throw new BadRequestException(
+            `Client with email ${dto.newClient.email} already has a referral`,
+          );
+        }
+        // Reuse the existing client instead of duplicating it
+        dto.clientId = existingByEmail.id;
+        dto.newClient = undefined;
+      }
     }
 
     let origin: CrmOriginEntity | null = null;
@@ -124,9 +145,65 @@ export class AffiliateReferralService {
       );
     }
 
+    // Inline client creation path (admin registers the client right here)
+    if (dto.newClient) {
+      const defaultStatus = await this.statusRepository.findOne({
+        where: { isDefault: true },
+      });
+      const leadStatus = await this.statusRepository.findOne({
+        where: { name: 'lead' },
+      });
+      const statusId = defaultStatus?.id ?? leadStatus?.id ?? 1;
+
+      const saved = await this.clientRepository.manager.transaction(
+        async (manager) => {
+          const client = manager.create(CrmClientEntity, {
+            name: dto.newClient!.name,
+            email: dto.newClient!.email,
+            companyName: dto.newClient!.companyName ?? null,
+            phone: dto.newClient!.phone ?? null,
+            statusId,
+            originId: origin?.id ?? null,
+            originDetail: `Affiliate referral from ${partner.name}`,
+            metadata: {
+              source: 'affiliate_admin',
+              partner_id: dto.partnerId,
+              ...(dto.metadata ?? {}),
+            },
+            isActive: true,
+          });
+          const savedClient = await manager.save(client);
+
+          const referral = manager.create(AffiliateReferralEntity, {
+            partnerId: dto.partnerId,
+            clientId: savedClient.id,
+            originId: origin?.id ?? null,
+            status: dto.status ?? 'pending',
+            metadata: dto.metadata ?? {},
+          });
+          const savedReferral = await manager.save(referral);
+          this.logger.log(
+            `Created referral id=${savedReferral.id} for partner id=${dto.partnerId} with inline client id=${savedClient.id}`,
+          );
+          return savedReferral;
+        },
+      );
+      return saved;
+    }
+
+    const clientId = dto.clientId as number;
+
+    // Verify client exists
+    const client = await this.clientRepository.findOne({
+      where: { id: clientId },
+    });
+    if (!client) {
+      throw new NotFoundException(`Client with ID ${clientId} not found`);
+    }
+
     const referral = this.repository.create({
       partnerId: dto.partnerId,
-      clientId: dto.clientId,
+      clientId,
       originId: origin?.id ?? null,
       status: dto.status ?? 'pending',
       metadata: dto.metadata ?? {},
@@ -144,7 +221,7 @@ export class AffiliateReferralService {
     );
 
     this.logger.log(
-      `Created referral id=${saved.id} for partner id=${dto.partnerId}, client id=${dto.clientId}`,
+      `Created referral id=${saved.id} for partner id=${dto.partnerId}, client id=${clientId}`,
     );
 
     if (origin) {

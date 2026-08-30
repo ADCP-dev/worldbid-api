@@ -89,9 +89,17 @@ export interface Referral {
   updatedAt?: string;
 }
 
+export interface NewClientPayload {
+  name: string;
+  email: string;
+  companyName?: string;
+  phone?: string;
+}
+
 export interface CreateReferralPayload {
   partnerId: number;
-  clientId: number;
+  clientId?: number;
+  newClient?: NewClientPayload;
   originId?: number;
   status?: string;
 }

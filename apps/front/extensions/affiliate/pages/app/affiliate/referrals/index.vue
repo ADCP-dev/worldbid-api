@@ -55,23 +55,63 @@ function statusBadge(status: string) {
 // ─── Create modal ─────────────────────────────────────────────────────
 
 const showCreate = ref(false);
-const createForm = ref({ partnerId: null as number | null, clientId: null as number | null, status: 'pending' });
+const clientMode = ref<'existing' | 'new'>('existing');
+const createForm = ref({
+  partnerId: null as number | null,
+  clientId: null as number | null,
+  status: 'pending',
+  newName: '',
+  newEmail: '',
+  newCompanyName: '',
+  newPhone: '',
+});
 
 const partnerOptions = computed(() =>
   partners.value.map((p: { id: number; name: string }) => ({ value: p.id, label: p.name })),
 );
 
+const { data: clientsData } = useClientsQuery();
+const clientOptions = computed(() =>
+  unwrapList(clientsData.value ?? []).map((c: { id: number; name: string; companyName?: string | null }) => ({
+    value: c.id,
+    label: c.companyName ? `${c.name} (${c.companyName})` : c.name,
+  })),
+);
+
 async function submitCreate() {
-  if (!createForm.value.partnerId || !createForm.value.clientId) {
-    toast.error(t('ext.affiliate.common.error'));
+  if (!createForm.value.partnerId) {
+    toast.error(t('ext.affiliate.referrals.selectPartner'));
     return;
   }
+  const partnerId = Number(createForm.value.partnerId);
+  const status = createForm.value.status;
   try {
-    await createMut.mutateAsync({
-      partnerId: Number(createForm.value.partnerId),
-      clientId: Number(createForm.value.clientId),
-      status: createForm.value.status,
-    });
+    if (clientMode.value === 'existing') {
+      if (!createForm.value.clientId) {
+        toast.error(t('ext.affiliate.referrals.selectClient'));
+        return;
+      }
+      await createMut.mutateAsync({
+        partnerId,
+        clientId: Number(createForm.value.clientId),
+        status,
+      });
+    } else {
+      if (!createForm.value.newName.trim() || !createForm.value.newEmail.trim()) {
+        toast.error(t('ext.affiliate.common.error'));
+        return;
+      }
+      await createMut.mutateAsync({
+        partnerId,
+        status,
+        newClient: {
+          name: createForm.value.newName.trim(),
+          email: createForm.value.newEmail.trim(),
+          companyName: createForm.value.newCompanyName || undefined,
+          phone: createForm.value.newPhone || undefined,
+        },
+      });
+    }
     toast.success(t('ext.affiliate.common.created'));
     showCreate.value = false;
   } catch (err: unknown) {
@@ -224,12 +264,46 @@ const columns = computed(() => [
             :label="t('ext.affiliate.referrals.selectPartner')"
             :options="partnerOptions"
           />
-          <FormInput
-            :model-value="createForm.clientId ?? ''"
-            type="number"
+
+          <!-- Client source: existing CRM client or create inline -->
+          <div>
+            <p class="label-text font-semibold mb-2">{{ t('ext.affiliate.referrals.clientSource') }}</p>
+            <div class="flex gap-2">
+              <button
+                type="button"
+                class="btn btn-xs"
+                :class="clientMode === 'existing' ? 'btn-primary' : 'btn-outline'"
+                @click="clientMode = 'existing'"
+              >
+                {{ t('ext.affiliate.referrals.existingClient') }}
+              </button>
+              <button
+                type="button"
+                class="btn btn-xs"
+                :class="clientMode === 'new' ? 'btn-primary' : 'btn-outline'"
+                @click="clientMode = 'new'"
+              >
+                {{ t('ext.affiliate.referrals.newClient') }}
+              </button>
+            </div>
+          </div>
+
+          <FormSelect
+            v-if="clientMode === 'existing'"
+            v-model="createForm.clientId"
             :label="t('ext.affiliate.referrals.selectClient')"
-            @update:model-value="createForm.clientId = $event ? Number($event) : null"
+            :placeholder="t('ext.affiliate.partners.selectClientPlaceholder')"
+            :options="clientOptions"
           />
+          <div v-else class="space-y-4">
+            <FormInput v-model="createForm.newName" :label="t('ext.crm.clients.name')" required />
+            <FormInput v-model="createForm.newEmail" :label="t('ext.crm.clients.email')" type="email" required />
+            <div class="grid grid-cols-2 gap-4">
+              <FormInput v-model="createForm.newCompanyName" :label="t('ext.crm.clients.company')" />
+              <FormInput v-model="createForm.newPhone" :label="t('ext.crm.clients.phone')" />
+            </div>
+          </div>
+
           <FormSelect
             v-model="createForm.status"
             :label="t('ext.affiliate.referrals.status')"
