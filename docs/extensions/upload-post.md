@@ -70,8 +70,9 @@ extensions/upload-post/
 │   ├── up-post-analytics-snapshot.entity.ts  ← Daily analytics snapshots
 │   └── up-post-autodm-monitor.entity.ts       ← AutoDM monitor cache
 ├── services/
+│   ├── publisher.service.ts           ← Publish connector for other extensions
 │   ├── upload-post-client.service.ts  ← HTTP wrapper (all API endpoints)
-│   ├── upload.service.ts              ← Upload video/photo/text + local DB sync
+│   ├── upload.service.ts              ← Upload video/photo/text/document + local DB sync
 │   ├── schedule.service.ts            ← List/update/cancel scheduled posts
 │   ├── analytics.service.ts           ← Live analytics + daily cron snapshot
 │   ├── autodm.service.ts             ← AutoDM monitor lifecycle + local DB sync
@@ -122,6 +123,7 @@ The only exception is `POST /upload-post/webhooks/incoming` which is a public en
 | `UpPostEntity` | `ext_uploadpost_post` | Local record of every upload dispatched |
 | `UpPostAnalyticsSnapshotEntity` | `ext_uploadpost_analytics_snapshot` | Daily snapshot per platform for weekly report |
 | `UpPostAutodmMonitorEntity` | `ext_uploadpost_autodm_monitor` | Cache of AutoDM monitors |
+| `UpPostContentIdeaEntity` | `ext_uploadpost_content_idea` | Local content-idea backlog |
 
 ## Frontend Pages
 
@@ -164,7 +166,10 @@ All endpoints are prefixed `/api/v1/upload-post/` and require JWT + admin role.
 |--------|------|-------------|
 | POST | `/upload-post/upload/video` | Upload video (async) |
 | POST | `/upload-post/upload/photo` | Upload photos (async) |
-| POST | `/upload-post/upload/text` | Post text-only |
+| POST | `/upload-post/upload/text` | Post text-only (persisted locally) |
+| POST | `/upload-post/upload/document` | Upload document (LinkedIn carousel; multipart or `documentUrl`) |
+| POST | `/upload-post/upload/actions/retry` | Retry failed platforms of an upload |
+| POST | `/upload-post/upload/actions/unpublish` | Unpublish (delete) a published post |
 | GET | `/upload-post/upload/status` | Check upload status |
 | GET | `/upload-post/upload/history` | Upload history |
 | GET | `/upload-post/upload/local` | Local DB records |
@@ -232,6 +237,48 @@ All endpoints are prefixed `/api/v1/upload-post/` and require JWT + admin role.
 | POST | `/upload-post/instagram/comments/reply` | Reply (DM) |
 | POST | `/upload-post/instagram/dms/send` | Send DM |
 | GET | `/upload-post/instagram/dms/conversations` | DM conversations |
+
+### Unified Comments (multi-platform)
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/upload-post/comments` | Normalized comment list across platforms |
+| POST | `/upload-post/comments` | Create comment / public reply |
+| DELETE | `/upload-post/comments` | Delete a comment |
+| GET | `/upload-post/comments/conversations` | DM conversations |
+
+## Publisher Connector (for other extensions)
+
+Other extensions publish without touching upload-post internals. `UploadPostPublisherService`
+is exported from `UploadPostExtensionModule`:
+
+```typescript
+import { UploadPostPublisherService } from '@ext/upload-post/services/publisher.service';
+
+@Injectable()
+export class CampaignPublisherService {
+  constructor(private readonly publisher: UploadPostPublisherService) {}
+
+  async announce(campaign: Campaign, variants: Record<string, boolean>) {
+    if (variants.social) {
+      // capability check against presets happens here
+      await this.publisher.publish({
+        mediaType: 'photos',
+        platforms: ['instagram', 'linkedin'],
+        caption: '{{title}} — {{link}}',
+        templateVars: { title: campaign.title, link: campaign.url },
+        mediaUrls: campaign.imageUrls,
+      });
+    }
+  }
+}
+```
+
+- `publish()` returns `{ requestId, localId }` and a local `UpPostEntity` row is created.
+- Republishing an identical logical request (same profile + mediaType + rendered caption
+  + schedule) returns the original `requestId` without dispatching upstream again.
+- Invalid input throws `PublisherValidationError` with a typed `code`
+  (`UNSUPPORTED_MEDIA_TYPE`, `INVALID_PLATFORMS`, `REQUEST_INCOMPLETE`).
+- Full details: `apps/back/src/extensions/upload-post/README.md`.
 
 ## Platforms Supported
 
