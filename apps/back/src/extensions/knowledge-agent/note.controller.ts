@@ -10,7 +10,12 @@ import {
   Body,
   Query,
 } from '@nestjs/common';
-import { ApiOkResponse, ApiParam, ApiTags, ApiCreatedResponse } from '@nestjs/swagger';
+import {
+  ApiOkResponse,
+  ApiParam,
+  ApiTags,
+  ApiCreatedResponse,
+} from '@nestjs/swagger';
 import { NoteService } from './note.service';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
@@ -36,10 +41,7 @@ export class NoteController {
   @Post()
   @ApiCreatedResponse({ type: Note })
   @HttpCode(HttpStatus.CREATED)
-  create(
-    @Body() dto: CreateNoteDto,
-    @UserId() userId: number,
-  ): Promise<Note> {
+  create(@Body() dto: CreateNoteDto, @UserId() userId: number): Promise<Note> {
     // Notes are global; userId is stored as creator provenance only.
     return this.noteService.create({ ...dto, userId });
   }
@@ -124,5 +126,19 @@ export class NoteController {
   @HttpCode(HttpStatus.OK)
   async reindex(): Promise<number> {
     return this.noteService.reindexEmbeddings();
+  }
+
+  /**
+   * Re-extract wikilinks for every note and rebuild note-link edges.
+   * Admin-only. Repairs the graph for historic data: forward references
+   * that never resolved, entity-encoded titles, case mismatches.
+   */
+  @Post('reindex-links')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RoleEnum.admin)
+  @ApiOkResponse({ type: Number })
+  @HttpCode(HttpStatus.OK)
+  async reindexLinks(): Promise<number> {
+    return this.noteService.reindexLinks();
   }
 }

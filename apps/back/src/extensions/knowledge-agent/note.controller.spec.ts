@@ -2,6 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NoteController } from './note.controller';
 import { NoteService } from './note.service';
 import type { Note } from './domain/note';
+import { AuthGuard } from '@nestjs/passport';
+import { RolesGuard } from '@iam/roles/roles.guard';
+import { RoleEnum } from '@iam/roles/roles.enum';
 
 const makeNote = (overrides: Partial<Note> = {}): Note =>
   ({
@@ -32,6 +35,8 @@ describe('NoteController', () => {
       update: jest.fn(),
       softDelete: jest.fn(),
       findBacklinks: jest.fn(),
+      reindexEmbeddings: jest.fn(),
+      reindexLinks: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -40,7 +45,9 @@ describe('NoteController', () => {
     }).compile();
 
     controller = module.get<NoteController>(NoteController);
-    noteService = module.get(NoteService) as unknown as jest.Mocked<NoteService>;
+    noteService = module.get(
+      NoteService,
+    ) as unknown as jest.Mocked<NoteService>;
   });
 
   afterEach(() => jest.clearAllMocks());
@@ -59,7 +66,11 @@ describe('NoteController', () => {
         1,
       );
 
-      expect(noteService.create).toHaveBeenCalledWith({ title: 'X', contentMd: 'Y', userId: 1 });
+      expect(noteService.create).toHaveBeenCalledWith({
+        title: 'X',
+        contentMd: 'Y',
+        userId: 1,
+      });
       expect(result).toBe(note);
     });
   });
@@ -136,9 +147,13 @@ describe('NoteController', () => {
       const updated = makeNote({ title: 'Renamed' });
       noteService.update.mockResolvedValue(updated);
 
-      const result = await controller.update('note-1', { title: 'Renamed' } as any);
+      const result = await controller.update('note-1', {
+        title: 'Renamed',
+      } as any);
 
-      expect(noteService.update).toHaveBeenCalledWith('note-1', { title: 'Renamed' });
+      expect(noteService.update).toHaveBeenCalledWith('note-1', {
+        title: 'Renamed',
+      });
       expect(result.title).toBe('Renamed');
     });
   });
@@ -150,6 +165,39 @@ describe('NoteController', () => {
       await controller.remove('note-1');
 
       expect(noteService.softDelete).toHaveBeenCalledWith('note-1');
+    });
+  });
+
+  describe('reindexLinks', () => {
+    it('should delegate to NoteService.reindexLinks and return the count', async () => {
+      noteService.reindexLinks.mockResolvedValue(42);
+
+      const result = await controller.reindexLinks();
+
+      expect(noteService.reindexLinks).toHaveBeenCalledTimes(1);
+      expect(result).toBe(42);
+    });
+  });
+
+  describe('reindex endpoints RBAC (admin-only)', () => {
+    it('should declare admin-only roles on reindex-links', () => {
+      const meta = Reflect.getMetadata('roles', controller.reindexLinks);
+      expect(Array.isArray(meta)).toBe(true);
+      expect(meta).toContain(RoleEnum.admin);
+    });
+
+    it('should enforce jwt auth + roles guards on reindex-links', () => {
+      const guards = Reflect.getMetadata(
+        '__guards__',
+        Object.getPrototypeOf(controller)['reindexLinks'],
+      ) as unknown[];
+      expect(guards).toContain(AuthGuard('jwt'));
+      expect(guards).toContain(RolesGuard);
+    });
+
+    it('should declare admin-only roles on the embeddings reindex endpoint too', () => {
+      const meta = Reflect.getMetadata('roles', controller.reindex);
+      expect(meta).toContain(RoleEnum.admin);
     });
   });
 });

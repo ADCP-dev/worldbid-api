@@ -63,6 +63,9 @@ Todas con prefijo `ext_ka_` para evitar colisiones con core y otras extensiones.
 - `GET /ka/notes/:id/backlinks` — backlinks de la nota (ownership check, [] si no pertenece)
 - `PATCH /ka/notes/:id` — actualizar nota (ownership check, re-embed si content cambia)
 - `DELETE /ka/notes/:id` — soft delete (ownership check)
+- `DELETE /ka/notes/:id` — soft delete (ownership check)
+- `POST /ka/notes/reindex` — **admin only** — re-encola embeddings de todas las notas
+- `POST /ka/notes/reindex-links` — **admin only** — re-extrae `[[wikilinks]]` de todas las notas y reconstruye `ext_ka_note_links` (repara referencias adelantadas, entidades HTML y casing histórico)
 - `GET /ka/graph` — grafo del usuario (nodes + edges + filters: categoryPath, tag)
 
 ### Agent Configs (user-scoped)

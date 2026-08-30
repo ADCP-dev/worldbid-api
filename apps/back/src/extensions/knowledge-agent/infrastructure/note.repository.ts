@@ -8,6 +8,7 @@ import { NullableType } from '@infra/utils/types/nullable.type';
 import { Note } from '../domain/note';
 import { CreateNoteDto } from '../dto/create-note.dto';
 import { UpdateNoteDto } from '../dto/update-note.dto';
+import { normalizeTitleForMatch } from '../wikilink.util';
 
 @Injectable()
 export class NoteRepository {
@@ -17,7 +18,9 @@ export class NoteRepository {
     private readonly dataSource: DataSource,
   ) {}
 
-  async create(data: CreateNoteDto & { userId?: number | null }): Promise<Note> {
+  async create(
+    data: CreateNoteDto & { userId?: number | null },
+  ): Promise<Note> {
     const entity = this.noteRepository.create({
       title: data.title,
       contentMd: data.contentMd,
@@ -69,10 +72,7 @@ export class NoteRepository {
    * Root ('/', '', '.') → returns ALL non-deleted notes (no path filter).
    * Global: no user_id filter — notes are shared.
    */
-  async findByCategoryPath(
-    categoryPath: string,
-    depth = 0,
-  ): Promise<Note[]> {
+  async findByCategoryPath(categoryPath: string, depth = 0): Promise<Note[]> {
     const sanitized = categoryPath
       .replace(/[^a-zA-Z0-9_.]/g, '')
       .replace(/^\.+|\.+$/g, '');
@@ -100,7 +100,9 @@ export class NoteRepository {
    * Distinct category paths with note counts (non-deleted, non-null path).
    * Powers the list_categories agent tool and any future folder overview UI.
    */
-  async listCategories(): Promise<Array<{ categoryPath: string; count: number }>> {
+  async listCategories(): Promise<
+    Array<{ categoryPath: string; count: number }>
+  > {
     const rows = await this.dataSource.query(
       `
         SELECT category_path AS "categoryPath", count(*)::int AS count
@@ -213,7 +215,7 @@ export class NoteRepository {
       newPath,
       `${oldPath}.%`,
     ]);
-    return Array.isArray(result) ? result.length : result?.affectedRows ?? 0;
+    return Array.isArray(result) ? result.length : (result?.affectedRows ?? 0);
   }
 
   /**
@@ -228,7 +230,7 @@ export class NoteRepository {
         AND (category_path = $1 OR category_path LIKE $2)
     `;
     const result = await this.dataSource.query(sql, [path, `${path}.%`]);
-    return Array.isArray(result) ? result.length : result?.affectedRows ?? 0;
+    return Array.isArray(result) ? result.length : (result?.affectedRows ?? 0);
   }
 
   async update(id: string, data: UpdateNoteDto): Promise<Note> {
@@ -242,7 +244,8 @@ export class NoteRepository {
 
     if (data.title !== undefined) entity.title = data.title;
     if (data.contentMd !== undefined) entity.contentMd = data.contentMd;
-    if (data.categoryPath !== undefined) entity.categoryPath = data.categoryPath;
+    if (data.categoryPath !== undefined)
+      entity.categoryPath = data.categoryPath;
     if (data.tags !== undefined) entity.tags = data.tags;
     if (data.frontmatter !== undefined) entity.frontmatter = data.frontmatter;
 
@@ -260,7 +263,10 @@ export class NoteRepository {
    * {@link upsertLinks}. Callers should pass the full current link set
    * (including refs that may already exist).
    */
-  async replaceLinks(sourceNoteId: string, targetTitles: string[]): Promise<void> {
+  async replaceLinks(
+    sourceNoteId: string,
+    targetTitles: string[],
+  ): Promise<void> {
     await this.dataSource
       .createQueryBuilder()
       .delete()
@@ -275,63 +281,90 @@ export class NoteRepository {
    *
    * Each `targetTitle` may be either a bare note title ("My Note") or a
    * dotted category-path + title ("tech.notes.async/My Note" /
-   * "tech.notes.async.My Note"). When a path is present we match the leaf
-   * title AND the categoryPath prefix so a link can disambiguate two notes
-   * with the same title in different folders. Bare titles fall back to a
-   * single `title = ?` lookup (preserves previous behavior).
+   * "tech.notes.async.My Note"). Resolution order per ref — first hit wins:
+   * (1) category path + leaf title, (2) the FULL raw string as a title
+   * (fixes dotted titles like [[Node.js]] that the path split would mangle),
+   * (3) leaf title alone. All comparisons are case-insensitive
+   * (lowered equality) and whitespace-normalized, and a note never links
+   * to itself.
    */
-  async upsertLinks(sourceNoteId: string, targetTitles: string[]): Promise<void> {
+  async upsertLinks(
+    sourceNoteId: string,
+    targetTitles: string[],
+  ): Promise<void> {
     if (targetTitles.length === 0) return;
 
     // Split each reference into (categoryPath?, title). We accept both "/" and
     // "." as path separators inside [[ ]] so users can write either
-    // [[tech/notes/async]] or [[tech.notes.async]].
+    // [[tech/notes/async]] or [[tech.notes.async]]. The full raw string is
+    // kept for the title fallback so refs like [[Node.js]] can still match a
+    // note literally titled "Node.js".
     interface ParsedRef {
       title: string;
       categoryPath: string | null;
+      fullRef: string;
     }
     const parsed: ParsedRef[] = targetTitles.map((raw) => {
-      // Last segment is the title; the rest is the category path.
-      const separators = /[/.]/;
-      const segments = raw.split(separators).map((s) => s.trim()).filter(Boolean);
+      const trimmed = raw.trim();
+      const segments = trimmed
+        .split(/[/.]/)
+        .map((s) => s.trim())
+        .filter(Boolean);
       if (segments.length <= 1) {
-        return { title: raw.trim(), categoryPath: null };
+        return { title: trimmed, categoryPath: null, fullRef: trimmed };
       }
       const title = segments[segments.length - 1];
-      const categoryPath = segments.slice(0, -1).join('.');
-      return { title, categoryPath: categoryPath || null };
+      const categoryPath = segments.slice(0, -1).join('.') || null;
+      return { title, categoryPath, fullRef: trimmed };
     });
 
-    // Resolve each parsed ref to a note id. We do one query per ref because
-    // path-aware matching needs different predicates than title-only, and the
-    // number of refs per note is small.
-    const resolvedIds = new Set<string>();
-    for (const ref of parsed) {
+    const findNote = async (
+      title: string,
+      categoryPath: string | null,
+    ): Promise<NoteEntity | null> => {
       const qb = this.noteRepository
         .createQueryBuilder('note')
         .select(['note.id'])
-        .where('note.title = :title', { title: ref.title })
+        .where('LOWER(note.title) = LOWER(:title)', {
+          title: normalizeTitleForMatch(title),
+        })
         .andWhere('note.deletedAt IS NULL');
-      if (ref.categoryPath) {
-        // Exact path match has priority.
-        qb.andWhere('note.categoryPath = :path', { path: ref.categoryPath });
+      if (categoryPath) {
+        qb.andWhere('note.categoryPath = :path', { path: categoryPath });
       }
-      const exact = await qb.getOne();
-      if (exact) {
-        if (exact.id !== sourceNoteId) resolvedIds.add(exact.id);
+      return qb.getOne();
+    };
+
+    // Resolve each parsed ref to a note id. We do one query per candidate
+    // match because path-aware matching needs different predicates than
+    // title-only, and the number of refs per note is small.
+    const resolvedIds = new Set<string>();
+    for (const ref of parsed) {
+      // (1) Exact path + leaf title — highest priority, disambiguates same
+      // titled notes across folders.
+      if (ref.categoryPath) {
+        const withPath = await findNote(ref.title, ref.categoryPath);
+        if (withPath) {
+          if (withPath.id !== sourceNoteId) resolvedIds.add(withPath.id);
+          continue;
+        }
+      }
+
+      // (2) FULL raw string as title — matches dotted refs like [[Node.js]]
+      // where splitting on "." yields a bogus leaf title.
+      const fullRaw = await findNote(ref.fullRef, null);
+      if (fullRaw) {
+        if (fullRaw.id !== sourceNoteId) resolvedIds.add(fullRaw.id);
         continue;
       }
-      // Fallback: title only when a path was specified but didn't match.
-      // Helps while users are still migrating their wikilinks to the new
-      // path-aware form.
+
+      // (3) Leaf title only. Bare refs already matched in step (2)
+      // (fullRef === title there), so this only runs for path refs.
       if (ref.categoryPath) {
-        const loose = await this.noteRepository
-          .createQueryBuilder('note')
-          .select(['note.id'])
-          .where('note.title = :title', { title: ref.title })
-          .andWhere('note.deletedAt IS NULL')
-          .getOne();
-        if (loose && loose.id !== sourceNoteId) resolvedIds.add(loose.id);
+        const leafOnly = await findNote(ref.title, null);
+        if (leafOnly && leafOnly.id !== sourceNoteId) {
+          resolvedIds.add(leafOnly.id);
+        }
       }
     }
 
@@ -344,6 +377,21 @@ export class NoteRepository {
         .orIgnore()
         .execute();
     }
+  }
+
+  /**
+   * All non-deleted notes whose stored content still contains at least one
+   * wikilink ([[...]]). Used by the forward-reference resolution hook to
+   * re-resolve links that pointed at a note title before that note existed.
+   */
+  async findNotesContainingWikilinks(): Promise<Note[]> {
+    const entities = await this.noteRepository
+      .createQueryBuilder('note')
+      .select(['note.id', 'note.title', 'note.contentMd'])
+      .where('note.deletedAt IS NULL')
+      .andWhere('note.contentMd ~ :pattern', { pattern: '\\[\\[' })
+      .getMany();
+    return entities.map((e) => this.toDomain(e));
   }
 
   async findBacklinks(noteId: string): Promise<Note[]> {
@@ -368,9 +416,10 @@ export class NoteRepository {
    *
    * Global: no user_id filter — notes are shared.
    */
-  async findNotesForGraph(
-    filters?: { categoryPath?: string; tag?: string },
-  ): Promise<
+  async findNotesForGraph(filters?: {
+    categoryPath?: string;
+    tag?: string;
+  }): Promise<
     Array<{
       id: string;
       title: string;
@@ -396,14 +445,16 @@ export class NoteRepository {
           params.push(JSON.stringify([filters.tag]));
           sql += ` AND tags @> $2::jsonb`;
         }
-        return this.dataSource.query(sql, params).then((rows: Array<Record<string, unknown>>) =>
-          rows.map((r) => ({
-            id: r['id'] as string,
-            title: r['title'] as string,
-            tags: (r['tags'] as string[]) ?? [],
-            category_path: (r['category_path'] as string) ?? null,
-          })),
-        );
+        return this.dataSource
+          .query(sql, params)
+          .then((rows: Array<Record<string, unknown>>) =>
+            rows.map((r) => ({
+              id: r['id'] as string,
+              title: r['title'] as string,
+              tags: (r['tags'] as string[]) ?? [],
+              category_path: (r['category_path'] as string) ?? null,
+            })),
+          );
       }
     }
 
@@ -454,9 +505,7 @@ export class NoteRepository {
   }
 
   async updateEmbedding(id: string, embedding: number[] | null): Promise<void> {
-    const vectorLiteral = embedding
-      ? `[${embedding.join(',')}]`
-      : null;
+    const vectorLiteral = embedding ? `[${embedding.join(',')}]` : null;
     await this.dataSource.query(
       `UPDATE ext_ka_notes SET embedding = $2::vector WHERE id = $1`,
       [id, vectorLiteral],
@@ -474,8 +523,7 @@ export class NoteRepository {
     note.contentMd = row['content_md'] as string;
     note.categoryPath = (row['category_path'] as string) ?? null;
     note.tags = (row['tags'] as string[]) ?? [];
-    note.frontmatter =
-      (row['frontmatter'] as Record<string, unknown>) ?? {};
+    note.frontmatter = (row['frontmatter'] as Record<string, unknown>) ?? {};
     note.embedding = null;
     note.userId = row['user_id'] != null ? Number(row['user_id']) : null;
     note.createdAt = new Date(row['created_at'] as string);
