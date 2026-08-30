@@ -15,9 +15,9 @@ import type { VectorStoreService } from './infrastructure/vector-store.service';
  * The KB tools need runtime injection (NoteService, VectorStoreService), so
  * they cannot be exported as a static `tools` array. Instead this file
  * exports `createKnowledgeAgentTools(ctx)` which the AgentFactoryService
- * calls at build time, merging the returned tools with the native tools
- * (ToolRegistry), MCP tools (McpLoader), and the execute tool (sandbox
- * backend).
+ * calls at build time, merging the returned tools with the MCP tools
+ * (McpLoader), the service tools (sql_query_readonly, execute_js sandbox
+ * eval, get_current_datetime), and the deepagents VFS built-ins.
  *
  * The ToolRegistryService auto-discovery still imports this file, but since
  * there is no `tools` array export it returns null — KB tools are
