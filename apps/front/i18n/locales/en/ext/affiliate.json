@@ -2,13 +2,14 @@
   "nav": {
     "admin": "Affiliation",
     "dashboard": "Dashboard",
-    "partners": "Partners",
+    "partners": "Collaborators",
     "referrals": "Referrals",
     "commissions": "Commissions",
     "portal": "Affiliate portal",
     "myReferrals": "My referrals",
     "myCommissions": "My commissions",
-    "myProfile": "My profile"
+    "myProfile": "My profile",
+    "pipeline": "My pipeline"
   },
   "common": {
     "active": "Active",
@@ -58,7 +59,7 @@
     "referralStatus": "Referral status"
   },
   "partners": {
-    "title": "Partners",
+    "title": "Collaborators",
     "subtitle": "Companies and individuals referring clients",
     "name": "Name",
     "company": "Company",
@@ -71,13 +72,13 @@
     "user": "User account",
     "userLinked": "Linked",
     "userNotLinked": "No account",
-    "new": "New partner",
+    "new": "New collaborator",
     "fromClient": "From CRM",
     "invite": "Invite",
     "invited": "Invitation sent",
     "inviteHint": "Creates an affiliate account and emails a set-password link",
     "reinviteDisabled": "Already has a linked account",
-    "fromClientTitle": "Create partner from CRM client",
+    "fromClientTitle": "Create collaborator from CRM client",
     "selectClient": "CRM client",
     "selectClientPlaceholder": "Search by name or email…",
     "commissionRateHint": "Percentage applied to referred client projects (0-100)",
@@ -152,5 +153,18 @@
     "notes": "Notes (optional)",
     "submit": "Submit referral",
     "success": "Referral registered! We'll notify you as it progresses."
+  },
+  "pipeline": {
+    "title": "My pipeline",
+    "subtitle": "Full traceability: referrals → budgets → commissions",
+    "referrals": "Referrals",
+    "converted": "Converted",
+    "billed": "Billed",
+    "referred": "Referred on",
+    "project": "Project",
+    "price": "Price",
+    "projectStatus": "Project status",
+    "noProjects": "No projects yet — they will appear once the client is quoted",
+    "noCommission": "No commission"
   }
 }

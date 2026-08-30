@@ -50,6 +50,11 @@ export class AffiliatePartnerController {
     return this.partnerService.findOne(Number(id));
   }
 
+  @Get(':id/pipeline')
+  pipeline(@Param('id') id: number) {
+    return this.partnerService.getPipeline(Number(id));
+  }
+
   @Post()
   @HttpCode(HttpStatus.CREATED)
   create(@Body() dto: CreatePartnerDto) {

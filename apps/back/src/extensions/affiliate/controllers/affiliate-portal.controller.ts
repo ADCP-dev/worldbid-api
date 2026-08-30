@@ -80,4 +80,9 @@ export class AffiliatePortalController {
   getSummary(@CurrentUser() user: AuthenticatedUser) {
     return this.portalService.getPartnerSummary(user.id);
   }
+
+  @Get('pipeline')
+  getPipeline(@CurrentUser() user: AuthenticatedUser) {
+    return this.portalService.getPartnerPipeline(user.id);
+  }
 }

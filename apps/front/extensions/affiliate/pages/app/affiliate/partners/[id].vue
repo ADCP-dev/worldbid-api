@@ -11,8 +11,10 @@ import {
   useCommissionsQuery,
   useUpdatePartnerMutation,
   useInvitePartnerMutation,
+  usePartnerPipelineQuery,
   unwrapList,
 } from '@affiliate/composables/useAffiliate';
+import PartnerPipeline from '../../../components/PartnerPipeline.vue';
 import type { Commission, Referral } from '../../../types';
 
 definePageMeta({ layout: 'default', middleware: ['auth', 'admin'] });
@@ -22,6 +24,7 @@ const route = useRoute();
 const partnerId = computed(() => route.params.id as string);
 
 const { data: partner, isLoading } = usePartnerQuery(partnerId);
+const { data: pipelineData, isLoading: pipelineLoading } = usePartnerPipelineQuery(partnerId);
 const { data: referralsData } = useReferralsQuery(partnerId, undefined);
 const { data: commissionsData } = useCommissionsQuery(partnerId, undefined);
 
@@ -149,6 +152,13 @@ function statusBadge(status: string) {
     </div>
 
     <template v-else-if="partner">
+      <!-- Pipeline: referral → project → commission traceability -->
+      <PartnerPipeline
+        v-if="pipelineData"
+        :data="pipelineData"
+        :loading="pipelineLoading"
+      />
+
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Edit form -->
         <div class="card bg-base-100 shadow-sm border border-base-300 lg:col-span-2">

@@ -7,14 +7,17 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
-import { Repository, ILike } from 'typeorm';
+import { Repository, ILike, In } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { randomBytes, randomInt } from 'crypto';
 import * as bcrypt from 'bcryptjs';
 import ms from 'ms';
 import type { AllConfigType } from '@src/config/config.type';
 import { AffiliatePartnerEntity } from '../infrastructure/persistence/entities/affiliate-partner.entity';
+import { AffiliateReferralEntity } from '../infrastructure/persistence/entities/affiliate-referral.entity';
+import { AffiliateCommissionEntity } from '../infrastructure/persistence/entities/affiliate-commission.entity';
 import { CrmClientEntity } from '@ext/crm/infrastructure/persistence/entities/crm-client.entity';
+import { CrmProjectEntity } from '@ext/crm/infrastructure/persistence/entities/crm-project.entity';
 import { UserEntity } from '@users/infrastructure/entities/user.entity';
 import { RoleEntity } from '@iam/roles/infrastructure/entities/role.entity';
 import { RoleEnum } from '@iam/roles/roles.enum';
@@ -32,6 +35,10 @@ export class AffiliatePartnerService {
   constructor(
     @InjectRepository(AffiliatePartnerEntity)
     private readonly repository: Repository<AffiliatePartnerEntity>,
+    @InjectRepository(AffiliateReferralEntity)
+    private readonly referralRepository: Repository<AffiliateReferralEntity>,
+    @InjectRepository(AffiliateCommissionEntity)
+    private readonly commissionRepository: Repository<AffiliateCommissionEntity>,
     @InjectRepository(CrmClientEntity)
     private readonly clientRepository: Repository<CrmClientEntity>,
     @InjectRepository(UserEntity)
@@ -267,6 +274,146 @@ export class AffiliatePartnerService {
     }
 
     return saved;
+  }
+
+  /**
+   * Full traceability pipeline for one partner (colaborador):
+   * referral → client → projects → commissions per referral, plus totals.
+   * Powers the admin partner detail and the affiliate self-service portal.
+   */
+  async getPipeline(partnerId: number): Promise<{
+    partner: Pick<AffiliatePartnerEntity, 'id' | 'name' | 'email' | 'code' | 'companyName' | 'commissionRate'>;
+    lines: Array<{
+      referralId: number;
+      clientId: number;
+      clientName: string;
+      companyName: string | null;
+      referralStatus: string;
+      referredAt: string | null;
+      projects: Array<{
+        projectId: number;
+        projectName: string;
+        projectStatus: string | null;
+        paymentStatus: string | null;
+        price: number | null;
+        commission: {
+          id: number;
+          status: string;
+          amount: number;
+          baseAmount: number;
+          rate: number;
+          paidAt: string | null;
+        } | null;
+      }>;
+      billedTotal: number;
+      commissionTotal: number;
+    }>;
+    totals: {
+      referrals: number;
+      converted: number;
+      billed: number;
+      pending: number;
+      approved: number;
+      paid: number;
+    };
+  }> {
+    const partner = await this.findOne(partnerId);
+
+    const referrals = await this.referralRepository.find({
+      where: { partnerId },
+      order: { referredAt: 'DESC' },
+    });
+
+    const clientIds = [...new Set(referrals.map((r) => r.clientId))];
+    const [clients, commissions] = await Promise.all([
+      clientIds.length
+        ? this.clientRepository.find({ where: { id: In(clientIds) } })
+        : Promise.resolve([] as CrmClientEntity[]),
+      this.commissionRepository.find({
+        where: { referral: { partnerId } },
+        relations: ['project'],
+      }),
+    ]);
+
+    const clientsById = new Map(clients.map((c) => [c.id, c]));
+    const commissionsByReferral = new Map<number, AffiliateCommissionEntity[]>();
+    for (const c of commissions) {
+      const list = commissionsByReferral.get(c.referralId) ?? [];
+      list.push(c);
+      commissionsByReferral.set(c.referralId, list);
+    }
+
+    let billed = 0;
+    let pending = 0;
+    let approved = 0;
+    let paid = 0;
+    let converted = 0;
+
+    const lines = referrals.map((referral) => {
+      const client = clientsById.get(referral.clientId);
+      const referralCommissions = commissionsByReferral.get(referral.id) ?? [];
+
+      const projects = referralCommissions.map((c) => {
+        const price = Number((c.project as CrmProjectEntity | null)?.price ?? 0);
+        const amount = Number(c.commissionAmount ?? 0);
+        billed += price;
+        if (c.status === 'pending') pending += amount;
+        else if (c.status === 'approved') approved += amount;
+        else if (c.status === 'paid') paid += amount;
+        return {
+          projectId: c.projectId,
+          projectName: (c.project as CrmProjectEntity | null)?.name ?? `#${c.projectId}`,
+          projectStatus: (c.project as CrmProjectEntity | null)?.status ?? null,
+          paymentStatus: (c.project as CrmProjectEntity | null)?.paymentStatus ?? null,
+          price,
+          commission: {
+            id: c.id,
+            status: c.status,
+            amount,
+            baseAmount: Number(c.baseAmount ?? 0),
+            rate: Number(c.commissionRate ?? 0),
+            paidAt: c.paidAt?.toISOString?.() ?? null,
+          },
+        };
+      });
+
+      if (referral.status === 'converted') converted += 1;
+
+      return {
+        referralId: referral.id,
+        clientId: referral.clientId,
+        clientName: client?.name ?? `#${referral.clientId}`,
+        companyName: client?.companyName ?? null,
+        referralStatus: referral.status,
+        referredAt: referral.referredAt?.toISOString?.() ?? null,
+        projects,
+        billedTotal: projects.reduce((acc, p) => acc + p.price, 0),
+        commissionTotal: projects.reduce(
+          (acc, p) => acc + (p.commission?.amount ?? 0),
+          0,
+        ),
+      };
+    });
+
+    return {
+      partner: {
+        id: partner.id,
+        name: partner.name,
+        email: partner.email,
+        code: partner.code,
+        companyName: partner.companyName,
+        commissionRate: partner.commissionRate,
+      },
+      lines,
+      totals: {
+        referrals: referrals.length,
+        converted,
+        billed,
+        pending,
+        approved,
+        paid,
+      },
+    };
   }
 
   /**

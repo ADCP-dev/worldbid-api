@@ -7,6 +7,8 @@ import { JwtService } from '@nestjs/jwt';
 import { AffiliatePartnerService } from '../services/affiliate-partner.service';
 import { AffiliatePartnerEntity } from '../../infrastructure/persistence/entities/affiliate-partner.entity';
 import { CrmClientEntity } from '@ext/crm/infrastructure/persistence/entities/crm-client.entity';
+import { AffiliateReferralEntity } from '../../infrastructure/persistence/entities/affiliate-referral.entity';
+import { AffiliateCommissionEntity } from '../../infrastructure/persistence/entities/affiliate-commission.entity';
 import { UserEntity } from '@users/infrastructure/entities/user.entity';
 import { RoleEntity } from '@iam/roles/infrastructure/entities/role.entity';
 import { QueuedMailerService } from '@comms/email-queue/queued-mailer.service';
@@ -20,7 +22,9 @@ describe('AffiliatePartnerService', () => {
     createQueryBuilder: ReturnType<typeof vi.fn>;
     softDelete: ReturnType<typeof vi.fn>;
   };
-  let clientRepo: { findOne: ReturnType<typeof vi.fn> };
+  let referralRepo: { find: ReturnType<typeof vi.fn> };
+  let commissionRepo: { find: ReturnType<typeof vi.fn> };
+  let clientRepo: { findOne: ReturnType<typeof vi.fn>; find: ReturnType<typeof vi.fn> };
   let userRepo: { findOne: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn>; save: ReturnType<typeof vi.fn> };
   let roleRepo: { findOne: ReturnType<typeof vi.fn> };
   let mailer: { sendMail: ReturnType<typeof vi.fn> };
@@ -58,7 +62,15 @@ describe('AffiliatePartnerService', () => {
       }),
       softDelete: vi.fn(async () => undefined),
     };
-    clientRepo = { findOne: vi.fn(async () => null) };
+    referralRepo = {
+      find: vi.fn(async () => []),
+    };
+    commissionRepo = {
+      find: vi.fn(async () => []),
+    };
+    referralRepo = { find: vi.fn(async () => []) };
+    commissionRepo = { find: vi.fn(async () => []) };
+    clientRepo = { findOne: vi.fn(async () => null), find: vi.fn(async () => []) };
     userRepo = {
       findOne: vi.fn(async () => null),
       create: vi.fn((x) => x),
@@ -72,6 +84,8 @@ describe('AffiliatePartnerService', () => {
       providers: [
         AffiliatePartnerService,
         { provide: 'AffiliatePartnerEntityRepository', useValue: partnerRepo },
+        { provide: 'AffiliateReferralEntityRepository', useValue: referralRepo },
+        { provide: 'AffiliateCommissionEntityRepository', useValue: commissionRepo },
         { provide: 'CrmClientEntityRepository', useValue: clientRepo },
         { provide: 'UserEntityRepository', useValue: userRepo },
         { provide: 'RoleEntityRepository', useValue: roleRepo },
@@ -128,6 +142,78 @@ describe('AffiliatePartnerService', () => {
     it('should throw ConflictException when partner already has a user', async () => {
       partnerRepo.findOne.mockResolvedValue(makePartner({ userId: 10 }));
       await expect(service.invite(1)).rejects.toBeInstanceOf(ConflictException);
+    });
+  });
+
+
+  describe('getPipeline', () => {
+    it('should build referral → project → commission lines with totals', async () => {
+      partnerRepo.findOne.mockResolvedValue(makePartner({ id: 1 }));
+      referralRepo.find.mockResolvedValue([
+        { id: 10, partnerId: 1, clientId: 7, status: 'converted', referredAt: new Date('2026-01-10') },
+        { id: 11, partnerId: 1, clientId: 8, status: 'pending', referredAt: new Date('2026-02-01') },
+      ]);
+      clientRepo.find.mockResolvedValue([
+        { id: 7, name: 'Alice', companyName: 'Alice SL' },
+        { id: 8, name: 'Bob', companyName: null },
+      ]);
+      commissionRepo.find.mockResolvedValue([
+        {
+          id: 100,
+          referralId: 10,
+          projectId: 50,
+          status: 'approved',
+          baseAmount: 1000,
+          commissionRate: 0.05,
+          commissionAmount: 50,
+          paidAt: null,
+          project: { id: 50, name: 'Web redesign', status: 'in_progress', paymentStatus: 'partial', price: 1000 },
+        },
+        {
+          id: 101,
+          referralId: 10,
+          projectId: 51,
+          status: 'paid',
+          baseAmount: 500,
+          commissionRate: 0.05,
+          commissionAmount: 25,
+          paidAt: new Date('2026-03-01'),
+          project: { id: 51, name: 'Landing', status: 'delivered', paymentStatus: 'paid', price: 500 },
+        },
+      ]);
+
+      const result = await service.getPipeline(1);
+
+      expect(result.partner.id).toBe(1);
+      expect(result.totals).toEqual({
+        referrals: 2,
+        converted: 1,
+        billed: 1500,
+        pending: 0,
+        approved: 50,
+        approved_total_unused: undefined,
+        paid: 25,
+      } as never);
+      // First line = converted referral with 2 projects
+      const line = result.lines.find((l) => l.referralId === 10) as never as {
+        referralId: number;
+        clientName: string;
+        projects: Array<{ projectId: number; commission: { amount: number } | null }>;
+        billedTotal: number;
+        commissionTotal: number;
+      };
+      expect(line.clientName).toBe('Alice');
+      expect(line.projects).toHaveLength(2);
+      expect(line.projects[0].commission?.amount).toBe(50);
+      expect(line.billedTotal).toBe(1500);
+      expect(line.commissionTotal).toBe(75);
+      // Second line: pending referral, no commissions → empty projects
+      const empty = result.lines.find((l) => l.referralId === 11) as never as {
+        projects: unknown[];
+        billedTotal: number;
+      };
+      expect(empty.projects).toHaveLength(0);
+      expect(empty.billedTotal).toBe(0);
     });
   });
 

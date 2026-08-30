@@ -7,6 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AffiliatePartnerEntity } from '../infrastructure/persistence/entities/affiliate-partner.entity';
+import { AffiliatePartnerService } from './affiliate-partner.service';
 import { AffiliateReferralEntity } from '../infrastructure/persistence/entities/affiliate-referral.entity';
 import { AffiliateCommissionEntity } from '../infrastructure/persistence/entities/affiliate-commission.entity';
 import { CrmClientEntity } from '@ext/crm/infrastructure/persistence/entities/crm-client.entity';
@@ -31,6 +32,7 @@ export class AffiliatePortalService {
     private readonly originRepository: Repository<CrmOriginEntity>,
     @InjectRepository(CrmStatusEntity)
     private readonly statusRepository: Repository<CrmStatusEntity>,
+    private readonly partnerService: AffiliatePartnerService,
   ) {}
 
   async findPartnerByUserId(userId: number): Promise<AffiliatePartnerEntity> {
@@ -270,5 +272,19 @@ export class AffiliatePortalService {
     const paidThisMonth = Number(paidThisMonthResult?.total ?? 0);
 
     return { pendingTotal, approvedTotal, paidTotal, paidThisMonth };
+  }
+
+  /**
+   * Self-service pipeline for the affiliate portal: scoped to the partner
+   * linked to the authenticated user. Reuses the admin pipeline query so the
+   * data shape is identical (traceability: referral → budget → commission).
+   */
+  async getPartnerPipeline(userId: number) {
+    const partner = await this.findPartnerByUserId(userId);
+    const pipeline = await this.partnerService.getPipeline(partner.id);
+    this.logger.log(
+      `Portal: pipeline served for partner id=${partner.id} (userId=${userId})`,
+    );
+    return pipeline;
   }
 }

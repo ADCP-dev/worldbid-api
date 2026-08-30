@@ -2,13 +2,14 @@
   "nav": {
     "admin": "Afiliación",
     "dashboard": "Dashboard",
-    "partners": "Partners",
+    "partners": "Colaboradores",
     "referrals": "Referidos",
     "commissions": "Comisiones",
     "portal": "Portal de afiliados",
     "myReferrals": "Mis referidos",
     "myCommissions": "Mis comisiones",
-    "myProfile": "Mi perfil"
+    "myProfile": "Mi perfil",
+    "pipeline": "Mi pipeline"
   },
   "common": {
     "active": "Activo",
@@ -58,7 +59,7 @@
     "referralStatus": "Estado de referidos"
   },
   "partners": {
-    "title": "Partners",
+    "title": "Colaboradores",
     "subtitle": "Empresas y personas que refieren clientes",
     "name": "Nombre",
     "company": "Empresa",
@@ -71,13 +72,13 @@
     "user": "Cuenta de usuario",
     "userLinked": "Vinculada",
     "userNotLinked": "Sin cuenta",
-    "new": "Nuevo partner",
+    "new": "Nuevo colaborador",
     "fromClient": "Desde CRM",
     "invite": "Invitar",
     "invited": "Invitación enviada",
     "inviteHint": "Creará una cuenta de afiliado y enviará un email para crear contraseña",
     "reinviteDisabled": "Ya tiene cuenta vinculada",
-    "fromClientTitle": "Crear partner desde cliente CRM",
+    "fromClientTitle": "Crear colaborador desde cliente CRM",
     "selectClient": "Cliente de CRM",
     "selectClientPlaceholder": "Buscar por nombre o email…",
     "commissionRateHint": "Porcentaje aplicado a proyectos del cliente referido (0-100)",
@@ -152,5 +153,18 @@
     "notes": "Notas (opcional)",
     "submit": "Enviar referido",
     "success": "¡Referido registrado! Te avisaremos cuando avance."
+  },
+  "pipeline": {
+    "title": "Mi pipeline",
+    "subtitle": "Trazabilidad completa: referidos → presupuestos → comisiones",
+    "referrals": "Referidos",
+    "converted": "Convertidos",
+    "billed": "Facturado",
+    "referred": "Referido el",
+    "project": "Proyecto",
+    "price": "Precio",
+    "projectStatus": "Estado proyecto",
+    "noProjects": "Sin proyectos todavía — aparecerán al presupuestar al cliente",
+    "noCommission": "Sin comisión"
   }
 }

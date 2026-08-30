@@ -320,6 +320,79 @@ export function useMySummaryQuery() {
   });
 }
 
+// ─── Pipeline (traceability: referral → budget → commission) ──────────
+
+export interface PipelineCommission {
+  id: number;
+  status: string;
+  amount: number;
+  baseAmount: number;
+  rate: number;
+  paidAt: string | null;
+}
+
+export interface PipelineProject {
+  projectId: number;
+  projectName: string;
+  projectStatus: string | null;
+  paymentStatus: string | null;
+  price: number | null;
+  commission: PipelineCommission | null;
+}
+
+export interface PipelineLine {
+  referralId: number;
+  clientId: number;
+  clientName: string;
+  companyName: string | null;
+  referralStatus: string;
+  referredAt: string | null;
+  projects: PipelineProject[];
+  billedTotal: number;
+  commissionTotal: number;
+}
+
+export interface PartnerPipeline {
+  partner: {
+    id: number;
+    name: string;
+    email: string;
+    code: string | null;
+    companyName: string | null;
+    commissionRate: number;
+  };
+  lines: PipelineLine[];
+  totals: {
+    referrals: number;
+    converted: number;
+    billed: number;
+    pending: number;
+    approved: number;
+    paid: number;
+  };
+}
+
+export function usePartnerPipelineQuery(id: MaybeRefOrGetter<number | string | undefined>) {
+  return useQuery({
+    queryKey: computed(() => [...affiliateKeys.partner(toValue(id) ?? 0), 'pipeline'] as const),
+    enabled: computed(() => toValue(id) !== undefined),
+    queryFn: () => {
+      const api = useApi();
+      return api.get<PartnerPipeline>(`/affiliate/partners/${toValue(id)}/pipeline`);
+    },
+  });
+}
+
+export function useMyPipelineQuery() {
+  return useQuery({
+    queryKey: [...affiliateKeys.portal.summary, 'pipeline'] as const,
+    queryFn: () => {
+      const api = useApi();
+      return api.get<PartnerPipeline>('/affiliate/portal/pipeline');
+    },
+  });
+}
+
 /** Convenience: unwrap paginated-or-array API responses. */
 export function unwrapList<T>(res: PaginatedResponse<T> | T[]): T[] {
   return Array.isArray(res) ? res : (res.data ?? []);

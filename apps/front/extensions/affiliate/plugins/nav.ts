@@ -27,6 +27,7 @@ export default defineNuxtPlugin(() => {
       order: 35,
       items: [
         { title: 'affiliate.nav.dashboard', icon: 'LayoutDashboard', link: '/app/portal', order: 0 },
+        { title: 'affiliate.nav.pipeline', icon: 'GitBranch', link: '/app/portal/pipeline', order: 5 },
         { title: 'affiliate.nav.myReferrals', icon: 'Share2', link: '/app/portal/referrals', order: 10 },
         { title: 'affiliate.nav.myCommissions', icon: 'Euro', link: '/app/portal/commissions', order: 20 },
         { title: 'affiliate.nav.myProfile', icon: 'User', link: '/app/portal/profile', order: 100 },
