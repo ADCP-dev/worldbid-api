@@ -3,10 +3,8 @@ import { ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import FormSelect from '@base/ui-app/components/form/FormSelect.vue';
-import {
-  useCreateCommissionMutation,
-  useProjectsQuery,
-} from '@affiliate/composables/useAffiliate';
+import { useCreateCommissionMutation } from '@affiliate/composables/useAffiliate';
+import { useProjectsQuery } from '@crm/composables/useCrm';
 import type { PipelineLine, Referral } from '@affiliate/types';
 
 /**
