@@ -71,7 +71,7 @@ watch(activeTab, (tab) => {
             :class="{ 'tab-active': activeTab === dash.id }"
             @click="activeTab = dash.id"
           >
-            {{ dash.title }}
+            {{ $t(dash.title) }}
           </button>
         </div>
 
