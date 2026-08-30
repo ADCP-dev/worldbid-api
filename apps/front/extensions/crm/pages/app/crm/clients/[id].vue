@@ -7,8 +7,8 @@ import FormInput from '@base/ui-app/components/form/FormInput.vue';
 import FormSelect from '@base/ui-app/components/form/FormSelect.vue';
 import FormSwitch from '@base/ui-app/components/form/FormSwitch.vue';
 import ContactsCard from '@crm/components/ContactsCard.vue';
-import InteractionsCard from '../../../components/InteractionsCard.vue';
-import ProjectsCard from '../../../components/ProjectsCard.vue';
+import InteractionsCard from '@crm/components/InteractionsCard.vue';
+import ProjectsCard from '@crm/components/ProjectsCard.vue';
 import {
   useClientQuery,
   useStatusesQuery,
