@@ -175,7 +175,8 @@
         "price": "Precio",
         "projectStatus": "Estado proyecto",
         "noProjects": "Sin proyectos todavía — aparecerán al presupuestar al cliente",
-        "noCommission": "Sin comisión"
+        "noCommission": "Sin comisión",
+        "noReferrals": "Aún sin referidos — registrá el primero desde Referidos o Desde CRM"
       }
     }
   }

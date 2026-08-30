@@ -175,7 +175,8 @@
         "price": "Price",
         "projectStatus": "Project status",
         "noProjects": "No projects yet — they will appear once the client is quoted",
-        "noCommission": "No commission"
+        "noCommission": "No commission",
+        "noReferrals": "No referrals yet — register the first one from Referrals or From CRM"
       }
     }
   }
