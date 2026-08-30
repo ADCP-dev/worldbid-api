@@ -123,7 +123,12 @@
         },
         "approve": "Aprobar",
         "markPaid": "Marcar pagada",
-        "new": "Nueva comisión"
+        "new": "Nueva comisión",
+        "add": "Apuntar comisión",
+        "selectReferral": "Referencia",
+        "selectProject": "Proyecto (presupuesto)",
+        "calcHint": "El importe se calcula: precio del proyecto × tasa del colaborador",
+        "created": "Comisión apuntada"
       },
       "portal": {
         "welcome": "Hola, {name}",

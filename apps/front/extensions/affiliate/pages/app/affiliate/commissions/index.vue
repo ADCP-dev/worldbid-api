@@ -9,6 +9,7 @@ import {
   BadgeCheck,
   Euro,
   CalendarCheck,
+  Plus,
 } from 'lucide-vue-next';
 import {
   useCommissionsQuery,
@@ -27,6 +28,9 @@ const { data: summary } = useCommissionSummaryQuery();
 const updateMut = useUpdateCommissionMutation();
 
 const commissions = computed<Commission[]>(() => unwrapList<Commission>(commissionsData.value ?? []));
+const { data: referralsData } = useReferralsQuery();
+const referrals = computed<Referral[]>(() => unwrapList<Referral>(referralsData.value ?? []));
+const showCreate = ref(false);
 
 function formatCurrency(value: number | undefined) {
   return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'EUR' }).format(value ?? 0);
@@ -136,9 +140,14 @@ const columns = computed(() => [
 
 <template>
   <div class="p-6 space-y-4">
-    <div>
-      <h1 class="text-2xl font-bold">{{ t('ext.affiliate.commissions.title') }}</h1>
-      <p class="text-base-content/60 mt-1 text-sm">{{ t('ext.affiliate.commissions.subtitle') }}</p>
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold">{{ t('ext.affiliate.commissions.title') }}</h1>
+        <p class="text-base-content/60 mt-1 text-sm">{{ t('ext.affiliate.commissions.subtitle') }}</p>
+      </div>
+      <button class="btn btn-primary btn-sm" @click="showCreate = true">
+        <Plus class="w-4 h-4" /> {{ t('ext.affiliate.commissions.new') }}
+      </button>
     </div>
 
     <!-- Summary stats -->
@@ -180,5 +189,11 @@ const columns = computed(() => [
         />
       </div>
     </div>
+
+    <CommissionModal
+      v-if="showCreate"
+      :referrals="referrals"
+      @close="showCreate = false"
+    />
   </div>
 </template>

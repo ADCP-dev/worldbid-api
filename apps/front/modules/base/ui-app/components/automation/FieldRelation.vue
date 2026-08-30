@@ -1,13 +1,13 @@
 <script setup lang="ts">
 /**
- * FieldRelation — FormSearchSelect que, al seleccionar, dispara fetch
+ * FieldRelation — FormSelect que, al seleccionar, dispara fetch
  * a `endpoint` para auto-fill de otros campos y emite `select` con item completo.
  * Usa useApi() (maneja refresh 401). Errores → toast vue-sonner, no rompe form.
  */
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
-import FormSearchSelect from '@base/ui-app/components/form/FormSearchSelect.vue'
+import FormSelect from '@base/ui-app/components/form/FormSelect.vue'
 import type { FieldRelationConfig } from './types'
 
 const props = defineProps<{
@@ -68,7 +68,7 @@ function onSelect(value: string | number) {
 
 <template>
   <div class="form-control w-full">
-    <FormSearchSelect
+    <FormSelect
       :model-value="model"
       :label="label"
       :options="options"

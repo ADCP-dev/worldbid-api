@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref  } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
   Users,
@@ -10,7 +10,8 @@ import {
   CalendarCheck,
 } from 'lucide-vue-next';
 import StatCard from '@base/ui-app/components/dashboard/StatCard.vue';
-import type { PartnerPipeline } from '@affiliate/composables/useAffiliate';
+import CommissionModal from './CommissionModal.vue';
+import type { PartnerPipeline, PipelineLine } from '@affiliate/composables/useAffiliate';
 import type { DaisyVariant } from '@base/ui-app/components/dashboard/types';
 
 const { t, d } = useI18n();
@@ -19,6 +20,8 @@ const props = defineProps<{
   data: PartnerPipeline;
   loading?: boolean;
 }>();
+
+const commissionLine = ref<PipelineLine | null>(null);
 
 const stats = computed(() => [
   { label: t('ext.affiliate.pipeline.referrals'), value: props.data.totals.referrals, icon: Users, color: 'primary' as DaisyVariant },
@@ -94,6 +97,13 @@ function formatDate(value: string | null | undefined) {
             </span>
             <span class="font-semibold tabular-nums">{{ formatCurrency(line.billedTotal) }}</span>
             <span class="font-bold tabular-nums text-primary">{{ formatCurrency(line.commissionTotal) }}</span>
+            <button
+              v-if="line.referralStatus !== 'rejected'"
+              class="btn btn-xs btn-primary btn-outline"
+              @click="commissionLine = line"
+            >
+              + {{ t('ext.affiliate.commissions.add') }}
+            </button>
           </div>
         </div>
 
@@ -137,8 +147,21 @@ function formatDate(value: string | null | undefined) {
         </div>
         <p v-else class="text-sm text-base-content/40 mt-2">
           {{ t('ext.affiliate.pipeline.noProjects') }}
+          <button
+            v-if="line.referralStatus !== 'rejected'"
+            class="btn btn-xs btn-primary btn-outline ml-2"
+            @click="commissionLine = line"
+          >
+            + {{ t('ext.affiliate.commissions.add') }}
+          </button>
         </p>
       </div>
     </div>
   </div>
+
+  <CommissionModal
+    v-if="commissionLine"
+    :line="commissionLine"
+    @close="commissionLine = null"
+  />
 </template>

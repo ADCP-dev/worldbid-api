@@ -6,6 +6,7 @@ import { Plus, UserPlus, Building2 } from 'lucide-vue-next';
 import DataTable from '@base/ui-app/components/data-table/DataTable.vue';
 import FormInput from '@base/ui-app/components/form/FormInput.vue';
 import FormSwitch from '@base/ui-app/components/form/FormSwitch.vue';
+import FormSelect from '@base/ui-app/components/form/FormSelect.vue';
 import ViewButton from '@base/ui-app/components/data-table/buttons/ViewButton.vue';
 import EditButton from '@base/ui-app/components/data-table/buttons/EditButton.vue';
 import DeleteButton from '@base/ui-app/components/data-table/buttons/DeleteButton.vue';
@@ -181,7 +182,7 @@ const fromClientForm = ref({
 function openFromClient() {
   fromClientForm.value = { clientId: null, clientLabel: '', clientEmail: '', commissionRate: 5, invite: true };
   showFromClient.value = true;
-  void searchCrmClients('');
+  void searchCrmClients();
 }
 
 interface CrmClientOption {
@@ -192,12 +193,12 @@ interface CrmClientOption {
 const crmClientOptions = ref<CrmClientOption[]>([]);
 const fromClientSearching = ref(false);
 
-async function searchCrmClients(term: string) {
+async function searchCrmClients() {
   fromClientSearching.value = true;
   try {
     const api = useApi();
     const res = await api.get<{ data?: Array<{ id: number; name: string; companyName?: string | null; email?: string | null }> } | Array<{ id: number; name: string; companyName?: string | null; email?: string | null }>>('/crm/clients', {
-      query: { search: term || undefined, limit: 20 },
+      query: { limit: 100 },
     });
     const list = Array.isArray(res) ? res : (res.data ?? []);
     crmClientOptions.value = list.map((c) => ({
@@ -423,16 +424,12 @@ const columns = computed(() => [
       <div class="modal-box">
         <h3 class="text-lg font-bold">{{ t('ext.affiliate.partners.fromClientTitle') }}</h3>
         <div class="py-4 space-y-4">
-          <FormSearchSelect
+          <FormSelect
             v-model="fromClientForm.clientId"
             :label="t('ext.affiliate.partners.selectClient')"
             :placeholder="t('ext.affiliate.partners.selectClientPlaceholder')"
             :options="crmClientOptions"
-            :disabled="fromClientSearching"
           />
-          <p v-if="fromClientSearching" class="text-xs text-base-content/50">
-            {{ t('ext.affiliate.common.loading') }}
-          </p>
           <FormInput
             v-model="fromClientForm.commissionRate"
             :label="t('ext.affiliate.partners.commissionRate')"

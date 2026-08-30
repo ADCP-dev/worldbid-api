@@ -123,7 +123,12 @@
         },
         "approve": "Approve",
         "markPaid": "Mark paid",
-        "new": "New commission"
+        "new": "New commission",
+        "add": "Add commission",
+        "selectReferral": "Referral",
+        "selectProject": "Project (budget)",
+        "calcHint": "Amount is computed: project price × collaborator rate",
+        "created": "Commission recorded"
       },
       "portal": {
         "welcome": "Hi, {name}",

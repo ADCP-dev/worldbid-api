@@ -219,9 +219,9 @@ export function useCreateCommissionMutation() {
       return api.post<Commission>('/affiliate/commissions', data);
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: affiliateKeys.commissions });
-      qc.invalidateQueries({ queryKey: affiliateKeys.dashboard });
-      qc.invalidateQueries({ queryKey: affiliateKeys.commissionSummary });
+      // Invalidate the whole affiliate namespace: lists, summaries, dashboard
+      // and both pipeline queries depend on commission data.
+      qc.invalidateQueries({ queryKey: ['affiliate'] });
     },
   });
 }

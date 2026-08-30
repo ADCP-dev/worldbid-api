@@ -58,6 +58,21 @@ const statusOptions = computed(() =>
   (statuses.value ?? []).map((s) => ({ value: s.id, label: s.label || s.name })),
 );
 
+const emptyForm = () => ({
+  name: '',
+  companyName: '',
+  nif: '',
+  email: '',
+  phone: '',
+  address: '',
+  city: '',
+  region: '',
+  country: 'España',
+  statusId: null as number | null,
+  originId: null as number | null,
+  originDetail: '',
+  isActive: true,
+});
 
 const form = ref(emptyForm());
 
