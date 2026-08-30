@@ -77,6 +77,8 @@ const emptyForm = () => ({
 const form = ref(emptyForm());
 const editingId = ref<number | null>(null);
 const saving = ref(false);
+const showModal = ref(false);
+const deleteTarget = ref<Client | null>(null);
 
 function openCreate() {
   editingId.value = null;
@@ -147,8 +149,6 @@ async function submit() {
 }
 
 // ─── Delete ───────────────────────────────────────────────────────────
-
-const deleteTarget = ref<Client | null>(null);
 
 async function confirmDelete() {
   if (!deleteTarget.value) return;
