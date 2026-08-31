@@ -109,19 +109,36 @@ sequenceDiagram
     participant DB as PostgreSQL
 
     Note over Client: 1 minute before accessToken expires
-    Client->>API: POST /api/v1/auth/refresh ({ refreshToken })
+    Client->>API: POST /api/v1/auth/refresh (Authorization: Bearer <refreshToken>)
     API->>Session: Validate refresh token
     Session->>DB: Find session by refresh token hash
     DB-->>Session: Session record
     Session->>Session: Check expiry & rotation count
     alt Valid session
         Session->>DB: Rotate: invalidate old token, create new
-        API-->>Client: { accessToken, refreshToken, expiresIn }
+        API-->>Client: { token, refreshToken, tokenExpires }
     else Invalid / Expired
         Session->>DB: Invalidate all tokens for user
         API-->>Client: 401 Session expired → re-login
     end
 ```
+
+#### Refresh Endpoint Contract
+
+`POST /api/v1/auth/refresh`
+
+- **Auth**: `Authorization: Bearer <refreshToken>` header — the refresh token
+  is **not** sent in the body. Body is empty JSON (`{}`).
+- **Response (200)**: rotation payload `{ token, refreshToken, tokenExpires }`
+  — both tokens are rotated on every use.
+- **Client logout policy**:
+  - `401` → refresh token invalid/expired/rotated → session is dead, the
+    client must logout and redirect to login.
+  - Network error, timeout or `5xx` → temporary failure, the client must
+    **NOT** logout; tokens stay intact and the refresh can be retried later.
+- **Single-flight**: concurrent refresh calls must share one in-flight
+  request (see `useAuthStore.refreshAccessToken()`), since each call rotates
+  the refresh token and a second parallel call would 401.
 
 ### Social Login Flow (OAuth2)
 
