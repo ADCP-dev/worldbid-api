@@ -23,6 +23,24 @@ async function sql(q: string): Promise<string[]> {
 }
 
 (async () => {
+  // ---- 0) reset to pristine (only IB seed active) — idempotent re-runs ----
+  const { execSync: es0 } = await import('child_process');
+  const RESET_SQL = [
+    'DELETE FROM worldbid_event',
+    "DELETE FROM worldbid_bid WHERE id!='seed-ib'",
+    'UPDATE worldbid_country SET "activeBidId"=NULL',
+    "UPDATE worldbid_country SET \"activeBidId\"='seed-ib' WHERE iso2='IB'",
+  ];
+  for (const stmt of RESET_SQL) {
+    es0(
+      ['docker', 'exec', 'p5ysbp7spc2hwgk5rvs5vhos', 'psql', '-U', 'postgres', '-d', 'worldbid', '-tAc', stmt2arg(stmt)].join(' '),
+      { stdio: 'ignore' },
+    );
+  }
+  function stmt2arg(s: string): string {
+    return JSON.stringify(s);
+  }
+
   // ---- auth ----
   const email = `final-audit-${Date.now()}@worldbid.dev`;
   const RUN = String(Date.now()).slice(-6);
