@@ -12,6 +12,7 @@ import { randomUUID } from 'crypto';
 
 import { CountryEntity } from './infrastructure/entities/country.entity';
 import { BidEntity } from './infrastructure/entities/bid.entity';
+import { WorldbidEventEntity } from './infrastructure/entities/worldbid-event.entity';
 import {
   DEVELOPER_SPOT_ID,
   PLANE_SPOT_ID,
@@ -38,6 +39,8 @@ export class BidsService {
     private readonly countriesRepository: Repository<CountryEntity>,
     @InjectRepository(BidEntity)
     private readonly bidsRepository: Repository<BidEntity>,
+    @InjectRepository(WorldbidEventEntity)
+    private readonly eventsRepository: Repository<WorldbidEventEntity>,
     @InjectDataSource()
     private readonly dataSource: DataSource,
   ) {}
@@ -141,6 +144,17 @@ export class BidsService {
         status: 'pending',
       });
       await em.getRepository(BidEntity).insert(bid);
+      await em
+        .getRepository(WorldbidEventEntity)
+        .insert(
+          em.getRepository(WorldbidEventEntity).create({
+            type: 'bid_placed',
+            countryId,
+            alias: bid.alias,
+            amount: String(bid.amount),
+            message: `${bid.alias} placed $${Number(bid.amount).toFixed(2)} on ${countryId === 'PLANE' ? 'the global banner' : countryId}`,
+          }),
+        );
       return bid;
     });
   }
@@ -182,6 +196,17 @@ export class BidsService {
         await em
           .getRepository(BidEntity)
           .update(bidId, { status: 'expired' });
+        await em
+          .getRepository(WorldbidEventEntity)
+          .insert(
+            em.getRepository(WorldbidEventEntity).create({
+              type: 'bid_expired',
+              countryId: bid.countryId,
+              alias: bid.alias,
+              amount: String(bid.amount),
+              message: `${bid.alias}'s $${Number(bid.amount).toFixed(2)} payment expired — ${bid.countryId} already moved`,
+            }),
+          );
         this.logger.warn(
           `bid ${bidId} expired: spot ${bid.countryId} moved to $${active.amount} before payment`,
         );
@@ -194,6 +219,19 @@ export class BidsService {
         .update(
           { iso2: bid.countryId },
           { activeBidId: bidId },
+        );
+      await em
+        .getRepository(WorldbidEventEntity)
+        .insert(
+          em.getRepository(WorldbidEventEntity).create({
+            type: active ? 'bid_outbid' : 'bid_paid',
+            countryId: bid.countryId,
+            alias: bid.alias,
+            amount: String(bid.amount),
+            message: active
+              ? `${bid.alias} outbid ${active.alias} on ${bid.countryId === 'PLANE' ? 'the global banner' : bid.countryId} ($${Number(bid.amount).toFixed(2)})`
+              : `${bid.alias} now owns ${bid.countryId === 'PLANE' ? 'the global banner' : bid.countryId} ($${Number(bid.amount).toFixed(2)})`,
+          }),
         );
     });
   }
@@ -268,5 +306,60 @@ export class BidsService {
       totalInvested += Number(b.amount);
     }
     return { claimedCount, totalInvested, totalCountries: 196 };
+  }
+
+  /** Append an activity-feed event row (best effort — never blocks a bid). */
+  async emitActivity(
+    type: 'bid_placed' | 'bid_paid' | 'bid_outbid' | 'bid_expired',
+    data: {
+      countryId?: string | null;
+      alias: string;
+      amount?: number | null;
+      message?: string | null;
+    },
+  ): Promise<void> {
+    try {
+      await this.eventsRepository.insert(
+        this.eventsRepository.create({
+          type,
+          countryId: data.countryId ?? null,
+          alias: data.alias,
+          amount: data.amount ?? null,
+          message: data.message ?? null,
+        }),
+      );
+    } catch (error: any) {
+      this.logger.warn(`activity event write failed: ${error?.message}`);
+    }
+  }
+
+  /** Public SSE feed source: latest N events, oldest first. Returns plain
+   *  objects (never TypeORM entities): the SSE pipe passes through the global
+   *  ClassSerializerInterceptor and bare entities would be mangled. */
+  async recentActivity(limit = 20): Promise<
+    Array<{
+      id: string;
+      type: string;
+      countryId: string | null;
+      alias: string;
+      amount: number | null;
+      message: string | null;
+      createdAt: Date;
+    }>
+  > {
+    const capped = Math.min(Math.max(limit, 1), 50);
+    const rows = await this.eventsRepository
+      .find({ order: { createdAt: 'DESC' }, take: capped });
+    return rows
+      .reverse()
+      .map((r) => ({
+        id: r.id,
+        type: r.type,
+        countryId: r.countryId,
+        alias: r.alias,
+        amount: r.amount == null ? null : Number(r.amount),
+        message: r.message,
+        createdAt: r.createdAt,
+      }));
   }
 }

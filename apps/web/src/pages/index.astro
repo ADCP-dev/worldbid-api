@@ -106,9 +106,15 @@ import '../styles/global.css';
 
     <script>
       // Module script (Vite-transpiled) — hydrates stores from localStorage so
-      // every island reads the same seeded/persisted state.
+      // every island reads the same seeded/persisted state, then syncs server
+      // truth (PUBLIC_WORLDBID_API_URL) over it and opens the live activity
+      // SSE feed when the backend is configured.
       import { loadAll } from '../stores/worldbid';
+      import { syncFromServer } from '../lib/server-sync';
+      import { connectActivityFeed } from '../lib/live-sync';
+
       loadAll();
+      void syncFromServer().then(() => connectActivityFeed());
     </script>
   </body>
 </html>

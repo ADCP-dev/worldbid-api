@@ -1,4 +1,5 @@
-import { Injectable, Inject, Logger, Optional } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
+import type { StripeEventListener } from './webhooks.service';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -24,6 +25,9 @@ export class StripeService {
     private readonly usersService: UsersService,
     @Optional() private readonly queuedMailerService: QueuedMailerService,
     @Optional() private readonly emailDiscoveryService: EmailDiscoveryService,
+    @Optional()
+    @Inject('STRIPE_EVENT_LISTENERS')
+    private readonly eventListeners?: StripeEventListener[][],
     private readonly pdfInvoiceService: PdfInvoiceService,
     @InjectRepository(SubscriptionEntity)
     private readonly subscriptionRepository: Repository<SubscriptionEntity>,
@@ -240,6 +244,17 @@ export class StripeService {
     }
 
     this.logger.log(`Received Stripe webhook: ${event.type}`);
+
+    // Feature-module listeners (worldbid settlement etc.) — fired AFTER the
+    // switch below so subscription bookkeeping lands first, but BEFORE the
+    // method returns, and never fails the webhook (see WebhooksService).
+    try {
+      await this.dispatchToListeners(event);
+    } catch (error: any) {
+      this.logger.error(
+        `stripe event listener failed for ${event.type}: ${error?.message}`,
+      );
+    }
 
     switch (event.type) {
       case 'checkout.session.completed':
@@ -680,5 +695,11 @@ export class StripeService {
     ];
     if (allowed.includes(status)) return status;
     return 'incomplete';
+  }
+
+  private async dispatchToListeners(event: Stripe.Event): Promise<void> {
+    for (const listener of this.eventListeners ?? []) {
+      await listener.handleStripeEvent(event);
+    }
   }
 }

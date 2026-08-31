@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { CountryEntity } from './infrastructure/entities/country.entity';
 import { BidEntity } from './infrastructure/entities/bid.entity';
+import { WorldbidEventEntity } from './infrastructure/entities/worldbid-event.entity';
 import { BidsService } from './bids.service';
 import { BidCheckoutService } from './bid-checkout.service';
 import { BidSettlementService } from './bid-settlement.service';
@@ -20,7 +21,7 @@ import { stripeProvider, STRIPE_PROVIDER } from '@ext/stripe/stripe.provider';
 @Module({
   imports: [
     ConfigModule,
-    TypeOrmModule.forFeature([CountryEntity, BidEntity]),
+    TypeOrmModule.forFeature([CountryEntity, BidEntity, WorldbidEventEntity]),
   ],
   controllers: [WorldbidController],
   providers: [
