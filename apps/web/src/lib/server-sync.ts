@@ -23,6 +23,7 @@ interface ServerSpotActiveBid {
   pitch: string | null;
   amount: number;
   accentColor: string;
+  userId?: number | null;
 }
 
 interface ServerSpot {
@@ -82,7 +83,10 @@ export async function syncFromServer(): Promise<number> {
         nextBids[serverBidId] = {
           id: serverBidId,
           countryId: s.iso2,
-          userId: local?.userId ?? '',
+          userId:
+            s.activeBid.userId != null
+              ? String(s.activeBid.userId)
+              : (local?.userId ?? ''),
           alias: s.activeBid.alias,
           email: local?.email ?? null,
           url: s.activeBid.url,

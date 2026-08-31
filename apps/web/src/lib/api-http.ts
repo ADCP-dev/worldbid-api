@@ -83,6 +83,7 @@ interface ServerSpotActiveBid {
   pitch: string | null;
   amount: number;
   accentColor: string;
+  userId?: number | null;
 }
 
 interface ServerSpot {
@@ -152,10 +153,17 @@ export function createServerApi(): WorldBidApi {
         },
       );
       if (res.status === 201 && res.body?.bidId) {
-        // Optimistic local shape; server truth arrives via /spots after settle.
+        // Optimistic local bid whose userId matches what the server stored
+        // (JWT-derived integer) so ownedCountries/personalDashboard match.
+        const numericUserId = /^\d+$/.test(input.userId) ? input.userId : input.userId.replace(/^usr-/, '');
         return {
           status: 201,
-          body: { ...(input as object), id: res.body.bidId, placedAt: Date.now() } as unknown as Bid,
+          body: {
+            ...(input as object),
+            id: res.body.bidId,
+            userId: numericUserId,
+            placedAt: Date.now(),
+          } as unknown as Bid,
         };
       }
       return res as ApiResult<Bid>;

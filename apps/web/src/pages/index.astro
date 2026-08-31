@@ -112,9 +112,13 @@ import '../styles/global.css';
       import { loadAll } from '../stores/worldbid';
       import { syncFromServer } from '../lib/server-sync';
       import { connectActivityFeed } from '../lib/live-sync';
+      import { refreshServerStats } from '../lib/stats-sync';
 
       loadAll();
-      void syncFromServer().then(() => connectActivityFeed());
+      void syncFromServer().then(() => {
+        void refreshServerStats();
+        connectActivityFeed();
+      });
     </script>
   </body>
 </html>

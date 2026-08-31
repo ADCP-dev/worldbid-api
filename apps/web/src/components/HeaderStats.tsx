@@ -1,13 +1,16 @@
 // HeaderStats — compact global stats chip pinned to the top-right.
 //
-// Mirrors the worldmap.lol reference: two stacked rows with a tiny icon
-// prefix. Subscribes to bids + countries + clicks via the lib/stats engine.
+// Two data sources, one truth order:
+//   1. Server mode (PUBLIC_WORLDBID_API_URL set): claimed/invested come from
+//      GET /worldbid/stats (server-stats atom, refreshed by live-sync).
+//   2. Offline fallback: legacy globalStats() over local state.
 
 import { useStore } from '@nanostores/react';
 import { useMemo } from 'react';
 import { countries, bids } from '../stores/bids';
 import { clickEvents } from '../stores/clicks';
 import { globalStats } from '../lib/stats';
+import { serverStats } from '../lib/stats-sync';
 
 function fmtMoney(n: number): string {
   if (n >= 1000) return '$' + (n / 1000).toFixed(1) + 'k';
@@ -18,8 +21,18 @@ export default function HeaderStats() {
   const countriesMap = useStore(countries);
   const bidsMap = useStore(bids);
   const clicks = useStore(clickEvents);
+  const sServer = useStore(serverStats);
 
-  const s = useMemo(() => globalStats(), [countriesMap, bidsMap, clicks]);
+  const s = useMemo(() => {
+    if (sServer) {
+      return {
+        claimedCount: sServer.claimedCount,
+        totalCountries: sServer.totalCountries,
+        totalInvested: sServer.totalInvested,
+      };
+    }
+    return globalStats();
+  }, [sServer, countriesMap, bidsMap, clicks]);
 
   return (
     <div id="header-stats" className="glass" data-testid="header-stats">

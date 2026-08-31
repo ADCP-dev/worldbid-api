@@ -67,9 +67,27 @@ export class BidsService {
     return this.countriesRepository.find({ order: { iso2: 'ASC' } });
   }
 
-  /** Every currently-active PAID bid (front seeding). */
-  async allActiveBids(): Promise<BidEntity[]> {
-    return this.bidsRepository.find({ where: { status: 'paid' } });
+  /** Every currently-active PAID bid WITH its owner id (front seeding). */
+  async allActiveBids(): Promise<
+    Array<BidEntity & { userId: number | null }>
+  > {
+    return this.bidsRepository.find({
+      where: { status: 'paid' },
+      select: {
+        id: true,
+        countryId: true,
+        userId: true,
+        alias: true,
+        email: true,
+        url: true,
+        pitch: true,
+        amount: true,
+        accentColor: true,
+        status: true,
+        stripeSessionId: true,
+        createdAt: true,
+      },
+    });
   }
 
   /** Minimum accepted bid for a spot (tiered economy). */

@@ -11,6 +11,7 @@
 
 import { isServerApiEnabled } from './api-http';
 import { syncFromServer } from './server-sync';
+import { refreshServerStats, startServerStatsPolling } from './stats-sync';
 import { activity } from '../stores/worldbid';
 import type { LegacyActivityEntry } from './seed';
 
@@ -55,8 +56,10 @@ export function connectActivityFeed(): () => void {
           .map(toLegacy)
           .slice(0, MAX_ACTIVITY),
       );
-      // Ownership may have changed server-side — refresh spot truth cheaply.
+      // Ownership may have changed server-side — refresh spots + stats.
       void syncFromServer();
+      void refreshServerStats();
+      startServerStatsPolling();
     } catch {
       /* malformed frame — skip */
     }

@@ -116,6 +116,7 @@ export class WorldbidController {
                 pitch: b.pitch,
                 amount: Number(b.amount),
                 accentColor: b.accentColor,
+                userId: b.userId,
               }
             : null,
         };

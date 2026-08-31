@@ -42,6 +42,16 @@ export default function UserPanel() {
     () => (user ? ownedCountries.get()(user.id) : []),
     [user, countriesMap, bidsMap]
   );
+  // invested from ACTIVE owned bids (server truth), not the stale session field
+  const invested = useMemo(() => {
+    if (!user) return 0;
+    return Object.values(countriesMap).reduce((sum, c) => {
+      if (!c.activeBidId || c.iso2 === 'PLANE') return sum;
+      const b = bidsMap[c.activeBidId];
+      if (!b || String(b.userId) !== user.id) return sum;
+      return sum + Number(b.amount);
+    }, 0);
+  }, [countriesMap, bidsMap, user]);
   const dash = useMemo(
     () => (user ? personalDashboard(user.id) : null),
     [user, countriesMap, bidsMap]
@@ -94,8 +104,9 @@ export default function UserPanel() {
         return;
       }
       setAuthToken(body.token);
+      // keep the server's numeric id as string so bid.userId matching works
       const u: User = {
-        id: 'usr-' + (body.user?.id ?? Date.now().toString(36)),
+        id: String(body.user?.id ?? Date.now().toString(36)),
         alias: body.user?.firstName || aliasFromEmail(email.trim()),
         email: body.user?.email || email.trim(),
         accentColor: randomColor(),
@@ -216,7 +227,7 @@ export default function UserPanel() {
                     <span className="user-modal-stat-l">clicks</span>
                   </div>
                   <div className="user-modal-stat">
-                    <span className="user-modal-stat-v">{fmtMoney(user.totalInvested || 0)}</span>
+                    <span className="user-modal-stat-v">{fmtMoney(invested)}</span>
                     <span className="user-modal-stat-l">invested</span>
                   </div>
                 </div>
