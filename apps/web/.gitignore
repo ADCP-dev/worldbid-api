@@ -1,20 +1,9 @@
-# Astro dev/build outputs
-dist
-.astro
-
-# Node dependencies
-node_modules
-
-# Logs
-logs
+node_modules/
+dist/
+.vite/
 *.log
-
-# Env
-.env
-.env.local
-.env.*.local
-
-# Misc
 .DS_Store
-.fleet
-.idea
+.opencode/
+.atl/
+.astro/
+test-results/

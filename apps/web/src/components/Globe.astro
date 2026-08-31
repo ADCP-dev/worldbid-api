@@ -1,0 +1,882 @@
+---
+// Globe.astro — vanilla globe.gl mount. See architecture note in astro.config.mjs.
+// The <script> below is processed by Vite (so we CAN import our own nanostores
+// and lib helpers — those bundle fine) but we NEVER import globe.gl; we use the
+// global window.Globe loaded from the CDN <script> tag in index.astro head.
+---
+
+<div id="globeViz"></div>
+<div class="loading" id="loading">Loading globe…</div>
+
+<script>
+  import {
+    bids as bidsMap,
+    selectedIso2,
+    hoveredIso2,
+    pov,
+    countryStakes,
+    selectCountry,
+    setHovered,
+    setPov,
+    saveAll,
+    appendEvent,
+    makeEvent,
+  } from '../stores/worldbid';
+  import { countries, activeBidForResolved, heatColorForCountry } from '../stores/bids';
+  import { userSession } from '../stores/session';
+  import { dayBandOverride } from '../stores/ui';
+  import { countryFeatures, globeInstance, flyTo } from '../stores/globe';
+  import { fetchCountries, centroid, iso2Of, type CountryFeature } from '../lib/geojson';
+  import { heatColorFor } from '../lib/heatmap';
+  import { minBidForKind } from '../lib/economy';
+  import { placePlaneBid } from '../lib/bid-engine';
+  import type { Bid } from '../lib/types';
+  import { getLocalHourBand, getBandVisuals } from '../lib/day-night';
+  import { api } from '../lib/api-mock';
+  import { fetchOgMeta, getOgMeta } from '../lib/og';
+
+  // --- small DOM/format helpers (kept local; used to build globe htmlElements) ---
+  const ADM0_TO_ISO2: Record<string, string> = { FRA: 'FR', NOR: 'NO' };
+
+  /** Darken a hex color by a factor (0 = no change, 1 = black). */
+  function darkenHex(hex: string, factor: number): string {
+    const m = hex.match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+    if (!m) return hex;
+    const r = Math.round(parseInt(m[1], 16) * (1 - factor));
+    const g = Math.round(parseInt(m[2], 16) * (1 - factor));
+    const b = Math.round(parseInt(m[3], 16) * (1 - factor));
+    return '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('');
+  }
+
+  /** Lighten a hex color by a factor (0 = no change, 1 = white). */
+  function lightenHex(hex: string, factor: number): string {
+    const m = hex.match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+    if (!m) return hex;
+    const r = Math.round(parseInt(m[1], 16) + (255 - parseInt(m[1], 16)) * factor);
+    const g = Math.round(parseInt(m[2], 16) + (255 - parseInt(m[2], 16)) * factor);
+    const b = Math.round(parseInt(m[3], 16) + (255 - parseInt(m[3], 16)) * factor);
+    return '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('');
+  }
+
+  function esc(s: unknown): string {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
+  }
+  function fmtMoney(n: number): string {
+    return '$' + n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  }
+  function truncUrl(u?: string): string {
+    if (!u) return '';
+    try {
+      const x = new URL(u);
+      return x.hostname.replace(/^www\./, '') + (x.pathname.length > 1 ? x.pathname.slice(0, 12) : '');
+    } catch {
+      return String(u).slice(0, 24);
+    }
+  }
+  function faviconFor(b: { faviconUrl?: string; websiteUrl?: string }): string {
+    if (b.faviconUrl) return b.faviconUrl;
+    if (b.websiteUrl) {
+      try {
+        const u = new URL(b.websiteUrl);
+        // Google favicon service: fetches the actual favicon from the site,
+        // returns a 16px PNG, supports CORS.
+        return 'https://www.google.com/s2/favicons?sz=64&domain=' + u.hostname;
+      } catch {}
+    }
+    return 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="13" fill="#3B82F6"/><circle cx="14" cy="14" r="5" fill="rgba(255,255,255,0.4)"/></svg>');
+  }
+
+  // --- OG metadata fetch (cached, lazy, for hover tooltips) ---
+  // Shared module: src/lib/og.ts — warms the same cache used by the
+  // WorldOrder rows and CountryCard seat tooltips.
+
+  // active king per country for the floating claim card (vitalicio: single
+  // active bid resolved via Country.activeBidId). Developer slot is preserved
+  // via the `country.developer` flag — no iso2 string checks.
+  function kingFor(iso2: string) {
+    const c = countries.get()[iso2];
+    // IB (Baleares) = developer slot — always render even if the store is not
+    // yet hydrated. This matches the main-branch behavior where IB is shown
+    // unconditionally via a hardcoded fallback.
+    if (iso2 === 'IB' || (c && c.developer)) {
+      const b = activeBidForResolved.get()(iso2);
+      if (b) {
+        return { username: b.alias, amount: b.amount, avatarColor: b.accentColor, websiteUrl: b.url, faviconUrl: b.logoUrl, description: b.pitch, developer: true };
+      }
+      return { username: 'SOM·OS', amount: 0, avatarColor: '#8b5cf6', websiteUrl: 'https://som-os.dev', faviconUrl: '', description: 'El sistema operativo de tu negocio. Apps a medida con IA — desde Mallorca.', developer: true };
+    }
+    if (!c) return null;
+    const b = activeBidForResolved.get()(iso2);
+    if (!b) return null;
+    return { username: b.alias, amount: b.amount, avatarColor: b.accentColor, websiteUrl: b.url, faviconUrl: b.logoUrl, description: b.pitch, developer: false };
+  }
+
+  // --- globe state ---
+  let world: any = null;
+  let features: CountryFeature[] = [];
+  let hovered: string | null = null;
+  let povSaveTimer: ReturnType<typeof setTimeout> | null = null;
+  let currentHtmlElements: Array<{ htmlElement: HTMLElement }> = [];
+
+  // --- color accessor (depends on selection + hover + active bid heat) ---
+  function polygonCapColorFn(feat: any): string {
+    if (!feat) return 'rgba(255,255,255,0.05)';
+    const iso2 = feat.__iso2 as string;
+    const sel = selectedIso2.get();
+    const c = countries.get()[iso2];
+    // Developer slot (IB) = purple, regardless of bid amount. Check by string
+    // so it renders correctly even before the countries store is hydrated.
+    if (iso2 === 'IB' || (c && c.developer)) {
+      const base = '#8b5cf6';
+      if (iso2 === sel) return lightenHex(base, 0.35);
+      if (iso2 === hovered) return lightenHex(base, 0.2);
+      return base;
+    }
+    // L0-L4 heat from the active bid amount (vitalicio)
+    const base = heatColorForCountry.get()(iso2).color;
+    if (iso2 === sel) return lightenHex(base, 0.35);
+    if (iso2 === hovered) return lightenHex(base, 0.2);
+    return base;
+  }
+
+  function polygonAltitudeFn(_feat: any): number {
+    return 0.01;
+  }
+
+  // --- labels ---
+  function renderLabels() {
+    if (!world) return;
+    const data = features
+      .map((f) => {
+        const c = centroid(f);
+        if (!c) return null;
+        return { lat: c.lat, lng: c.lng, text: (f.properties.ADMIN as string) || f.__iso2, iso2: f.__iso2 };
+      })
+      .filter(Boolean);
+    world
+      .labelsData(data)
+      .labelLat((d: any) => d.lat)
+      .labelLng((d: any) => d.lng)
+      .labelText((d: any) => d.text)
+      .labelColor(() => 'rgba(230,237,246,0.7)')
+      .labelSize(0.22)
+      .labelAltitude(0.015)
+      .labelDotRadius(0)
+      .labelResolution(1);
+  }
+
+  // --- floating claim cards for staked countries ---
+  function buildClaimElement(iso2: string): HTMLElement | null {
+    let top = kingFor(iso2);
+    if (!top) return null;
+    const isDev = iso2 === 'IB';
+    const c = countries.get()[iso2];
+    const bidCount = c ? c.bidHistory.length : 0;
+    const el = document.createElement('div');
+    el.className = 'claim-card';
+    el.dataset.iso2 = iso2;
+    const url = top.websiteUrl || '#';
+    const safeUrl = url.startsWith('http') ? url : '#';
+    const flagUrl = isDev
+      ? 'https://upload.wikimedia.org/wikipedia/commons/7/7b/Flag_of_the_Balearic_Islands.svg'
+      : 'https://flagicons.lipis.dev/flags/4x3/' + iso2.toLowerCase() + '.svg';
+    // For the developer slot (IB) use the real favicon of som-os.dev, same
+    // as any other claim card. No invented monogram.
+    const favBlock = '<img class="fav" src="' + esc(faviconFor(top)) + '" onerror="this.style.visibility=\'hidden\'" />';
+    el.innerHTML =
+      '<a class="claim-link" href="' + esc(safeUrl) + '" target="_blank" rel="noopener">' +
+        '<img class="flag" src="' + esc(flagUrl) + '" onerror="this.style.display=\'none\'" />' +
+        favBlock +
+        '<span class="bid-badge' + (isDev ? ' dev-badge' : '') + '">' + (isDev ? 'dev' : (bidCount > 0 ? bidCount + 'b' : 'new')) + '</span>' +
+        '<div class="url-wrap"><div class="url">' + esc(isDev ? 'som-os.dev' : truncUrl(top.websiteUrl)) + '</div></div>' +
+        '<div class="desc">' + esc(top.description || '') + '</div>' +
+      '</a>' +
+      '<div class="og-tooltip"></div>';
+    el.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      // Selecting the country drives the right inspector (spec scenario
+      // "Selection drives inspector"). Record a click for the owner.
+      selectCountry(iso2);
+      if (top && top.websiteUrl && top.websiteUrl.startsWith('http')) {
+        api.postClick({ countryId: iso2, url: top.websiteUrl, userId: c && c.activeBidId ? (bidsMap.get()[c.activeBidId]?.userId ?? '') : '' }).catch(() => {});
+      }
+    });
+
+    // Hover → prefetch OG meta + show tooltip
+    const ogUrl = safeUrl !== '#' ? safeUrl : '';
+    if (ogUrl) {
+      el.addEventListener('mouseenter', () => {
+        if (getOgMeta(ogUrl) === undefined) fetchOgMeta(ogUrl);
+        // Show tooltip immediately (with loader if still fetching)
+        const tip = el.querySelector('.og-tooltip') as HTMLElement | null;
+        if (!tip) return;
+        tip.style.opacity = '1';
+        tip.style.pointerEvents = 'none';
+        updateOgTooltip(tip, ogUrl);
+        clampTooltip(tip);
+      });
+      el.addEventListener('mouseleave', () => {
+        const tip = el.querySelector('.og-tooltip') as HTMLElement | null;
+        if (tip) tip.style.opacity = '0';
+      });
+    }
+    return el;
+  }
+
+  // Clamp an absolutely-positioned tooltip inside the viewport. The tooltip
+  // opens upward by default; if it would overflow the left/right edges we
+  // shift it back in range, and if it would overflow the top we flip it below
+  // the anchor card instead.
+  function clampTooltip(tip: HTMLElement): void {
+    tip.style.left = '';
+    tip.style.right = '';
+    tip.style.transform = 'translateX(-50%)';
+    const rect = tip.getBoundingClientRect();
+    const pad = 8;
+    if (rect.left < pad) {
+      const parent = tip.parentElement?.getBoundingClientRect();
+      const shift = pad - rect.left;
+      tip.style.transform = 'translateX(calc(-50% + ' + Math.round(shift) + 'px))';
+      void parent;
+    } else if (rect.right > window.innerWidth - pad) {
+      const shift = rect.right - (window.innerWidth - pad);
+      tip.style.transform = 'translateX(calc(-50% - ' + Math.round(shift) + 'px))';
+    }
+  }
+
+  function updateOgTooltip(tip: HTMLElement, url: string): void {
+    const meta = getOgMeta(url);
+    if (meta === undefined) {
+      // Still fetching — show loader and poll. Bail once the tooltip hides so
+      // the loop doesn't run forever after mouseleave.
+      tip.innerHTML = '<div class="og-loading">Loading preview…</div>';
+      setTimeout(() => {
+        if (tip.style.opacity === '1') {
+          updateOgTooltip(tip, url);
+          clampTooltip(tip);
+        }
+      }, 300);
+      return;
+    }
+    if (meta === null) {
+      tip.innerHTML = '<div class="og-loading">No preview available</div>';
+      return;
+    }
+    tip.innerHTML =
+      (meta.image ? '<img class="og-image" src="' + esc(meta.image) + '" onerror="this.style.display=\'none\'" />' : '') +
+      '<div class="og-title">' + esc(meta.title || '') + '</div>' +
+      (meta.description ? '<div class="og-desc">' + esc(meta.description) + '</div>' : '');
+  }
+
+  function renderHtmlElements() {
+    if (!world) return;
+    // detach old claim card elements
+    currentHtmlElements.forEach((d) => {
+      if (d.htmlElement && d.htmlElement.parentNode) d.htmlElement.parentNode.removeChild(d.htmlElement);
+    });
+    currentHtmlElements = [];
+    const stakesMap = countryStakes.get();
+    const out: any[] = [];
+    for (const f of features) {
+      const iso2 = f.__iso2;
+      // IB (Baleares) always shows — it's the developer slot. Check by string
+      // so it renders even before the countries store is hydrated.
+      const isDev = iso2 === 'IB';
+      const c = isDev ? null : countries.get()[iso2];
+      // Show a claim card for occupied countries (active bid) or IB dev slot
+      if (!isDev && !(c && c.activeBidId)) continue;
+      const ctr = centroid(f);
+      if (!ctr) continue;
+      const el = buildClaimElement(iso2);
+      if (!el) continue;
+      const entry = { lat: ctr.lat, lng: ctr.lng, htmlElement: el, iso2 };
+      currentHtmlElements.push(entry);
+      out.push(entry);
+    }
+    world
+      .htmlElementsData(out)
+      .htmlLat((d: any) => d.lat)
+      .htmlLng((d: any) => d.lng)
+      .htmlAltitude(0.03)
+      .htmlElement((d: any) => d.htmlElement)
+      .htmlElementVisibilityModifier((el: HTMLElement, isVisible: boolean) => {
+        // Only hide when BEHIND the globe. Never hide for zoom level.
+        el.style.opacity = isVisible ? '1' : '0';
+        el.style.pointerEvents = isVisible ? 'auto' : 'none';
+        el.style.transition = 'opacity 200ms ease';
+        // 3 zoom tiers:
+        //   pin   (altitude >= 0.9): favicon + flag + badge only
+        //   card  (0.5 <= altitude < 0.9): + URL
+        //   full  (altitude < 0.5): + description
+        const alt = world.pointOfView().altitude;
+        // All claim cards (including the IB dev slot) transition through
+        // the same 3 zoom tiers: pin → card → full. No special overrides.
+        el.classList.toggle('zoomed-in', alt < 0.9);
+        el.classList.toggle('zoomed-close', alt < 0.5);
+      });
+  }
+
+  function renderGlobe() {
+    if (!world) return;
+    world.polygonCapColor(polygonCapColorFn).polygonAltitude(polygonAltitudeFn);
+    renderLabels();
+    renderHtmlElements();
+  }
+
+  // --- day/night (2-state: page white in day, dark in night) ---
+  // Automated: resolves from the viewer's local hour. The legacy manual
+  // override (dayBandOverride) is kept for state compatibility but no UI
+  // writes it anymore.
+  function applyDayNight() {
+    if (!world) return;
+    const override = dayBandOverride.get();
+    const band = override ?? getLocalHourBand();
+    const v = getBandVisuals(band);
+    document.body.classList.remove('band-madrugada', 'band-manana', 'band-tarde', 'band-noche', 'day', 'night');
+    document.body.classList.add(v.bodyClass);
+    world.globeImageUrl(v.globeTexture);
+    world.backgroundImageUrl(v.backgroundImage || '');
+  }
+
+  // Re-check day/night every 5 minutes (in case the user keeps the tab open
+  // across the day/night boundary).
+  setInterval(applyDayNight, 5 * 60 * 1000);
+
+  dayBandOverride.subscribe((band) => {
+    if (band) applyDayNight();
+  });
+
+  // --- selection camera flight ---
+  function flyToCountry(iso2: string) {
+    const f = features.find((x) => x.__iso2 === iso2);
+    if (!f || !world) return;
+    const c = centroid(f);
+    if (c) world.pointOfView({ lat: c.lat, lng: c.lng, altitude: 1.4 }, 800);
+  }
+
+  // --- boot ---
+  async function init() {
+    try {
+      features = await fetchCountries();
+      countryFeatures.set(features);
+    } catch (err) {
+      const loading = document.getElementById('loading');
+      if (loading) {
+        loading.textContent = 'Globe failed: ' + (err as Error).message;
+        loading.style.color = '#ff7a7a';
+      }
+      return;
+    }
+
+    const GlobeCtor = (window as any).Globe;
+    if (!GlobeCtor) {
+      const loading = document.getElementById('loading');
+      if (loading) {
+        loading.textContent = 'globe.gl failed to load from CDN.';
+        loading.style.color = '#ff7a7a';
+      }
+      return;
+    }
+
+    world = new GlobeCtor(document.getElementById('globeViz'), { animateIn: true })
+      .polygonsData(features)
+      .polygonAltitude(polygonAltitudeFn)
+      .polygonCapColor(polygonCapColorFn)
+      .polygonSideColor(() => 'rgba(0,0,0,0.15)')
+      .polygonStrokeColor((feat: any) => {
+        const iso2 = feat.__iso2 as string;
+        const base = heatColorForCountry.get()(iso2).color;
+        // Darken the base color for the stroke border
+        return darkenHex(base, 0.4);
+      })
+      .polygonLabel(({ properties: d }: any) => '<b>' + esc(d.ADMIN) + '</b> (' + esc(d.ISO_A2_EH || d.ISO_A2 || '') + ')')
+      .onPolygonHover((hoverD: any) => {
+        hovered = hoverD ? (hoverD.__iso2 as string) : null;
+        setHovered(hovered);
+        if (world) world.polygonCapColor(polygonCapColorFn);
+      })
+      .onPolygonClick((clickedD: any) => {
+        if (clickedD) selectCountry((clickedD.__iso2 as string));
+      });
+
+    globeInstance.set(world as any);
+    applyDayNight();
+
+    // restore POV
+    const saved = pov.get();
+    if (saved && saved.lat != null && saved.lng != null) {
+      world.pointOfView({ lat: saved.lat, lng: saved.lng, altitude: saved.altitude || 2.5 }, 0);
+    }
+
+    // save POV on camera move (debounced)
+    try {
+      world.controls().addEventListener('change', () => {
+        clearTimeout(povSaveTimer);
+        povSaveTimer = setTimeout(() => {
+          const p = world.pointOfView();
+          setPov({ lat: p.lat, lng: p.lng, altitude: p.altitude });
+        }, 400);
+      });
+    } catch {}
+
+    renderGlobe();
+    const loading = document.getElementById('loading');
+    if (loading) loading.style.display = 'none';
+
+    // restore a previously-selected country
+    const sel = selectedIso2.get();
+    if (sel && features.some((f) => f.__iso2 === sel)) {
+      flyToCountry(sel);
+    } else if (sel) {
+      selectedIso2.set(null);
+    }
+
+    // Build airplane once THREE is ready (it loads as a module, may arrive after globe.gl)
+    buildPlane();
+  }
+
+  // --- Airplane with banner ---
+  // THREE is loaded as an ES module from CDN in index.astro and exposed on
+  // window.THREE. We use window.THREE directly — it's the same version
+  // (0.185.1) that globe.gl@2.46.2 depends on, so objects are compatible.
+  let planeGroup: any = null;
+  let planeAngle = 0;
+  let planeRunning = true;
+  const PLANE_ALT = 0.08;
+  const PLANE_SPEED = 0.3;
+  const PLANE_TILT = 15;
+
+  function buildPlane() {
+    if (planeGroup) return;
+    const THREE_NS = (window as any).THREE;
+    if (!THREE_NS || !world) {
+      if (!(window as any).__planeWaiting) {
+        (window as any).__planeWaiting = true;
+        window.addEventListener('three-ready', buildPlane, { once: true });
+        setTimeout(buildPlane, 500);
+      }
+      return;
+    }
+
+    planeGroup = new THREE_NS.Group();
+
+    // Fuselage — slightly elongated capsule
+    const fuselage = new THREE_NS.Mesh(
+      new THREE_NS.CapsuleGeometry(0.12, 1.2, 4, 8),
+      new THREE_NS.MeshStandardMaterial({ color: 0xf8fafc, metalness: 0.3, roughness: 0.5 })
+    );
+    fuselage.rotation.z = Math.PI / 2;
+    planeGroup.add(fuselage);
+
+    // Nose cone
+    const nose = new THREE_NS.Mesh(
+      new THREE_NS.ConeGeometry(0.12, 0.3, 8),
+      new THREE_NS.MeshStandardMaterial({ color: 0x3b82f6, metalness: 0.4, roughness: 0.3 })
+    );
+    nose.rotation.z = -Math.PI / 2;
+    nose.position.x = 0.75;
+    planeGroup.add(nose);
+
+    // Wings — swept back
+    const wings = new THREE_NS.Mesh(
+      new THREE_NS.BoxGeometry(0.6, 0.04, 1.6),
+      new THREE_NS.MeshStandardMaterial({ color: 0x3b82f6, metalness: 0.3, roughness: 0.4 })
+    );
+    wings.position.set(0.05, 0, 0);
+    planeGroup.add(wings);
+
+    // Wing tips
+    const wingTipL = new THREE_NS.Mesh(
+      new THREE_NS.BoxGeometry(0.3, 0.03, 0.15),
+      new THREE_NS.MeshStandardMaterial({ color: 0xffffff })
+    );
+    wingTipL.position.set(0.05, 0.05, 0.85);
+    planeGroup.add(wingTipL);
+    const wingTipR = wingTipL.clone();
+    wingTipR.position.z = -0.85;
+    planeGroup.add(wingTipR);
+
+    // Vertical tail fin
+    const tailV = new THREE_NS.Mesh(
+      new THREE_NS.BoxGeometry(0.35, 0.35, 0.03),
+      new THREE_NS.MeshStandardMaterial({ color: 0x3b82f6 })
+    );
+    tailV.position.set(-0.65, 0.18, 0);
+    planeGroup.add(tailV);
+
+    // Horizontal tail
+    const tailH = new THREE_NS.Mesh(
+      new THREE_NS.BoxGeometry(0.25, 0.02, 0.5),
+      new THREE_NS.MeshStandardMaterial({ color: 0xffffff })
+    );
+    tailH.position.set(-0.65, 0, 0);
+    planeGroup.add(tailH);
+
+    // Propeller
+    const prop = new THREE_NS.Mesh(
+      new THREE_NS.BoxGeometry(0.02, 0.5, 0.02),
+      new THREE_NS.MeshStandardMaterial({ color: 0x1e293b })
+    );
+    prop.position.x = 0.92;
+    prop.name = 'propeller';
+    planeGroup.add(prop);
+
+    // Prop spinner hub
+    const hub = new THREE_NS.Mesh(
+      new THREE_NS.ConeGeometry(0.06, 0.12, 6),
+      new THREE_NS.MeshStandardMaterial({ color: 0x3b82f6, metalness: 0.6 })
+    );
+    hub.rotation.z = -Math.PI / 2;
+    hub.position.x = 0.98;
+    planeGroup.add(hub);
+
+    // Tow rope: thin line from the tail of the plane extending backwards (-X)
+    // The rope visually connects the plane to the banner DOM element.
+    const ropeGeom = new THREE_NS.BufferGeometry().setFromPoints([
+      new THREE_NS.Vector3(-0.8, 0, 0), // tail of plane
+      new THREE_NS.Vector3(-2.5, 0, 0),  // extends backward
+    ]);
+    const rope = new THREE_NS.Line(
+      ropeGeom,
+      new THREE_NS.LineBasicMaterial({ color: 0x94a3b8, linewidth: 2 })
+    );
+    planeGroup.add(rope);
+
+    planeGroup.scale.set(2, 2, 2);
+    // Mark for click detection
+    planeGroup.name = 'plane-clickable';
+    world.scene().add(planeGroup);
+
+    // Start the plane part-way around its orbit so the banner does not appear
+    // over Africa (lat/lng 0,0) while the user is still on the loading screen.
+    planeAngle = 180;
+
+    // Shared canvas reference for the plane click raycaster and resize clamping.
+    const canvas = document.getElementById('globeViz')?.querySelector('canvas');
+
+    // Clamp the banner inside the canvas bounds so it never spills off-screen.
+    if (canvas) {
+      const resizeObserver = new ResizeObserver(() => {
+        const bannerEl = (window as any).__planeBannerData?.htmlElement as HTMLElement | undefined;
+        if (!bannerEl) return;
+        const cw = canvas.clientWidth;
+        const ch = canvas.clientHeight;
+        const bx = parseFloat(bannerEl.style.left || '0');
+        const by = parseFloat(bannerEl.style.top || '0');
+        const bw = bannerEl.offsetWidth || 240;
+        const bh = bannerEl.offsetHeight || 40;
+        if (bx < 0) bannerEl.style.left = '0px';
+        if (bx + bw > cw) bannerEl.style.left = Math.max(0, cw - bw) + 'px';
+        if (by < 0) bannerEl.style.top = '0px';
+        if (by + bh > ch) bannerEl.style.top = Math.max(0, ch - bh) + 'px';
+      });
+      resizeObserver.observe(canvas);
+    }
+
+    // Click on the plane → open buy modal (raycast on canvas click)
+    if (canvas) {
+      canvas.addEventListener('click', (ev: MouseEvent) => {
+        if (!world || !planeGroup) return;
+        const THREE_NS2 = (window as any).THREE;
+        const rect = canvas.getBoundingClientRect();
+        const ndc = new THREE_NS2.Vector2(
+          ((ev.clientX - rect.left) / rect.width) * 2 - 1,
+          -((ev.clientY - rect.top) / rect.height) * 2 + 1
+        );
+        const raycaster = new THREE_NS2.Raycaster();
+        raycaster.setFromCamera(ndc, world.camera());
+        const hits = raycaster.intersectObject(planeGroup, true);
+        if (hits.length > 0) {
+          ev.stopPropagation();
+          openPlaneBuyModal();
+        }
+      });
+    }
+
+    // --- Banner DOM element — owned by the highest PLANE bidder (vitalicio).
+    // Vacant → ownerless default (fallback copy + Buy CTA). After any PLANE
+    // bid, re-render from the active bid (favicon/url/desc of the owner).
+    const planeBannerEl = document.createElement('div');
+    planeBannerEl.className = 'plane-banner zoomed-in';
+    const PLANE_FALLBACK = {
+      url: 'https://som-os.dev',
+      hostname: 'som-os.dev',
+      desc: 'El sistema operativo de tu negocio. Apps a medida con IA — desde Mallorca.',
+    };
+    function planeActiveBid(): Bid | null {
+      return activeBidForResolved.get()('PLANE');
+    }
+    function renderPlaneBanner() {
+      const bid = planeActiveBid();
+      const url = bid?.url || PLANE_FALLBACK.url;
+      let hostname = PLANE_FALLBACK.hostname;
+      try { hostname = new URL(url).hostname.replace(/^www\./, ''); } catch {}
+      const desc = bid?.pitch || (bid ? bid.alias + ' — ' + hostname : PLANE_FALLBACK.desc);
+      const fav = url
+        ? 'https://www.google.com/s2/favicons?sz=64&domain=' + hostname
+        : '';
+      planeBannerEl.innerHTML =
+        '<a class="plane-banner-link" href="' + url + '" target="_blank" rel="noopener">' +
+          '<img class="plane-banner-fav" src="' + fav + '" onerror="this.src=\'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="#3B82F6"/></svg>') + '\'" />' +
+          '<div class="plane-banner-url-wrap"><div class="plane-banner-url">' + hostname + '</div></div>' +
+          '<div class="plane-banner-desc">' + desc + '</div>' +
+        '</a>' +
+        (bid
+          ? '<span class="plane-banner-owned" title="Owned until outbid">✈ owned</span>'
+          : '<button class="plane-banner-buy" title="Bid for the global banner">Buy</button>') +
+        '<div class="plane-banner-og-tooltip"></div>';
+      // Re-wire the Buy button (innerHTML rebuild drops the old listener).
+      planeBannerEl.querySelector('.plane-banner-buy')?.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        openPlaneBuyModal();
+      });
+      const ogTip = planeBannerEl.querySelector('.plane-banner-og-tooltip') as HTMLElement | null;
+      if (ogTip) {
+        planeBannerEl.addEventListener('mouseenter', () => {
+          if (getOgMeta(url) === undefined) fetchOgMeta(url);
+          ogTip.style.opacity = '1';
+          ogTip.style.pointerEvents = 'none';
+          updateOgTooltip(ogTip, url);
+          clampTooltip(ogTip);
+        });
+        planeBannerEl.addEventListener('mouseleave', () => {
+          ogTip.style.opacity = '0';
+        });
+      }
+    }
+    renderPlaneBanner();
+    // Re-render whenever the bids/countries atoms change (outbid flow).
+    bidsMap.subscribe(() => renderPlaneBanner());
+    countries.subscribe(() => renderPlaneBanner());
+
+    // Data object for globe.gl htmlElements — lat/lng updated each frame
+    const planeBannerData = { lat: 0, lng: 0, htmlElement: planeBannerEl, isPlane: true };
+    (window as any).__planeBannerData = planeBannerData
+    // Append banner DOM to globe container (positioned manually each frame)
+    document.getElementById('globeViz')?.appendChild(planeBannerEl);
+
+    // --- Plane banner bid modal (vitalicio auction — no rentals) ---
+    const buyModal = document.createElement('div');
+    buyModal.className = 'plane-buy-overlay';
+    buyModal.id = 'plane-buy-modal';
+    buyModal.innerHTML =
+      '<div class="plane-buy-card glass">' +
+        '<button class="plane-buy-close" title="Close">&times;</button>' +
+        '<h2>&#9992; Own the global banner</h2>' +
+        '<p class="plane-buy-desc">Your banner flies over the whole globe — visible from every country. You own the spot until someone outbids you.</p>' +
+        '<div class="plane-buy-price"><span class="lbl" id="pb-status-lbl">Status</span><span class="val" id="pb-status">$20 minimum bid</span></div>' +
+        '<label>Your name<input type="text" id="pb-name" placeholder="Your name / startup" /></label>' +
+        '<label>Website URL<input type="url" id="pb-url" placeholder="https://yoursite.com" /></label>' +
+        '<label>Banner text (max 60 chars)<input type="text" id="pb-text" maxlength="60" placeholder="Your pitch on the banner" /></label>' +
+        '<label>Your bid (USD)<input type="number" id="pb-amount" min="20" step="1" /></label>' +
+        '<div class="plane-buy-err" id="pb-err"></div>' +
+        '<button class="plane-buy-submit" id="pb-submit">Place bid</button>' +
+      '</div>';
+    document.body.appendChild(buyModal);
+
+    function openPlaneBuyModal() {
+      const m = document.getElementById('plane-buy-modal');
+      if (!m) return;
+      // Refresh the status line at open time from the tiered economy.
+      const active = planeActiveBid();
+      const min = minBidForKind('plane', active ? active.amount : null);
+      const lbl = document.getElementById('pb-status-lbl');
+      const val = document.getElementById('pb-status');
+      const amt = document.getElementById('pb-amount') as HTMLInputElement | null;
+      if (lbl && val) {
+        if (active) {
+          lbl.textContent = 'Current bid: $' + active.amount.toFixed(0);
+          val.textContent = 'Outbid with at least $' + min.toFixed(0);
+        } else {
+          lbl.textContent = 'Vacant spot';
+          val.textContent = 'Minimum bid $' + min.toFixed(0);
+        }
+      }
+      if (amt) amt.min = String(min);
+      const err = document.getElementById('pb-err');
+      if (err) err.textContent = '';
+      m.style.display = 'flex';
+    }
+    function closePlaneBuyModal() {
+      const m = document.getElementById('plane-buy-modal');
+      if (m) m.style.display = 'none';
+    }
+    buyModal.querySelector('.plane-buy-close')?.addEventListener('click', closePlaneBuyModal);
+    buyModal.addEventListener('click', (e) => { if (e.target === buyModal) closePlaneBuyModal(); });
+    // WorldOrder pinned row requests the modal via a DOM event.
+    window.addEventListener('open-plane-buy', openPlaneBuyModal);
+    // Submit → engine placePlaneBid + banner re-render (via store subscription)
+    document.getElementById('pb-submit')?.addEventListener('click', () => {
+      const name = (document.getElementById('pb-name') as HTMLInputElement)?.value || '';
+      const urlRaw = (document.getElementById('pb-url') as HTMLInputElement)?.value || '';
+      const text = (document.getElementById('pb-text') as HTMLInputElement)?.value || '';
+      const amount = parseFloat((document.getElementById('pb-amount') as HTMLInputElement)?.value || '');
+      const errEl = document.getElementById('pb-err');
+      if (!errEl) return;
+      errEl.textContent = '';
+      if (!name.trim()) { errEl.textContent = 'Please enter your name.'; return; }
+      if (!urlRaw.trim()) { errEl.textContent = 'Please enter your website URL.'; return; }
+      if (!Number.isFinite(amount)) { errEl.textContent = 'Please enter your bid amount.'; return; }
+      const session = userSession.get();
+      const result = placePlaneBid({
+        countryId: 'PLANE',
+        userId: session?.id || 'guest-' + Date.now().toString(36),
+        alias: name.trim(),
+        email: session?.email || '',
+        url: urlRaw.startsWith('http') ? urlRaw : 'https://' + urlRaw,
+        logoUrl: '',
+        pitch: text.trim(),
+        amount,
+        accentColor: session?.accentColor || '#3B82F6',
+      });
+      if (!result.ok) { errEl.textContent = result.error; return; }
+      appendEvent(makeEvent('bid', {
+        countryId: 'PLANE',
+        userId: result.bid.userId,
+        message: result.bid.alias + ' bid $' + result.bid.amount.toFixed(2) + ' on the global banner',
+      }));
+      saveAll();
+      closePlaneBuyModal();
+    });
+
+    animatePlane();
+
+    // Plane follow button
+  }
+
+  // Convert geographic lat/lng (degrees) + altitude (globe-radius units) to
+  // cartesian xyz in globe.gl's coordinate system (radius = 100).
+  function latLngToVec3(latDeg: number, lngDeg: number, alt: number, target: any): void {
+    const lat = latDeg * Math.PI / 180;
+    const lng = lngDeg * Math.PI / 180;
+    const r = 100 * (1 + alt);
+    target.set(
+      r * Math.cos(lat) * Math.cos(lng),
+      r * Math.sin(lat),
+      r * Math.cos(lat) * Math.sin(lng)
+    );
+  }
+
+  function animatePlane() {
+    if (!planeRunning || !world || !planeGroup) {
+      requestAnimationFrame(animatePlane);
+      return;
+    }
+    const THREE_NS = (window as any).THREE;
+    planeAngle += PLANE_SPEED;
+    const lat = Math.sin(planeAngle * Math.PI / 180 * 0.5) * PLANE_TILT;
+    const lng = ((planeAngle % 360) + 360) % 360 - 180;
+
+    // Position plane
+    const pos = new THREE_NS.Vector3();
+    latLngToVec3(lat, lng, PLANE_ALT, pos);
+    planeGroup.position.copy(pos);
+
+    // Orient plane: nose (+X) towards next position
+    const nextAngle = planeAngle + PLANE_SPEED;
+    const nextLat = Math.sin(nextAngle * Math.PI / 180 * 0.5) * PLANE_TILT;
+    const nextLng = ((nextAngle % 360) + 360) % 360 - 180;
+    const nextPos = new THREE_NS.Vector3();
+    latLngToVec3(nextLat, nextLng, PLANE_ALT, nextPos);
+    const up = pos.clone().normalize();
+    const m = new THREE_NS.Matrix4().lookAt(pos, nextPos, up);
+    planeGroup.quaternion.setFromRotationMatrix(m);
+    // lookAt makes -Z face target. Plane nose is +X.
+    // +90° Y rotation maps -Z → +X so nose points forward (towards travel direction).
+    planeGroup.rotateY(Math.PI / 2);
+
+    // Spin propeller
+    const p = planeGroup.getObjectByName('propeller');
+    if (p) p.rotation.x += 0.8;
+
+    // Update plane banner position — manual screen projection (separate from
+    // claim cards which use globe.gl htmlElements). This avoids rebuilding
+    // claim cards every frame.
+    const planeBannerData = (window as any).__planeBannerData;
+    const bannerEl = planeBannerData?.htmlElement as HTMLElement | undefined;
+    if (bannerEl && world.camera()) {
+      const cam = world.camera();
+      const canvas = document.getElementById('globeViz')?.querySelector('canvas');
+      if (canvas) {
+        // Project plane 3D position to screen
+        const vec = pos.clone().project(cam);
+        const x = (vec.x * 0.5 + 0.5) * canvas.clientWidth;
+        const y = (-vec.y * 0.5 + 0.5) * canvas.clientHeight;
+        // Raycast: is the plane behind the globe?
+        const camPos = cam.position.clone();
+        const rayDir = pos.clone().sub(camPos).normalize();
+        const ray = new THREE_NS.Raycaster(camPos, rayDir);
+        const sphere = new THREE_NS.Sphere(new THREE_NS.Vector3(0,0,0), 100);
+        const hit = new THREE_NS.Vector3();
+        const blocked = ray.ray.intersectSphere(sphere, hit) && hit.distanceTo(camPos) < pos.distanceTo(camPos) - 1;
+        if (blocked || vec.z > 1) {
+          bannerEl.style.opacity = '0';
+          bannerEl.style.pointerEvents = 'none';
+        } else {
+          bannerEl.style.opacity = '1';
+          bannerEl.style.pointerEvents = 'auto';
+          bannerEl.style.display = 'flex';
+        }
+        // Position banner to the RIGHT of the plane (trailing behind in travel direction)
+        bannerEl.style.position = 'absolute';
+        bannerEl.style.transform = 'translate(0, -50%)';
+        // z-index: 5 keeps the banner BELOW the floating UI panels (header
+        // stats, world order, country card) which sit at z-index 20-30. The
+        // banner can never block clicks on the right-side panels.
+        bannerEl.style.zIndex = '5';
+        // Clamp banner to canvas so it does not overflow the viewport.
+        const cw = canvas.clientWidth;
+        const ch = canvas.clientHeight;
+        const bw = bannerEl.offsetWidth || 240;
+        const bh = bannerEl.offsetHeight || 40;
+        const bx = Math.max(0, Math.min(Math.round(x + 50), cw - bw));
+        const by = Math.max(0, Math.min(Math.round(y), ch - bh));
+        bannerEl.style.left = bx + 'px';
+        bannerEl.style.top = by + 'px';
+        // 2 zoom tiers: card (default, favicon+URL) and full (+description)
+        const alt = world.pointOfView().altitude;
+        bannerEl.classList.toggle('zoomed-close', alt < 0.5);
+      }
+    }
+
+    // Camera follow removed — user controls camera manually
+
+    requestAnimationFrame(animatePlane);
+  }
+
+  // --- react to nanostore changes from islands ---
+  // selection change (from SearchBar or sidebar close) -> fly camera + re-render
+  selectedIso2.subscribe((iso2) => {
+    if (!world) return;
+    if (iso2) flyToCountry(iso2);
+    renderGlobe();
+  });
+
+  // bid/country change (outbid write-through updates the new atoms) -> re-render
+  // colors + cards. Subscribe to BOTH the legacy barrel bids (old addBid path)
+  // and the new countries/bids atoms (writeBid path).
+  bidsMap.subscribe(() => { renderGlobe(); });
+  countries.subscribe(() => { renderGlobe(); });
+
+  // fly-to requests from SearchBar island
+  flyTo.subscribe((target) => {
+    if (target && world) {
+      world.pointOfView({ lat: target.lat, lng: target.lng, altitude: target.altitude }, 800);
+    }
+  });
+
+  // start once the CDN Globe global is available
+  if ((window as any).Globe) {
+    init();
+  } else {
+    // wait for the CDN script to load
+    const waiter = setInterval(() => {
+      if ((window as any).Globe) {
+        clearInterval(waiter);
+        init();
+      }
+    }, 50);
+    // safety: stop waiting after 10s
+    setTimeout(() => clearInterval(waiter), 10000);
+  }
+</script>

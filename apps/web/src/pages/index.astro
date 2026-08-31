@@ -1,37 +1,114 @@
 ---
-// Landing — SSR HTML with 0 client JS (R-PWA-01, FR-001/002/006).
-import PublicLayout from '../layouts/PublicLayout.astro';
-import Hero from '../components/landing/Hero.astro';
-import Features from '../components/landing/Features.astro';
-import Contact from '../components/landing/Contact.astro';
-import { organizationJsonLd, webSiteJsonLd } from '../lib/seo';
-
-const locale = Astro.locals.locale;
-
-const siteUrl = import.meta.env.PUBLIC_SITE_URL || Astro.site?.origin || '';
-const orgLd = organizationJsonLd({ name: 'Foundation', url: siteUrl });
-const siteLd = webSiteJsonLd('Foundation', siteUrl);
-
-Astro.cache.set({ tags: ['home'] });
+import Globe from '../components/Globe.astro';
+import HeaderStats from '../components/HeaderStats.tsx';
+import WorldOrder from '../components/WorldOrder.tsx';
+import LiveActivity from '../components/LiveActivity.tsx';
+import CountryCard from '../components/CountryCard.tsx';
+import BidModal from '../components/BidModal.tsx';
+import Legend from '../components/Legend.tsx';
+import SearchBar from '../components/SearchBar.tsx';
+import UserPanel from '../components/UserPanel.tsx';
+import MobileTabs from '../components/MobileTabs.tsx';
+import '../styles/global.css';
 ---
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="WorldBid 3D — interactive WebGL globe where countries are staked by the web." />
+    <title>WorldBid 3D</title>
+    {/* Brand font — Unbounded (geometric, distinctive). Preconnect + swap to
+        avoid FOUC on the white logo chip. */}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&display=swap" />
+    {/* globe.gl MUST load via CDN — the npm/Vite-bundled import crashes with
+        "Cannot read properties of undefined (reading 'filter)". The Globe.astro
+        script waits for window.Globe to be available before initializing. */}
+    <script is:inline src="//cdn.jsdelivr.net/npm/globe.gl@2.46.2"></script>
+    {/* THREE.js as ES module from CDN — three.js no longer ships three.min.js (UMD).
+        We import the module and expose it on window.THREE so Globe.astro can use it.
+        globe.gl bundles its own three internally, but it re-uses the global if
+        available. Loading the SAME version (0.185.1) that globe.gl@2.46.2 depends
+        on ensures object compatibility. */}
+    <script is:inline type="module">
+      import * as THREE from '//cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.min.js';
+      window.THREE = THREE;
+      window.dispatchEvent(new Event('three-ready'));
+    </script>
+  </head>
+  <body>
+    {/* SVG filter for banner wave distortion — turbulence that animates */}
+    <svg style="position:absolute;width:0;height:0" aria-hidden="true">
+      <defs>
+        <filter id="banner-wave-filter">
+          <feTurbulence type="fractalNoise" baseFrequency="0.02 0.08" numOctaves="2" seed="1" result="noise">
+            <animate attributeName="baseFrequency" values="0.02 0.08; 0.03 0.06; 0.02 0.08" dur="4s" repeatCount="indefinite" />
+          </feTurbulence>
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" />
+        </filter>
+      </defs>
+    </svg>
 
-<PublicLayout>
-  <Hero locale={locale} />
-  <Features locale={locale} />
-  <Contact locale={locale} />
+    <div id="globe-mount">
+      <Globe />
+    </div>
 
-  <Fragment slot="head">
-    <title>Foundation</title>
-    <meta
-      name="description"
-      content={locale === 'en'
-        ? 'A comprehensive platform for business integrations. Authentication, payments, content, and more.'
-        : 'Una plataforma integral para integraciones de negocio. Autenticación, pagos, contenido y más.'}
-    />
-    <meta property="og:title" content="Foundation" />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content={siteUrl} />
-    <script type="application/ld+json" set:html={JSON.stringify(orgLd)} />
-    <script type="application/ld+json" set:html={JSON.stringify(siteLd)} />
-  </Fragment>
-</PublicLayout>
+    {/* Logo top-left — white chip + SVG brand mark: globe with gradient
+        meridians + a bid "ping" pin at the top-right of the sphere. */}
+    <header class="brand-top">
+      <a href="/" class="brand-link" aria-label="WorldBid 3D">
+        <svg class="brand-svg" width="30" height="30" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="brand-grad" x1="4" y1="4" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#3B82F6"/>
+              <stop offset="1" stop-color="#8b5cf6"/>
+            </linearGradient>
+          </defs>
+          {/* sphere: outer ring + equator + two meridians */}
+          <circle cx="16" cy="16" r="12" stroke="url(#brand-grad)" stroke-width="2.4" fill="none"/>
+          <ellipse cx="16" cy="16" rx="12" ry="4.5" stroke="url(#brand-grad)" stroke-width="1.6" fill="none"/>
+          <ellipse cx="16" cy="16" rx="5" ry="12" stroke="url(#brand-grad)" stroke-width="1.6" fill="none"/>
+          {/* bid ping: filled dot with white ring at the NE edge of the sphere */}
+          <circle cx="24.5" cy="7.5" r="4.6" fill="url(#brand-grad)" stroke="#fff" stroke-width="1.8"/>
+        </svg>
+        <span class="brand-text">worldbid<span class="brand-accent">.3d</span></span>
+      </a>
+    </header>
+
+    {/* Global stats bar — top, spans width on mobile / compact chip on desktop. */}
+    <HeaderStats client:only="react" />
+
+    {/* Search bar — anchored just under the header. */}
+    <SearchBar client:only="react" />
+
+    {/* User panel (login / personal dashboard) — icon button that opens a modal. */}
+    <UserPanel client:only="react" />
+
+    {/* Right-side panel: "THE WORLD · LIVE" with World Order + top 10 staked. */}
+    <WorldOrder client:only="react" />
+
+    {/* Bottom-left: Live activity feed. */}
+    <LiveActivity client:only="react" />
+
+    {/* Bottom-center: legend (heat tiers). */}
+    <Legend client:only="react" />
+
+    {/* Floating right: country detail card on selection. */}
+    <CountryCard client:only="react" />
+
+    {/* Bid modal — opened from country card / outbid. */}
+    <BidModal client:only="react" />
+
+    {/* Mobile tab bar (hidden on desktop via CSS). */}
+    <MobileTabs client:only="react" />
+
+    <script>
+      // Module script (Vite-transpiled) — hydrates stores from localStorage so
+      // every island reads the same seeded/persisted state.
+      import { loadAll } from '../stores/worldbid';
+      loadAll();
+    </script>
+  </body>
+</html>

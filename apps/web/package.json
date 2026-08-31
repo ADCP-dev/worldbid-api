@@ -1,40 +1,42 @@
 {
-  "name": "foundation-astro-web",
-  "version": "0.1.0",
+  "name": "web",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
+  "description": "WorldBid 3D frontend \u2014 interactive WebGL globe territorial bidding (Astro + React islands).",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "check-types": "astro check",
-    "lint": "eslint . --ext .ts,.tsx,.astro,.vue --fix",
-    "format": "prettier --write \"**/*.{ts,tsx,astro,vue,md,json}\""
+    "typecheck": "astro check",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@astrojs/node": "^11.1.4",
-    "@astrojs/rss": "^4.0.19",
-    "@astrojs/sitemap": "^3.7.3",
-    "@astrojs/vue": "^7.0.2",
-    "astro": "^7.2.4",
-    "astro-seo": "^1.1.0",
-    "vue": "^3.5.24",
-    "zod": "^4.4.3"
+    "@astrojs/react": "^6.0.4",
+    "@nanostores/react": "^1.1.0",
+    "astro": "^7.2.7",
+    "nanostores": "^1.5.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
-    "@tailwindcss/typography": "^0.5.16",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/vite": "^4.3.3",
-    "daisyui": "^5.7.20",
-    "eslint": "^9.0.0",
-    "prettier": "^3.7.4",
-    "tailwindcss": "^4.3.3",
-    "typescript": "^5.9.2"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "sharp"
-    ]
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.6",
+    "@types/node": "^26.3.0",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@types/three": "^0.185.4",
+    "@vitejs/plugin-react": "^6.1.0",
+    "jsdom": "^30.0.1",
+    "typescript": "^5.5.4",
+    "vite-plugin-glsl": "^1.6.1",
+    "vitest": "^4.1.11"
   }
 }
