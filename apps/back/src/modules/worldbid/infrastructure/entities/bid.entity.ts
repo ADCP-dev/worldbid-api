@@ -30,10 +30,10 @@ export class BidEntity extends EntityRelationalHelper {
   @Column({ type: 'int', nullable: true })
   userId: number | null;
 
-  @Column()
+  @Column({ type: 'varchar' })
   alias: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   email: string | null;
 
   @Column({ type: 'text' })
@@ -46,15 +46,15 @@ export class BidEntity extends EntityRelationalHelper {
   @Column({ type: 'numeric', precision: 12, scale: 2 })
   amount: number;
 
-  @Column({ default: '#3B82F6' })
+  @Column({ type: 'varchar', default: '#3B82F6' })
   accentColor: string;
 
   /** pending | paid | expired. Only 'paid' bids confer ownership. */
-  @Column({ default: 'pending' })
+  @Column({ type: 'varchar', default: 'pending' })
   status: 'pending' | 'paid' | 'expired';
 
   /** Stripe Checkout session id while pending (idempotency anchor). */
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   stripeSessionId: string | null;
 
   @CreateDateColumn()

@@ -4,6 +4,7 @@ import { RoleSeedService } from '@infra/database/seeds/role/role-seed.service';
 import { SeedModule } from '@infra/database/seeds/seed.module';
 import { StatusSeedService } from '@infra/database/seeds/status/status-seed.service';
 import { UserSeedService } from '@infra/database/seeds/user/user-seed.service';
+import { WorldbidSeedService } from '@infra/database/seeds/worldbid/worldbid-seed.service';
 import { runExtensionSeeds } from '@src/core/seed-loader';
 
 const logger = new Logger('RunSeed');
@@ -15,6 +16,7 @@ const runSeed = async () => {
   await app.get(RoleSeedService).run();
   await app.get(StatusSeedService).run();
   await app.get(UserSeedService).run();
+  await app.get(WorldbidSeedService).run();
 
   // Extension seeds (auto-discovered)
   await runExtensionSeeds(app);

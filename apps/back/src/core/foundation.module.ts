@@ -11,6 +11,7 @@ import { SpecEngineModule } from '@core/spec-engine/spec-engine.module';
 import { TranslationsModule } from '@src/modules/translations/translations.module';
 import { ErrorTrackerModule } from '@src/modules/error-tracker/error-tracker.module';
 import { AppSettingsModule } from '@settings/app-settings.module';
+import { WorldbidModule } from '@src/modules/worldbid/worldbid.module';
 
 @Module({
   imports: [
@@ -32,6 +33,9 @@ import { AppSettingsModule } from '@settings/app-settings.module';
     TranslationsModule,
     ErrorTrackerModule,
     AppSettingsModule,
+
+    // WorldBid — vitalicio territorial bidding
+    WorldbidModule,
   ],
 })
 export class FoundationModule {}

@@ -16,14 +16,14 @@ export class CountryEntity extends EntityRelationalHelper {
   @PrimaryColumn()
   iso2: string;
 
-  @Column()
+  @Column({ type: 'varchar' })
   name: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   continent: string | null;
 
   /** True for the IB developer slot — never claimable. */
-  @Column({ default: false })
+  @Column({ type: 'boolean', default: false })
   developer: boolean;
 
   /** Active (winning) bid id, null = vacant. */
