@@ -6,6 +6,7 @@ const root = process.cwd();
 export default defineConfig({
   test: {
     include: [
+      'src/modules/worldbid/__tests__/**/*.spec.ts',
       'src/core/spec-engine/__tests__/**/*.spec.ts',
       'src/core/realtime/__tests__/**/*.spec.ts',
       'src/extensions/tasks/__tests__/**/*.spec.ts',
