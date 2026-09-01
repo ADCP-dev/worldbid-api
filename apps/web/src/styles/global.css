@@ -467,7 +467,25 @@ button.user-modal-stat:hover { border-color: var(--primary); }
   justify-content: center;
 }
 #legend .li { display: flex; align-items: center; gap: 5px; }
-#legend .sw { width: 10px; height: 10px; border-radius: 3px; }
+#legend .sw { width: 10px; height: 14px; border-radius: 3px; border: 1px solid var(--glass-border); }
+
+/* Bid modal — territory color picker row */
+.accent-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.accent-picker {
+  width: 44px; height: 34px; padding: 2px 3px;
+  border: 1px solid var(--glass-border); border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05); cursor: pointer;
+}
+.accent-picker::-webkit-color-swatch { border: none; border-radius: 5px; }
+.accent-picker::-webkit-color-swatch-wrapper { padding: 0; }
+.accent-hex {
+  flex: 1; padding: 8px 10px; font-size: 13px;
+  color: var(--text); background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border); border-radius: 8px;
+  outline: none; font-family: ui-monospace, monospace; text-transform: uppercase;
+}
+.accent-hex:focus { border-color: var(--primary); }
+.accent-hint { font-size: 10px; color: var(--text-dim); white-space: nowrap; }
 
 /* CountryCard (right side) — slides in on the right edge when a country is
    selected. Worldmap.lol-style: claimed-territory header + seats list + a

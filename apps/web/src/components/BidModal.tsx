@@ -90,6 +90,9 @@ export default function BidModal() {
   const [email, setEmail] = useState('');
   const [url, setUrl] = useState('');
   const [amount, setAmountStr] = useState(String(MIN_STAKE));
+  // Territory color — the bidder's chosen fill for the country they claim.
+  const [accent, setAccent] = useState<string>(() => accentFromUrl(''));
+  const [accentTouched, setAccentTouched] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -108,6 +111,13 @@ export default function BidModal() {
   useEffect(() => {
     if (open) setPickerIso2(iso2);
   }, [open, iso2]);
+
+  // Re-derive the auto accent when the URL changes (unless user picked one)
+  useEffect(() => {
+    if (!accentTouched && URL_RE.test(url.trim())) {
+      setAccent(accentFromUrl(url.trim()));
+    }
+  }, [url, accentTouched]);
 
   const targetIso2 = pickerIso2 ?? iso2;
   const targetCountry = targetIso2 ? countriesMap[targetIso2] : null;
@@ -216,7 +226,6 @@ export default function BidModal() {
     const meta = cleanUrl ? await fetchOgMeta(cleanUrl) : null;
     const pitch = ((meta?.description || meta?.title || host) || '').slice(0, 120);
     const derivedAlias = aliasFromUrl(cleanUrl) || user.alias;
-    const accent = cleanUrl ? accentFromUrl(cleanUrl) : randomColor();
     try {
       const r = await api.postBid({
         countryId: targetIso2,
@@ -350,6 +359,32 @@ export default function BidModal() {
                 <input type="url" placeholder="https://yoursite.com" value={url} onChange={(e) => setUrl(e.target.value)} />
                 <div className="err">{errors.url || ''}</div>
 
+                <label>Territory color</label>
+                <div className="accent-row">
+                  <input
+                    type="color"
+                    className="accent-picker"
+                    value={accent}
+                    onChange={(e) => { setAccentTouched(true); setAccent(e.target.value); }}
+                    data-testid="accent-picker"
+                    aria-label="Pick your territory color"
+                  />
+                  <input
+                    type="text"
+                    className="accent-hex"
+                    value={accent}
+                    onChange={(e) => {
+                      const v = e.target.value.trim();
+                      if (/^#[0-9a-fA-F]{6}$/.test(v)) { setAccentTouched(true); setAccent(v); }
+                      else if (/^[0-9a-fA-F]{6}$/.test(v)) { setAccentTouched(true); setAccent('#' + v); }
+                    }}
+                    aria-label="Territory color hex"
+                  />
+                  {!accentTouched && url.trim() && URL_RE.test(url.trim()) ? (
+                    <span className="accent-hint">auto from domain</span>
+                  ) : null}
+                </div>
+
                 <label>Bid amount (USD) *</label>
                 <input type="number" min={minAmount} step="0.01" placeholder={String(minAmount)} value={amount} onChange={(e) => setAmountStr(e.target.value)} />
                 <div className="err">{errors.amount || ''}</div>
@@ -359,7 +394,7 @@ export default function BidModal() {
                 {showPreview ? (
                   <div className="preview" data-testid="bid-preview">
                     <div className="ptitle">Live preview</div>
-                    <div className="preview-banner" style={{ borderColor: accentFromUrl(url) }}>
+                    <div className="preview-banner" style={{ borderColor: accent }}>
                       {previewFavicon ? (
                         <img className="fav" src={previewFavicon} alt="" onError={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />
                       ) : null}

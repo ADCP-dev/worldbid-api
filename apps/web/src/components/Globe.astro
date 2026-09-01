@@ -22,12 +22,11 @@
     appendEvent,
     makeEvent,
   } from '../stores/worldbid';
-  import { countries, activeBidForResolved, heatColorForCountry } from '../stores/bids';
+  import { countries, activeBidForResolved } from '../stores/bids';
   import { userSession } from '../stores/session';
   import { dayBandOverride } from '../stores/ui';
   import { countryFeatures, globeInstance, flyTo } from '../stores/globe';
   import { fetchCountries, centroid, iso2Of, type CountryFeature } from '../lib/geojson';
-  import { heatColorFor } from '../lib/heatmap';
   import { minBidForKind } from '../lib/economy';
   import { placePlaneBid } from '../lib/bid-engine';
   import type { Bid } from '../lib/types';
@@ -112,6 +111,8 @@
   }
 
   // --- globe state ---
+  // Vacant fill: pale grey — invites the next claim (no more heat tiers).
+  const VACANT_COLOR = '#D8DEE6';
   let world: any = null;
   let features: CountryFeature[] = [];
   let hovered: string | null = null;
@@ -132,8 +133,16 @@
       if (iso2 === hovered) return lightenHex(base, 0.2);
       return base;
     }
-    // L0-L4 heat from the active bid amount (vitalicio)
-    const base = heatColorForCountry.get()(iso2).color;
+    // Claimed territory: the OWNER's chosen color (bid.accentColor).
+    const cActive = c?.activeBidId ? activeBidForResolved.get()(iso2) : null;
+    if (cActive) {
+      const base = cActive.accentColor || '#3B82F6';
+      if (iso2 === sel) return lightenHex(base, 0.35);
+      if (iso2 === hovered) return lightenHex(base, 0.2);
+      return base;
+    }
+    // Vacant: pale grey — invites the next claim.
+    const base = VACANT_COLOR;
     if (iso2 === sel) return lightenHex(base, 0.35);
     if (iso2 === hovered) return lightenHex(base, 0.2);
     return base;
@@ -385,7 +394,13 @@
       .polygonSideColor(() => 'rgba(0,0,0,0.15)')
       .polygonStrokeColor((feat: any) => {
         const iso2 = feat.__iso2 as string;
-        const base = heatColorForCountry.get()(iso2).color;
+        const c = countries.get()[iso2];
+        const cActive = c?.activeBidId ? activeBidForResolved.get()(iso2) : null;
+        const base = cActive
+          ? cActive.accentColor || '#3B82F6'
+          : iso2 === 'IB' || (c && c.developer)
+            ? '#8b5cf6'
+            : VACANT_COLOR;
         // Darken the base color for the stroke border
         return darkenHex(base, 0.4);
       })
