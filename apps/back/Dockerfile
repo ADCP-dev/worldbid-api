@@ -31,14 +31,15 @@ RUN apk add --no-cache git \
     && corepack enable && corepack prepare pnpm@9.0.0 --activate
 
 COPY --from=deps /usr/src/app/node_modules ./node_modules
+COPY --from=deps /usr/src/app/apps/back/node_modules ./apps/back/node_modules
+COPY --from=deps /usr/src/app/packages/emails/node_modules ./packages/emails/node_modules
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/back ./apps/back
 COPY packages/emails ./packages/emails
 
 RUN echo "" > apps/back/.env
-# Build desde la raíz del monorepo; export PATH de los bins hoisted + del paquete
-ENV PATH="/usr/src/app/node_modules/.bin:/usr/src/app/apps/back/node_modules/.bin:${PATH}"
-RUN pnpm --filter foundation-nestjs run build
+WORKDIR /usr/src/app/apps/back
+RUN pnpm run build
 
 # ---- Stage 3: prod runtime ----
 FROM node:22-alpine AS prod
