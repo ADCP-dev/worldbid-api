@@ -36,8 +36,8 @@ COPY apps/back ./apps/back
 COPY packages/emails ./packages/emails
 
 RUN echo "" > apps/back/.env
-WORKDIR /usr/src/app/apps/back
-RUN pnpm run build
+# Build desde la raíz del monorepo (los bins quedan hoisted en /usr/src/app/node_modules)
+RUN pnpm --filter foundation-nestjs run build
 
 # ---- Stage 3: prod runtime ----
 FROM node:22-alpine AS prod
