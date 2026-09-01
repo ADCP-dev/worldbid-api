@@ -8,6 +8,7 @@ import { WorldbidEventEntity } from './infrastructure/entities/worldbid-event.en
 import { BidsService } from './bids.service';
 import { BidCheckoutService } from './bid-checkout.service';
 import { BidSettlementService } from './bid-settlement.service';
+import { BidEmailRendererService } from './bid-email-renderer.service';
 import { WorldbidController } from './worldbid.controller';
 import { stripeProvider, STRIPE_PROVIDER } from '@ext/stripe/stripe.provider';
 
@@ -28,6 +29,7 @@ import { stripeProvider, STRIPE_PROVIDER } from '@ext/stripe/stripe.provider';
     BidsService,
     BidCheckoutService,
     BidSettlementService,
+    BidEmailRendererService,
     {
       // BidSettlementService receives verified Stripe events via the
       // extension's WebhooksService (see STRIPE_EVENT_LISTENERS contract).
