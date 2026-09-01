@@ -34,6 +34,7 @@ export class BidEmailRendererService implements OnModuleDestroy {
   private readonly logger = new Logger(BidEmailRendererService.name);
 
   private readonly pnpmDir = resolve(process.cwd(), '../../node_modules/.pnpm');
+  private readonly flatNodeModules = resolve(process.cwd(), '../../node_modules');
   private readonly emailsDir = resolve(
     process.cwd(),
     '../../packages/emails/emails',
@@ -45,9 +46,20 @@ export class BidEmailRendererService implements OnModuleDestroy {
     null;
   private closeSSR: (() => Promise<void>) | null = null;
 
-  /** Resolve the single installed version dir of a pnpm package.
-   *  pnpm layout: node_modules/.pnpm/<pkg>@<v>-<hash>/node_modules/<pkg>/ */
+  /** Resolve an installed package root. Prefers the pnpm store layout
+   *  (.pnpm/<pkg>@<v>-<hash>/node_modules/<pkg>); falls back to the flat
+   *  node_modules (docker/hoisted installs). Throws only if neither exists. */
   private pkg(prefix: string): string {
+    const fs = require('fs');
+    const flat = resolve(this.flatNodeModules, prefix.replace(/\+.*$/, '').replace('@maizzle+', '@maizzle/'));
+    // 1) flat node_modules (works in hoisted/docker installs)
+    try {
+      if (fs.existsSync(resolve(this.flatNodeModules, prefix.split('@').filter(Boolean)[0]))) {
+        const direct = resolve(this.flatNodeModules, prefix.split('@').filter(Boolean)[0]);
+        if (fs.existsSync(direct)) return direct;
+      }
+    } catch { /* fall through */ }
+    // 2) pnpm store layout
     const dir = readdirSync(this.pnpmDir)
       .filter((d) => d.startsWith(prefix))
       .sort()
@@ -57,7 +69,6 @@ export class BidEmailRendererService implements OnModuleDestroy {
     // or "react@18.3.1_<hash>" (unscoped). Package name = strip @<version>+<hash>
     let pkgName: string;
     if (dir.startsWith('@')) {
-      // @scope+name@version -> @scope/name
       const plus = dir.indexOf('+');
       const at = dir.indexOf('@', plus);
       pkgName = dir.slice(0, plus) + '/' + dir.slice(plus + 1, at);
