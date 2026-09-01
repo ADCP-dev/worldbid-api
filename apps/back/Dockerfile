@@ -36,7 +36,8 @@ COPY apps/back ./apps/back
 COPY packages/emails ./packages/emails
 
 RUN echo "" > apps/back/.env
-# Build desde la raíz del monorepo (los bins quedan hoisted en /usr/src/app/node_modules)
+# Build desde la raíz del monorepo; export PATH de los bins hoisted + del paquete
+ENV PATH="/usr/src/app/node_modules/.bin:/usr/src/app/apps/back/node_modules/.bin:${PATH}"
 RUN pnpm --filter foundation-nestjs run build
 
 # ---- Stage 3: prod runtime ----
