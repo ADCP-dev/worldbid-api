@@ -49,7 +49,9 @@ RUN apk add --no-cache bash git
 ENV NODE_ENV=production
 WORKDIR /usr/src/app
 
-COPY --from=build /usr/src/app/node_modules ./node_modules
+# El paquete back trae SU node_modules (typeorm, nest, etc.) — el de la raíz
+# del workspace es de turbo/eslint y NO tiene las deps de runtime.
+COPY --from=build /usr/src/app/apps/back/node_modules ./node_modules
 COPY apps/back/package.json ./
 COPY --from=build /usr/src/app/apps/back/dist ./dist
 COPY apps/back/startup.sh /opt/startup.sh
