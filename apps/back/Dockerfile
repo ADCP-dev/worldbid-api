@@ -49,9 +49,11 @@ RUN apk add --no-cache bash git
 ENV NODE_ENV=production
 WORKDIR /usr/src/app
 
-# El paquete back trae SU node_modules (typeorm, nest, etc.) — el de la raíz
-# del workspace es de turbo/eslint y NO tiene las deps de runtime.
+# Runtime deps: el root node_modules tiene las hoisted (la mayoría) y el del
+# paquete back las que pnpm no hoisteó. Copio back PRIMERO y root ENCIMA para
+# que lo hoisted gane, y .pnpm del root resuelve el resto.
 COPY --from=build /usr/src/app/apps/back/node_modules ./node_modules
+COPY --from=build /usr/src/app/node_modules ./node_modules
 COPY apps/back/package.json ./
 COPY --from=build /usr/src/app/apps/back/dist ./dist
 COPY apps/back/startup.sh /opt/startup.sh
